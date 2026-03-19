@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Tabs, { Tab } from '../../components/Common/Tabs';
@@ -35,16 +35,7 @@ const GenerateBills: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadBills();
-    loadZones();
-  }, []);
-
-  useEffect(() => {
-    filterBills();
-  }, [bills, searchTerm, zoneFilter]);
-
-  const loadBills = async () => {
+  const loadBills = useCallback(async () => {
     setLoading(true);
     try {
       const mockBills: Bill[] = [
@@ -71,9 +62,9 @@ const GenerateBills: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
-  const loadZones = async () => {
+  const loadZones = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
@@ -83,9 +74,9 @@ const GenerateBills: React.FC = () => {
     } catch (error) {
       console.error('Error loading zones:', error);
     }
-  };
+  }, [API_URL]);
 
-  const filterBills = () => {
+  const filterBills = useCallback(() => {
     let filtered = bills;
 
     if (searchTerm) {
@@ -97,7 +88,16 @@ const GenerateBills: React.FC = () => {
     }
 
     setFilteredBills(filtered);
-  };
+  }, [bills, searchTerm]);
+
+  useEffect(() => {
+    loadBills();
+    loadZones();
+  }, [loadBills, loadZones]);
+
+  useEffect(() => {
+    filterBills();
+  }, [filterBills]);
 
   const handleViewBill = (bill: Bill) => {
     setSelectedBill(bill);

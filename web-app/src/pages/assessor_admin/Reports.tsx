@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import Tabs, { Tab } from '../../components/Common/Tabs';
 import FormInput from '../../components/Common/FormInput';
@@ -49,15 +49,7 @@ const Reports: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadZones();
-    loadReportOverview();
-    loadConsumerReport();
-    loadBillingReport();
-    loadCollectionReport();
-  }, []);
-
-  const loadZones = async () => {
+  const loadZones = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
@@ -67,9 +59,9 @@ const Reports: React.FC = () => {
     } catch (error) {
       console.error('Error loading zones:', error);
     }
-  };
+  }, [API_URL]);
 
-  const loadReportOverview = async () => {
+  const loadReportOverview = useCallback(async () => {
     try {
       setTotalConsumers('150');
       setTotalBills('145');
@@ -77,7 +69,15 @@ const Reports: React.FC = () => {
     } catch (error) {
       console.error('Error loading report overview:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadZones();
+    loadReportOverview();
+    loadConsumerReport();
+    loadBillingReport();
+    loadCollectionReport();
+  }, [loadZones, loadReportOverview]);
 
   const loadConsumerReport = async () => {
     setLoading(true);

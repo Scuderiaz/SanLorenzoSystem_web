@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
@@ -35,11 +35,7 @@ const Settings: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadCurrentRates();
-  }, []);
-
-  const loadCurrentRates = async () => {
+  const loadCurrentRates = useCallback(async () => {
     setLoading(true);
     try {
       const mockRates: WaterRate[] = [
@@ -56,7 +52,11 @@ const Settings: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    loadCurrentRates();
+  }, [loadCurrentRates]);
 
   const handleSaveWaterRates = async () => {
     try {

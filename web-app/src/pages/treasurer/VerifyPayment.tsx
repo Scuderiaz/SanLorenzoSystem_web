@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import Tabs, { Tab } from '../../components/Common/Tabs';
 import DataTable from '../../components/Common/DataTable';
@@ -27,11 +27,7 @@ const VerifyPayment: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadPayments();
-  }, []);
-
-  const loadPayments = async () => {
+  const loadPayments = useCallback(async () => {
     setLoading(true);
     try {
       const mockPending: PendingPayment[] = [
@@ -67,7 +63,11 @@ const VerifyPayment: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    loadPayments();
+  }, [loadPayments]);
 
   const handleVerifyPayment = async (payment: PendingPayment) => {
     if (!window.confirm(`Verify payment ${payment.OR_No}?`)) return;

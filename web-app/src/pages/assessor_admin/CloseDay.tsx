@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import { useToast } from '../../components/Common/ToastContainer';
 import './CloseDay.css';
@@ -24,22 +24,7 @@ const CloseDay: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    const today = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    setCurrentDate(today);
-    loadTransactions();
-  }, []);
-
-  useEffect(() => {
-    const diff = systemTotal - cashOnHand;
-    setDiscrepancy(diff);
-  }, [systemTotal, cashOnHand]);
-
-  const loadTransactions = async () => {
+  const loadTransactions = useCallback(async () => {
     setLoading(true);
     try {
       const mockTransactions: Transaction[] = [
@@ -69,7 +54,22 @@ const CloseDay: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    setCurrentDate(today);
+    loadTransactions();
+  }, [loadTransactions]);
+
+  useEffect(() => {
+    const diff = systemTotal - cashOnHand;
+    setDiscrepancy(diff);
+  }, [systemTotal, cashOnHand]);
 
   const handleLockDay = async () => {
     if (discrepancy !== 0) {

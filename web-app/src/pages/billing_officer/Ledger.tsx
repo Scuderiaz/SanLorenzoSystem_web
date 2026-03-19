@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
@@ -40,17 +40,7 @@ const Ledger: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadLedgerData();
-    loadZones();
-    loadClassifications();
-  }, []);
-
-  useEffect(() => {
-    filterData();
-  }, [ledgerData, searchTerm, zoneFilter, classificationFilter]);
-
-  const loadLedgerData = async () => {
+  const loadLedgerData = useCallback(async () => {
     setLoading(true);
     try {
       const mockData: LedgerEntry[] = [
@@ -80,9 +70,9 @@ const Ledger: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
-  const loadZones = async () => {
+  const loadZones = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
@@ -92,9 +82,9 @@ const Ledger: React.FC = () => {
     } catch (error) {
       console.error('Error loading zones:', error);
     }
-  };
+  }, [API_URL]);
 
-  const loadClassifications = async () => {
+  const loadClassifications = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/classifications`);
       const result = await response.json();
@@ -104,9 +94,9 @@ const Ledger: React.FC = () => {
     } catch (error) {
       console.error('Error loading classifications:', error);
     }
-  };
+  }, [API_URL]);
 
-  const filterData = () => {
+  const filterData = useCallback(() => {
     let filtered = ledgerData;
 
     if (searchTerm) {
@@ -118,7 +108,17 @@ const Ledger: React.FC = () => {
     }
 
     setFilteredData(filtered);
-  };
+  }, [ledgerData, searchTerm]);
+
+  useEffect(() => {
+    loadLedgerData();
+    loadZones();
+    loadClassifications();
+  }, [loadLedgerData, loadZones, loadClassifications]);
+
+  useEffect(() => {
+    filterData();
+  }, [filterData]);
 
   const handleViewLedger = (entry: LedgerEntry) => {
     setSelectedConsumer(entry);

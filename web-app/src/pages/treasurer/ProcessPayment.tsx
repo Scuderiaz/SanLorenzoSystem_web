@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
@@ -40,11 +40,7 @@ const ProcessPayment: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadPaymentHistory();
-  }, []);
-
-  const loadPaymentHistory = async () => {
+  const loadPaymentHistory = useCallback(async () => {
     setLoading(true);
     try {
       const mockPayments: Payment[] = [
@@ -64,7 +60,11 @@ const ProcessPayment: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPaymentHistory();
+  }, [loadPaymentHistory]);
 
   const handleSearchConsumer = async () => {
     if (!searchTerm.trim()) {

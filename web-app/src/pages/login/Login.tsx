@@ -99,7 +99,7 @@ const Login: React.FC = () => {
                 value={userType}
                 onChange={(e) => setUserType(e.target.value)}
               >
-                <option value="">Select User Type</option>
+                <option value="" disabled hidden>Select User Type</option>
                 <option value="1">Admin</option>
                 <option value="3">Billing Officer</option>
                 <option value="4">Treasurer/Cashier</option>
@@ -115,7 +115,7 @@ const Login: React.FC = () => {
           </form>
         </div>
         <div className="login-footer">
-          <p>&copy; 2025 Municipality of San Lorenzo Ruiz</p>
+          <p>&copy; {new Date().getFullYear()} Municipality of San Lorenzo Ruiz</p>
         </div>
       </div>
     </div>
