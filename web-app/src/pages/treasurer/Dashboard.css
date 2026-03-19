@@ -1,0 +1,88 @@
+.treasurer-dashboard-page {
+  padding: 20px;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.dashboard-cards .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-cards .card-header i {
+  font-size: 24px;
+  color: #1a73e8;
+}
+
+.card-value {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #1a73e8;
+  margin: 10px 0;
+}
+
+.card-label {
+  color: #5f6368;
+  font-size: 14px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-pending {
+  background: #ffc107;
+  color: #333;
+}
+
+.status-validated {
+  background: #28a745;
+  color: white;
+}
+
+.status-rejected {
+  background: #dc3545;
+  color: white;
+}
+
+.form-container {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+  text-align: center;
+}
+
+.form-title {
+  margin: 0 0 10px 0;
+  color: #202124;
+  font-size: 20px;
+}
+
+.form-description {
+  color: #5f6368;
+  margin-bottom: 20px;
+}
+
+.btn-large {
+  padding: 15px 30px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}

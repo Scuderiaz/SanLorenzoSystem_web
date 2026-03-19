@@ -1,0 +1,46 @@
+.reports-page {
+  padding: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.dashboard-cards .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-cards .card-header i {
+  font-size: 24px;
+  color: #1a73e8;
+}
+
+.card-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #202124;
+  margin: 10px 0;
+}
+
+.card-label {
+  font-size: 14px;
+  color: #5f6368;
+}
+
+@media (max-width: 768px) {
+  .form-grid,
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}

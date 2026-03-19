@@ -1,0 +1,183 @@
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './components/Common/ToastContainer';
+import { initOfflineDB } from './config/database';
+import { syncService } from './services/api';
+import Login from './pages/login/Login';
+import AssessorDashboard from './pages/assessor_admin/Dashboard';
+import Users from './pages/assessor_admin/Users';
+import AssessorConsumers from './pages/assessor_admin/Consumers';
+import Settings from './pages/assessor_admin/Settings';
+import Maintenance from './pages/assessor_admin/Maintenance';
+import Reports from './pages/assessor_admin/Reports';
+import CloseDay from './pages/assessor_admin/CloseDay';
+import BillingDashboard from './pages/billing_officer/Dashboard';
+import BillingConsumers from './pages/billing_officer/Consumers';
+import MeterReading from './pages/billing_officer/MeterReading';
+import GenerateBills from './pages/billing_officer/GenerateBills';
+import BillingLedger from './pages/billing_officer/Ledger';
+import TreasurerDashboard from './pages/treasurer/Dashboard';
+import ProcessPayment from './pages/treasurer/ProcessPayment';
+import VerifyPayment from './pages/treasurer/VerifyPayment';
+import ViewBill from './pages/treasurer/ViewBill';
+import './App.css';
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+};
+
+const RoleDashboard: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.role_id === 1) return <AssessorDashboard />;
+  if (user?.role_id === 3) return <BillingDashboard />;
+  if (user?.role_id === 4) return <TreasurerDashboard />;
+  return <AssessorDashboard />;
+};
+
+const RoleConsumers: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.role_id === 1) return <AssessorConsumers />;
+  if (user?.role_id === 3) return <BillingConsumers />;
+  return <AssessorConsumers />;
+};
+
+const AppContent: React.FC = () => {
+  const { isOnline } = useAuth();
+
+  useEffect(() => {
+    initOfflineDB().catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (isOnline) {
+      syncService.syncOfflineData().catch(console.error);
+    }
+  }, [isOnline]);
+
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <RoleDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute>
+            <Users />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/consumers"
+        element={
+          <ProtectedRoute>
+            <RoleConsumers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/maintenance"
+        element={
+          <ProtectedRoute>
+            <Maintenance />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <Reports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/close-day"
+        element={
+          <ProtectedRoute>
+            <CloseDay />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/meter-reading"
+        element={
+          <ProtectedRoute>
+            <MeterReading />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/generate-bills"
+        element={
+          <ProtectedRoute>
+            <GenerateBills />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ledger"
+        element={
+          <ProtectedRoute>
+            <BillingLedger />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payments"
+        element={
+          <ProtectedRoute>
+            <ProcessPayment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/verify-payment"
+        element={
+          <ProtectedRoute>
+            <VerifyPayment />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/view-bill"
+        element={
+          <ProtectedRoute>
+            <ViewBill />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/" element={<Navigate to="/login" />} />
+    </Routes>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;

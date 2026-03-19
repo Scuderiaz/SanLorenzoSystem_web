@@ -1,0 +1,79 @@
+.maintenance-page {
+  padding: 20px;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.dashboard-cards .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-cards .card-header i {
+  font-size: 24px;
+  color: #1a73e8;
+}
+
+.card-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #202124;
+  margin: 10px 0;
+}
+
+.card-label {
+  font-size: 14px;
+  color: #5f6368;
+}
+
+.log-type {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.log-error {
+  background: #dc3545;
+  color: white;
+}
+
+.log-warning {
+  background: #ffc107;
+  color: #333;
+}
+
+.log-info {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-info {
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+}
+
+.btn-info:hover {
+  background-color: #138496;
+}
+
+.form-control {
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}

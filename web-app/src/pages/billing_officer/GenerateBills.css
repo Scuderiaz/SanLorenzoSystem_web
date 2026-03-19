@@ -1,0 +1,165 @@
+.generate-bills-page {
+  padding: 20px;
+}
+
+.search-filters {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.search-container {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.filter-container {
+  display: flex;
+  gap: 10px;
+}
+
+.form-control {
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-paid {
+  background: #28a745;
+  color: white;
+}
+
+.status-unpaid {
+  background: #dc3545;
+  color: white;
+}
+
+.status-pending {
+  background: #ffc107;
+  color: #333;
+}
+
+.bill-preview {
+  padding: 20px;
+}
+
+.bill-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #1a73e8;
+}
+
+.bill-title h2 {
+  margin: 0;
+  color: #1a73e8;
+  font-size: 24px;
+}
+
+.bill-title p {
+  margin: 5px 0;
+  color: #5f6368;
+}
+
+.bill-title h3 {
+  margin: 15px 0 0 0;
+  color: #202124;
+  font-size: 20px;
+}
+
+.bill-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.bill-customer p,
+.bill-details p {
+  margin: 10px 0;
+  color: #202124;
+}
+
+.bill-customer strong,
+.bill-details strong {
+  color: #5f6368;
+  display: inline-block;
+  min-width: 140px;
+}
+
+.bill-consumption {
+  margin-bottom: 30px;
+}
+
+.bill-consumption table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bill-consumption th,
+.bill-consumption td {
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #dadce0;
+}
+
+.bill-consumption th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #202124;
+}
+
+.bill-amount {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px solid #1a73e8;
+}
+
+.bill-amount h3 {
+  margin: 0 0 10px 0;
+  color: #5f6368;
+  font-size: 16px;
+}
+
+.bill-amount h2 {
+  margin: 0;
+  color: #1a73e8;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .search-filters {
+    flex-direction: column;
+  }
+
+  .bill-info {
+    grid-template-columns: 1fr;
+  }
+}

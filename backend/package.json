@@ -1,0 +1,28 @@
+{
+  "name": "slr-water-billing-backend",
+  "version": "1.0.0",
+  "description": "Backend API for San Lorenzo Ruiz Water Billing System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "water",
+    "billing",
+    "api"
+  ],
+  "author": "San Lorenzo Ruiz",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.87.1",
+    "better-sqlite3": "^12.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
