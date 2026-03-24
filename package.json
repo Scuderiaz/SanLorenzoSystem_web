@@ -1,0 +1,25 @@
+{
+  "name": "san-lorenzo-wwsys",
+  "version": "1.0.0",
+  "description": "San Lorenzo Water Billing System - Monorepo",
+  "scripts": {
+    "start": "concurrently \"npm run start --prefix backend\" \"npm run start --prefix web-app\" --names \"BACKEND,FRONTEND\" --prefix-colors \"red,blue\" --kill-others-on-fail",
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run start --prefix web-app\" --names \"BACKEND,FRONTEND\" --prefix-colors \"red,blue\" --kill-others-on-fail"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Scuderiaz/SanLorenzoSystem_web.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Scuderiaz/SanLorenzoSystem_web/issues"
+  },
+  "homepage": "https://github.com/Scuderiaz/SanLorenzoSystem_web#readme"
+}
