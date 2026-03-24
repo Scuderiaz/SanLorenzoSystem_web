@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
@@ -10,161 +11,145 @@ app.use(cors());
 app.use(express.json());
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('⚠️  WARNING: Supabase credentials not found in .env file');
-  console.log('The server will run but database operations will fail.');
-} else {
-  console.log('✅ Supabase URL:', supabaseUrl);
-  console.log('✅ Supabase Key (first 20 chars):', supabaseKey.substring(0, 20) + '...');
-  
-  // Decode JWT to check role
-  try {
-    const payload = supabaseKey.split('.')[1];
-    const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
-    console.log('✅ Key type:', decoded.role === 'service_role' ? 'SERVICE ROLE ✓' : 'ANON');
-  } catch (e) {
-    console.log('✅ Key type: Unable to decode');
-  }
-}
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-// Initialize SQLite for offline mode
-const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
+const pool = new Pool({
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT || 5432),
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'appdb',
+});
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS roles (
+      "Role_ID" SERIAL PRIMARY KEY,
+      "Role_Name" TEXT NOT NULL
+    );
 
-const dbPath = path.join(dataDir, 'water_billing.db');
-const db = new Database(dbPath);
+    CREATE TABLE IF NOT EXISTS accounts (
+      "AccountID" SERIAL PRIMARY KEY,
+      "Username" TEXT NOT NULL UNIQUE,
+      "Password" TEXT NOT NULL,
+      "Full_Name" TEXT,
+      "Role_ID" INTEGER,
+      CONSTRAINT accounts_role_fk FOREIGN KEY ("Role_ID") REFERENCES roles("Role_ID")
+    );
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS roles (
-    Role_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Role_Name TEXT NOT NULL
-  );
+    CREATE TABLE IF NOT EXISTS zones (
+      "Zone_ID" SERIAL PRIMARY KEY,
+      "Zone_Name" TEXT NOT NULL
+    );
 
-  CREATE TABLE IF NOT EXISTS accounts (
-    AccountID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Username TEXT NOT NULL UNIQUE,
-    Password TEXT NOT NULL,
-    Full_Name TEXT,
-    Role_ID INTEGER,
-    FOREIGN KEY (Role_ID) REFERENCES roles(Role_ID)
-  );
+    CREATE TABLE IF NOT EXISTS classifications (
+      "Classification_ID" SERIAL PRIMARY KEY,
+      "Classification_Name" TEXT NOT NULL
+    );
 
-  CREATE TABLE IF NOT EXISTS zones (
-    Zone_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Zone_Name TEXT NOT NULL
-  );
+    CREATE TABLE IF NOT EXISTS consumer (
+      "Consumer_ID" SERIAL PRIMARY KEY,
+      "First_Name" TEXT,
+      "Last_Name" TEXT,
+      "Address" TEXT,
+      "Zone_ID" INTEGER,
+      "Classification_ID" INTEGER,
+      "Login_ID" INTEGER,
+      "Account_Number" TEXT UNIQUE,
+      "Meter_Number" TEXT,
+      "Status" TEXT DEFAULT 'Active',
+      "Contact_Number" TEXT,
+      "Connection_Date" TEXT,
+      CONSTRAINT consumer_zone_fk FOREIGN KEY ("Zone_ID") REFERENCES zones("Zone_ID"),
+      CONSTRAINT consumer_classification_fk FOREIGN KEY ("Classification_ID") REFERENCES classifications("Classification_ID"),
+      CONSTRAINT consumer_login_fk FOREIGN KEY ("Login_ID") REFERENCES accounts("AccountID")
+    );
 
-  CREATE TABLE IF NOT EXISTS classifications (
-    Classification_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Classification_Name TEXT NOT NULL
-  );
+    CREATE TABLE IF NOT EXISTS meters (
+      "Meter_ID" SERIAL PRIMARY KEY,
+      "Consumer_ID" INTEGER UNIQUE,
+      "Meter_Serial_Number" TEXT,
+      "Meter_Size" TEXT,
+      CONSTRAINT meters_consumer_fk FOREIGN KEY ("Consumer_ID") REFERENCES consumer("Consumer_ID")
+    );
 
-  CREATE TABLE IF NOT EXISTS consumer (
-    Consumer_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    First_Name TEXT,
-    Last_Name TEXT,
-    Address TEXT,
-    Zone_ID INTEGER,
-    Classification_ID INTEGER,
-    Login_ID INTEGER,
-    Account_Number TEXT UNIQUE,
-    Meter_Number TEXT,
-    Status TEXT DEFAULT 'Active',
-    Contact_Number TEXT,
-    Connection_Date TEXT,
-    FOREIGN KEY (Zone_ID) REFERENCES zones(Zone_ID),
-    FOREIGN KEY (Classification_ID) REFERENCES classifications(Classification_ID),
-    FOREIGN KEY (Login_ID) REFERENCES accounts(AccountID)
-  );
+    CREATE TABLE IF NOT EXISTS meterreadings (
+      "Reading_ID" SERIAL PRIMARY KEY,
+      "Route_ID" INTEGER,
+      "Consumer_ID" INTEGER,
+      "Meter_ID" INTEGER,
+      "Meter_Reader_ID" INTEGER,
+      "Created_Date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      "Reading_Status" TEXT DEFAULT 'Normal',
+      "Previous_Reading" DOUBLE PRECISION DEFAULT 0,
+      "Current_Reading" DOUBLE PRECISION DEFAULT 0,
+      "Consumption" DOUBLE PRECISION DEFAULT 0,
+      "Notes" TEXT,
+      "Status" TEXT DEFAULT 'Pending',
+      "Reading_Date" DATE DEFAULT CURRENT_DATE,
+      CONSTRAINT meterreadings_consumer_fk FOREIGN KEY ("Consumer_ID") REFERENCES consumer("Consumer_ID"),
+      CONSTRAINT meterreadings_meter_fk FOREIGN KEY ("Meter_ID") REFERENCES meters("Meter_ID")
+    );
 
-  CREATE TABLE IF NOT EXISTS meters (
-    Meter_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Consumer_ID INTEGER UNIQUE,
-    Meter_Serial_Number TEXT,
-    Meter_Size TEXT,
-    FOREIGN KEY (Consumer_ID) REFERENCES consumer(Consumer_ID)
-  );
+    CREATE TABLE IF NOT EXISTS bills (
+      "Bill_ID" SERIAL PRIMARY KEY,
+      "Consumer_ID" INTEGER,
+      "Reading_ID" INTEGER,
+      "Bill_Date" DATE DEFAULT CURRENT_DATE,
+      "Due_Date" TEXT,
+      "Total_Amount" DOUBLE PRECISION DEFAULT 0,
+      "Status" TEXT DEFAULT 'Unpaid',
+      CONSTRAINT bills_consumer_fk FOREIGN KEY ("Consumer_ID") REFERENCES consumer("Consumer_ID"),
+      CONSTRAINT bills_reading_fk FOREIGN KEY ("Reading_ID") REFERENCES meterreadings("Reading_ID")
+    );
 
-  CREATE TABLE IF NOT EXISTS meterreadings (
-    Reading_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Route_ID INTEGER,
-    Consumer_ID INTEGER,
-    Meter_ID INTEGER,
-    Meter_Reader_ID INTEGER,
-    Created_Date TEXT DEFAULT CURRENT_TIMESTAMP,
-    Reading_Status TEXT DEFAULT 'Normal',
-    Previous_Reading REAL DEFAULT 0,
-    Current_Reading REAL DEFAULT 0,
-    Consumption REAL DEFAULT 0,
-    Notes TEXT,
-    Status TEXT DEFAULT 'Pending',
-    Reading_Date TEXT DEFAULT CURRENT_DATE,
-    FOREIGN KEY (Consumer_ID) REFERENCES consumer(Consumer_ID),
-    FOREIGN KEY (Meter_ID) REFERENCES meters(Meter_ID)
-  );
+    CREATE TABLE IF NOT EXISTS payments (
+      "Payment_ID" SERIAL PRIMARY KEY,
+      "Bill_ID" INTEGER,
+      "Consumer_ID" INTEGER,
+      "Amount_Paid" DOUBLE PRECISION,
+      "Payment_Date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      "Payment_Method" TEXT,
+      "Reference_Number" TEXT,
+      CONSTRAINT payments_bill_fk FOREIGN KEY ("Bill_ID") REFERENCES bills("Bill_ID"),
+      CONSTRAINT payments_consumer_fk FOREIGN KEY ("Consumer_ID") REFERENCES consumer("Consumer_ID")
+    );
+  `);
 
-  CREATE TABLE IF NOT EXISTS bills (
-    Bill_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Consumer_ID INTEGER,
-    Reading_ID INTEGER,
-    Bill_Date TEXT DEFAULT CURRENT_DATE,
-    Due_Date TEXT,
-    Total_Amount REAL DEFAULT 0,
-    Status TEXT DEFAULT 'Unpaid',
-    FOREIGN KEY (Consumer_ID) REFERENCES consumer(Consumer_ID),
-    FOREIGN KEY (Reading_ID) REFERENCES meterreadings(Reading_ID)
-  );
+  const seedRes = await pool.query('SELECT COUNT(*)::int AS count FROM roles');
+  if (seedRes.rows[0].count === 0) {
+    await pool.query('INSERT INTO roles ("Role_Name") VALUES ($1), ($2), ($3), ($4), ($5)', [
+      'Admin',
+      'Meter Reader',
+      'Billing Officer',
+      'Cashier',
+      'Consumer',
+    ]);
 
-  CREATE TABLE IF NOT EXISTS payments (
-    Payment_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Bill_ID INTEGER,
-    Consumer_ID INTEGER,
-    Amount_Paid REAL,
-    Payment_Date TEXT DEFAULT CURRENT_TIMESTAMP,
-    Payment_Method TEXT,
-    Reference_Number TEXT,
-    FOREIGN KEY (Bill_ID) REFERENCES bills(Bill_ID),
-    FOREIGN KEY (Consumer_ID) REFERENCES consumer(Consumer_ID)
-  );
-`);
+    await pool.query(
+      'INSERT INTO accounts ("Username", "Password", "Full_Name", "Role_ID") VALUES ($1, $2, $3, $4), ($5, $6, $7, $8), ($9, $10, $11, $12)',
+      [
+        'admin', 'admin123', 'System Administrator', 1,
+        'billing', 'billing123', 'Billing Officer', 3,
+        'cashier', 'cashier123', 'Cashier Staff', 4,
+      ]
+    );
 
-const seedData = db.prepare('SELECT COUNT(*) as count FROM roles').get();
-if (seedData.count === 0) {
-  const insertRole = db.prepare('INSERT INTO roles (Role_Name) VALUES (?)');
-  insertRole.run('Admin');
-  insertRole.run('Meter Reader');
-  insertRole.run('Billing Officer');
-  insertRole.run('Cashier');
-  insertRole.run('Consumer');
+    await pool.query('INSERT INTO zones ("Zone_Name") VALUES ($1), ($2), ($3), ($4)', [
+      'Zone 1',
+      'Zone 2',
+      'Zone 3',
+      'Zone 4',
+    ]);
 
-  const insertAccount = db.prepare('INSERT INTO accounts (Username, Password, Full_Name, Role_ID) VALUES (?, ?, ?, ?)');
-  insertAccount.run('admin', 'admin123', 'System Administrator', 1);
-  insertAccount.run('billing', 'billing123', 'Billing Officer', 3);
-  insertAccount.run('cashier', 'cashier123', 'Cashier Staff', 4);
-
-  const insertZone = db.prepare('INSERT INTO zones (Zone_Name) VALUES (?)');
-  insertZone.run('Zone 1');
-  insertZone.run('Zone 2');
-  insertZone.run('Zone 3');
-  insertZone.run('Zone 4');
-
-  const insertClassification = db.prepare('INSERT INTO classifications (Classification_Name) VALUES (?)');
-  insertClassification.run('Residential');
-  insertClassification.run('Commercial');
-  insertClassification.run('Industrial');
-
-  console.log('✅ Database seeded with initial data');
+    await pool.query('INSERT INTO classifications ("Classification_Name") VALUES ($1), ($2), ($3)', [
+      'Residential',
+      'Commercial',
+      'Industrial',
+    ]);
+  }
 }
 
 // Get roles
