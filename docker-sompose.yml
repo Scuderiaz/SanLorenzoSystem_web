@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: water_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: waterbilling
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - water_network
+
+  backend:
+    build: ./backend
+    container_name: water_backend
+    restart: always
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    env_file:
+      - ./backend/.env
+    networks:
+      - water_network
+
+  frontend:
+    build: ./frontend
+    container_name: water_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - water_network
+
+volumes:
+  pgdata:
+
+networks:
+  water_network:
