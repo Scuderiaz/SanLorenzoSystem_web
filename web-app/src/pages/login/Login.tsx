@@ -7,7 +7,7 @@ import './Login.css';
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -19,14 +19,7 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const roleMap: { [key: string]: string } = {
-        '1': 'Admin',
-        '3': 'Billing Officer',
-        '4': 'Cashier',
-      };
-
-      const roleName = roleMap[userType];
-      const result = await authService.login(username, password, roleName);
+      const result = await authService.login(username, password);
 
       if (result.success) {
         login(result.user);
@@ -78,32 +71,25 @@ const Login: React.FC = () => {
               <label htmlFor="password">
                 <i className="fas fa-lock"></i> Password
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                required
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="userType">
-                <i className="fas fa-users-cog"></i> Login As
-              </label>
-              <select
-                id="userType"
-                name="userType"
-                required
-                value={userType}
-                onChange={(e) => setUserType(e.target.value)}
-              >
-                <option value="" disabled hidden>Select User Type</option>
-                <option value="1">Admin</option>
-                <option value="3">Billing Officer</option>
-                <option value="4">Treasurer/Cashier</option>
-              </select>
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  required
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button 
+                  type="button" 
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                </button>
+              </div>
             </div>
             <button type="submit" className="login-btn" disabled={loading}>
               <span className="btn-content">

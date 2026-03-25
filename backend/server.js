@@ -320,24 +320,14 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-  const { username, password, role_name } = req.body;
+  const { username, password } = req.body;
 
-  if (!username || !password || !role_name) {
-    return res.status(400).json({ success: false, message: 'Username, password, and role are required' });
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'Username and password are required' });
   }
 
   try {
     if (supabase) {
-      const { data: roleData, error: roleError } = await supabase
-        .from('roles')
-        .select('Role_ID')
-        .eq('Role_Name', role_name)
-        .single();
-
-      if (roleError || !roleData) {
-        console.error("Role Error:", roleError);
-        return res.status(400).json({ success: false, message: 'Invalid role specified', error: roleError });
-      }
 
       const { data: userData, error: userError } = await supabase
         .from('accounts')
@@ -350,11 +340,10 @@ app.post('/api/login', async (req, res) => {
           roles ( Role_Name )
         `)
         .eq('Username', username)
-        .eq('Role_ID', roleData.Role_ID)
         .single();
 
       if (userError || !userData) {
-        return res.status(401).json({ success: false, message: 'Invalid username or role' });
+        return res.status(401).json({ success: false, message: 'Invalid username' });
       }
 
       if (userData.Password !== password) {
@@ -372,20 +361,15 @@ app.post('/api/login', async (req, res) => {
         },
       });
     } else {
-      const role = db.prepare('SELECT Role_ID FROM roles WHERE Role_Name = ?').get(role_name);
-      if (!role) {
-        return res.status(400).json({ success: false, message: 'Invalid role specified' });
-      }
-
       const user = db.prepare(`
         SELECT a.AccountID, a.Username, a.Password, a.Full_Name, a.Role_ID, r.Role_Name
         FROM accounts a
         JOIN roles r ON a.Role_ID = r.Role_ID
-        WHERE a.Username = ? AND a.Role_ID = ?
-      `).get(username, role.Role_ID);
+        WHERE a.Username = ?
+      `).get(username);
 
       if (!user) {
-        return res.status(401).json({ success: false, message: 'Invalid username or role' });
+        return res.status(401).json({ success: false, message: 'Invalid username' });
       }
 
       if (user.Password !== password) {

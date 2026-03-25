@@ -12,10 +12,10 @@ const api = axios.create({
 });
 
 export const authService = {
-  login: async (username: string, password: string, role_name: string) => {
+  login: async (username: string, password: string) => {
     try {
       if (navigator.onLine) {
-        const response = await api.post('/login', { username, password, role_name });
+        const response = await api.post('/login', { username, password });
         return response.data;
       } else {
         const db = await initOfflineDB();
@@ -23,8 +23,8 @@ export const authService = {
           SELECT a.AccountID, a.Username, a.Full_Name, a.Role_ID, r.Role_Name
           FROM accounts a
           JOIN roles r ON a.Role_ID = r.Role_ID
-          WHERE a.Username = ? AND a.Password = ? AND r.Role_Name = ?
-        `, [username, password, role_name]);
+          WHERE a.Username = ? AND a.Password = ?
+        `, [username, password]);
 
         if (result.length > 0 && result[0].values.length > 0) {
           const [id, uname, fullName, roleId, roleName] = result[0].values[0];
