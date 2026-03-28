@@ -10,7 +10,8 @@
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  width: 400px;
+  width: 95%;
+  max-width: 400px;
   padding: 30px;
   text-align: center;
 }
@@ -20,19 +21,18 @@
 }
 
 .logo-placeholder {
-  width: 80px;
-  height: 80px;
+  width: 130px;
+  height: 130px;
   margin: 0 auto 15px;
-  background: linear-gradient(135deg, #1a73e8, #34a853);
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.logo-placeholder i {
-  font-size: 40px;
-  color: white;
+.slr-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .login-header h1 {
@@ -104,6 +104,24 @@
 
 .password-input-wrapper input {
   padding-right: 40px; /* Space for the eye icon */
+}
+
+.forgot-password-link {
+  text-align: right;
+  margin-top: 8px;
+}
+
+.forgot-password-link a {
+  color: #1a73e8;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.forgot-password-link a:hover {
+  color: #1557b0;
+  text-decoration: underline;
 }
 
 .password-toggle-btn {

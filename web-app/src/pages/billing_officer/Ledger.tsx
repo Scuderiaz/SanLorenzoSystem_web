@@ -177,9 +177,9 @@ const Ledger: React.FC = () => {
       key: 'Current_Balance',
       label: 'Current Balance',
       sortable: true,
-      render: (entry: LedgerEntry) => (
-        <span className={entry.Current_Balance > 0 ? 'balance-due' : 'balance-paid'}>
-          ₱{(entry.Current_Balance || 0).toFixed(2)}
+      render: (val: number) => (
+        <span className={val > 0 ? 'balance-due' : 'balance-paid'}>
+          ₱{(val || 0).toFixed(2)}
         </span>
       ),
     },
@@ -192,14 +192,14 @@ const Ledger: React.FC = () => {
       key: 'Status',
       label: 'Status',
       sortable: true,
-      render: (entry: LedgerEntry) => (
-        <span className={`status-badge status-${(entry.Status || 'unknown').toLowerCase()}`}>{entry.Status || 'Unknown'}</span>
+      render: (val: string) => (
+        <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>{val || 'Unknown'}</span>
       ),
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (entry: LedgerEntry) => (
+      render: (_: any, entry: LedgerEntry) => (
         <button className="btn btn-sm btn-info" onClick={() => handleViewLedger(entry)}>
           <i className="fas fa-book"></i> View Ledger
         </button>
@@ -208,19 +208,20 @@ const Ledger: React.FC = () => {
   ];
 
   return (
-    <MainLayout title="Digital Ledger">
+    <MainLayout title="Digital Collections Ledger">
       <div className="ledger-page">
+        {/* Collection & Arrears Multi-Filter */}
         <div className="search-filters">
           <div className="search-container">
             <input
               type="text"
-              placeholder="Search by account no. or consumer name..."
+              placeholder="Search by name, account ID, or meter serial..."
               className="search-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <button className="btn btn-secondary">
-              <i className="fas fa-search"></i> Search
+            <button className="btn btn-primary" style={{ borderRadius: '12px' }}>
+              <i className="fas fa-search"></i>
             </button>
           </div>
           <div className="filter-container">
@@ -229,7 +230,7 @@ const Ledger: React.FC = () => {
               onChange={(e) => setZoneFilter(e.target.value)}
               className="form-control"
             >
-              <option value="">All Zones</option>
+              <option value="">All Map Zones</option>
               {zones.map((z) => (
                 <option key={z.Zone_ID} value={z.Zone_ID}>
                   {z.Zone_Name}
@@ -248,16 +249,21 @@ const Ledger: React.FC = () => {
                 </option>
               ))}
             </select>
-            <button className="btn btn-secondary">Filter</button>
+            <button className="btn btn-secondary" style={{ padding: '10px 16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #f1f5f9', fontWeight: '700', color: '#1B1B63' }} onClick={loadLedgerData}>
+                <i className="fas fa-sync-alt"></i>
+            </button>
           </div>
         </div>
 
+        {/* Financial Registry List */}
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Consumer List</h2>
+            <h2 className="card-title">Consumer Financial Registry</h2>
           </div>
           <div className="card-body">
-            <DataTable columns={columns} data={filteredData} loading={loading} />
+            <div style={{ padding: '24px' }}>
+                <DataTable columns={columns} data={filteredData} loading={loading} />
+            </div>
           </div>
         </div>
 

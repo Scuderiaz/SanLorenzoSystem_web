@@ -311,86 +311,82 @@ const Reports: React.FC = () => {
   ];
 
   return (
-    <MainLayout title="Reports">
+    <MainLayout title="Strategic Analytics">
       <div className="reports-page">
+        {/* Top Actions */}
         <div className="action-buttons">
           <button className="btn btn-primary" onClick={handleGenerateReports}>
-            <i className="fas fa-chart-line"></i> Generate Reports
+            <i className="fas fa-sync-alt"></i> Run All Reports
           </button>
           <button className="btn btn-secondary" onClick={handleExportConsumerReport}>
-            <i className="fas fa-download"></i> Export Consumer Report
+            <i className="fas fa-file-pdf"></i> Export Consumers
           </button>
           <button className="btn btn-secondary" onClick={handleExportBillingReport}>
-            <i className="fas fa-file-invoice"></i> Export Billing Report
+            <i className="fas fa-file-invoice-dollar"></i> Export Billing
           </button>
           <button className="btn btn-secondary" onClick={handleExportCollections}>
-            <i className="fas fa-money-bill"></i> Export Collections
+            <i className="fas fa-wallet"></i> Export Collections
           </button>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">
-              <i className="fas fa-filter"></i> Report Filters
-            </h2>
-          </div>
-          <div className="card-body">
-            <div className="form-grid">
-              <FormInput
-                label="From Date"
-                type="date"
-                value={fromDate}
-                onChange={setFromDate}
-                icon="fa-calendar"
-              />
-              <FormInput
-                label="To Date"
-                type="date"
-                value={toDate}
-                onChange={setToDate}
-                icon="fa-calendar"
-              />
-              <FormSelect
-                label="Zone"
-                value={zoneFilter}
-                onChange={setZoneFilter}
-                options={zoneOptions}
-                placeholder="All Zones"
-                icon="fa-map-marker-alt"
-              />
-            </div>
+        {/* Global Filters */}
+        <div className="report-controls">
+          <div className="control-group">
+            <FormInput
+              label="Start Period"
+              type="date"
+              value={fromDate}
+              onChange={setFromDate}
+              icon="fa-calendar-alt"
+            />
+            <FormInput
+              label="End Period"
+              type="date"
+              value={toDate}
+              onChange={setToDate}
+              icon="fa-calendar-check"
+            />
+            <FormSelect
+              label="Coverage Area"
+              value={zoneFilter}
+              onChange={setZoneFilter}
+              options={zoneOptions}
+              placeholder="All Service Zones"
+              icon="fa-map-marked-alt"
+            />
           </div>
         </div>
 
+        {/* Real-time Summary Metrics */}
         <div className="dashboard-cards">
-          <div className="card">
+          <div className="card card-highlight-blue">
             <div className="card-header">
-              <h2 className="card-title">Total Consumers</h2>
+              <h2 className="card-title">Base Consumers</h2>
               <i className="fas fa-users"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{totalConsumers}</div>
-              <div className="card-label">Active connections</div>
+              <div className="card-label">Active connection pool</div>
             </div>
           </div>
-          <div className="card">
+          <div className="card card-highlight-gold">
             <div className="card-header">
-              <h2 className="card-title">Bills Generated</h2>
+              <h2 className="card-title">Invoiced Volume</h2>
               <i className="fas fa-file-invoice"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{totalBills}</div>
-              <div className="card-label">This period</div>
+              <div className="card-label">Total bills this period</div>
             </div>
           </div>
-          <div className="card">
+          <div className="card card-highlight-green">
             <div className="card-header">
-              <h2 className="card-title">Total Revenue</h2>
-              <i className="fas fa-money-bill"></i>
+              <h2 className="card-title">Gross Collection</h2>
+              <i className="fas fa-coins"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{totalRevenue}</div>
-              <div className="card-label">Collections</div>
+              <div className="card-label">Verified revenue</div>
             </div>
           </div>
         </div>

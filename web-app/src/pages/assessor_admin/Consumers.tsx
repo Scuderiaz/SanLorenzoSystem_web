@@ -307,76 +307,61 @@ const Consumers: React.FC = () => {
   }));
 
   return (
-    <MainLayout title="Master Records">
+    <MainLayout title="Consumer Registry">
       <div className="consumers-page">
+        {/* Top Actions */}
         <div className="action-buttons">
           <button className="btn btn-primary" onClick={handleAddConsumer}>
-            <i className="fas fa-plus"></i> Add Consumer
+            <i className="fas fa-plus"></i> New Consumer
           </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              loadConsumers();
-              showToast('Consumer list refreshed', 'success');
-            }}
-          >
+          <button className="btn btn-secondary" onClick={() => { loadConsumers(); showToast('Consumer list refreshed', 'success'); }} title="Refresh Records">
             <i className="fas fa-sync-alt"></i> Refresh
           </button>
           <button className="btn btn-secondary">
-            <i className="fas fa-download"></i> Export
+            <i className="fas fa-download"></i> Export Records
           </button>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">
-              <i className="fas fa-filter"></i> Search & Filters
-            </h2>
+        {/* Search & Filters */}
+        <div className="search-controls">
+          <div className="search-field">
+            <i className="fas fa-search"></i>
+            <input 
+              type="text" 
+              placeholder="Search by name, account number, or address..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <div className="card-body">
-            <div className="form-grid">
-              <FormInput
-                label="Search"
-                value={searchTerm}
-                onChange={setSearchTerm}
-                placeholder="Search by name, account number..."
-                icon="fa-search"
-              />
-              <FormSelect
-                label="Zone"
-                value={zoneFilter}
-                onChange={setZoneFilter}
-                options={zoneOptions}
-                placeholder="All Zones"
-                icon="fa-map-marker-alt"
-              />
-              <FormSelect
-                label="Status"
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={[
-                  { value: 'Active', label: 'Active' },
-                  { value: 'Inactive', label: 'Inactive' },
-                  { value: 'Disconnected', label: 'Disconnected' },
-                ]}
-                placeholder="All Status"
-                icon="fa-info-circle"
-              />
-            </div>
+          <div className="filters">
+            <FormSelect
+              label=""
+              value={zoneFilter}
+              onChange={setZoneFilter}
+              options={zoneOptions}
+              placeholder="All Map Zones"
+            />
+            <FormSelect
+              label=""
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: 'Active', label: 'Active Status' },
+                { value: 'Inactive', label: 'Inactive Status' },
+                { value: 'Disconnected', label: 'Disconnected' },
+              ]}
+              placeholder="All Account Status"
+            />
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Consumer Records</h2>
-            <span className="record-count">{filteredConsumers.length} records</span>
-          </div>
+        <div className="consumers-card">
           <div className="card-body">
             <DataTable
               columns={columns}
               data={filteredConsumers}
               loading={loading}
-              emptyMessage="No consumers found"
+              emptyMessage="No consumers found matching your search criteria."
             />
           </div>
         </div>

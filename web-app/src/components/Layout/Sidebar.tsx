@@ -35,10 +35,18 @@ const Sidebar: React.FC = () => {
     user && item.roles.includes(user.role_id)
   );
 
+  const logoSrc = user?.role_id === 4 
+    ? "/images/Waterworks System Payment Logo 1.svg" 
+    : "/images/Waterworks System Office Logo 1.svg";
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1>San Lorenzo Ruiz Water Billing System</h1>
+        <img 
+          src={logoSrc} 
+          alt="San Lorenzo Ruiz Logo" 
+          className="sidebar-logo" 
+        />
       </div>
       <ul className="menu">
         {filteredMenuItems.map((item) => (
@@ -47,13 +55,13 @@ const Sidebar: React.FC = () => {
             className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
           >
             <Link to={item.path}>
-              <i className={item.icon}></i> {item.label}
+              <i className={item.icon}></i> <span>{item.label}</span>
             </Link>
           </li>
         ))}
-        <li className="menu-item">
+        <li className="menu-item logout">
           <a href="#" onClick={(e) => { e.preventDefault(); logout(); }}>
-            <i className="fas fa-sign-out-alt"></i> Logout
+            <i className="fas fa-sign-out-alt"></i> <span>Logout</span>
           </a>
         </li>
       </ul>

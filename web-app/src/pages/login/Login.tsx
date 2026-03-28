@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/api';
 import './Login.css';
@@ -23,7 +23,12 @@ const Login: React.FC = () => {
 
       if (result.success) {
         login(result.user);
-        navigate('/dashboard');
+        // Route based on role — consumers go to their own dashboard
+        if (result.user.role_id === 5) {
+          navigate('/consumer');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(result.message || 'Invalid credentials');
       }
@@ -39,7 +44,7 @@ const Login: React.FC = () => {
       <div className="login-container">
         <div className="login-header">
           <div className="logo-placeholder">
-            <i className="fas fa-tint"></i>
+            <img src="/slr-logo.svg" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
           </div>
           <h1>San Lorenzo Ruiz Municipal</h1>
           <h2>Water Billing and Payment Record Management System</h2>
@@ -90,6 +95,9 @@ const Login: React.FC = () => {
                   <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                 </button>
               </div>
+              <div className="forgot-password-link">
+                <Link to="/forgot-password">Forgot Password?</Link>
+              </div>
             </div>
             <button type="submit" className="login-btn" disabled={loading}>
               <span className="btn-content">
@@ -101,6 +109,7 @@ const Login: React.FC = () => {
           </form>
         </div>
         <div className="login-footer">
+          <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
           <p>&copy; {new Date().getFullYear()} Municipality of San Lorenzo Ruiz</p>
         </div>
       </div>

@@ -118,7 +118,7 @@ const VerifyPayment: React.FC = () => {
       key: 'Amount',
       label: 'Amount',
       sortable: true,
-      render: (payment: PendingPayment) => `₱${(payment.Amount || 0).toFixed(2)}`,
+      render: (val: number) => `₱${(val || 0).toFixed(2)}`,
     },
     {
       key: 'Entered_By',
@@ -128,7 +128,7 @@ const VerifyPayment: React.FC = () => {
     {
       key: 'actions',
       label: 'Actions',
-      render: (payment: PendingPayment) => (
+      render: (_: any, payment: PendingPayment) => (
         <div className="action-buttons">
           <button
             className="btn btn-sm btn-success"
@@ -172,7 +172,7 @@ const VerifyPayment: React.FC = () => {
       key: 'Amount',
       label: 'Amount',
       sortable: true,
-      render: (payment: PendingPayment) => `₱${(payment.Amount || 0).toFixed(2)}`,
+      render: (val: number) => `₱${(val || 0).toFixed(2)}`,
     },
     {
       key: 'Entered_By',
@@ -183,9 +183,9 @@ const VerifyPayment: React.FC = () => {
       key: 'Status',
       label: 'Status',
       sortable: true,
-      render: (payment: PendingPayment) => (
-        <span className={`status-badge status-${(payment.Status || 'unknown').toLowerCase()}`}>
-          {payment.Status}
+      render: (val: string) => (
+        <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>
+          {val || 'Unknown'}
         </span>
       ),
     },
@@ -194,46 +194,48 @@ const VerifyPayment: React.FC = () => {
   const tabs: Tab[] = [
     {
       id: 'pending',
-      label: 'Pending',
+      label: 'Awaiting Verification',
       content: (
-        <div>
+        <div className="tab-content">
           <div className="search-filters">
             <div className="search-container">
+              <i className="fas fa-search"></i>
               <input
                 type="text"
-                placeholder="Search by OR no. or account..."
+                placeholder="Search by OR sequence or account..."
                 className="search-input"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <button className="btn btn-secondary">
-                <i className="fas fa-search"></i>
-              </button>
             </div>
             <div className="filter-container">
+              <label>Audit Range:</label>
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="form-control"
               />
+              <span style={{ color: '#94a3b8', fontWeight: '800' }}>→</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="form-control"
               />
-              <button className="btn btn-secondary">Filter</button>
+              <button className="btn btn-secondary" style={{ padding: '10px 20px', borderRadius: '12px' }}>
+                  <i className="fas fa-filter"></i> Apply
+              </button>
             </div>
           </div>
 
           <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Pending Payments</h2>
-              <span className="badge">{pendingPayments.length} pending</span>
+            <div className="card-header" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
+              <h2 className="card-title">Pending Collections Audit Queue</h2>
+              <span className="badge">{pendingPayments.length} Entries pending</span>
             </div>
             <div className="card-body">
-              <DataTable columns={pendingColumns} data={pendingPayments} loading={loading} />
+                <div style={{ padding: '24px' }}>
+                    <DataTable columns={pendingColumns} data={pendingPayments} loading={loading} />
+                </div>
             </div>
           </div>
         </div>
@@ -241,36 +243,40 @@ const VerifyPayment: React.FC = () => {
     },
     {
       id: 'verified',
-      label: 'Verified',
+      label: 'Verified Records',
       content: (
         <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Verified Payments</h2>
-            <div>
-              <button className="btn btn-secondary">
-                <i className="fas fa-file-export"></i> Export
+          <div className="card-header" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
+            <h2 className="card-title">Verified Transaction Ledger</h2>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px' }}>
+                <i className="fas fa-file-export"></i> CSV Export
               </button>
-              <button className="btn btn-secondary">
-                <i className="fas fa-print"></i> Print
+              <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px' }}>
+                <i className="fas fa-print"></i> Print Audit
               </button>
             </div>
           </div>
           <div className="card-body">
-            <DataTable columns={verifiedColumns} data={verifiedPayments} loading={loading} />
+              <div style={{ padding: '24px' }}>
+                  <DataTable columns={verifiedColumns} data={verifiedPayments} loading={loading} />
+              </div>
           </div>
         </div>
       ),
     },
     {
       id: 'rejected',
-      label: 'Rejected',
+      label: 'Rejected Entries',
       content: (
         <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Rejected Payments</h2>
+          <div className="card-header" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
+            <h2 className="card-title">Flagged for Correction</h2>
           </div>
           <div className="card-body">
-            <DataTable columns={verifiedColumns} data={rejectedPayments} loading={loading} />
+              <div style={{ padding: '24px' }}>
+                  <DataTable columns={verifiedColumns} data={rejectedPayments} loading={loading} />
+              </div>
           </div>
         </div>
       ),
@@ -278,7 +284,7 @@ const VerifyPayment: React.FC = () => {
   ];
 
   return (
-    <MainLayout title="Payment Verification">
+    <MainLayout title="Internal Audit & Verification">
       <div className="verify-payment-page">
         <Tabs tabs={tabs} defaultTab="pending" />
       </div>

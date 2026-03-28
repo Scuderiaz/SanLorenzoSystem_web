@@ -35,8 +35,29 @@ async function initDb() {
       "Username" TEXT NOT NULL UNIQUE,
       "Password" TEXT NOT NULL,
       "Full_Name" TEXT,
+      "Phone_Number" TEXT,
+      "Status" TEXT DEFAULT 'Active',
       "Role_ID" INTEGER,
       CONSTRAINT accounts_role_fk FOREIGN KEY ("Role_ID") REFERENCES roles("Role_ID")
+    );
+
+    CREATE TABLE IF NOT EXISTS otp_verifications (
+      "ID" SERIAL PRIMARY KEY,
+      "AccountID" INTEGER,
+      "Code" TEXT NOT NULL,
+      "ExpiresAt" TIMESTAMP NOT NULL,
+      "IsUsed" BOOLEAN DEFAULT FALSE,
+      "Attempts" INTEGER DEFAULT 0,
+      CONSTRAINT otp_account_fk FOREIGN KEY ("AccountID") REFERENCES accounts("AccountID")
+    );
+
+    CREATE TABLE IF NOT EXISTS registration_tickets (
+      "ID" SERIAL PRIMARY KEY,
+      "TicketNumber" TEXT UNIQUE NOT NULL,
+      "AccountID" INTEGER,
+      "CreatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      "Status" TEXT DEFAULT 'Pending',
+      CONSTRAINT registration_account_fk FOREIGN KEY ("AccountID") REFERENCES accounts("AccountID")
     );
 
     CREATE TABLE IF NOT EXISTS zones (
@@ -52,6 +73,7 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS consumer (
       "Consumer_ID" SERIAL PRIMARY KEY,
       "First_Name" TEXT,
+      "Middle_Name" TEXT,
       "Last_Name" TEXT,
       "Address" TEXT,
       "Zone_ID" INTEGER,
@@ -129,12 +151,18 @@ async function initDb() {
     ]);
 
     await pool.query(
-      'INSERT INTO accounts ("Username", "Password", "Full_Name", "Role_ID") VALUES ($1, $2, $3, $4), ($5, $6, $7, $8), ($9, $10, $11, $12)',
+      'INSERT INTO accounts ("Username", "Password", "Full_Name", "Role_ID", "Phone_Number") VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10), ($11, $12, $13, $14, $15)',
       [
-        'admin', 'admin123', 'System Administrator', 1,
-        'billing', 'billing123', 'Billing Officer', 3,
-        'cashier', 'cashier123', 'Cashier Staff', 4,
+        'admin', 'admin123', 'System Administrator', 1, NULL,
+        'billing', 'billing123', 'Billing Officer', 3, NULL,
+        'cashier', 'cashier123', 'Cashier Staff', 4, NULL,
       ]
+    );
+
+    // Create a default consumer for testing
+    await pool.query(
+      'INSERT INTO accounts ("Username", "Password", "Full_Name", "Role_ID", "Phone_Number") VALUES ($1, $2, $3, $4, $5)',
+      ['consumer1', 'consumer123', 'Test Consumer', 5, '09288938507']
     );
 
     await pool.query('INSERT INTO zones ("Zone_Name") VALUES ($1), ($2), ($3), ($4)', [
@@ -170,6 +198,7 @@ app.get('/api/roles', async (req, res) => {
 });
 
 // Get users by type (desktop or mobile)
+// Get users by type (desktop or mobile) - DEPRECATED (use /api/users/unified instead)
 app.get('/api/users/type/:type', async (req, res) => {
   const { type } = req.params;
   
@@ -190,6 +219,7 @@ app.get('/api/users/type/:type', async (req, res) => {
           Password,
           Full_Name,
           Role_ID,
+          Status,
           roles ( Role_Name )
         `)
         .in('Role_ID', roleIds);
@@ -211,7 +241,7 @@ app.get('/api/users/type/:type', async (req, res) => {
       }
       
       const users = db.prepare(`
-        SELECT a.AccountID, a.Username, a.Password, a.Full_Name, a.Role_ID, r.Role_Name
+        SELECT a.AccountID, a.Username, a.Password, a.Full_Name, a.Role_ID, a.Status, r.Role_Name
         FROM accounts a
         JOIN roles r ON a.Role_ID = r.Role_ID
         WHERE a.Role_ID IN (${roleIds})
@@ -221,6 +251,92 @@ app.get('/api/users/type/:type', async (req, res) => {
     }
   } catch (error) {
     console.error('Error fetching users:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET Unified Users (Staff + Consumers + IoT)
+app.get('/api/users/unified', async (req, res) => {
+  try {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select(`
+          AccountID,
+          Username,
+          Full_Name,
+          Role_ID,
+          Status,
+          Phone_Number,
+          roles ( Role_Name )
+        `)
+        .order('AccountID', { ascending: false });
+      
+      if (error) throw error;
+      
+      const users = data.map(u => ({
+        ...u,
+        Role_Name: u.roles?.Role_Name
+      }));
+      
+      return res.json({ success: true, data: users });
+    } else {
+      const users = db.prepare(`
+        SELECT a.AccountID, a.Username, a.Full_Name, a.Role_ID, a.Status, a.Phone_Number, r.Role_Name
+        FROM accounts a
+        LEFT JOIN roles r ON a.Role_ID = r.Role_ID
+        ORDER BY a.AccountID DESC
+      `).all();
+      return res.json({ success: true, data: users });
+    }
+  } catch (error) {
+    console.error('Error fetching unified users:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Approve Pending Account
+app.post('/api/admin/approve-user', async (req, res) => {
+  const { accountId } = req.body;
+  try {
+    if (supabase) {
+      const { error: aErr } = await supabase.from('accounts').update({ Status: 'Active' }).eq('AccountID', accountId);
+      if (aErr) throw aErr;
+      const { error: cErr } = await supabase.from('consumer').update({ Status: 'Active' }).eq('Login_ID', accountId);
+      if (cErr) throw cErr;
+      return res.json({ success: true, message: 'Account approved successfully' });
+    } else {
+      db.prepare('UPDATE accounts SET Status = "Active" WHERE AccountID = ?').run(accountId);
+      db.prepare('UPDATE consumer SET Status = "Active" WHERE Login_ID = ?').run(accountId);
+      return res.json({ success: true, message: 'Account approved successfully' });
+    }
+  } catch (error) {
+    console.error('Approval error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Reject Pending Account (Delete)
+app.post('/api/admin/reject-user', async (req, res) => {
+  const { accountId } = req.body;
+  try {
+    if (supabase) {
+      // Delete registration ticket first if exists
+      await supabase.from('registration_tickets').delete().eq('AccountID', accountId);
+      // Delete consumer record
+      await supabase.from('consumer').delete().eq('Login_ID', accountId);
+      // Delete account
+      const { error } = await supabase.from('accounts').delete().eq('AccountID', accountId);
+      if (error) throw error;
+      return res.json({ success: true, message: 'Account rejected and deleted' });
+    } else {
+      db.prepare('DELETE FROM registration_tickets WHERE AccountID = ?').run(accountId);
+      db.prepare('DELETE FROM consumer WHERE Login_ID = ?').run(accountId);
+      db.prepare('DELETE FROM accounts WHERE AccountID = ?').run(accountId);
+      return res.json({ success: true, message: 'Account rejected and deleted' });
+    }
+  } catch (error) {
+    console.error('Rejection error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -337,6 +453,7 @@ app.post('/api/login', async (req, res) => {
           Password,
           Full_Name,
           Role_ID,
+          Status,
           roles ( Role_Name )
         `)
         .eq('Username', username)
@@ -344,6 +461,10 @@ app.post('/api/login', async (req, res) => {
 
       if (userError || !userData) {
         return res.status(401).json({ success: false, message: 'Invalid username' });
+      }
+
+      if (userData.Status === 'Pending') {
+        return res.status(401).json({ success: false, message: 'Please wait until you are registered to access the dashboard.' });
       }
 
       if (userData.Password !== password) {
@@ -370,6 +491,10 @@ app.post('/api/login', async (req, res) => {
 
       if (!user) {
         return res.status(401).json({ success: false, message: 'Invalid username' });
+      }
+
+      if (user.Status === 'Pending') {
+        return res.status(401).json({ success: false, message: 'Please wait until you are registered to access the dashboard.' });
       }
 
       if (user.Password !== password) {
@@ -490,6 +615,40 @@ app.post('/api/consumers', async (req, res) => {
   } catch (error) {
     console.error('Error creating consumer:', error);
     return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// --- CLASSIFICATIONS ---
+app.get('/api/classifications', async (req, res) => {
+  try {
+    if (supabase) {
+      const { data, error } = await supabase.from('classifications').select('*').order('Classification_ID');
+      if (error) throw error;
+      return res.json({ success: true, data });
+    } else {
+      const data = db.prepare('SELECT * FROM classifications ORDER BY Classification_ID').all();
+      return res.json({ success: true, data });
+    }
+  } catch (error) {
+    console.error('Error fetching classifications:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// --- ZONES ---
+app.get('/api/zones', async (req, res) => {
+  try {
+    if (supabase) {
+      const { data, error } = await supabase.from('zones').select('*').order('Zone_ID');
+      if (error) throw error;
+      return res.json({ success: true, data });
+    } else {
+      const data = db.prepare('SELECT * FROM zones ORDER BY Zone_ID').all();
+      return res.json({ success: true, data });
+    }
+  } catch (error) {
+    console.error('Error fetching zones:', error);
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -647,6 +806,98 @@ app.post('/api/bills', async (req, res) => {
   }
 });
 
+// --- CONSUMER DASHBOARD ---
+app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
+  const { accountId } = req.params;
+  try {
+    if (supabase) {
+      // Get consumer profile
+      console.log('Fetching dashboard for accountId:', accountId);
+      const { data: consumer, error: cErr } = await supabase
+        .from('consumer')
+        .select('*') // Simplify to check if basic fetch works
+        .eq('Login_ID', accountId)
+        .maybeSingle();
+      
+      if (cErr) {
+        console.error('Consumer Fetch Error:', cErr);
+        throw cErr;
+      }
+      
+      console.log('Consumer found:', consumer);
+      if (!consumer) return res.status(404).json({ success: false, message: 'Consumer profile not found' });
+
+      const consumerId = consumer.Consumer_ID;
+      console.log('Consumer ID:', consumerId);
+
+      // Get bills
+      let bills = [];
+      try {
+        const { data, error } = await supabase
+          .from('bills')
+          .select('*')
+          .eq('Consumer_ID', consumerId)
+          .order('Bill_Date', { ascending: false });
+        if (error) {
+          console.error('Bills Fetch Error:', error);
+          // Don't throw, just use empty list
+        } else {
+          bills = data || [];
+        }
+      } catch (e) { console.error('Bills catch:', e); }
+
+      // Get payments (with linked bill info for billing month)
+      let payments = [];
+      try {
+        const { data, error } = await supabase
+          .from('payments')
+          .select('*, bills(Bill_Date)')
+          .eq('Consumer_ID', consumerId)
+          .order('Payment_Date', { ascending: false });
+        if (error) {
+          console.error('Payments Fetch Error:', error);
+        } else {
+          payments = data || [];
+        }
+      } catch (e) { console.error('Payments catch:', e); }
+
+      // Get meter readings for chart (last 6)
+      let readings = [];
+      try {
+        const { data, error } = await supabase
+          .from('meterreadings')
+          .select('Reading_Date, Consumption')
+          .eq('Consumer_ID', consumerId)
+          .order('Reading_Date', { ascending: false })
+          .limit(6);
+        if (error) {
+          console.error('Readings Fetch Error:', error);
+        } else {
+          readings = (data || []).reverse();
+        }
+      } catch (e) { console.error('Readings catch:', e); }
+
+      return res.json({ success: true, consumer, bills, payments, readings });
+    } else {
+      const consumer = db.prepare('SELECT * FROM consumer WHERE Login_ID = ?').get(accountId);
+      if (!consumer) return res.status(404).json({ success: false, message: 'Consumer not found' });
+      const bills = db.prepare('SELECT * FROM bills WHERE Consumer_ID = ? ORDER BY Bill_Date DESC').all(consumer.Consumer_ID);
+      const payments = db.prepare(`
+        SELECT p.*, b.Bill_Date 
+        FROM payments p 
+        LEFT JOIN bills b ON p.Bill_ID = b.Bill_ID 
+        WHERE p.Consumer_ID = ? 
+        ORDER BY p.Payment_Date DESC
+      `).all(consumer.Consumer_ID);
+      const readings = db.prepare('SELECT Reading_Date, Consumption FROM meterreadings WHERE Consumer_ID = ? ORDER BY Reading_Date DESC LIMIT 6').all(consumer.Consumer_ID).reverse();
+      return res.json({ success: true, consumer, bills, payments, readings });
+    }
+  } catch (error) {
+    console.error('Consumer dashboard error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.get('/api/payments', async (req, res) => {
   try {
     if (supabase) {
@@ -688,6 +939,250 @@ app.post('/api/payments', async (req, res) => {
   } catch (error) {
     console.error('Error creating payment:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// Helper to send SMS (Mock for now)
+const sendSMS = async (phone, message) => {
+  console.log(`\n--- MOCK SMS SENT ---`);
+  console.log(`To: ${phone}`);
+  console.log(`Message: ${message}`);
+  console.log(`----------------------\n`);
+  return { success: true };
+};
+
+// --- FORGOT PASSWORD ENDPOINTS ---
+
+// Request OTP
+app.post('/api/forgot-password/request', async (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ success: false, message: 'Username is required' });
+
+  try {
+    let user;
+    if (supabase) {
+      const { data, error } = await supabase.from('accounts').select('*').eq('Username', username).single();
+      if (error || !data) return res.status(404).json({ success: false, message: 'User not found' });
+      user = data;
+    } else {
+      user = db.prepare('SELECT * FROM accounts WHERE Username = ?').get(username);
+      if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (!user.Phone_Number) {
+      return res.status(400).json({ success: false, message: 'No phone number linked to this account. Please contact admin.' });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60000).toISOString(); // 10 minutes from now
+
+    if (supabase) {
+      const { error } = await supabase.from('otp_verifications').insert([{
+        AccountID: user.AccountID,
+        Code: otpCode,
+        ExpiresAt: expiresAt
+      }]);
+      if (error) throw error;
+    } else {
+      db.prepare('INSERT INTO otp_verifications (AccountID, Code, ExpiresAt) VALUES (?, ?, ?)').run(user.AccountID, otpCode, expiresAt);
+    }
+
+    await sendSMS(user.Phone_Number, `Your San Lorenzo Water System reset code is: ${otpCode}. Valid for 10 mins.`);
+
+    return res.json({ success: true, message: 'OTP sent successfully' });
+  } catch (error) {
+    console.error('Forgot password request error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Verify OTP
+app.post('/api/forgot-password/verify', async (req, res) => {
+  const { username, code } = req.body;
+  if (!username || !code) return res.status(400).json({ success: false, message: 'Username and code are required' });
+
+  try {
+    let user;
+    if (supabase) {
+      const { data } = await supabase.from('accounts').select('*').eq('Username', username).single();
+      user = data;
+    } else {
+      user = db.prepare('SELECT * FROM accounts WHERE Username = ?').get(username);
+    }
+
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    let latestOtp;
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('otp_verifications')
+        .select('*')
+        .eq('AccountID', user.AccountID)
+        .eq('IsUsed', false)
+        .order('ExpiresAt', { ascending: false })
+        .limit(1)
+        .single();
+      latestOtp = data;
+    } else {
+      latestOtp = db.prepare(`
+        SELECT * FROM otp_verifications 
+        WHERE AccountID = ? AND IsUsed = 0 
+        ORDER BY ExpiresAt DESC LIMIT 1
+      `).get(user.AccountID);
+    }
+
+    if (!latestOtp) return res.status(400).json({ success: false, message: 'No active OTP found' });
+    if (new Date() > new Date(latestOtp.ExpiresAt)) return res.status(400).json({ success: false, message: 'OTP has expired' });
+    if (latestOtp.Code !== code) {
+      // Increment attempts
+      if (supabase) {
+        await supabase.from('otp_verifications').update({ Attempts: (latestOtp.Attempts || 0) + 1 }).eq('ID', latestOtp.ID);
+      } else {
+        db.prepare('UPDATE otp_verifications SET Attempts = Attempts + 1 WHERE ID = ?').run(latestOtp.ID);
+      }
+      return res.status(400).json({ success: false, message: 'Invalid code' });
+    }
+
+    // Success - mark as used during reset, or here if we use a token
+    // For simplicity, we'll verify it again during reset or return a success flag
+    return res.json({ success: true, message: 'OTP verified successfully' });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Reset Password
+app.post('/api/forgot-password/reset', async (req, res) => {
+  const { username, code, newPassword } = req.body;
+  if (!username || !code || !newPassword) return res.status(400).json({ success: false, message: 'Missing required fields' });
+
+  try {
+    let user;
+    if (supabase) {
+      const { data } = await supabase.from('accounts').select('*').eq('Username', username).single();
+      user = data;
+    } else {
+      user = db.prepare('SELECT * FROM accounts WHERE Username = ?').get(username);
+    }
+
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Final verification of OTP
+    let latestOtp;
+    if (supabase) {
+      const { data } = await supabase
+        .from('otp_verifications')
+        .select('*')
+        .eq('AccountID', user.AccountID)
+        .eq('Code', code)
+        .eq('IsUsed', false)
+        .single();
+      latestOtp = data;
+    } else {
+      latestOtp = db.prepare('SELECT * FROM otp_verifications WHERE AccountID = ? AND Code = ? AND IsUsed = 0').get(user.AccountID, code);
+    }
+
+    if (!latestOtp || new Date() > new Date(latestOtp.ExpiresAt)) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    // Update password
+    if (supabase) {
+      await supabase.from('accounts').update({ Password: newPassword }).eq('AccountID', user.AccountID);
+      await supabase.from('otp_verifications').update({ IsUsed: true }).eq('ID', latestOtp.ID);
+    } else {
+      db.prepare('UPDATE accounts SET Password = ? WHERE AccountID = ?').run(newPassword, user.AccountID);
+      db.prepare('UPDATE otp_verifications SET IsUsed = 1 WHERE ID = ?').run(latestOtp.ID);
+    }
+
+    return res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Password reset error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// --- CONSUMER SIGN-UP ---
+
+app.post('/api/register', async (req, res) => {
+  const { username, password, phone, firstName, middleName, lastName, address } = req.body;
+  // Convert empty strings to null for integer columns
+  const zoneId = req.body.zoneId || null;
+  const classificationId = req.body.classificationId ? parseInt(req.body.classificationId) : null;
+
+  if (!username || !password || !phone) {
+    return res.status(400).json({ success: false, message: 'Username, password, and phone number are required.' });
+  }
+
+  try {
+    // 1. Create Account (Status: Pending)
+    let accountId;
+    const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('accounts')
+        .insert([{ 
+          Username: username, 
+          Password: password, 
+          Full_Name: fullName, 
+          Role_ID: 5, 
+          Phone_Number: phone,
+          Status: 'Pending'
+        }])
+        .select();
+      if (error) throw error;
+      accountId = data[0].AccountID;
+    } else {
+      const result = db.prepare('INSERT INTO accounts (Username, Password, Full_Name, Role_ID, Phone_Number, Status) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(username, password, fullName, 5, phone, 'Pending');
+      accountId = result.lastInsertRowid;
+    }
+
+    // 2. Create Consumer Record
+    if (supabase) {
+      const { error } = await supabase
+        .from('consumer')
+        .insert([{
+          First_Name: firstName,
+          Middle_Name: middleName,
+          Last_Name: lastName,
+          Address: address,
+          Zone_ID: zoneId,
+          Classification_ID: classificationId,
+          Login_ID: accountId,
+          Status: 'Pending'
+        }]);
+      if (error) throw error;
+    } else {
+      db.prepare(`
+        INSERT INTO consumer (First_Name, Middle_Name, Last_Name, Address, Zone_ID, Classification_ID, Login_ID, Status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(firstName, middleName, lastName, address, zoneId, classificationId, accountId, 'Pending');
+    }
+
+    // 3. Generate Ticket
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomStr = Math.floor(1000 + Math.random() * 9000).toString();
+    const ticketNumber = `REG-${dateStr}-${randomStr}`;
+
+    if (supabase) {
+      const { error } = await supabase
+        .from('registration_tickets')
+        .insert([{ TicketNumber: ticketNumber, AccountID: accountId }]);
+      if (error) throw error;
+    } else {
+      db.prepare('INSERT INTO registration_tickets (TicketNumber, AccountID) VALUES (?, ?)').run(ticketNumber, accountId);
+    }
+
+    return res.json({ success: true, ticketNumber });
+  } catch (error) {
+    console.error('Registration error:', error);
+    // Friendly message for duplicate username
+    if (error.message && error.message.includes('accounts_Username_key')) {
+      return res.status(400).json({ success: false, message: 'Username is already taken. Please choose a different one.' });
+    }
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 

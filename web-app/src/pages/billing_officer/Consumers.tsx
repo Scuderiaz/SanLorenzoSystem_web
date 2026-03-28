@@ -112,7 +112,7 @@ const Consumers: React.FC = () => {
       key: 'consumerName',
       label: 'Consumer Name',
       sortable: true,
-      render: (consumer: Consumer) => `${consumer.First_Name} ${consumer.Last_Name}`,
+      render: (_: any, consumer: Consumer) => `${consumer.First_Name || ''} ${consumer.Last_Name || ''}`,
     },
     {
       key: 'Address',
@@ -133,16 +133,16 @@ const Consumers: React.FC = () => {
       key: 'Status',
       label: 'Status',
       sortable: true,
-      render: (consumer: Consumer) => (
-        <span className={`status-badge status-${(consumer.Status || 'unknown').toLowerCase()}`}>
-          {consumer.Status}
+      render: (val: string) => (
+        <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>
+          {val}
         </span>
       ),
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (consumer: Consumer) => (
+      render: (_: any, consumer: Consumer) => (
         <button className="btn btn-sm btn-info" onClick={() => handleViewDetails(consumer)}>
           <i className="fas fa-eye"></i> View
         </button>
@@ -151,53 +151,56 @@ const Consumers: React.FC = () => {
   ];
 
   return (
-    <MainLayout title="Consumer Management">
+    <MainLayout title="Consumer Registry Cache">
       <div className="billing-consumers-page">
-        <div className="card">
-          <div className="card-body">
-            <div className="search-filters">
-              <div className="search-group">
-                <input
-                  type="text"
-                  placeholder="Search by name, account number, or address..."
-                  className="form-control"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <button className="btn btn-primary">
-                  <i className="fas fa-search"></i> Search
-                </button>
-              </div>
-              <div className="filter-group">
-                <FormSelect
-                  label=""
-                  value={zoneFilter}
-                  onChange={setZoneFilter}
-                  options={zoneOptions}
-                  placeholder="All Zones"
-                />
-                <select
-                  className="form-control"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="">All Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                  <option value="Suspended">Suspended</option>
-                </select>
-              </div>
-            </div>
+        {/* Advanced Search & Multi-Filter */}
+        <div className="search-filters">
+          <div className="search-group">
+            <input
+              type="text"
+              placeholder="Search by name, account ID, or meter serial..."
+              className="form-control"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <button className="btn btn-primary" style={{ borderRadius: '12px' }}>
+              <i className="fas fa-search"></i> Find Consumer
+            </button>
+          </div>
+          <div className="filter-group">
+            <FormSelect
+              label=""
+              value={zoneFilter}
+              onChange={setZoneFilter}
+              options={zoneOptions}
+              placeholder="All Map Zones"
+            />
+            <select
+              className="form-control"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All Status Levels</option>
+              <option value="Active">Active Account</option>
+              <option value="Inactive">Inactive Account</option>
+              <option value="Suspended">Suspended/Delinquent</option>
+            </select>
+            <button className="btn btn-secondary" style={{ padding: '10px 16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #f1f5f9', fontWeight: '700', color: '#1B1B63' }} onClick={loadConsumers}>
+                <i className="fas fa-sync-alt"></i>
+            </button>
           </div>
         </div>
 
-        <div className="card">
+        {/* Dynamic Consumer List */}
+        <div className="consumers-card">
           <div className="card-header">
-            <h2 className="card-title">Consumer List</h2>
-            <span className="badge">{filteredConsumers.length} consumers</span>
+            <h2 className="card-title">Detailed Consumer Records</h2>
+            <span className="badge">{filteredConsumers.length} ACTIVE RECORDS</span>
           </div>
           <div className="card-body">
-            <DataTable columns={columns} data={filteredConsumers} loading={loading} />
+            <div style={{ padding: '24px' }}>
+                <DataTable columns={columns} data={filteredConsumers} loading={loading} />
+            </div>
           </div>
         </div>
 

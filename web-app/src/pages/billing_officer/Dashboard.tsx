@@ -108,7 +108,7 @@ const Dashboard: React.FC = () => {
       key: 'amount',
       label: 'Amount',
       sortable: true,
-      render: (payment: PendingPayment) => `₱${(payment.amount || 0).toFixed(2)}`,
+      render: (val: number) => `₱${(val || 0).toFixed(2)}`,
     },
     {
       key: 'paymentDate',
@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
     {
       key: 'actions',
       label: 'Action',
-      render: (payment: PendingPayment) => (
+      render: (_: any, payment: PendingPayment) => (
         <div className="action-buttons">
           <button
             className="btn btn-sm validate-btn"
@@ -148,70 +148,77 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <MainLayout title="Billing Officer - Payment Validation">
+    <MainLayout title="Billing & Collections Validation">
       <div className="billing-dashboard-page">
+        {/* Real-time Status Metrics */}
         <div className="dashboard-cards">
-          <div className="card">
+          <div className="card card-highlight-gold">
             <div className="card-header">
               <h2 className="card-title">Pending Validation</h2>
               <i className="fas fa-clipboard-check"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{pendingValidation}</div>
-              <div className="card-label">Payments awaiting validation</div>
+              <div className="card-label">Payments from Treasurer</div>
             </div>
           </div>
-          <div className="card">
+          <div className="card card-highlight-green">
             <div className="card-header">
               <h2 className="card-title">Validated Today</h2>
               <i className="fas fa-check-circle"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{validatedToday}</div>
-              <div className="card-label">Payments validated</div>
+              <div className="card-label">Successfully processed</div>
             </div>
           </div>
-          <div className="card">
+          <div className="card card-highlight-blue">
             <div className="card-header">
-              <h2 className="card-title">Receipts Synced</h2>
+              <h2 className="card-title">Meter Syncs</h2>
               <i className="fas fa-sync"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{receiptsSynced}</div>
-              <div className="card-label">From meter readers</div>
+              <div className="card-label">Mobile reader uploads</div>
             </div>
           </div>
-          <div className="card">
+          <div className="card card-highlight-red">
             <div className="card-header">
               <h2 className="card-title">Exceptions</h2>
               <i className="fas fa-exclamation-triangle"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{exceptions}</div>
-              <div className="card-label">Require attention</div>
+              <div className="card-label">Requires audit review</div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">
-              <i className="fas fa-clipboard-check"></i> Payment Validation Queue (From Treasurer)
+        {/* Validation Queue Table */}
+        <div className="queue-card">
+          <div className="queue-header">
+            <h2 className="queue-title">
+              <i className="fas fa-stream"></i> Payment Validation Queue
             </h2>
-            <span className="badge badge-warning">{pendingValidation} Pending</span>
+            <div className="badge-container">
+                <span className="badge badge-warning" style={{ color: '#f59e0b', background: '#fffbeb', padding: '6px 12px', borderRadius: '12px', fontWeight: '800', fontSize: '12px' }}>
+                    {pendingValidation} REMAINING
+                </span>
+            </div>
           </div>
+          
           <div className="info-box">
-            <strong>
-              <i className="fas fa-info-circle"></i> Note:
-            </strong>{' '}
-            These payments were recorded by Treasurer with manual OR. Click [Validate] to approve and
-            update consumer mobile app.
+            <i className="fas fa-shield-alt"></i>
+            <strong>Security Protocol:</strong> These are manual OR payments recorded by the Treasurer. Validate below to finalize the billing update and notify the consumer via mobile.
           </div>
+
           <div className="card-body">
-            <button className="btn refresh-btn" onClick={loadPendingPayments}>
-              <i className="fas fa-sync-alt"></i> Refresh
-            </button>
-            <DataTable columns={columns} data={payments} loading={loading} />
+            <div style={{ padding: '24px' }}>
+                <button className="refresh-btn" style={{ margin: '0 0 20px 0' }} onClick={loadPendingPayments}>
+                    <i className="fas fa-sync-alt"></i> Refresh Data
+                </button>
+                <DataTable columns={columns} data={payments} loading={loading} />
+            </div>
           </div>
         </div>
       </div>

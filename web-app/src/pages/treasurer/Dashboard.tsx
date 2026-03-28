@@ -82,7 +82,7 @@ const Dashboard: React.FC = () => {
       key: 'Amount',
       label: 'Amount',
       sortable: true,
-      render: (payment: RecentPayment) => `₱${(payment.Amount || 0).toFixed(2)}`,
+      render: (val: number) => `₱${(val || 0).toFixed(2)}`,
     },
     {
       key: 'Payment_Method',
@@ -98,67 +98,75 @@ const Dashboard: React.FC = () => {
       key: 'Validation_Status',
       label: 'Validation Status',
       sortable: true,
-      render: (payment: RecentPayment) => (
-        <span className={`status-badge status-${(payment.Validation_Status || 'unknown').toLowerCase()}`}>
-          {payment.Validation_Status || 'Unknown'}
+      render: (val: string) => (
+        <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>
+          {val || 'Unknown'}
         </span>
       ),
     },
   ];
 
   return (
-    <MainLayout title="Treasurer - Payment Processing">
+    <MainLayout title="Collections & Disbursement Control">
       <div className="treasurer-dashboard-page">
+        {/* Real-time Financial Metrics */}
         <div className="dashboard-cards">
-          <div className="card">
+          <div className="card card-highlight-green">
             <div className="card-header">
               <h2 className="card-title">Today's Collections</h2>
               <i className="fas fa-money-bill-wave"></i>
             </div>
             <div className="card-body">
-              <div className="card-value">₱{todaysCollections.toLocaleString()}</div>
-              <div className="card-label">Total received today</div>
+              <div className="card-value">₱{todaysCollections.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+              <div className="card-label">Gross revenue processed today</div>
             </div>
           </div>
-          <div className="card">
+          <div className="card card-highlight-blue">
             <div className="card-header">
               <h2 className="card-title">Payments Today</h2>
               <i className="fas fa-receipt"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{paymentsToday}</div>
-              <div className="card-label">Processed today</div>
+              <div className="card-label">Individual receipts issued</div>
             </div>
           </div>
-          <div className="card">
+          <div className="card card-highlight-gold">
             <div className="card-header">
               <h2 className="card-title">Pending Validation</h2>
               <i className="fas fa-clock"></i>
             </div>
             <div className="card-body">
               <div className="card-value">{pendingValidation}</div>
-              <div className="card-label">Awaiting Billing Officer</div>
+              <div className="card-label">Awaiting Billing Officer audit</div>
             </div>
           </div>
         </div>
 
+        {/* Recent Activity Table */}
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Recent Payments (Sent to Billing for Validation)</h2>
-            <button className="btn btn-primary">View All</button>
+            <h2 className="card-title">Internal Audit: Recent Payments</h2>
+            <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700' }}>
+                <i className="fas fa-external-link-alt"></i> Detailed Report
+            </button>
           </div>
           <div className="card-body">
-            <DataTable columns={columns} data={recentPayments} loading={loading} />
+            <div style={{ padding: '24px' }}>
+                <DataTable columns={columns} data={recentPayments} loading={loading} />
+            </div>
           </div>
         </div>
 
+        {/* Quick Action Payment Hub */}
         <div className="form-container">
-          <h2 className="form-title">Process Payment with Manual OR</h2>
+          <h2 className="form-title">Water Bill Collection Point</h2>
           <p className="form-description">
-            Use this form to quickly process a payment. The payment will be sent to the Billing Officer for validation.
+            Process on-site collections and issue digital Official Receipts (OR). 
+            System-generated receipts are automatically queued for Billing Officer validation.
           </p>
-          <button className="btn btn-primary btn-large" onClick={() => navigate('/payments')}>
-            <i className="fas fa-plus"></i> Process New Payment
+          <button className="btn-large" onClick={() => navigate('/payments')}>
+            <i className="fas fa-plus-circle"></i> NEW COLLECTION ENTRY
           </button>
         </div>
       </div>

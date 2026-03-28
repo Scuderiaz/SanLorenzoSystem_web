@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
+import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
 import './CloseDay.css';
 
@@ -111,108 +112,69 @@ const CloseDay: React.FC = () => {
   };
 
   return (
-    <MainLayout title="Close Day Operations">
-      <div className="close-day-page">
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Date: {currentDate}</h2>
+    <MainLayout title="Financial Reconciliation">
+      <div className="closeday-page">
+        <div className="closeday-card">
+          <div className="closeday-icon">
+            <i className="fas fa-calendar-check"></i>
+          </div>
+          <h2 className="closeday-title">Finalize Daily Collections</h2>
+          <p className="closeday-desc">
+            You are about to close the financial records for <strong>{currentDate}</strong>. 
+            Ensure all physical cash on hand matches the system totals before locking. 
+            Once locked, transactions for this period can no longer be modified.
+          </p>
+
+          <div className="summary-stats">
+            <div className="stat-box">
+              <span className="stat-label">System Ledger</span>
+              <span className="stat-value">₱{systemTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="stat-box">
+              <span className="stat-label">Reported Cash</span>
+              <span className="stat-value">₱{cashOnHand.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="stat-box" style={{ borderLeft: `4px solid ${getDiscrepancyColor()}` }}>
+              <span className="stat-label">Variance {getDiscrepancyStatus()}</span>
+              <span className="stat-value" style={{ color: getDiscrepancyColor() }}>
+                ₱{Math.abs(discrepancy).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+
+          <div className="closeday-actions">
+            <button className="btn btn-secondary" onClick={loadTransactions}>
+              <i className="fas fa-list-ul"></i> Review Audit Trail
+            </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={handleLockDay}
+              disabled={loading}
+            >
+              <i className="fas fa-lock"></i> Authorize & Lock Day
+            </button>
           </div>
         </div>
 
-        <div className="dashboard-cards">
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">System Total</h2>
-              <i className="fas fa-check-circle"></i>
-            </div>
-            <div className="card-body">
-              <div className="card-value">₱{systemTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div className="card-label">Auto-verified payments</div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Cash on Hand</h2>
-              <i className="fas fa-hand-holding-usd"></i>
-            </div>
-            <div className="card-body">
-              <div className="card-value">₱{cashOnHand.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div className="card-label">Physical cash reported</div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Discrepancy</h2>
-              <i className="fas fa-exclamation-triangle"></i>
-            </div>
-            <div className="card-body">
-              <div className="card-value" style={{ color: getDiscrepancyColor() }}>
-                ₱{Math.abs(discrepancy).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              <div className="card-label">Auto-calculated {getDiscrepancyStatus()}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
+        {/* Audit Trail Table Section */}
+        <div className="card" style={{ marginTop: '20px' }}>
           <div className="card-header">
-            <h2 className="card-title">Today's Transactions</h2>
+            <h2 className="card-title">Detailed Transaction Audit Trail</h2>
           </div>
           <div className="card-body">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>OR No.</th>
-                  <th>Time</th>
-                  <th>Cashier</th>
-                  <th>Account No.</th>
-                  <th>Consumer</th>
-                  <th>Amount</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>
-                      <i className="fas fa-spinner fa-spin"></i> Loading transactions...
-                    </td>
-                  </tr>
-                ) : transactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>
-                      No transactions for today
-                    </td>
-                  </tr>
-                ) : (
-                  transactions.map((transaction, index) => (
-                    <tr key={index}>
-                      <td>{transaction.orNumber}</td>
-                      <td>{transaction.time}</td>
-                      <td>{transaction.cashier}</td>
-                      <td>{transaction.accountNumber}</td>
-                      <td>{transaction.consumer}</td>
-                      <td>₱{transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td>{transaction.notes}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-body">
-            <p>
-              <strong>Review the totals above.</strong> If everything is correct, lock the day to
-              prevent any further edits to today's transactions.
-            </p>
-            <div className="form-actions">
-              <button className="btn btn-primary" onClick={handleLockDay} style={{ width: '200px' }}>
-                <i className="fas fa-lock"></i> Lock Day
-              </button>
-            </div>
+            <DataTable
+              columns={[
+                { key: 'orNumber', label: 'OR Number' },
+                { key: 'time', label: 'Timestamp' },
+                { key: 'accountNumber', label: 'Account' },
+                { key: 'consumer', label: 'Consumer' },
+                { key: 'amount', label: 'Amount (₱)', render: (v: number) => `₱${v.toFixed(2)}` },
+                { key: 'notes', label: 'Reference' }
+              ]}
+              data={transactions}
+              loading={loading}
+              emptyMessage="No transactions recorded for this period."
+            />
           </div>
         </div>
       </div>

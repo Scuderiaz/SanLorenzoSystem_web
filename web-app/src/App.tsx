@@ -21,6 +21,9 @@ import TreasurerDashboard from './pages/treasurer/Dashboard';
 import ProcessPayment from './pages/treasurer/ProcessPayment';
 import VerifyPayment from './pages/treasurer/VerifyPayment';
 import ViewBill from './pages/treasurer/ViewBill';
+import ForgotPassword from './pages/login/ForgotPassword';
+import SignUp from './pages/login/SignUp';
+import ConsumerMain from './pages/consumer/ConsumerMain';
 import './App.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -59,6 +62,16 @@ const AppContent: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route
+        path="/consumer"
+        element={
+          <ProtectedRoute>
+            <ConsumerMain />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={

@@ -246,16 +246,24 @@ const MeterReading: React.FC = () => {
   }));
 
   return (
-    <MainLayout title="Reading Schedule">
+    <MainLayout title="Meter Reading Management Control">
       <div className="meter-reading-page">
         <div className="scheduler-container">
-          <div className="calendar-section">{renderCalendar()}</div>
+          {/* Main Visual Calendar */}
+          <div className="calendar-section">
+            <div className="section-intro" style={{ marginBottom: '25px' }}>
+                <h3 style={{ color: '#1B1B63', fontSize: '18px', fontWeight: '800' }}>Active Operations Calendar</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Select an operational date to assign reading zones and field personnel.</p>
+            </div>
+            {renderCalendar()}
+          </div>
 
+          {/* Contextual Action Side Panel */}
           <div className="side-panel">
             {!showPanel ? (
               <div className="panel-placeholder">
-                <i className="fas fa-calendar-day"></i>
-                <p>Click a date on the calendar to create or view schedule</p>
+                <i className="fas fa-calendar-alt"></i>
+                <p>Select a business date to view or modify field schedules.</p>
               </div>
             ) : (
               <div className="panel-content">

@@ -83,180 +83,193 @@ const ViewBill: React.FC = () => {
   };
 
   return (
-    <MainLayout title="View Bill">
+    <MainLayout title="Strategic Bill Information & Lookup">
       <div className="view-bill-page">
+        {/* Advanced Search Portal */}
         <div className="search-section">
           <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Search Consumer Bill</h2>
+            <div className="card-header" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
+              <h2 className="card-title">Consumer Identity Filter</h2>
             </div>
             <div className="card-body">
-              <div className="search-container">
-                <FormInput
-                  label="Account Number or Consumer Name"
-                  type="text"
-                  value={searchTerm}
-                  onChange={setSearchTerm}
-                  placeholder="Enter account number or consumer name..."
-                />
-                <div className="search-actions">
-                  <button className="btn btn-primary" onClick={handleSearchBill} disabled={loading}>
-                    <i className="fas fa-search"></i> {loading ? 'Searching...' : 'Search Bill'}
-                  </button>
-                  <button className="btn btn-secondary" onClick={handleClearSearch}>
-                    <i className="fas fa-times"></i> Clear
-                  </button>
+                <div style={{ padding: '24px' }}>
+                    <div className="search-container">
+                        <FormInput
+                        label="Account Number or Legal Name"
+                        type="text"
+                        value={searchTerm}
+                        onChange={setSearchTerm}
+                        placeholder="Enter identifier..."
+                        icon="fa-id-badge"
+                        />
+                        <div className="search-actions">
+                        <button className="btn btn-primary" style={{ padding: '12px 24px', borderRadius: '12px', fontWeight: '800' }} onClick={handleSearchBill} disabled={loading}>
+                            <i className="fas fa-search"></i> {loading ? 'Analyzing...' : 'Execute Lookup'}
+                        </button>
+                        <button className="btn btn-secondary" style={{ padding: '12px 24px', borderRadius: '12px', fontWeight: '700' }} onClick={handleClearSearch}>
+                            <i className="fas fa-eraser"></i> Clear
+                        </button>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
           </div>
         </div>
 
+        {/* Dynamic Bill Presentation */}
         {selectedBill && (
           <div className="bill-section">
             <div className="bill-actions">
-              <button className="btn btn-primary" onClick={handlePrintBill}>
-                <i className="fas fa-print"></i> Print Bill
+              <button className="btn btn-primary" style={{ padding: '12px 28px', borderRadius: '12px', fontWeight: '800', background: 'linear-gradient(135deg, #1B1B63, #15154d)' }} onClick={handlePrintBill}>
+                <i className="fas fa-file-invoice"></i> AUTHORIZE & PRINT STATEMENT
               </button>
             </div>
 
             <div className="bill-container">
+              {/* Header: Official Insignia */}
               <div className="bill-header">
                 <div className="bill-logo">
-                  <div className="logo-placeholder">
-                    <i className="fas fa-tint"></i>
-                  </div>
+                  <img 
+                    src="/images/Waterworks System Payment Logo 1.svg" 
+                    alt="San Lorenzo Ruiz Water Logo" 
+                    className="bill-logo-img" 
+                    style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
+                  />
                 </div>
                 <div className="bill-title">
                   <h1>San Lorenzo Ruiz Waterworks System</h1>
-                  <h2>Municipality of San Lorenzo Ruiz</h2>
-                  <p>Camarines Norte, Philippines</p>
-                  <h3>WATER BILL</h3>
+                  <h2>Strategic Finance Department</h2>
+                  <p>Municipality of San Lorenzo Ruiz, Camarines Norte</p>
+                  <h3>BILL STATEMENT</h3>
                 </div>
                 <div className="bill-qr">
                   <div className="qr-placeholder">
-                    <i className="fas fa-qrcode"></i>
+                    <i className="fas fa-barcode"></i>
                   </div>
                 </div>
               </div>
 
+              {/* Body: High-Hierarchy Information */}
               <div className="bill-info">
-                <div className="bill-section">
-                  <h3>Consumer Information</h3>
+                <div className="info-block">
+                  <h3>Consumer Profile</h3>
                   <div className="info-row">
-                    <span className="info-label">Account No.:</span>
+                    <span className="info-label">Account No.</span>
                     <span className="info-value">{selectedBill.Account_Number}</span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">Consumer Name:</span>
+                    <span className="info-label">Legal Name</span>
                     <span className="info-value">{selectedBill.Consumer_Name}</span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">Address:</span>
+                    <span className="info-label">Address</span>
                     <span className="info-value">{selectedBill.Address}</span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">Classification:</span>
+                    <span className="info-label">Type</span>
                     <span className="info-value">{selectedBill.Classification}</span>
                   </div>
                 </div>
 
-                <div className="bill-section">
-                  <h3>Billing Details</h3>
+                <div className="info-block">
+                  <h3>Audit Metadata</h3>
                   <div className="info-row">
-                    <span className="info-label">Bill No.:</span>
+                    <span className="info-label">Bill ID</span>
                     <span className="info-value">{selectedBill.Bill_ID}</span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">Billing Period:</span>
+                    <span className="info-label">Period</span>
                     <span className="info-value">{selectedBill.Billing_Period}</span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">Bill Date:</span>
+                    <span className="info-label">Issued</span>
                     <span className="info-value">{selectedBill.Bill_Date}</span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">Due Date:</span>
-                    <span className="info-value">{selectedBill.Due_Date}</span>
+                    <span className="info-label" style={{ color: '#dc2626' }}>Deadline</span>
+                    <span className="info-value" style={{ color: '#dc2626' }}>{selectedBill.Due_Date}</span>
                   </div>
                 </div>
               </div>
 
+              {/* Consumption Audit */}
               <div className="consumption-section">
-                <h3>Water Consumption</h3>
+                <h3>Consumption Analytics (cu.m)</h3>
                 <table className="consumption-table">
                   <thead>
                     <tr>
-                      <th>Previous Reading</th>
+                      <th>Historical Reading</th>
                       <th>Current Reading</th>
-                      <th>Consumption (cu.m)</th>
-                      <th>Rate per cu.m</th>
+                      <th>Metred Volume</th>
+                      <th>Unit Tariff</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td>{selectedBill.Previous_Reading}</td>
                       <td>{selectedBill.Current_Reading}</td>
-                      <td>{selectedBill.Consumption}</td>
+                      <td>{selectedBill.Consumption} m³</td>
                       <td>₱{(selectedBill.Rate || 0).toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
+              {/* Financial Breakdown */}
               <div className="charges-section">
-                <h3>Charges Breakdown</h3>
+                <h3>Financial Audit Summary</h3>
                 <table className="charges-table">
                   <tbody>
                     <tr>
-                      <td>Basic Water Charge</td>
+                      <td>Core Utility Charge</td>
                       <td>₱{(selectedBill.Basic_Charge || 0).toFixed(2)}</td>
                     </tr>
                     <tr>
-                      <td>Environmental Fee</td>
+                      <td>Environmental Compliance Fee</td>
                       <td>₱{(selectedBill.Environmental_Fee || 0).toFixed(2)}</td>
                     </tr>
                     <tr className="subtotal">
-                      <td><strong>Current Bill Amount</strong></td>
+                      <td><strong>Net Period Charges</strong></td>
                       <td><strong>₱{(selectedBill.Total_Amount || 0).toFixed(2)}</strong></td>
                     </tr>
                     <tr>
-                      <td>Previous Balance</td>
+                      <td>Arrears / Previous Balance</td>
                       <td>₱{(selectedBill.Previous_Balance || 0).toFixed(2)}</td>
                     </tr>
                     <tr>
-                      <td>Penalties/Late Fees</td>
+                      <td>Late Fulfillment Penalties</td>
                       <td>₱{(selectedBill.Penalties || 0).toFixed(2)}</td>
                     </tr>
                     <tr className="total">
-                      <td><strong>TOTAL AMOUNT DUE</strong></td>
+                      <td><strong>GROSS LIQUIDITY DUE</strong></td>
                       <td><strong>₱{(selectedBill.Total_Amount_Due || 0).toFixed(2)}</strong></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
+              {/* Payment Protocols */}
               <div className="payment-info">
-                <div className="payment-section">
-                  <h3>Payment Information</h3>
-                  <p><strong>Status:</strong> <span className={`status-${(selectedBill.Status || 'unknown').toLowerCase()}`}>{selectedBill.Status || 'Unknown'}</span></p>
-                  <p><strong>Payment Due:</strong> {selectedBill.Due_Date}</p>
-                  <p><strong>Late Payment:</strong> Additional penalties may apply after due date</p>
+                <div className="payment-block">
+                  <h3>State Status</h3>
+                  <p><strong>Compliance:</strong> <span className={`status-${(selectedBill.Status || 'unknown').toLowerCase()}`}>{selectedBill.Status || 'Payment Pending'}</span></p>
+                  <p><strong>Settlement Deadline:</strong> {selectedBill.Due_Date}</p>
+                  <p style={{ fontStyle: 'italic', fontSize: '11px' }}>* Penalties accrue post-deadline.</p>
                 </div>
 
                 <div className="payment-methods">
-                  <h3>Payment Options</h3>
+                  <h3>Authorized Collection Points</h3>
                   <ul>
-                    <li><i className="fas fa-building"></i> Municipal Treasurer's Office</li>
-                    <li><i className="fas fa-mobile-alt"></i> Mobile Payment (Coming Soon)</li>
-                    <li><i className="fas fa-credit-card"></i> Online Banking (Coming Soon)</li>
+                    <li><i className="fas fa-landmark"></i> Municipal Treasury Core</li>
+                    <li><i className="fas fa-network-wired" style={{ opacity: 0.5 }}></i> Digital Uplink (Pending)</li>
                   </ul>
                 </div>
               </div>
 
+              {/* Bill Footer */}
               <div className="bill-footer">
-                <p><strong>Important:</strong> Please present this bill when making payment. Keep this copy for your records.</p>
-                <p><em>This is a computer-generated bill. No signature required.</em></p>
+                <p><strong>Disclaimers:</strong> This statement is an official internal audit document. Present this record to the Treasurer for immediate settlement.</p>
+                <p><em>Computer Generated Statement - San Lorenzo Ruiz Waterworks Infrastructure</em></p>
               </div>
             </div>
           </div>

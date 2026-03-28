@@ -140,12 +140,22 @@ const ProcessPayment: React.FC = () => {
     { key: 'Receipt_No', label: 'Receipt No.', sortable: true },
     { key: 'Account_Number', label: 'Account No.', sortable: true },
     { key: 'Consumer_Name', label: 'Consumer Name', sortable: true },
-    { key: 'Amount', label: 'Amount', sortable: true, render: (payment: Payment) => `₱${(payment.Amount || 0).toFixed(2)}` },
-    { key: 'Payment_Method', label: 'Payment Method', sortable: true },
-    { key: 'Payment_Date', label: 'Date/Time', sortable: true },
-    { key: 'Status', label: 'Validation Status', sortable: true, render: (payment: Payment) => (
-      <span className={`status-badge status-${(payment.Status || 'unknown').toLowerCase()}`}>{payment.Status}</span>
-    )},
+    { 
+      key: 'Amount', 
+      label: 'Amount', 
+      sortable: true, 
+      render: (val: number) => `₱${(val || 0).toFixed(2)}` 
+    },
+    { key: 'Payment_Method', label: 'Method', sortable: true },
+    { key: 'Payment_Date', label: 'Date', sortable: true },
+    { 
+      key: 'Status', 
+      label: 'Status', 
+      sortable: true, 
+      render: (val: string) => (
+        <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>{val || 'Unknown'}</span>
+      )
+    },
   ];
 
   const handleClear = () => {
@@ -156,106 +166,109 @@ const ProcessPayment: React.FC = () => {
   };
 
   return (
-    <MainLayout title="Payment Processing">
+    <MainLayout title="Collections Point (Manual OR Entry)">
       <div className="process-payment-page">
-        {/* Recent Payments Table */}
-        <div className="card" style={{ marginBottom: '20px' }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="card-title">Recent Payments (Sent to Billing for Validation)</h2>
-            <button className="btn btn-primary">View All</button>
+        {/* Recent Collections Feed */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">Recent Daily Collections Audit</h2>
+            <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700' }}>
+                <i className="fas fa-external-link-alt"></i> Collection Summary
+            </button>
           </div>
           <div className="card-body">
-            <DataTable columns={paymentColumns} data={payments} loading={loading} />
+            <div style={{ padding: '24px' }}>
+                <DataTable columns={paymentColumns} data={payments} loading={loading} />
+            </div>
           </div>
         </div>
 
-        {/* Payment Form */}
+        {/* Payment Processing Hub */}
         <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Process Payment with Manual OR</h2>
+          <div className="card-header" style={{ marginBottom: '30px' }}>
+            <h2 className="card-title">Manual Official Receipt (OR) Processor</h2>
           </div>
           <div className="card-body">
-            {/* Process Steps Indicator */}
-            <div className="process-steps" style={{ 
-              background: '#fff3cd', 
-              padding: '12px 15px', 
-              borderRadius: '4px', 
-              marginBottom: '20px',
-              border: '1px solid #ffc107'
-            }}>
-              <i className="fas fa-info-circle" style={{ marginRight: '8px' }}></i>
-              <strong>Process:</strong> 1. Search consumer → 2. Receive cash → 3. Fill manual OR booklet → 4. Enter OR number → 5. Record payment
+            {/* High-Fidelity Process Guide */}
+            <div className="process-steps">
+              <i className="fas fa-shield-alt"></i>
+              <span><strong>Protocol:</strong> Search → Collect Cash → Accomplish Booklet → Verify Booklet OR → Finalize & Record Transaction</span>
             </div>
 
-            {/* Form Fields */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              {/* Left Column */}
-              <div>
+            {/* Premium Form Layout */}
+            <div className="form-grid">
+              {/* Data Ingestion Column */}
+              <div className="form-column">
                 <div className="form-group">
-                  <label>Account Number</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter account number or search name"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearchConsumer()}
-                  />
+                  <label>Primary Account Identifier</label>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Account No. or Name"
+                      style={{ flex: 1 }}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearchConsumer()}
+                    />
+                    <button className="btn btn-secondary" onClick={handleSearchConsumer}>
+                      <i className="fas fa-search"></i>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Outstanding Balance</label>
+                <div className="form-group" style={{ marginTop: '20px' }}>
+                  <label>Consolidated Outstanding Balance</label>
                   <input
                     type="text"
                     className="form-control"
                     value={selectedConsumer ? `₱${(selectedConsumer.Total_Amount_Due || 0).toFixed(2)}` : '₱0.00'}
                     readOnly
-                    style={{ background: '#f8f9fa' }}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Amount Paid (Cash Received)</label>
+                <div className="form-group" style={{ marginTop: '20px' }}>
+                  <label>Actual Collection Value (PHP)</label>
                   <input
                     type="number"
                     className="form-control"
-                    placeholder="Enter amount received"
+                    placeholder="Enter cash amount"
                     value={amountPaid}
                     onChange={(e) => setAmountPaid(e.target.value)}
                   />
                 </div>
               </div>
 
-              {/* Right Column */}
-              <div>
+              {/* Validation Column */}
+              <div className="form-column">
                 <div className="form-group">
-                  <label>Consumer Name</label>
+                  <label>Consumer Identity Verification</label>
                   <input
                     type="text"
                     className="form-control"
-                    value={selectedConsumer?.Consumer_Name || 'Consumer name will appear here'}
+                    value={selectedConsumer?.Consumer_Name || 'Entity identity required...'}
                     readOnly
-                    style={{ background: '#f8f9fa' }}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Payment Method</label>
+                <div className="form-group" style={{ marginTop: '20px' }}>
+                  <label>Collection Source Indicator</label>
                   <select
                     className="form-control"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                   >
-                    <option value="Cash">Cash</option>
+                    <option value="Cash">Physical Cash</option>
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>Manual OR Number <span style={{ color: 'red' }}>*</span></label>
+                <div className="form-group" style={{ marginTop: '20px' }}>
+                  <label>Official Booklet Receipt No. (OR)</label>
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Enter OR from booklet"
+                    placeholder="Input OR sequence number"
+                    style={{ borderColor: '#f59e0b50', borderStyle: receiptNumber ? 'solid' : 'dashed' }}
                     value={receiptNumber}
                     onChange={(e) => setReceiptNumber(e.target.value)}
                   />
@@ -263,79 +276,87 @@ const ProcessPayment: React.FC = () => {
               </div>
             </div>
 
-            {/* Info Message */}
-            <div style={{ 
-              background: '#d1ecf1', 
-              padding: '10px 15px', 
-              borderRadius: '4px', 
-              marginTop: '20px',
-              marginBottom: '20px',
-              border: '1px solid #bee5eb'
-            }}>
-              <i className="fas fa-arrow-right" style={{ marginRight: '8px', color: '#0c5460' }}></i>
-              Payment will be sent to: <strong>Billing Officer for Validation</strong>
+            {/* Verification Status Banner */}
+            <div className="info-box">
+              <i className="fas fa-paper-plane"></i>
+              <span>This collection event will be automatically queued for <strong>Billing Department validation</strong>.</span>
             </div>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            {/* Strategic Action Bar */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
               <button 
                 type="button" 
                 className="btn btn-secondary"
+                style={{ padding: '12px 24px', borderRadius: '12px', fontWeight: '700' }}
                 onClick={handleClear}
               >
-                Clear
+                Clear Entry
               </button>
               <button 
                 type="button" 
                 className="btn btn-primary"
+                style={{ padding: '12px 36px', borderRadius: '12px', fontWeight: '800', background: 'linear-gradient(135deg, #1B1B63, #15154d)' }}
                 onClick={handleProcessPayment}
               >
-                <i className="fas fa-check"></i> Record Payment & Send for Validation
+                <i className="fas fa-check-double"></i> Authorize Collection & Record
               </button>
             </div>
           </div>
         </div>
 
+        {/* Transaction Success Overlay */}
         {showReceiptModal && currentReceipt && (
           <Modal
             isOpen={showReceiptModal}
-            title="Payment Receipt"
+            title="Collection Authorization Proof"
             onClose={() => setShowReceiptModal(false)}
             size="medium"
           >
             <div className="receipt-preview">
               <div className="receipt-header">
-                <h3>San Lorenzo Ruiz Waterworks System</h3>
-                <p>Official Receipt</p>
+                <img 
+                  src="/images/Waterworks System Payment Logo 1.svg" 
+                  alt="San Lorenzo Ruiz Water Logo" 
+                  style={{ height: '50px', width: 'auto', marginBottom: '10px', objectFit: 'contain' }}
+                />
+                <p>Digital Collection Record</p>
               </div>
               <div className="receipt-details">
                 <div className="receipt-row">
-                  <span>Receipt No.:</span>
+                  <span>OR Sequence:</span>
                   <span>{currentReceipt.Receipt_No}</span>
                 </div>
                 <div className="receipt-row">
-                  <span>Date:</span>
+                  <span>Authorized At:</span>
                   <span>{currentReceipt.Payment_Date}</span>
                 </div>
                 <div className="receipt-row">
-                  <span>Account No.:</span>
+                  <span>Acct No:</span>
                   <span>{currentReceipt.Account_Number}</span>
                 </div>
                 <div className="receipt-row">
-                  <span>Consumer:</span>
+                  <span>Internal Consumer:</span>
                   <span>{currentReceipt.Consumer_Name}</span>
                 </div>
                 <div className="receipt-row">
-                  <span>Amount Paid:</span>
-                  <span>₱{(currentReceipt.Amount || 0).toFixed(2)}</span>
+                  <span style={{ fontSize: '16px', color: '#10b981' }}>Gross Amount:</span>
+                  <span style={{ fontSize: '18px', color: '#1B1B63' }}>₱{(currentReceipt.Amount || 0).toFixed(2)}</span>
                 </div>
                 <div className="receipt-row">
-                  <span>Payment Method:</span>
+                  <span>Mechanism:</span>
                   <span>{currentReceipt.Payment_Method}</span>
                 </div>
               </div>
               <div className="receipt-footer">
-                <p>Thank you for your payment!</p>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowReceiptModal(false)}>
+                        <i className="fas fa-print"></i> Print Proof
+                    </button>
+                    <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setShowReceiptModal(false)}>
+                        <i className="fas fa-envelope"></i> Send Copy
+                    </button>
+                  </div>
+                <p style={{ marginTop: '20px' }}>Collection successfully audited internally.</p>
               </div>
             </div>
           </Modal>

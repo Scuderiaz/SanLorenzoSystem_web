@@ -1,65 +1,69 @@
 .data-table-container {
-  width: 100%;
-  overflow-x: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  border: 1px solid #f1f5f9;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: white;
-}
-
-.data-table thead {
-  background-color: #f8f9fa;
+  font-family: 'Inter', sans-serif;
 }
 
 .data-table th {
-  padding: 12px;
-  text-align: left;
-  font-weight: 600;
-  color: #202124;
-  border-bottom: 2px solid #dadce0;
-  white-space: nowrap;
-}
-
-.data-table th.sortable {
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-}
-
-.data-table th.sortable:hover {
-  background-color: #e8eaed;
-}
-
-.sort-icon {
-  margin-left: 8px;
+  background-color: #f8fafc;
+  color: #64748b;
   font-size: 12px;
-  color: #1a73e8;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 16px 24px;
+  text-align: left;
+  border-bottom: 2px solid #f1f5f9;
 }
 
 .data-table td {
-  padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
-  color: #3c4043;
+  padding: 18px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.data-table tbody tr:hover {
-  background-color: #f8f9fa;
+.data-table tr:last-child td {
+  border-bottom: none;
 }
 
-.data-table tbody tr.clickable {
-  cursor: pointer;
+.data-table tr:hover td {
+  background-color: #fcfdfe;
 }
 
-.data-table tbody tr.clickable:hover {
-  background-color: #e8f0fe;
+.data-table .loading-state,
+.data-table .empty-state {
+  padding: 60px;
+  text-align: center;
+  color: #94a3b8;
+  font-weight: 600;
 }
+
+/* Badge styling for status within tables */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.active { background: #ecfdf5; color: #059669; }
+.status-badge.pending { background: #fffbeb; color: #d97706; }
+.status-badge.inactive { background: #fef2f2; color: #dc2626; }
 
 @media (max-width: 768px) {
-  .data-table th,
-  .data-table td {
-    padding: 8px;
-    font-size: 14px;
+  .data-table-container {
+    border-radius: 8px;
   }
 }

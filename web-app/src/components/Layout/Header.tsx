@@ -9,21 +9,41 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
   const { user, logout, isOnline } = useAuth();
 
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const roleLabels: { [key: number]: string } = {
+    1: 'Assessor Admin',
+    3: 'Billing Officer',
+    4: 'Cashier/Treasurer'
+  };
+
   return (
     <div className="header">
-      <h1 className="page-title">{title}</h1>
+      <div className="header-left">
+        <h1 className="page-title">{title}</h1>
+      </div>
+      
       <div className="header-right">
-        <div className="user-actions">
+        <div className="header-icons">
+          <i className="far fa-bell header-icon"></i>
+          <i className="far fa-comment-dots header-icon"></i>
           <div className="online-status">
             <span className={`status-indicator ${isOnline ? 'online' : 'offline'}`}></span>
-            <span className="status-text">{isOnline ? 'Online' : 'Offline'}</span>
+            <span>{isOnline ? 'Online' : 'Offline'}</span>
           </div>
-          <span className="user-greeting">
-            Welcome, {user?.fullName || user?.username || 'User'}
-          </span>
-          <a href="#" onClick={(e) => { e.preventDefault(); logout(); }} className="logout-btn">
-            <i className="fas fa-sign-out-alt"></i> Logout
-          </a>
+        </div>
+
+        <div className="user-profile">
+          <div className="avatar">
+            {getInitials(user?.fullName || user?.username || 'A')}
+          </div>
+          <div className="user-info">
+            <span className="user-name">{user?.fullName || user?.username || 'User'}</span>
+            <span className="user-role">{roleLabels[user?.role_id!] || 'Staff'}</span>
+          </div>
+          <i className="fas fa-chevron-down" style={{ fontSize: '10px', color: '#94a3b8' }}></i>
         </div>
       </div>
     </div>

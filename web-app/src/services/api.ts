@@ -42,7 +42,45 @@ export const authService = {
         return { success: false, message: 'Invalid credentials' };
       }
     } catch (error: any) {
-      return { success: false, message: error.message };
+      // Use the server's specific message if available, otherwise fall back to Axios message
+      const msg = error.response?.data?.message || error.message;
+      return { success: false, message: msg };
+    }
+  },
+
+  register: async (userData: any) => {
+    try {
+      const response = await api.post('/register', userData);
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: error.message };
+    }
+  },
+
+  requestOtp: async (username: string) => {
+    try {
+      const response = await api.post('/forgot-password/request', { username });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: error.message };
+    }
+  },
+
+  verifyOtp: async (username: string, code: string) => {
+    try {
+      const response = await api.post('/forgot-password/verify', { username, code });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: error.message };
+    }
+  },
+
+  resetPassword: async (username: string, code: string, newPassword: string) => {
+    try {
+      const response = await api.post('/forgot-password/reset', { username, code, newPassword });
+      return response.data;
+    } catch (error: any) {
+      return error.response?.data || { success: false, message: error.message };
     }
   },
 };

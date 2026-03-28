@@ -134,13 +134,13 @@ const GenerateBills: React.FC = () => {
       key: 'Consumption',
       label: 'Consumption',
       sortable: true,
-      render: (bill: Bill) => `${bill.Consumption} cu.m`,
+      render: (val: number) => `${val || 0} cu.m`,
     },
     {
       key: 'Bill_Amount',
       label: 'Bill Amount',
       sortable: true,
-      render: (bill: Bill) => `₱${(bill.Bill_Amount || 0).toFixed(2)}`,
+      render: (val: number) => `₱${(val || 0).toFixed(2)}`,
     },
     {
       key: 'Due_Date',
@@ -151,14 +151,14 @@ const GenerateBills: React.FC = () => {
       key: 'Status',
       label: 'Status',
       sortable: true,
-      render: (bill: Bill) => (
-        <span className={`status-badge status-${(bill.Status || 'unknown').toLowerCase()}`}>{bill.Status || 'Unknown'}</span>
+      render: (val: string) => (
+        <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>{val || 'Unknown'}</span>
       ),
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (bill: Bill) => (
+      render: (_: any, bill: Bill) => (
         <button className="btn btn-sm btn-info" onClick={() => handleViewBill(bill)}>
           <i className="fas fa-eye"></i> View
         </button>
@@ -242,8 +242,12 @@ const GenerateBills: React.FC = () => {
   ];
 
   return (
-    <MainLayout title="Bills Review">
+    <MainLayout title="Billing & Collections Audit">
       <div className="generate-bills-page">
+        <div className="page-intro" style={{ marginBottom: '10px' }}>
+            <h3 style={{ color: '#1B1B63', fontSize: '18px', fontWeight: '800' }}>Operational Billing Registry</h3>
+            <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Analyze and review generated water bills before finalizing the collection lifecycle.</p>
+        </div>
         <Tabs tabs={tabs} defaultTab="recent" />
 
         {showBillModal && selectedBill && (
