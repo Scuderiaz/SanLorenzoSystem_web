@@ -22,11 +22,13 @@
     }
   ],
   "start_url": "/",
-  "display": "standalone",
+  "display": "browser",
+  "display_override": ["browser"],
   "theme_color": "#1a73e8",
   "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "scope": "/",
   "categories": ["business", "utilities"],
-  "screenshots": []
+  "screenshots": [],
+  "prefer_related_applications": false
 }

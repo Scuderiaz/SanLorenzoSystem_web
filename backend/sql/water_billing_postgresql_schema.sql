@@ -1,0 +1,460 @@
+-- =========================================
+-- WATER BILLING AND PAYMENT SYSTEM SCHEMA
+-- PostgreSQL
+-- =========================================
+
+-- Optional: create dedicated schema
+CREATE SCHEMA IF NOT EXISTS water_billing;
+SET search_path TO water_billing;
+
+-- =========================================
+-- 1. ROLES
+-- =========================================
+CREATE TABLE roles (
+    role_id SERIAL PRIMARY KEY,
+    role_name VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- =========================================
+-- 2. ACCOUNTS
+-- =========================================
+CREATE TABLE accounts (
+    account_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role_id INT NOT NULL,
+    account_status VARCHAR(20) NOT NULL DEFAULT 'Pending'
+        CHECK (account_status IN ('Pending', 'Approved', 'Rejected', 'Active', 'Inactive')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_accounts_role
+        FOREIGN KEY (role_id) REFERENCES roles(role_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+-- =========================================
+-- 3. CLASSIFICATION
+-- =========================================
+CREATE TABLE classification (
+    classification_id SERIAL PRIMARY KEY,
+    classification_name VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- =========================================
+-- 4. ZONE
+-- =========================================
+CREATE TABLE zone (
+    zone_id SERIAL PRIMARY KEY,
+    zone_name VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- =========================================
+-- 5. CONSUMER
+-- =========================================
+CREATE TABLE consumer (
+    consumer_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100),
+    last_name VARCHAR(100) NOT NULL,
+    address TEXT NOT NULL,
+    zone_id INT NOT NULL,
+    classification_id INT NOT NULL,
+    login_id INT NOT NULL UNIQUE,
+    account_number VARCHAR(50) NOT NULL UNIQUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'Active'
+        CHECK (status IN ('Active', 'Inactive')),
+    contact_number VARCHAR(20),
+    connection_date TIMESTAMP,
+
+    CONSTRAINT fk_consumer_zone
+        FOREIGN KEY (zone_id) REFERENCES zone(zone_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_consumer_classification
+        FOREIGN KEY (classification_id) REFERENCES classification(classification_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_consumer_login
+        FOREIGN KEY (login_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+-- =========================================
+-- 6. METER
+-- =========================================
+CREATE TABLE meter (
+    meter_id SERIAL PRIMARY KEY,
+    consumer_id INT NOT NULL,
+    meter_serial_number VARCHAR(100) NOT NULL UNIQUE,
+    meter_size VARCHAR(50),
+    meter_status VARCHAR(20) NOT NULL DEFAULT 'Active'
+        CHECK (meter_status IN ('Active', 'Inactive', 'Defective', 'Disconnected')),
+    installed_date TIMESTAMP,
+
+    CONSTRAINT fk_meter_consumer
+        FOREIGN KEY (consumer_id) REFERENCES consumer(consumer_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- =========================================
+-- 7. ROUTE
+-- =========================================
+CREATE TABLE route (
+    route_id SERIAL PRIMARY KEY,
+    meter_reader_id INT NOT NULL,
+    zone_id INT NOT NULL,
+
+    CONSTRAINT fk_route_meter_reader
+        FOREIGN KEY (meter_reader_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_route_zone
+        FOREIGN KEY (zone_id) REFERENCES zone(zone_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+-- =========================================
+-- 8. METERREADINGS
+-- =========================================
+CREATE TABLE meterreadings (
+    reading_id SERIAL PRIMARY KEY,
+    route_id INT NOT NULL,
+    consumer_id INT NOT NULL,
+    meter_id INT NOT NULL,
+    meter_reader_id INT NOT NULL,
+    created_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reading_status VARCHAR(30) NOT NULL DEFAULT 'Pending'
+        CHECK (reading_status IN ('Pending', 'Recorded', 'Verified', 'Rejected')),
+    previous_reading NUMERIC(12,2) NOT NULL DEFAULT 0,
+    current_reading NUMERIC(12,2) NOT NULL DEFAULT 0,
+    consumption NUMERIC(12,2) NOT NULL DEFAULT 0,
+    excess_consumption NUMERIC(12,2) NOT NULL DEFAULT 0,
+    notes TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'Active'
+        CHECK (status IN ('Active', 'Inactive')),
+    reading_date TIMESTAMP NOT NULL,
+
+    CONSTRAINT fk_meterreadings_route
+        FOREIGN KEY (route_id) REFERENCES route(route_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_meterreadings_consumer
+        FOREIGN KEY (consumer_id) REFERENCES consumer(consumer_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_meterreadings_meter
+        FOREIGN KEY (meter_id) REFERENCES meter(meter_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_meterreadings_reader
+        FOREIGN KEY (meter_reader_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_meterreadings_values
+        CHECK (
+            current_reading >= previous_reading
+            AND consumption >= 0
+            AND excess_consumption >= 0
+        )
+);
+
+-- =========================================
+-- 9. BILLS
+-- =========================================
+CREATE TABLE bills (
+    bill_id SERIAL PRIMARY KEY,
+    consumer_id INT NOT NULL,
+    reading_id INT NOT NULL UNIQUE,
+    billing_officer_id INT NOT NULL,
+    billing_month VARCHAR(30) NOT NULL,
+    date_covered_from TIMESTAMP NOT NULL,
+    date_covered_to TIMESTAMP NOT NULL,
+    bill_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    due_date TIMESTAMP NOT NULL,
+    disconnection_date TIMESTAMP,
+    class_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+    water_charge NUMERIC(12,2) NOT NULL DEFAULT 0,
+    meter_maintenance_fee NUMERIC(12,2) NOT NULL DEFAULT 0,
+    connection_fee NUMERIC(12,2) NOT NULL DEFAULT 0,
+    amount_due NUMERIC(12,2) NOT NULL DEFAULT 0,
+    previous_balance NUMERIC(12,2) NOT NULL DEFAULT 0,
+    previous_penalty NUMERIC(12,2) NOT NULL DEFAULT 0,
+    penalty NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total_after_due_date NUMERIC(12,2) NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'Unpaid'
+        CHECK (status IN ('Unpaid', 'Partially Paid', 'Paid', 'Overdue', 'Cancelled')),
+
+    CONSTRAINT fk_bills_consumer
+        FOREIGN KEY (consumer_id) REFERENCES consumer(consumer_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_bills_reading
+        FOREIGN KEY (reading_id) REFERENCES meterreadings(reading_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_bills_billing_officer
+        FOREIGN KEY (billing_officer_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+-- =========================================
+-- 10. PAYMENT
+-- =========================================
+CREATE TABLE payment (
+    payment_id SERIAL PRIMARY KEY,
+    consumer_id INT NOT NULL,
+    bill_id INT NOT NULL,
+    payment_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    amount_paid NUMERIC(12,2) NOT NULL,
+    or_number VARCHAR(100),
+    payment_method VARCHAR(50) NOT NULL,
+    reference_number VARCHAR(100),
+    status VARCHAR(20) NOT NULL DEFAULT 'Pending'
+        CHECK (status IN ('Pending', 'Validated', 'Rejected', 'Voided')),
+    validated_by INT,
+    validated_date TIMESTAMP,
+
+    CONSTRAINT fk_payment_consumer
+        FOREIGN KEY (consumer_id) REFERENCES consumer(consumer_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_payment_bill
+        FOREIGN KEY (bill_id) REFERENCES bills(bill_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_payment_validated_by
+        FOREIGN KEY (validated_by) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL,
+
+    CONSTRAINT chk_payment_amount
+        CHECK (amount_paid >= 0)
+);
+
+-- =========================================
+-- 11. LEDGER_ENTRY
+-- =========================================
+CREATE TABLE ledger_entry (
+    ledger_id SERIAL PRIMARY KEY,
+    consumer_id INT NOT NULL,
+    transaction_type VARCHAR(50) NOT NULL,
+    reference_id INT,
+    amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    balance NUMERIC(12,2) NOT NULL DEFAULT 0,
+    transaction_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+
+    CONSTRAINT fk_ledger_entry_consumer
+        FOREIGN KEY (consumer_id) REFERENCES consumer(consumer_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- =========================================
+-- 12. WATERRATES
+-- =========================================
+CREATE TABLE waterrates (
+    rate_id SERIAL PRIMARY KEY,
+    minimum_cubic INT NOT NULL DEFAULT 10,
+    minimum_rate NUMERIC(12,2) NOT NULL DEFAULT 75.00,
+    excess_rate_per_cubic NUMERIC(12,2) NOT NULL DEFAULT 7.50,
+    effective_date TIMESTAMP NOT NULL,
+    modified_by INT,
+    modified_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_waterrates_modified_by
+        FOREIGN KEY (modified_by) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+-- =========================================
+-- 13. CONNECTION_TICKET
+-- =========================================
+CREATE TABLE connection_ticket (
+    ticket_id SERIAL PRIMARY KEY,
+    consumer_id INT,
+    account_id INT NOT NULL,
+    ticket_number VARCHAR(100) NOT NULL UNIQUE,
+    application_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    connection_type VARCHAR(50) NOT NULL,
+    requirements_submitted TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'Pending'
+        CHECK (status IN ('Pending', 'Approved', 'Rejected', 'Processing', 'Completed')),
+    inspection_date TIMESTAMP,
+    approved_by INT,
+    approved_date TIMESTAMP,
+    remarks TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_connection_ticket_consumer
+        FOREIGN KEY (consumer_id) REFERENCES consumer(consumer_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_connection_ticket_account
+        FOREIGN KEY (account_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_connection_ticket_approved_by
+        FOREIGN KEY (approved_by) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+-- =========================================
+-- 14. PASSWORD_RESET
+-- =========================================
+CREATE TABLE password_reset (
+    reset_id SERIAL PRIMARY KEY,
+    account_id INT NOT NULL,
+    reset_token VARCHAR(255) NOT NULL UNIQUE,
+    expiration_time TIMESTAMP NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'Active'
+        CHECK (status IN ('Active', 'Used', 'Expired')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_password_reset_account
+        FOREIGN KEY (account_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- =========================================
+-- 15. ACCOUNT_APPROVAL
+-- =========================================
+CREATE TABLE account_approval (
+    approval_id SERIAL PRIMARY KEY,
+    account_id INT NOT NULL,
+    approved_by INT NOT NULL,
+    approval_status VARCHAR(20) NOT NULL
+        CHECK (approval_status IN ('Pending', 'Approved', 'Rejected')),
+    approval_date TIMESTAMP,
+    remarks TEXT,
+
+    CONSTRAINT fk_account_approval_account
+        FOREIGN KEY (account_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_account_approval_approved_by
+        FOREIGN KEY (approved_by) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+-- =========================================
+-- 16. BACKUPLOGS
+-- =========================================
+CREATE TABLE backuplogs (
+    backup_id SERIAL PRIMARY KEY,
+    backup_name VARCHAR(255) NOT NULL,
+    backup_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    backup_size VARCHAR(100),
+    backup_type VARCHAR(50),
+    created_by INT,
+
+    CONSTRAINT fk_backuplogs_created_by
+        FOREIGN KEY (created_by) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+-- =========================================
+-- 17. ERROR_LOGS
+-- =========================================
+CREATE TABLE error_logs (
+    error_id SERIAL PRIMARY KEY,
+    error_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    severity VARCHAR(20) NOT NULL,
+    module VARCHAR(100),
+    error_message TEXT NOT NULL,
+    user_id INT,
+    status VARCHAR(20) DEFAULT 'Open'
+        CHECK (status IN ('Open', 'Resolved', 'Ignored')),
+
+    CONSTRAINT fk_error_logs_user
+        FOREIGN KEY (user_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+-- =========================================
+-- 18. SYSTEM_LOGS
+-- =========================================
+CREATE TABLE system_logs (
+    log_id SERIAL PRIMARY KEY,
+    account_id INT NOT NULL,
+    role VARCHAR(50),
+    action TEXT NOT NULL,
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_system_logs_account
+        FOREIGN KEY (account_id) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+-- =========================================
+-- INDEXES
+-- =========================================
+CREATE INDEX idx_consumer_account_number ON consumer(account_number);
+CREATE INDEX idx_consumer_login_id ON consumer(login_id);
+CREATE INDEX idx_meter_consumer_id ON meter(consumer_id);
+CREATE INDEX idx_route_meter_reader_id ON route(meter_reader_id);
+CREATE INDEX idx_meterreadings_consumer_id ON meterreadings(consumer_id);
+CREATE INDEX idx_meterreadings_meter_id ON meterreadings(meter_id);
+CREATE INDEX idx_bills_consumer_id ON bills(consumer_id);
+CREATE INDEX idx_payment_consumer_id ON payment(consumer_id);
+CREATE INDEX idx_payment_bill_id ON payment(bill_id);
+CREATE INDEX idx_ledger_entry_consumer_id ON ledger_entry(consumer_id);
+CREATE INDEX idx_connection_ticket_account_id ON connection_ticket(account_id);
+CREATE INDEX idx_connection_ticket_consumer_id ON connection_ticket(consumer_id);
+CREATE INDEX idx_system_logs_account_id ON system_logs(account_id);
+CREATE INDEX idx_error_logs_user_id ON error_logs(user_id);
+
+-- =========================================
+-- OPTIONAL DEFAULT DATA
+-- =========================================
+INSERT INTO roles (role_name) VALUES
+('Admin'),
+('Billing Officer'),
+('Meter Reader'),
+('Consumer')
+ON CONFLICT (role_name) DO NOTHING;
+
+INSERT INTO classification (classification_name) VALUES
+('Residential'),
+('Commercial'),
+('Institutional')
+ON CONFLICT (classification_name) DO NOTHING;
+
+INSERT INTO waterrates (
+    minimum_cubic,
+    minimum_rate,
+    excess_rate_per_cubic,
+    effective_date
+) VALUES (
+    10,
+    75.00,
+    7.50,
+    CURRENT_TIMESTAMP
+);

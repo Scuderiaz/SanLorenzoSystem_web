@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { supabase } from '../config/supabase';
 import { initOfflineDB, saveOfflineDB, addToSyncQueue } from '../config/database';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
@@ -10,6 +9,12 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+const syncEndpointMap: Record<string, string> = {
+  consumer: '/consumers',
+  meterreadings: '/meter-readings',
+  bills: '/bills',
+};
 
 export const authService = {
   login: async (username: string, password: string) => {
@@ -89,11 +94,8 @@ export const consumerService = {
   getAll: async () => {
     try {
       if (navigator.onLine) {
-        const { data, error } = await supabase
-          .from('consumer')
-          .select('*');
-        if (error) throw error;
-        return data;
+        const response = await api.get('/consumers');
+        return response.data?.data || response.data || [];
       } else {
         const db = await initOfflineDB();
         const result = db.exec('SELECT * FROM consumer');
@@ -118,12 +120,8 @@ export const consumerService = {
   create: async (consumer: any) => {
     try {
       if (navigator.onLine) {
-        const { data, error } = await supabase
-          .from('consumer')
-          .insert([consumer])
-          .select();
-        if (error) throw error;
-        return data;
+        const response = await api.post('/consumers', consumer);
+        return response.data?.data || response.data;
       } else {
         await addToSyncQueue('consumer', 'INSERT', consumer);
         const db = await initOfflineDB();
@@ -154,13 +152,8 @@ export const consumerService = {
   update: async (id: number, consumer: any) => {
     try {
       if (navigator.onLine) {
-        const { data, error } = await supabase
-          .from('consumer')
-          .update(consumer)
-          .eq('Consumer_ID', id)
-          .select();
-        if (error) throw error;
-        return data;
+        const response = await api.put(`/consumers/${id}`, consumer);
+        return response.data?.data || response.data;
       } else {
         await addToSyncQueue('consumer', 'UPDATE', { id, ...consumer });
         const db = await initOfflineDB();
@@ -179,11 +172,7 @@ export const consumerService = {
   delete: async (id: number) => {
     try {
       if (navigator.onLine) {
-        const { error } = await supabase
-          .from('consumer')
-          .delete()
-          .eq('Consumer_ID', id);
-        if (error) throw error;
+        await api.delete(`/consumers/${id}`);
       } else {
         await addToSyncQueue('consumer', 'DELETE', { id });
         const db = await initOfflineDB();
@@ -201,11 +190,8 @@ export const meterReadingService = {
   getAll: async () => {
     try {
       if (navigator.onLine) {
-        const { data, error } = await supabase
-          .from('meterreadings')
-          .select('*');
-        if (error) throw error;
-        return data;
+        const response = await api.get('/meter-readings');
+        return response.data || [];
       } else {
         const db = await initOfflineDB();
         const result = db.exec('SELECT * FROM meterreadings');
@@ -230,12 +216,8 @@ export const meterReadingService = {
   create: async (reading: any) => {
     try {
       if (navigator.onLine) {
-        const { data, error } = await supabase
-          .from('meterreadings')
-          .insert([reading])
-          .select();
-        if (error) throw error;
-        return data;
+        const response = await api.post('/meter-readings', reading);
+        return response.data;
       } else {
         await addToSyncQueue('meterreadings', 'INSERT', reading);
         const db = await initOfflineDB();
@@ -266,11 +248,8 @@ export const billService = {
   getAll: async () => {
     try {
       if (navigator.onLine) {
-        const { data, error } = await supabase
-          .from('bills')
-          .select('*');
-        if (error) throw error;
-        return data;
+        const response = await api.get('/bills');
+        return response.data || [];
       } else {
         const db = await initOfflineDB();
         const result = db.exec('SELECT * FROM bills');
@@ -295,12 +274,8 @@ export const billService = {
   create: async (bill: any) => {
     try {
       if (navigator.onLine) {
-        const { data, error } = await supabase
-          .from('bills')
-          .insert([bill])
-          .select();
-        if (error) throw error;
-        return data;
+        const response = await api.post('/bills', bill);
+        return response.data;
       } else {
         await addToSyncQueue('bills', 'INSERT', bill);
         const db = await initOfflineDB();
@@ -346,13 +321,18 @@ export const syncService = {
         const parsedData = JSON.parse(data as string);
 
         try {
+          const endpoint = syncEndpointMap[tableName as string];
+          if (!endpoint) {
+            throw new Error(`No sync endpoint configured for table ${tableName}`);
+          }
+
           if (operation === 'INSERT') {
-            await supabase.from(tableName as string).insert([parsedData]);
+            await api.post(endpoint, parsedData);
           } else if (operation === 'UPDATE') {
             const { id: recordId, ...updateData } = parsedData;
-            await supabase.from(tableName as string).update(updateData).eq('id', recordId);
+            await api.put(`${endpoint}/${recordId}`, updateData);
           } else if (operation === 'DELETE') {
-            await supabase.from(tableName as string).delete().eq('id', parsedData.id);
+            await api.delete(`${endpoint}/${parsedData.id}`);
           }
 
           db.run('UPDATE sync_queue SET synced = 1 WHERE id = ?', [id]);

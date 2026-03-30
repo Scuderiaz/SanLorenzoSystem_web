@@ -1,0 +1,22 @@
+
+> san-lorenzo-wwsys@1.0.0 start
+> concurrently "npm run start --prefix backend" "npm run start --prefix web-app" --names "BACKEND,FRONTEND" --prefix-colors "red,blue" --kill-others-on-fail
+
+[BACKEND] 
+[BACKEND] > slr-water-billing-backend@1.0.0 start
+[BACKEND] > node server.js
+[BACKEND] 
+[FRONTEND] 
+[FRONTEND] > web-app@0.1.0 start
+[FRONTEND] > set GENERATE_SOURCEMAP=false && set DISABLE_ESLINT_PLUGIN=true && set DISABLE_TYPECHECK_PLUGIN=true && react-scripts start
+[FRONTEND] 
+[BACKEND] Server running on http://localhost:3001
+[BACKEND] Database: PostgreSQL (SLRWs)
+[FRONTEND] (node:22664) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+[FRONTEND] (Use `node --trace-deprecation ...` to show where the warning was created)
+[FRONTEND] (node:22664) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+[FRONTEND] (node:22664) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+[FRONTEND] ^C
+[FRONTEND] npm run start --prefix web-app exited with code 3221225786
+--> Sending SIGTERM to other processes..
+[BACKEND] npm run start --prefix backend exited with code 3221225786
