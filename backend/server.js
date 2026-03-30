@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -30,6 +32,13 @@ const postgresConfig = process.env.DATABASE_URL
 
 const pool = new Pool(postgresConfig);
 const syncIntervalMs = Number(process.env.SUPABASE_SYNC_INTERVAL_MS || 60000);
+const defaultSystemLogAccountId = Number(process.env.SYSTEM_LOG_ACCOUNT_ID || 1);
+const logDirectory = path.join(__dirname, 'sync-logs');
+const logFiles = {
+  postgres: path.join(logDirectory, 'postgres-sync.txt'),
+  supabase: path.join(logDirectory, 'supabase-sync.txt'),
+  requestErrors: path.join(logDirectory, 'request-errors.txt'),
+};
 let isSupabaseSyncRunning = false;
 
 const syncTableConfigs = [
@@ -44,7 +53,156 @@ const syncTableConfigs = [
   { tableName: 'payments', primaryKey: 'Payment_ID' },
   { tableName: 'otp_verifications', primaryKey: 'ID' },
   { tableName: 'registration_tickets', primaryKey: 'ID' },
+  { tableName: 'error_logs', primaryKey: 'error_id' },
+  { tableName: 'system_logs', primaryKey: 'log_id' },
+  { tableName: 'backuplogs', primaryKey: 'backup_id' },
 ];
+
+function safeSerialize(value) {
+  try {
+    return JSON.stringify(value ?? null);
+  } catch (error) {
+    return JSON.stringify({ serializationError: error.message });
+  }
+}
+
+function truncateLogValue(value, maxLength = 4000) {
+  const text = String(value ?? '');
+  return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
+}
+
+function ensureLogDirectory() {
+  fs.mkdirSync(logDirectory, { recursive: true });
+}
+
+function appendTextLog(filePath, message) {
+  ensureLogDirectory();
+  const line = `[${new Date().toISOString()}] ${message}\n`;
+  fs.appendFileSync(filePath, line, 'utf8');
+}
+
+async function writeSystemLog(action, options = {}) {
+  const accountId = Number(options.accountId || defaultSystemLogAccountId);
+  const role = options.role || 'System';
+
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO system_logs (account_id, role, action) VALUES ($1, $2, $3) RETURNING *',
+      [accountId, role, truncateLogValue(action)]
+    );
+
+    if (supabase && rows[0]) {
+      const { error } = await supabase.from('system_logs').upsert(rows, {
+        onConflict: 'log_id',
+        ignoreDuplicates: false,
+      });
+
+      if (error) {
+        console.error('Supabase system log mirror failed:', error.message);
+      }
+    }
+  } catch (error) {
+    console.error('Database system log write failed:', error.message);
+  }
+}
+
+async function writeErrorLog(details) {
+  const severity = details.severity || 'ERROR';
+  const moduleName = details.module || 'server';
+  const errorMessage = truncateLogValue(details.errorMessage);
+  const userId = details.userId ? Number(details.userId) : null;
+  const status = details.status || 'Open';
+
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO error_logs (severity, module, error_message, user_id, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [severity, moduleName, errorMessage, userId, status]
+    );
+
+    if (supabase && rows[0]) {
+      const { error } = await supabase.from('error_logs').upsert(rows, {
+        onConflict: 'error_id',
+        ignoreDuplicates: false,
+      });
+
+      if (error) {
+        console.error('Supabase error log mirror failed:', error.message);
+      }
+    }
+  } catch (error) {
+    console.error('Database error log write failed:', error.message);
+  }
+}
+
+function requestLogContext(req) {
+  return truncateLogValue(
+    [
+      `${req.method} ${req.originalUrl}`,
+      `params=${safeSerialize(req.params)}`,
+      `query=${safeSerialize(req.query)}`,
+      `body=${safeSerialize(req.body)}`,
+    ].join(' | ')
+  );
+}
+
+async function logSyncEvent(target, message, options = {}) {
+  const filePath = target === 'postgres' ? logFiles.postgres : logFiles.supabase;
+  appendTextLog(filePath, message);
+  await writeSystemLog(`[${target}] ${message}`, options);
+}
+
+async function logErrorEvent(moduleName, errorMessage, options = {}) {
+  appendTextLog(logFiles.requestErrors, `[${moduleName}] ${errorMessage}`);
+  await writeErrorLog({
+    severity: options.severity || 'ERROR',
+    module: moduleName,
+    userId: options.userId,
+    status: options.status,
+    errorMessage,
+  });
+}
+
+function logRequestError(req, moduleName, error, userId) {
+  return logErrorEvent(
+    moduleName,
+    `${error.message} | ${requestLogContext(req)}`,
+    { userId }
+  );
+}
+
+async function logPostgresEvent(message, options = {}) {
+  await logSyncEvent('postgres', message, options);
+}
+
+async function logSupabaseEvent(message, options = {}) {
+  await logSyncEvent('supabase', message, options);
+}
+
+async function logRequestInfo(moduleName, message, options = {}) {
+  appendTextLog(logFiles.requestErrors, `[${moduleName}] ${message}`);
+  await writeSystemLog(`[request] [${moduleName}] ${message}`, options);
+}
+
+async function logDatabaseError(moduleName, error, options = {}) {
+  await logErrorEvent(
+    moduleName,
+    error.message || String(error),
+    {
+      severity: options.severity || 'ERROR',
+      userId: options.userId,
+      status: options.status,
+    }
+  );
+}
+
+function legacyRequestError(req, moduleName, error, userId) {
+  return writeErrorLog({
+    severity: 'ERROR',
+    module: moduleName,
+    userId,
+    errorMessage: `${error.message} | ${requestLogContext(req)}`,
+  });
+}
 
 async function initDb() {
   await pool.query(`
@@ -204,9 +362,11 @@ async function initDb() {
 }
 
 async function syncTableToSupabase(tableName, primaryKey) {
+  await logPostgresEvent(`Preparing sync for table ${tableName}.`);
   const { rows } = await pool.query(`SELECT * FROM ${tableName}`);
 
   if (rows.length === 0) {
+    await logSupabaseEvent(`Table ${tableName}: no rows to sync.`);
     return { tableName, synced: 0 };
   }
 
@@ -216,9 +376,11 @@ async function syncTableToSupabase(tableName, primaryKey) {
   });
 
   if (error) {
+    await logDatabaseError(`supabase.sync.${tableName}`, error);
     throw new Error(`${tableName}: ${error.message}`);
   }
 
+  await logSupabaseEvent(`Table ${tableName}: synced ${rows.length} row(s).`);
   return { tableName, synced: rows.length };
 }
 
@@ -230,12 +392,14 @@ async function syncPostgresToSupabase() {
   isSupabaseSyncRunning = true;
 
   try {
+    await logSupabaseEvent('Starting PostgreSQL to Supabase sync cycle.');
     const results = [];
 
     for (const { tableName, primaryKey } of syncTableConfigs) {
       results.push(await syncTableToSupabase(tableName, primaryKey));
     }
 
+    await logSupabaseEvent(`Sync cycle complete for ${results.length} table(s).`);
     return results;
   } finally {
     isSupabaseSyncRunning = false;
@@ -244,11 +408,15 @@ async function syncPostgresToSupabase() {
 
 function startSupabaseSyncScheduler() {
   if (!supabase) {
+    logPostgresEvent('Supabase sync scheduler disabled: running in PostgreSQL-only mode.').catch(() => {});
+    console.log('Supabase sync scheduler disabled: running in PostgreSQL-only mode.');
     return;
   }
 
+  logSupabaseEvent(`Supabase sync scheduler started with interval ${syncIntervalMs}ms.`).catch(() => {});
   setInterval(() => {
     syncPostgresToSupabase().catch((error) => {
+      logDatabaseError('supabase.sync.scheduler', error).catch(() => {});
       console.warn('Supabase sync skipped:', error.message);
     });
   }, syncIntervalMs);
@@ -266,6 +434,7 @@ app.get('/api/roles', async (req, res) => {
       return res.json({ success: true, data: roles });
     }
   } catch (error) {
+    await logRequestError(req, 'roles.fetch', error);
     console.error('Error fetching roles:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -324,6 +493,7 @@ app.get('/api/users/type/:type', async (req, res) => {
       return res.json({ success: true, data: users });
     }
   } catch (error) {
+    await logRequestError(req, 'users.fetchByType', error);
     console.error('Error fetching users:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -364,6 +534,7 @@ app.get('/api/users/unified', async (req, res) => {
       return res.json({ success: true, data: users });
     }
   } catch (error) {
+    await logRequestError(req, 'users.fetchUnified', error);
     console.error('Error fetching unified users:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -385,6 +556,7 @@ app.post('/api/admin/approve-user', async (req, res) => {
       return res.json({ success: true, message: 'Account approved successfully' });
     }
   } catch (error) {
+    await logRequestError(req, 'users.approve', error);
     console.error('Approval error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -410,6 +582,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
       return res.json({ success: true, message: 'Account rejected and deleted' });
     }
   } catch (error) {
+    await logRequestError(req, 'users.reject', error);
     console.error('Rejection error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -438,6 +611,7 @@ app.post('/api/users', async (req, res) => {
       return res.json({ success: true, data: { AccountID: result.lastInsertRowid, Username: username, Full_Name: fullName, Role_ID: roleId } });
     }
   } catch (error) {
+    await logRequestError(req, 'users.create', error);
     console.error('Error creating user:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -480,6 +654,7 @@ app.put('/api/users/:id', async (req, res) => {
       return res.json({ success: true, message: 'User updated successfully' });
     }
   } catch (error) {
+    await logRequestError(req, 'users.update', error);
     console.error('Error updating user:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -504,6 +679,7 @@ app.delete('/api/users/:id', async (req, res) => {
       return res.json({ success: true, message: 'User deleted successfully' });
     }
   } catch (error) {
+    await logRequestError(req, 'users.delete', error);
     console.error('Error deleting user:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -587,6 +763,7 @@ app.post('/api/login', async (req, res) => {
       });
     }
   } catch (error) {
+    await logRequestError(req, 'auth.login', error);
     console.error('Login error:', error);
     return res.status(500).json({ success: false, message: 'Database error: ' + error.message });
   }
@@ -604,6 +781,7 @@ app.get('/api/zones', async (req, res) => {
       return res.json({ success: true, data: zones });
     }
   } catch (error) {
+    await logRequestError(req, 'zones.fetch', error);
     console.error('Error fetching zones:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -621,6 +799,7 @@ app.get('/api/classifications', async (req, res) => {
       return res.json({ success: true, data: classifications });
     }
   } catch (error) {
+    await logRequestError(req, 'classifications.fetch', error);
     console.error('Error fetching classifications:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -655,6 +834,7 @@ app.get('/api/consumers', async (req, res) => {
       return res.json(consumers);
     }
   } catch (error) {
+    await logRequestError(req, 'consumers.fetch', error);
     console.error('Error fetching consumers:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -687,6 +867,7 @@ app.post('/api/consumers', async (req, res) => {
       return res.json({ success: true, data: { Consumer_ID: result.lastInsertRowid, ...consumer } });
     }
   } catch (error) {
+    await logRequestError(req, 'consumers.create', error);
     console.error('Error creating consumer:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -763,6 +944,7 @@ app.put('/api/consumers/:id', async (req, res) => {
       return res.json({ success: true, message: 'Consumer updated successfully' });
     }
   } catch (error) {
+    await logRequestError(req, 'consumers.update', error);
     console.error('Error updating consumer:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -785,6 +967,7 @@ app.delete('/api/consumers/:id', async (req, res) => {
       return res.json({ success: true, message: 'Consumer deleted successfully' });
     }
   } catch (error) {
+    await logRequestError(req, 'consumers.delete', error);
     console.error('Error deleting consumer:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -801,6 +984,7 @@ app.get('/api/meter-readings', async (req, res) => {
       return res.json(readings);
     }
   } catch (error) {
+    await logRequestError(req, 'meterReadings.fetch', error);
     console.error('Error fetching meter readings:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -831,6 +1015,7 @@ app.post('/api/meter-readings', async (req, res) => {
       return res.json({ Reading_ID: result.lastInsertRowid, ...reading });
     }
   } catch (error) {
+    await logRequestError(req, 'meterReadings.create', error);
     console.error('Error creating meter reading:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -847,6 +1032,7 @@ app.get('/api/bills', async (req, res) => {
       return res.json(bills);
     }
   } catch (error) {
+    await logRequestError(req, 'bills.fetch', error);
     console.error('Error fetching bills:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -875,6 +1061,7 @@ app.post('/api/bills', async (req, res) => {
       return res.json({ Bill_ID: result.lastInsertRowid, ...bill });
     }
   } catch (error) {
+    await logRequestError(req, 'bills.create', error);
     console.error('Error creating bill:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -967,6 +1154,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
       return res.json({ success: true, consumer, bills, payments, readings });
     }
   } catch (error) {
+    await logRequestError(req, 'consumerDashboard.fetch', error);
     console.error('Consumer dashboard error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -983,6 +1171,7 @@ app.get('/api/payments', async (req, res) => {
       return res.json(payments);
     }
   } catch (error) {
+    await logRequestError(req, 'payments.fetch', error);
     console.error('Error fetching payments:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -1011,6 +1200,7 @@ app.post('/api/payments', async (req, res) => {
       return res.json({ Payment_ID: result.lastInsertRowid, ...payment });
     }
   } catch (error) {
+    await logRequestError(req, 'payments.create', error);
     console.error('Error creating payment:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -1065,6 +1255,7 @@ app.post('/api/forgot-password/request', async (req, res) => {
 
     return res.json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
+    await logRequestError(req, 'forgotPassword.request', error);
     console.error('Forgot password request error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -1121,6 +1312,7 @@ app.post('/api/forgot-password/verify', async (req, res) => {
     // For simplicity, we'll verify it again during reset or return a success flag
     return res.json({ success: true, message: 'OTP verified successfully' });
   } catch (error) {
+    await logRequestError(req, 'forgotPassword.verify', error);
     console.error('OTP verification error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -1172,6 +1364,7 @@ app.post('/api/forgot-password/reset', async (req, res) => {
 
     return res.json({ success: true, message: 'Password reset successfully' });
   } catch (error) {
+    await logRequestError(req, 'forgotPassword.reset', error);
     console.error('Password reset error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -1251,6 +1444,7 @@ app.post('/api/register', async (req, res) => {
 
     return res.json({ success: true, ticketNumber });
   } catch (error) {
+    await logRequestError(req, 'auth.register', error);
     console.error('Registration error:', error);
     // Friendly message for duplicate username
     if (error.message && error.message.includes('accounts_Username_key')) {
@@ -1267,15 +1461,19 @@ app.get('/health', (req, res) => {
 app.post('/api/admin/sync-supabase', async (req, res) => {
   try {
     if (!supabase) {
+      await logRequestInfo('admin.syncSupabase', 'Manual sync requested while running in PostgreSQL-only mode.');
       return res.status(400).json({
         success: false,
         message: 'Supabase is not configured on this server.',
       });
     }
 
+    await logRequestInfo('admin.syncSupabase', 'Manual Supabase sync requested.');
     const results = await syncPostgresToSupabase();
+    await logSupabaseEvent(`Manual sync completed for ${results.length} table(s).`);
     return res.json({ success: true, results });
   } catch (error) {
+    await logRequestError(req, 'admin.syncSupabase', error);
     console.error('Manual Supabase sync failed:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -1284,24 +1482,36 @@ app.post('/api/admin/sync-supabase', async (req, res) => {
 async function startServer() {
   try {
     await pool.query('SELECT 1');
+    await logPostgresEvent(`PostgreSQL connection established for database ${process.env.DB_NAME || 'SLRWs'}.`);
     await initDb();
+    await logPostgresEvent('PostgreSQL initialization check completed.');
     if (supabase) {
       try {
         const initialSyncResults = await syncPostgresToSupabase();
+        await logSupabaseEvent(`Initial PostgreSQL to Supabase sync complete for ${initialSyncResults.length} table(s).`);
         console.log('Initial PostgreSQL to Supabase sync complete:', initialSyncResults);
       } catch (error) {
+        await logDatabaseError('supabase.sync.initial', error);
         console.warn('Initial PostgreSQL to Supabase sync failed:', error.message);
       }
       startSupabaseSyncScheduler();
+    } else {
+      await logPostgresEvent('Supabase sync is not configured: running in PostgreSQL-only mode.');
+      console.log('Supabase sync is not configured: running in PostgreSQL-only mode.');
     }
 
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
-      console.log(
-        `Database: PostgreSQL (${process.env.DB_NAME || 'SLRWs'})${supabase ? ' with Supabase enabled' : ''}`
-      );
+      if (supabase) {
+        logSupabaseEvent(`Server started on port ${PORT} with PostgreSQL + Supabase sync mode.`).catch(() => {});
+        console.log(`Database mode: PostgreSQL + Supabase sync (${process.env.DB_NAME || 'SLRWs'})`);
+      } else {
+        logPostgresEvent(`Server started on port ${PORT} in PostgreSQL-only mode.`).catch(() => {});
+        console.log(`Database mode: running in PostgreSQL-only mode (${process.env.DB_NAME || 'SLRWs'})`);
+      }
     });
   } catch (error) {
+    await logDatabaseError('server.start', error, { severity: 'CRITICAL' });
     console.error('Failed to start server:', error);
     process.exit(1);
   }
@@ -1309,7 +1519,3 @@ async function startServer() {
 
 startServer();
 
-const legacyStartupLog = () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`📊 Database: ${supabase ? 'Supabase (Online)' : 'SQLite (Offline)'}`);
-};
