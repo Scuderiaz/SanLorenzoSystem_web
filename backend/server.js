@@ -134,6 +134,34 @@ function truncateLogValue(value, maxLength = 4000) {
   return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
 }
 
+function shouldFallbackToPostgres(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return (
+    message.includes('permission denied') ||
+    message.includes('schema cache') ||
+    message.includes('invalid schema') ||
+    message.includes('could not find the table') ||
+    message.includes('could not find the')
+  );
+}
+
+async function withSupabaseFallback(operationName, supabaseHandler, postgresHandler) {
+  if (!supabase) {
+    return postgresHandler();
+  }
+
+  try {
+    return await supabaseHandler();
+  } catch (error) {
+    if (!shouldFallbackToPostgres(error)) {
+      throw error;
+    }
+
+    console.warn(`[fallback:${operationName}] Switching to PostgreSQL: ${error.message}`);
+    return postgresHandler();
+  }
+}
+
 function ensureLogDirectory() {
   fs.mkdirSync(logDirectory, { recursive: true });
 }
@@ -428,14 +456,19 @@ function startSupabaseSyncScheduler() {
 // Get roles
 app.get('/api/roles', async (req, res) => {
   try {
-    if (supabase) {
-      const { data, error } = await supabase.from('roles').select('*');
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
+    const result = await withSupabaseFallback(
+      'roles.fetch',
+      async () => {
+        const { data, error } = await supabase.from('roles').select('*');
+        if (error) throw error;
+        return { success: true, data };
+      },
+      async () => {
       const { rows } = await pool.query('SELECT * FROM roles');
-      return res.json({ success: true, data: rows });
-    }
+        return { success: true, data: rows };
+      }
+    );
+    return res.json(result);
   } catch (error) {
     await logRequestError(req, 'roles.fetch', error);
     console.error('Error fetching roles:', error);
@@ -747,76 +780,88 @@ app.post('/api/login', async (req, res) => {
   }
 
   try {
-    if (supabase) {
-      const { data: userData, error: userError } = await supabase
-        .from('accounts')
-        .select(`
-          account_id,
-          username,
-          password,
-          full_name,
-          role_id,
-          account_status,
-          roles ( role_name )
-        `)
-        .eq('username', username)
-        .single();
+    const result = await withSupabaseFallback(
+      'auth.login',
+      async () => {
+        const { data: userData, error: userError } = await supabase
+          .from('accounts')
+          .select(`
+            account_id,
+            username,
+            password,
+            full_name,
+            role_id,
+            account_status,
+            roles ( role_name )
+          `)
+          .eq('username', username)
+          .single();
 
-      if (userError || !userData) {
-        return res.status(401).json({ success: false, message: 'Invalid username' });
+        if (userError || !userData) {
+          return { status: 401, body: { success: false, message: 'Invalid username' } };
+        }
+
+        if (userData.account_status === 'Pending') {
+          return { status: 401, body: { success: false, message: 'Please wait until you are registered to access the dashboard.' } };
+        }
+
+        if (userData.password !== password) {
+          return { status: 401, body: { success: false, message: 'Invalid password' } };
+        }
+
+        return {
+          status: 200,
+          body: {
+            success: true,
+            user: {
+              id: userData.account_id,
+              username: userData.username,
+              fullName: userData.full_name || userData.username,
+              role_id: userData.role_id,
+              role_name: userData.roles.role_name,
+            },
+          },
+        };
+      },
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT a.account_id, a.username, a.password, a.full_name, a.role_id, a.account_status, r.role_name
+          FROM accounts a
+          JOIN roles r ON a.role_id = r.role_id
+          WHERE a.username = $1
+        `, [username]);
+
+        const user = rows[0];
+
+        if (!user) {
+          return { status: 401, body: { success: false, message: 'Invalid username' } };
+        }
+
+        if (user.account_status === 'Pending') {
+          return { status: 401, body: { success: false, message: 'Please wait until you are registered to access the dashboard.' } };
+        }
+
+        if (user.password !== password) {
+          return { status: 401, body: { success: false, message: 'Invalid password' } };
+        }
+
+        return {
+          status: 200,
+          body: {
+            success: true,
+            user: {
+              id: user.account_id,
+              username: user.username,
+              fullName: user.full_name || user.username,
+              role_id: user.role_id,
+              role_name: user.role_name,
+            },
+          },
+        };
       }
+    );
 
-      if (userData.account_status === 'Pending') {
-        return res.status(401).json({ success: false, message: 'Please wait until you are registered to access the dashboard.' });
-      }
-
-      if (userData.password !== password) {
-        return res.status(401).json({ success: false, message: 'Invalid password' });
-      }
-
-      return res.json({
-        success: true,
-        user: {
-          id: userData.account_id,
-          username: userData.username,
-          fullName: userData.full_name || userData.username,
-          role_id: userData.role_id,
-          role_name: userData.roles.role_name,
-        },
-      });
-    } else {
-      const { rows } = await pool.query(`
-        SELECT a.account_id, a.username, a.password, a.full_name, a.role_id, a.account_status, r.role_name
-        FROM accounts a
-        JOIN roles r ON a.role_id = r.role_id
-        WHERE a.username = $1
-      `, [username]);
-
-      const user = rows[0];
-
-      if (!user) {
-        return res.status(401).json({ success: false, message: 'Invalid username' });
-      }
-
-      if (user.account_status === 'Pending') {
-        return res.status(401).json({ success: false, message: 'Please wait until you are registered to access the dashboard.' });
-      }
-
-      if (user.password !== password) {
-        return res.status(401).json({ success: false, message: 'Invalid password' });
-      }
-
-      return res.json({
-        success: true,
-        user: {
-          id: user.account_id,
-          username: user.username,
-          fullName: user.full_name || user.username,
-          role_id: user.role_id,
-          role_name: user.role_name,
-        },
-      });
-    }
+    return res.status(result.status).json(result.body);
   } catch (error) {
     await logRequestError(req, 'auth.login', error);
     console.error('Login error:', error);
@@ -827,14 +872,19 @@ app.post('/api/login', async (req, res) => {
 // Get zones
 app.get('/api/zones', async (req, res) => {
   try {
-    if (supabase) {
-      const { data, error } = await supabase.from('zone').select('*');
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
+    const result = await withSupabaseFallback(
+      'zones.fetch',
+      async () => {
+        const { data, error } = await supabase.from('zone').select('*');
+        if (error) throw error;
+        return { success: true, data };
+      },
+      async () => {
       const { rows } = await pool.query('SELECT * FROM zone');
-      return res.json({ success: true, data: rows });
-    }
+        return { success: true, data: rows };
+      }
+    );
+    return res.json(result);
   } catch (error) {
     await logRequestError(req, 'zones.fetch', error);
     console.error('Error fetching zones:', error);
@@ -845,14 +895,19 @@ app.get('/api/zones', async (req, res) => {
 // Get classifications
 app.get('/api/classifications', async (req, res) => {
   try {
-    if (supabase) {
-      const { data, error } = await supabase.from('classification').select('*');
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
+    const result = await withSupabaseFallback(
+      'classifications.fetch',
+      async () => {
+        const { data, error } = await supabase.from('classification').select('*');
+        if (error) throw error;
+        return { success: true, data };
+      },
+      async () => {
       const { rows } = await pool.query('SELECT * FROM classification');
-      return res.json({ success: true, data: rows });
-    }
+        return { success: true, data: rows };
+      }
+    );
+    return res.json(result);
   } catch (error) {
     await logRequestError(req, 'classifications.fetch', error);
     console.error('Error fetching classifications:', error);
@@ -1308,14 +1363,18 @@ const sendSMS = async (phone, message) => {
 app.post('/api/forgot-password/request', async (req, res) => {
   const { username } = req.body;
   try {
-    let user;
-    if (supabase) {
-      const { data } = await supabase.from('accounts').select('account_id, username').eq('username', username).single();
-      user = data;
-    } else {
-      const { rows } = await pool.query('SELECT account_id, username FROM accounts WHERE username = $1', [username]);
-      user = rows[0];
-    }
+    const user = await withSupabaseFallback(
+      'forgotPassword.request',
+      async () => {
+        const { data, error } = await supabase.from('accounts').select('account_id, username').eq('username', username).single();
+        if (error) throw error;
+        return data;
+      },
+      async () => {
+        const { rows } = await pool.query('SELECT account_id, username FROM accounts WHERE username = $1', [username]);
+        return rows[0];
+      }
+    );
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -1343,12 +1402,16 @@ app.post('/api/forgot-password/verify-otp', async (req, res) => {
 app.post('/api/forgot-password/reset', async (req, res) => {
   const { username, code, newPassword } = req.body;
   try {
-    if (supabase) {
-      const { error } = await supabase.from('accounts').update({ password: newPassword }).eq('username', username);
-      if (error) throw error;
-    } else {
-      await pool.query('UPDATE accounts SET password = $1 WHERE username = $2', [newPassword, username]);
-    }
+    await withSupabaseFallback(
+      'forgotPassword.reset',
+      async () => {
+        const { error } = await supabase.from('accounts').update({ password: newPassword }).eq('username', username);
+        if (error) throw error;
+      },
+      async () => {
+        await pool.query('UPDATE accounts SET password = $1 WHERE username = $2', [newPassword, username]);
+      }
+    );
     return res.json({ success: true, message: 'Password reset successful' });
   } catch (error) {
     console.error('Reset password error:', error);
@@ -1369,50 +1432,57 @@ app.post('/api/register', async (req, res) => {
 
   try {
     // 1. Create Account (Status: Pending)
-    let accountId;
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('accounts')
-        .insert([{ 
-          username, 
-          password, 
-          role_id: 4, // Consumer role
-          account_status: 'Pending'
-        }])
-        .select();
-      if (error) throw error;
-      accountId = data[0].account_id;
-    } else {
-      const { rows } = await pool.query(
-        'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING account_id',
-        [username, password, 4, 'Pending']
-      );
-      accountId = rows[0].account_id;
-    }
+    const accountId = await withSupabaseFallback(
+      'auth.register.account',
+      async () => {
+        const { data, error } = await supabase
+          .from('accounts')
+          .insert([{ 
+            username, 
+            password, 
+            role_id: 4,
+            account_status: 'Pending'
+          }])
+          .select();
+        if (error) throw error;
+        return data[0].account_id;
+      },
+      async () => {
+        const { rows } = await pool.query(
+          'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING account_id',
+          [username, password, 4, 'Pending']
+        );
+        return rows[0].account_id;
+      }
+    );
 
     // 2. Create Consumer Record
-    if (supabase) {
-      const { error } = await supabase
-        .from('consumer')
-        .insert([{
-          first_name: firstName,
-          middle_name: middleName,
-          last_name: lastName,
-          address: address,
-          zone_id: zoneId,
-          classification_id: classificationId,
-          login_id: accountId,
-          status: 'Pending',
-          contact_number: phone,
-          account_number: `ACC-${Date.now()}` // Temporary account number
-        }]);
-      if (error) throw error;
-    } else {
-      await pool.query(`
-        INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, login_id, status, contact_number, account_number)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      `, [firstName, middleName, lastName, address, zoneId, classificationId, accountId, 'Pending', phone, `ACC-${Date.now()}`]);
-    }
+    await withSupabaseFallback(
+      'auth.register.consumer',
+      async () => {
+        const { error } = await supabase
+          .from('consumer')
+          .insert([{
+            first_name: firstName,
+            middle_name: middleName,
+            last_name: lastName,
+            address: address,
+            zone_id: zoneId,
+            classification_id: classificationId,
+            login_id: accountId,
+            status: 'Pending',
+            contact_number: phone,
+            account_number: `ACC-${Date.now()}`
+          }]);
+        if (error) throw error;
+      },
+      async () => {
+        await pool.query(`
+          INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, login_id, status, contact_number, account_number)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `, [firstName, middleName, lastName, address, zoneId, classificationId, accountId, 'Pending', phone, `ACC-${Date.now()}`]);
+      }
+    );
 
     return res.json({ success: true, message: 'Registration requested successfully. Please wait for admin approval.' });
   } catch (error) {

@@ -132,3 +132,190 @@
 [2026-04-06T05:28:44.403Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
 [2026-04-06T05:29:39.511Z] [supabase.sync.roles] permission denied for view roles
 [2026-04-06T05:29:39.785Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:42:03.532Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:42:03.813Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:42:04.097Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:42:04.376Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:42:04.680Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:42:04.966Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:42:05.241Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:42:05.521Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:44:25.624Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:44:25.978Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:44:26.281Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:44:26.591Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:44:26.897Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:44:27.277Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:44:27.590Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:44:27.885Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:44:28.212Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:44:28.560Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:45:34.512Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:45:34.844Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:45:35.190Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:45:35.538Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:45:35.881Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:45:36.281Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:45:36.618Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:45:36.976Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:45:37.401Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:45:37.911Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:45:40.491Z] [auth.register] permission denied for view accounts | POST /api/register | params={} | query={} | body={"username":"ivan","password":"qwert123","confirmPassword":"qwert123","phone":"09480840967","firstName":"ivan","middleName":"ornales","lastName":"de vera","address":"adfsad","classificationId":""}
+[2026-04-06T05:46:33.393Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:46:33.834Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:46:34.316Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:46:34.677Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:46:35.051Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:46:35.441Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:46:35.782Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:46:36.129Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:46:36.569Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:46:36.921Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:47:32.867Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:47:33.153Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:47:33.460Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:47:33.767Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:47:34.079Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:47:34.369Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:47:34.678Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:47:34.981Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:47:35.297Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:47:35.602Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:48:32.652Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:48:32.946Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:48:33.230Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:48:33.530Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:48:33.824Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:48:34.120Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:48:34.411Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:48:34.714Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:48:35.004Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:48:35.295Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:49:32.960Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:49:33.321Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:49:33.651Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:49:33.957Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:49:34.308Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:49:34.633Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:49:34.937Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:49:35.230Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:49:35.533Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:49:35.881Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:50:32.944Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:50:33.235Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:50:33.543Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:50:33.876Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:50:34.169Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:50:34.587Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:50:34.897Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:50:35.192Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:50:35.481Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:50:35.801Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:51:36.689Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:51:36.983Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:51:37.276Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:51:37.581Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:51:37.884Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:51:38.188Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:51:38.479Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:51:38.773Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:51:39.070Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:51:39.365Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:52:35.833Z] [auth.register] duplicate key value violates unique constraint "accounts_pkey" | POST /api/register | params={} | query={} | body={"username":"IVAN","password":"QWERTY123","confirmPassword":"QWERTY123","phone":"09480840967","firstName":"IVAN","middleName":"ORNALES","lastName":"DE VERA","address":"ADAWDA","classificationId":""}
+[2026-04-06T05:52:43.534Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:52:43.830Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:52:44.136Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:52:44.429Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:52:44.757Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:52:45.052Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:52:45.362Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:52:45.658Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:52:45.958Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:52:46.244Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:53:43.389Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:53:43.703Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:53:43.996Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:53:44.597Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:53:44.890Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:53:45.435Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:53:45.750Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:53:46.040Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:53:46.339Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:53:46.691Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T05:56:01.194Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-06T05:56:01.275Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-06T05:56:01.359Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-06T05:56:01.410Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-06T05:56:01.427Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-06T05:56:01.450Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-06T05:56:01.473Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-06T05:56:01.499Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-06T05:56:01.522Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-06T05:56:01.552Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-06T05:56:01.616Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-06T05:56:01.655Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-06T05:56:01.688Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-06T05:56:01.717Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-06T05:56:01.753Z] [supabase.sync.consumer] TypeError: fetch failed
+[2026-04-06T05:56:01.786Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-06T05:56:01.845Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-06T05:56:01.878Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-06T05:56:01.908Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-06T05:56:01.937Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-06T05:57:05.762Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:57:06.078Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:57:06.413Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:57:06.738Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:57:07.104Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:57:07.542Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:57:07.890Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T05:57:08.214Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T05:57:08.564Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T05:57:08.916Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T06:22:00.336Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-06T06:22:00.415Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-06T06:22:00.541Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-06T06:22:00.555Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-06T06:22:00.566Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-06T06:22:00.574Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-06T06:22:00.581Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-06T06:22:00.590Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-06T06:22:00.600Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-06T06:22:00.607Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-06T06:22:00.627Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-06T06:22:00.638Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-06T06:22:00.659Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-06T06:22:00.670Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-06T06:22:00.683Z] [supabase.sync.consumer] TypeError: fetch failed
+[2026-04-06T06:22:00.693Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-06T06:22:00.702Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-06T06:22:00.714Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-06T06:22:00.731Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-06T06:22:00.761Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-06T11:18:14.023Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-06T11:18:14.365Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-06T11:18:14.673Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-06T11:18:14.820Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-06T11:18:14.965Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-06T11:18:15.093Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-06T11:18:15.220Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-06T11:18:19.175Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T11:18:19.635Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T11:18:20.114Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T11:18:20.515Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T11:18:20.919Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T11:18:21.323Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T11:18:21.676Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T11:18:22.032Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T11:18:22.395Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T11:18:22.759Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T11:19:16.655Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T11:19:16.954Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T11:19:17.244Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T11:19:17.535Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T11:19:17.800Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T11:19:18.067Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T11:19:18.332Z] [supabase.sync.route] permission denied for view route
+[2026-04-06T11:19:18.602Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
+[2026-04-06T11:19:18.863Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
+[2026-04-06T11:19:19.143Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
