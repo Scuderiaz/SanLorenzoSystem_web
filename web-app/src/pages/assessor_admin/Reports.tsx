@@ -14,21 +14,13 @@ interface ConsumerReport {
   percentage: string;
 }
 
-interface BillingReport {
+interface MonthlyUnifiedReport {
   period: string;
   billsGenerated: number;
-  totalAmount: number;
-  paidBills: number;
-  unpaidBills: number;
+  totalInvoiced: number;
+  totalCollected: number;
   collectionRate: string;
-}
-
-interface CollectionReport {
-  date: string;
-  collections: number;
-  amount: number;
-  cashPayments: number;
-  onlinePayments: number;
+  unpaidBalance: number;
 }
 
 const Reports: React.FC = () => {
@@ -43,8 +35,7 @@ const Reports: React.FC = () => {
   const [totalRevenue, setTotalRevenue] = useState('Loading...');
   
   const [consumerReports, setConsumerReports] = useState<ConsumerReport[]>([]);
-  const [billingReports, setBillingReports] = useState<BillingReport[]>([]);
-  const [collectionReports, setCollectionReports] = useState<CollectionReport[]>([]);
+  const [monthlyReports, setMonthlyReports] = useState<MonthlyUnifiedReport[]>([]);
   const [loading, setLoading] = useState(false);
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
@@ -63,6 +54,8 @@ const Reports: React.FC = () => {
 
   const loadReportOverview = useCallback(async () => {
     try {
+      // In a real app, these would come from an API
+      // For now, aligning with March 2026 mock data
       setTotalConsumers('150');
       setTotalBills('145');
       setTotalRevenue('₱125,000.00');
@@ -75,8 +68,7 @@ const Reports: React.FC = () => {
     loadZones();
     loadReportOverview();
     loadConsumerReport();
-    loadBillingReport();
-    loadCollectionReport();
+    loadMonthlyReport();
   }, [loadZones, loadReportOverview]);
 
   const loadConsumerReport = async () => {
@@ -97,62 +89,36 @@ const Reports: React.FC = () => {
     }
   };
 
-  const loadBillingReport = async () => {
+  const loadMonthlyReport = async () => {
     try {
-      const mockData: BillingReport[] = [
+      const mockData: MonthlyUnifiedReport[] = [
         {
           period: 'March 2026',
           billsGenerated: 145,
-          totalAmount: 125000,
-          paidBills: 120,
-          unpaidBills: 25,
+          totalInvoiced: 125000,
+          totalCollected: 103500,
           collectionRate: '82.8%',
+          unpaidBalance: 21500,
         },
         {
           period: 'February 2026',
           billsGenerated: 142,
-          totalAmount: 118000,
-          paidBills: 135,
-          unpaidBills: 7,
+          totalInvoiced: 118000,
+          totalCollected: 112218,
           collectionRate: '95.1%',
+          unpaidBalance: 5782,
         },
       ];
-      setBillingReports(mockData);
+      setMonthlyReports(mockData);
     } catch (error) {
-      console.error('Error loading billing report:', error);
-      showToast('Failed to load billing report', 'error');
-    }
-  };
-
-  const loadCollectionReport = async () => {
-    try {
-      const mockData: CollectionReport[] = [
-        {
-          date: '2026-03-18',
-          collections: 15,
-          amount: 12500,
-          cashPayments: 10,
-          onlinePayments: 5,
-        },
-        {
-          date: '2026-03-17',
-          collections: 18,
-          amount: 15200,
-          cashPayments: 12,
-          onlinePayments: 6,
-        },
-      ];
-      setCollectionReports(mockData);
-    } catch (error) {
-      console.error('Error loading collection report:', error);
-      showToast('Failed to load collection report', 'error');
+      console.error('Error loading monthly report:', error);
+      showToast('Failed to load monthly report', 'error');
     }
   };
 
   const handleGenerateReports = () => {
     loadConsumerReport();
-    loadBillingReport();
-    loadCollectionReport();
+    loadMonthlyReport();
     showToast('Reports generated successfully', 'success');
   };
 
@@ -160,12 +126,8 @@ const Reports: React.FC = () => {
     showToast('Exporting consumer report...', 'info');
   };
 
-  const handleExportBillingReport = () => {
-    showToast('Exporting billing report...', 'info');
-  };
-
-  const handleExportCollections = () => {
-    showToast('Exporting collections report...', 'info');
+  const handleExportMonthlyReport = () => {
+    showToast('Exporting monthly billing & collection report...', 'info');
   };
 
   const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: z.Zone_Name }));
@@ -221,12 +183,12 @@ const Reports: React.FC = () => {
       ),
     },
     {
-      id: 'billing',
-      label: 'Billing Report',
+      id: 'monthly',
+      label: 'Monthly Billing & Collection Report',
       content: (
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Billing Summary Report</h2>
+            <h2 className="card-title">Monthly Billing & Collection Summary</h2>
           </div>
           <div className="card-body">
             <table className="data-table">
@@ -234,71 +196,35 @@ const Reports: React.FC = () => {
                 <tr>
                   <th>Period</th>
                   <th>Bills Generated</th>
-                  <th>Total Amount</th>
-                  <th>Paid Bills</th>
-                  <th>Unpaid Bills</th>
+                  <th>Total Invoiced</th>
+                  <th>Actual Collections</th>
                   <th>Collection Rate</th>
+                  <th>Unpaid Balance</th>
                 </tr>
               </thead>
               <tbody>
-                {billingReports.length === 0 ? (
+                {monthlyReports.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>
-                      No billing data available
+                      No report data available
                     </td>
                   </tr>
                 ) : (
-                  billingReports.map((report, index) => (
+                  monthlyReports.map((report, index) => (
                     <tr key={index}>
                       <td>{report.period}</td>
                       <td>{report.billsGenerated}</td>
-                      <td>₱{report.totalAmount.toLocaleString()}</td>
-                      <td>{report.paidBills}</td>
-                      <td>{report.unpaidBills}</td>
-                      <td>{report.collectionRate}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'collections',
-      label: 'Collections Report',
-      content: (
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Collections Report</h2>
-          </div>
-          <div className="card-body">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Collections</th>
-                  <th>Amount</th>
-                  <th>Cash Payments</th>
-                  <th>Online Payments</th>
-                </tr>
-              </thead>
-              <tbody>
-                {collectionReports.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
-                      No collection data available
-                    </td>
-                  </tr>
-                ) : (
-                  collectionReports.map((report, index) => (
-                    <tr key={index}>
-                      <td>{report.date}</td>
-                      <td>{report.collections}</td>
-                      <td>₱{report.amount.toLocaleString()}</td>
-                      <td>{report.cashPayments}</td>
-                      <td>{report.onlinePayments}</td>
+                      <td>₱{report.totalInvoiced.toLocaleString()}</td>
+                      <td>₱{report.totalCollected.toLocaleString()}</td>
+                      <td style={{ 
+                        color: parseFloat(report.collectionRate) >= 90 ? '#10b981' : '#f59e0b',
+                        fontWeight: 'bold'
+                      }}>
+                        {report.collectionRate}
+                      </td>
+                      <td style={{ color: report.unpaidBalance > 0 ? '#ef4444' : 'inherit' }}>
+                        ₱{report.unpaidBalance.toLocaleString()}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -321,11 +247,8 @@ const Reports: React.FC = () => {
           <button className="btn btn-secondary" onClick={handleExportConsumerReport}>
             <i className="fas fa-file-pdf"></i> Export Consumers
           </button>
-          <button className="btn btn-secondary" onClick={handleExportBillingReport}>
-            <i className="fas fa-file-invoice-dollar"></i> Export Billing
-          </button>
-          <button className="btn btn-secondary" onClick={handleExportCollections}>
-            <i className="fas fa-wallet"></i> Export Collections
+          <button className="btn btn-secondary" onClick={handleExportMonthlyReport}>
+            <i className="fas fa-file-invoice-dollar"></i> Export Monthly Report
           </button>
         </div>
 

@@ -15,8 +15,10 @@ const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
 
   const roleLabels: { [key: number]: string } = {
     1: 'Assessor Admin',
-    3: 'Billing Officer',
-    4: 'Cashier/Treasurer'
+    2: 'Billing Officer',
+    3: 'Meter Reader',
+    4: 'Cashier / Treasurer',
+    5: 'Consumer',
   };
 
   return (
