@@ -32,3 +32,10 @@
 [2026-04-06T05:12:40.488Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
 [2026-04-06T05:12:41.301Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
 [2026-04-06T05:12:41.995Z] [supabase.sync.meter] permission denied for view meter
+[2026-04-06T05:13:41.133Z] [postgres.sync.route] Could not find the table 'public.route' in the schema cache
+[2026-04-06T05:13:42.624Z] [supabase.sync.roles] permission denied for view roles
+[2026-04-06T05:13:43.009Z] [supabase.sync.zone] permission denied for view zone
+[2026-04-06T05:13:43.444Z] [supabase.sync.classification] permission denied for view classification
+[2026-04-06T05:13:43.833Z] [supabase.sync.accounts] Could not find the 'phone_number' column of 'accounts' in the schema cache
+[2026-04-06T05:13:44.162Z] [supabase.sync.consumer] Could not find the 'meter_number' column of 'consumer' in the schema cache
+[2026-04-06T05:13:44.484Z] [supabase.sync.meter] permission denied for view meter
