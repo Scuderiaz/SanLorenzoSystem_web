@@ -8,6 +8,23 @@ GRANT USAGE ON SCHEMA water_billing TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA water_billing TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA water_billing TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA water_billing TO anon, authenticated, service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA water_billing
+GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA water_billing
+GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA water_billing
+GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 
 -- 2. Drop and recreate views with lowercase columns
 DROP VIEW IF EXISTS public.roles CASCADE;
@@ -21,6 +38,10 @@ DROP VIEW IF EXISTS public.meterreadings CASCADE;
 DROP VIEW IF EXISTS public.bills CASCADE;
 DROP VIEW IF EXISTS public.payment CASCADE;
 DROP VIEW IF EXISTS public.ledger_entry CASCADE;
+DROP VIEW IF EXISTS public.waterrates CASCADE;
+DROP VIEW IF EXISTS public.connection_ticket CASCADE;
+DROP VIEW IF EXISTS public.password_reset CASCADE;
+DROP VIEW IF EXISTS public.account_approval CASCADE;
 DROP VIEW IF EXISTS public.backuplogs CASCADE;
 DROP VIEW IF EXISTS public.error_logs CASCADE;
 DROP VIEW IF EXISTS public.system_logs CASCADE;
@@ -84,6 +105,29 @@ CREATE OR REPLACE VIEW public.ledger_entry AS
 SELECT ledger_id, consumer_id, transaction_type, amount, balance, transaction_date
 FROM water_billing.ledger_entry;
 
+-- Water Rates
+CREATE OR REPLACE VIEW public.waterrates AS
+SELECT rate_id, minimum_cubic, minimum_rate, excess_rate_per_cubic,
+       effective_date, modified_by, modified_date
+FROM water_billing.waterrates;
+
+-- Connection Ticket
+CREATE OR REPLACE VIEW public.connection_ticket AS
+SELECT ticket_id, consumer_id, account_id, ticket_number, application_date,
+       connection_type, requirements_submitted, status, inspection_date,
+       approved_by, approved_date, remarks, created_at
+FROM water_billing.connection_ticket;
+
+-- Password Reset
+CREATE OR REPLACE VIEW public.password_reset AS
+SELECT reset_id, account_id, reset_token, expiration_time, status, created_at
+FROM water_billing.password_reset;
+
+-- Account Approval
+CREATE OR REPLACE VIEW public.account_approval AS
+SELECT approval_id, account_id, approved_by, approval_status, approval_date, remarks
+FROM water_billing.account_approval;
+
 -- Backup Logs
 CREATE OR REPLACE VIEW public.backuplogs AS
 SELECT backup_id, backup_name, backup_time, backup_size, backup_type, created_by
@@ -111,6 +155,10 @@ GRANT SELECT ON public.meterreadings TO anon, authenticated, service_role;
 GRANT SELECT ON public.bills TO anon, authenticated, service_role;
 GRANT SELECT ON public.payment TO anon, authenticated, service_role;
 GRANT SELECT ON public.ledger_entry TO anon, authenticated, service_role;
+GRANT SELECT ON public.waterrates TO anon, authenticated, service_role;
+GRANT SELECT ON public.connection_ticket TO anon, authenticated, service_role;
+GRANT SELECT ON public.password_reset TO anon, authenticated, service_role;
+GRANT SELECT ON public.account_approval TO anon, authenticated, service_role;
 GRANT SELECT ON public.backuplogs TO anon, authenticated, service_role;
 GRANT SELECT ON public.error_logs TO anon, authenticated, service_role;
 GRANT SELECT ON public.system_logs TO anon, authenticated, service_role;
