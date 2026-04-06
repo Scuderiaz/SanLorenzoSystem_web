@@ -27,3 +27,60 @@
 [2026-03-30T12:49:56.277Z] PostgreSQL connection check succeeded.
 [2026-03-30T12:49:56.297Z] PostgreSQL schema initialization completed.
 [2026-03-30T12:49:56.298Z] Server startup failed: Supabase sync configuration is required. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+[2026-04-06T05:01:20.532Z] PostgreSQL connection established for database SLRWs.
+[2026-04-06T05:01:20.727Z] PostgreSQL initialization check completed.
+[2026-04-06T05:01:20.774Z] Preparing sync for table roles.
+[2026-04-06T05:01:47.556Z] PostgreSQL connection established for database SLRWs.
+[2026-04-06T05:01:47.605Z] PostgreSQL initialization check completed.
+[2026-04-06T05:01:47.649Z] Preparing sync for table roles.
+[2026-04-06T05:04:36.702Z] PostgreSQL connection established for database SLRWs.
+[2026-04-06T05:04:36.845Z] PostgreSQL initialization check completed.
+[2026-04-06T05:04:36.884Z] Preparing sync for table roles.
+[2026-04-06T05:05:24.449Z] PostgreSQL connection established for database SLRWs.
+[2026-04-06T05:05:24.487Z] PostgreSQL initialization check completed.
+[2026-04-06T05:05:24.526Z] Preparing sync for table roles.
+[2026-04-06T05:06:25.305Z] Preparing sync for table roles.
+[2026-04-06T05:07:25.258Z] Preparing sync for table roles.
+[2026-04-06T05:08:25.257Z] Preparing sync for table roles.
+[2026-04-06T05:09:25.249Z] Preparing sync for table roles.
+[2026-04-06T05:10:25.351Z] Preparing sync for table roles.
+[2026-04-06T05:11:25.300Z] Preparing sync for table roles.
+[2026-04-06T05:11:27.856Z] PostgreSQL connection established for database SLRWs.
+[2026-04-06T05:11:27.895Z] PostgreSQL initialization check completed.
+[2026-04-06T05:11:27.899Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-04-06T05:11:28.425Z] Table roles: pulled 5 row(s) from Supabase.
+[2026-04-06T05:11:28.691Z] Table zone: pulled 5 row(s) from Supabase.
+[2026-04-06T05:11:29.066Z] Table classification: pulled 3 row(s) from Supabase.
+[2026-04-06T05:11:29.392Z] Table accounts: pulled 7 row(s) from Supabase.
+[2026-04-06T05:11:29.820Z] Table consumer: pulled 2 row(s) from Supabase.
+[2026-04-06T05:11:30.258Z] Table meter: pulled 1 row(s) from Supabase.
+[2026-04-06T05:11:31.531Z] Supabase pull cycle complete for 10 table(s).
+[2026-04-06T05:11:31.663Z] Initial Supabase to PostgreSQL sync complete for 10 table(s).
+[2026-04-06T05:11:31.919Z] Preparing sync for table roles.
+[2026-04-06T05:11:32.324Z] Preparing sync for table zone.
+[2026-04-06T05:11:32.685Z] Preparing sync for table classification.
+[2026-04-06T05:11:33.054Z] Preparing sync for table accounts.
+[2026-04-06T05:11:33.398Z] Preparing sync for table consumer.
+[2026-04-06T05:11:33.753Z] Preparing sync for table meter.
+[2026-04-06T05:11:34.100Z] Preparing sync for table route.
+[2026-04-06T05:11:34.335Z] Preparing sync for table meterreadings.
+[2026-04-06T05:11:34.566Z] Preparing sync for table bills.
+[2026-04-06T05:11:34.778Z] Preparing sync for table payment.
+[2026-04-06T05:12:35.246Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-04-06T05:12:36.134Z] Table roles: pulled 5 row(s) from Supabase.
+[2026-04-06T05:12:36.511Z] Table zone: pulled 5 row(s) from Supabase.
+[2026-04-06T05:12:36.878Z] Table classification: pulled 3 row(s) from Supabase.
+[2026-04-06T05:12:37.236Z] Table accounts: pulled 7 row(s) from Supabase.
+[2026-04-06T05:12:37.570Z] Table consumer: pulled 2 row(s) from Supabase.
+[2026-04-06T05:12:37.972Z] Table meter: pulled 1 row(s) from Supabase.
+[2026-04-06T05:12:39.099Z] Supabase pull cycle complete for 10 table(s).
+[2026-04-06T05:12:39.312Z] Preparing sync for table roles.
+[2026-04-06T05:12:39.647Z] Preparing sync for table zone.
+[2026-04-06T05:12:39.953Z] Preparing sync for table classification.
+[2026-04-06T05:12:40.268Z] Preparing sync for table accounts.
+[2026-04-06T05:12:40.587Z] Preparing sync for table consumer.
+[2026-04-06T05:12:41.487Z] Preparing sync for table meter.
+[2026-04-06T05:12:42.107Z] Preparing sync for table route.
+[2026-04-06T05:12:42.316Z] Preparing sync for table meterreadings.
+[2026-04-06T05:12:43.023Z] Preparing sync for table bills.
+[2026-04-06T05:12:43.297Z] Preparing sync for table payment.

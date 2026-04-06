@@ -14,8 +14,13 @@ app.use(express.json());
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseSchema = process.env.SUPABASE_DB_SCHEMA || 'public';
 
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const supabase = supabaseUrl && supabaseKey
+  ? createClient(supabaseUrl, supabaseKey, {
+      db: { schema: supabaseSchema },
+    })
+  : null;
 const postgresConfig = process.env.DATABASE_URL
   ? {
       connectionString: process.env.DATABASE_URL,
@@ -32,6 +37,9 @@ const postgresConfig = process.env.DATABASE_URL
 
 const pool = new Pool(postgresConfig);
 console.log('Connecting to PostgreSQL host:', postgresConfig.host || postgresConfig.connectionString);
+if (supabase) {
+  console.log('Connecting to Supabase schema:', supabaseSchema);
+}
 
 // Set search_path for every connection to use the new schema
 pool.on('connect', (client) => {
@@ -59,10 +67,59 @@ const syncTableConfigs = [
   { tableName: 'meterreadings', primaryKey: 'reading_id' },
   { tableName: 'bills', primaryKey: 'bill_id' },
   { tableName: 'payment', primaryKey: 'payment_id' },
-  { tableName: 'error_logs', primaryKey: 'error_id' },
-  { tableName: 'system_logs', primaryKey: 'log_id' },
-  { tableName: 'backuplogs', primaryKey: 'backup_id' },
+  { tableName: 'error_logs', primaryKey: 'error_id', syncWithSupabase: false },
+  { tableName: 'system_logs', primaryKey: 'log_id', syncWithSupabase: false },
+  { tableName: 'backuplogs', primaryKey: 'backup_id', syncWithSupabase: false },
 ];
+
+function quoteIdentifier(identifier) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
+    throw new Error(`Unsafe SQL identifier: ${identifier}`);
+  }
+  return `"${identifier}"`;
+}
+
+async function upsertRowsToPostgres(tableName, primaryKey, rows) {
+  if (!rows.length) {
+    return 0;
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    for (const row of rows) {
+      const columns = Object.keys(row);
+      if (!columns.length) {
+        continue;
+      }
+
+      const insertColumns = columns.map(quoteIdentifier).join(', ');
+      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
+      const updates = columns
+        .filter((column) => column !== primaryKey)
+        .map((column) => `${quoteIdentifier(column)} = EXCLUDED.${quoteIdentifier(column)}`)
+        .join(', ');
+
+      const values = columns.map((column) => row[column]);
+      const conflictTarget = quoteIdentifier(primaryKey);
+      const query = updates
+        ? `INSERT INTO ${quoteIdentifier(tableName)} (${insertColumns}) VALUES (${placeholders}) ON CONFLICT (${conflictTarget}) DO UPDATE SET ${updates}`
+        : `INSERT INTO ${quoteIdentifier(tableName)} (${insertColumns}) VALUES (${placeholders}) ON CONFLICT (${conflictTarget}) DO NOTHING`;
+
+      await client.query(query, values);
+    }
+
+    await client.query('COMMIT');
+    return rows.length;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 function safeSerialize(value) {
   try {
@@ -270,6 +327,26 @@ async function syncTableToSupabase(tableName, primaryKey) {
   return { tableName, synced: rows.length };
 }
 
+async function syncTableToPostgres(tableName, primaryKey) {
+  await logSupabaseEvent(`Preparing PostgreSQL pull for table ${tableName}.`);
+  const { data, error } = await supabase.from(tableName).select('*');
+
+  if (error) {
+    await logDatabaseError(`postgres.sync.${tableName}`, error);
+    throw new Error(`${tableName}: ${error.message}`);
+  }
+
+  const rows = data || [];
+  if (!rows.length) {
+    await logPostgresEvent(`Table ${tableName}: no rows pulled from Supabase.`);
+    return { tableName, synced: 0 };
+  }
+
+  const synced = await upsertRowsToPostgres(tableName, primaryKey, rows);
+  await logPostgresEvent(`Table ${tableName}: pulled ${synced} row(s) from Supabase.`);
+  return { tableName, synced };
+}
+
 async function syncPostgresToSupabase() {
   if (!supabase || isSupabaseSyncRunning) {
     return [];
@@ -281,11 +358,49 @@ async function syncPostgresToSupabase() {
     await logSupabaseEvent('Starting PostgreSQL to Supabase sync cycle.');
     const results = [];
 
-    for (const { tableName, primaryKey } of syncTableConfigs) {
-      results.push(await syncTableToSupabase(tableName, primaryKey));
+    for (const { tableName, primaryKey, syncWithSupabase = true } of syncTableConfigs) {
+      if (!syncWithSupabase) {
+        continue;
+      }
+
+      try {
+        results.push(await syncTableToSupabase(tableName, primaryKey));
+      } catch (error) {
+        results.push({ tableName, synced: 0, error: error.message });
+      }
     }
 
     await logSupabaseEvent(`Sync cycle complete for ${results.length} table(s).`);
+    return results;
+  } finally {
+    isSupabaseSyncRunning = false;
+  }
+}
+
+async function syncSupabaseToPostgres() {
+  if (!supabase || isSupabaseSyncRunning) {
+    return [];
+  }
+
+  isSupabaseSyncRunning = true;
+
+  try {
+    await logPostgresEvent('Starting Supabase to PostgreSQL sync cycle.');
+    const results = [];
+
+    for (const { tableName, primaryKey, syncWithSupabase = true } of syncTableConfigs) {
+      if (!syncWithSupabase) {
+        continue;
+      }
+
+      try {
+        results.push(await syncTableToPostgres(tableName, primaryKey));
+      } catch (error) {
+        results.push({ tableName, synced: 0, error: error.message });
+      }
+    }
+
+    await logPostgresEvent(`Supabase pull cycle complete for ${results.length} table(s).`);
     return results;
   } finally {
     isSupabaseSyncRunning = false;
@@ -301,10 +416,12 @@ function startSupabaseSyncScheduler() {
 
   logSupabaseEvent(`Supabase sync scheduler started with interval ${syncIntervalMs}ms.`).catch(() => {});
   setInterval(() => {
-    syncPostgresToSupabase().catch((error) => {
-      logDatabaseError('supabase.sync.scheduler', error).catch(() => {});
-      console.warn('Supabase sync skipped:', error.message);
-    });
+    syncSupabaseToPostgres()
+      .then(() => syncPostgresToSupabase())
+      .catch((error) => {
+        logDatabaseError('supabase.sync.scheduler', error).catch(() => {});
+        console.warn('Supabase sync skipped:', error.message);
+      });
   }, syncIntervalMs);
 }
 
@@ -1330,6 +1447,27 @@ app.post('/api/admin/sync-supabase', async (req, res) => {
   }
 });
 
+app.post('/api/admin/sync-postgres', async (req, res) => {
+  try {
+    if (!supabase) {
+      await logRequestInfo('admin.syncPostgres', 'Manual PostgreSQL pull requested while running in PostgreSQL-only mode.');
+      return res.status(400).json({
+        success: false,
+        message: 'Supabase is not configured on this server.',
+      });
+    }
+
+    await logRequestInfo('admin.syncPostgres', 'Manual PostgreSQL pull from Supabase requested.');
+    const results = await syncSupabaseToPostgres();
+    await logPostgresEvent(`Manual Supabase to PostgreSQL sync completed for ${results.length} table(s).`);
+    return res.json({ success: true, results });
+  } catch (error) {
+    await logRequestError(req, 'admin.syncPostgres', error);
+    console.error('Manual PostgreSQL sync failed:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 async function startServer() {
   try {
     console.log(`Attempting connection to ${postgresConfig.host}:${postgresConfig.port}...`);
@@ -1338,6 +1476,15 @@ async function startServer() {
     await initDb();
     await logPostgresEvent('PostgreSQL initialization check completed.');
     if (supabase) {
+      try {
+        const initialPullResults = await syncSupabaseToPostgres();
+        await logPostgresEvent(`Initial Supabase to PostgreSQL sync complete for ${initialPullResults.length} table(s).`);
+        console.log('Initial Supabase to PostgreSQL sync complete:', initialPullResults);
+      } catch (error) {
+        await logDatabaseError('postgres.sync.initial', error);
+        console.warn('Initial Supabase to PostgreSQL sync failed:', error.message);
+      }
+
       try {
         const initialSyncResults = await syncPostgresToSupabase();
         await logSupabaseEvent(`Initial PostgreSQL to Supabase sync complete for ${initialSyncResults.length} table(s).`);
@@ -1356,7 +1503,7 @@ async function startServer() {
       console.log(`Server running on http://localhost:${PORT}`);
       if (supabase) {
         logSupabaseEvent(`Server started on port ${PORT} in Hybrid Mode.`).catch(() => {});
-        console.log(`Database mode: PostgreSQL + Supabase sync (Direct DB status: ${error ? 'OFFLINE' : 'ONLINE'})`);
+        console.log(`Database mode: PostgreSQL + Supabase sync (Supabase schema: ${supabaseSchema})`);
       } else {
         logPostgresEvent(`Server started on port ${PORT} in PostgreSQL-only mode.`).catch(() => {});
         console.log(`Database mode: running in PostgreSQL-only mode`);

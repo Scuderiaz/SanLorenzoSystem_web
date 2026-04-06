@@ -16,10 +16,14 @@ DROP VIEW IF EXISTS public.consumer CASCADE;
 DROP VIEW IF EXISTS public.classification CASCADE;
 DROP VIEW IF EXISTS public.zone CASCADE;
 DROP VIEW IF EXISTS public.meter CASCADE;
+DROP VIEW IF EXISTS public.route CASCADE;
 DROP VIEW IF EXISTS public.meterreadings CASCADE;
 DROP VIEW IF EXISTS public.bills CASCADE;
 DROP VIEW IF EXISTS public.payment CASCADE;
 DROP VIEW IF EXISTS public.ledger_entry CASCADE;
+DROP VIEW IF EXISTS public.backuplogs CASCADE;
+DROP VIEW IF EXISTS public.error_logs CASCADE;
+DROP VIEW IF EXISTS public.system_logs CASCADE;
 
 -- Roles
 CREATE OR REPLACE VIEW public.roles AS
@@ -50,6 +54,11 @@ CREATE OR REPLACE VIEW public.meter AS
 SELECT meter_id, consumer_id, meter_serial_number, meter_size, meter_status, installed_date
 FROM water_billing.meter;
 
+-- Route
+CREATE OR REPLACE VIEW public.route AS
+SELECT route_id, meter_reader_id, zone_id
+FROM water_billing.route;
+
 -- Meter Readings
 CREATE OR REPLACE VIEW public.meterreadings AS
 SELECT reading_id, route_id, consumer_id, meter_id, meter_reader_id,
@@ -75,6 +84,21 @@ CREATE OR REPLACE VIEW public.ledger_entry AS
 SELECT ledger_id, consumer_id, transaction_type, amount, balance, transaction_date
 FROM water_billing.ledger_entry;
 
+-- Backup Logs
+CREATE OR REPLACE VIEW public.backuplogs AS
+SELECT backup_id, backup_name, backup_time, backup_size, backup_type, created_by
+FROM water_billing.backuplogs;
+
+-- Error Logs
+CREATE OR REPLACE VIEW public.error_logs AS
+SELECT error_id, error_time, severity, module, error_message, user_id, status
+FROM water_billing.error_logs;
+
+-- System Logs
+CREATE OR REPLACE VIEW public.system_logs AS
+SELECT log_id, account_id, role, action, timestamp
+FROM water_billing.system_logs;
+
 -- 3. *** CRITICAL: Grant SELECT on every public view ***
 GRANT SELECT ON public.roles TO anon, authenticated, service_role;
 GRANT SELECT ON public.accounts TO anon, authenticated, service_role;
@@ -82,10 +106,14 @@ GRANT SELECT ON public.classification TO anon, authenticated, service_role;
 GRANT SELECT ON public.zone TO anon, authenticated, service_role;
 GRANT SELECT ON public.consumer TO anon, authenticated, service_role;
 GRANT SELECT ON public.meter TO anon, authenticated, service_role;
+GRANT SELECT ON public.route TO anon, authenticated, service_role;
 GRANT SELECT ON public.meterreadings TO anon, authenticated, service_role;
 GRANT SELECT ON public.bills TO anon, authenticated, service_role;
 GRANT SELECT ON public.payment TO anon, authenticated, service_role;
 GRANT SELECT ON public.ledger_entry TO anon, authenticated, service_role;
+GRANT SELECT ON public.backuplogs TO anon, authenticated, service_role;
+GRANT SELECT ON public.error_logs TO anon, authenticated, service_role;
+GRANT SELECT ON public.system_logs TO anon, authenticated, service_role;
 
 -- 4. Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';

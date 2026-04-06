@@ -18,3 +18,56 @@
 [2026-03-30T12:43:56.206Z] Server listening on port 3001.
 [2026-03-30T12:49:56.217Z] Server startup initiated.
 [2026-03-30T12:49:56.298Z] Server startup failed: Supabase sync configuration is required. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+[2026-04-06T05:01:20.735Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:01:23.544Z] Supabase sync scheduler started with interval 60000ms.
+[2026-04-06T05:01:23.548Z] Server started on port 3001 in Hybrid Mode.
+[2026-04-06T05:01:47.609Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:01:49.049Z] Supabase sync scheduler started with interval 60000ms.
+[2026-04-06T05:01:49.053Z] Server started on port 3001 in Hybrid Mode.
+[2026-04-06T05:04:36.849Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:04:37.766Z] Supabase sync scheduler started with interval 60000ms.
+[2026-04-06T05:04:37.769Z] Server started on port 3001 in Hybrid Mode.
+[2026-04-06T05:05:24.491Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:05:25.175Z] Supabase sync scheduler started with interval 60000ms.
+[2026-04-06T05:05:25.181Z] Server started on port 3001 in Hybrid Mode.
+[2026-04-06T05:06:25.186Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:07:25.201Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:08:25.205Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:09:25.209Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:10:25.213Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:11:25.217Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:11:27.952Z] Preparing PostgreSQL pull for table roles.
+[2026-04-06T05:11:28.431Z] Preparing PostgreSQL pull for table zone.
+[2026-04-06T05:11:28.696Z] Preparing PostgreSQL pull for table classification.
+[2026-04-06T05:11:29.071Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-06T05:11:29.525Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-06T05:11:29.947Z] Preparing PostgreSQL pull for table meter.
+[2026-04-06T05:11:30.410Z] Preparing PostgreSQL pull for table route.
+[2026-04-06T05:11:30.775Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-06T05:11:31.027Z] Preparing PostgreSQL pull for table bills.
+[2026-04-06T05:11:31.268Z] Preparing PostgreSQL pull for table payment.
+[2026-04-06T05:11:31.803Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:11:34.215Z] Table route: no rows to sync.
+[2026-04-06T05:11:34.449Z] Table meterreadings: no rows to sync.
+[2026-04-06T05:11:34.671Z] Table bills: no rows to sync.
+[2026-04-06T05:11:34.881Z] Table payment: no rows to sync.
+[2026-04-06T05:11:35.016Z] Sync cycle complete for 10 table(s).
+[2026-04-06T05:11:35.133Z] Initial PostgreSQL to Supabase sync complete for 10 table(s).
+[2026-04-06T05:11:35.240Z] Supabase sync scheduler started with interval 60000ms.
+[2026-04-06T05:11:35.246Z] Server started on port 3001 in Hybrid Mode.
+[2026-04-06T05:12:35.820Z] Preparing PostgreSQL pull for table roles.
+[2026-04-06T05:12:36.256Z] Preparing PostgreSQL pull for table zone.
+[2026-04-06T05:12:36.618Z] Preparing PostgreSQL pull for table classification.
+[2026-04-06T05:12:36.986Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-06T05:12:37.342Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-06T05:12:37.704Z] Preparing PostgreSQL pull for table meter.
+[2026-04-06T05:12:38.077Z] Preparing PostgreSQL pull for table route.
+[2026-04-06T05:12:38.411Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-06T05:12:38.659Z] Preparing PostgreSQL pull for table bills.
+[2026-04-06T05:12:38.884Z] Preparing PostgreSQL pull for table payment.
+[2026-04-06T05:12:39.210Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-06T05:12:42.222Z] Table route: no rows to sync.
+[2026-04-06T05:12:42.407Z] Table meterreadings: no rows to sync.
+[2026-04-06T05:12:43.189Z] Table bills: no rows to sync.
+[2026-04-06T05:12:43.393Z] Table payment: no rows to sync.
+[2026-04-06T05:12:43.487Z] Sync cycle complete for 10 table(s).
