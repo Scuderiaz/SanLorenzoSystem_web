@@ -23,6 +23,8 @@ const Dashboard: React.FC = () => {
   const [pendingValidation, setPendingValidation] = useState(5);
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [quickSearch, setQuickSearch] = useState('');
+  const [quickViewBill, setQuickViewBill] = useState<any | null>(null);
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -59,6 +61,26 @@ const Dashboard: React.FC = () => {
       showToast('Failed to load recent payments', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQuickLookup = async () => {
+    if (!quickSearch.trim()) return;
+    setLoading(true);
+    try {
+        // Mocking the "Quick View" data from groupmate's sketch
+        const mockBill = {
+            Amount: 450.00,
+            Month: 'March 2026',
+            Balance: 450.00,
+            TotalDue: 900.00,
+            DueDate: '2026-03-31'
+        };
+        setQuickViewBill(mockBill);
+    } catch (error) {
+        showToast('Account not found', 'error');
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -109,6 +131,56 @@ const Dashboard: React.FC = () => {
   return (
     <MainLayout title="Collections & Disbursement Control">
       <div className="treasurer-dashboard-page">
+        {/* 1. Dashboard (Quick View) - ADDED PER GROUPMATE SKETCH */}
+        <div className="card quick-view-section">
+          <div className="card-header">
+            <h2 className="card-title"><i className="fas fa-search-dollar"></i> Bill Quick Lookup</h2>
+            <div className="header-search">
+                <input 
+                    type="text" 
+                    placeholder="Enter Account No..." 
+                    className="quick-search-input"
+                    value={quickSearch}
+                    onChange={(e) => setQuickSearch(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleQuickLookup()}
+                />
+                <button className="btn btn-primary btn-sm" onClick={handleQuickLookup}>Search</button>
+            </div>
+          </div>
+          <div className="card-body">
+            {quickViewBill ? (
+              <div className="quick-info-grid">
+                <div className="quick-item">
+                  <span className="label">Current Bill ({quickViewBill.Month})</span>
+                  <span className="value">₱{quickViewBill.Amount.toFixed(2)}</span>
+                </div>
+                <div className="quick-item">
+                  <span className="label">Balance (Previous Unpaid)</span>
+                  <span className="value">₱{quickViewBill.Balance.toFixed(2)}</span>
+                </div>
+                <div className="quick-item highlight">
+                  <span className="label">Total Due</span>
+                  <span className="value">₱{quickViewBill.TotalDue.toFixed(2)}</span>
+                </div>
+                <div className="quick-item">
+                  <span className="label">Due Date</span>
+                  <span className="value">{quickViewBill.DueDate}</span>
+                </div>
+                <div className="quick-actions">
+                  <button className="btn btn-primary" onClick={() => navigate('/payments')}>
+                      <i className="fas fa-file-invoice"></i> View Full Bill & Pay
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="empty-quick-view">
+                <i className="fas fa-id-card"></i>
+                <p>Search an account number to see a quick bill summary.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Real-time Financial Metrics */}
         <div className="dashboard-cards">
           <div className="card card-highlight-green">

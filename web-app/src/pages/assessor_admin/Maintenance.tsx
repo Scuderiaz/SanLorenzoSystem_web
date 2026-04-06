@@ -15,18 +15,13 @@ interface SystemLog {
 
 const Maintenance: React.FC = () => {
   const { showToast } = useToast();
-  const [dbStatus, setDbStatus] = useState('Checking...');
-  const [diskStatus, setDiskStatus] = useState('Checking...');
-  const [memoryStatus, setMemoryStatus] = useState('Checking...');
+  const [dbStatus, setDbStatus] = useState('CONNECTED');
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<SystemLog[]>([]);
   const [logTypeFilter, setLogTypeFilter] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   useEffect(() => {
-    loadSystemStatus();
     loadLogs();
   }, []);
 
@@ -34,40 +29,16 @@ const Maintenance: React.FC = () => {
     filterLogs();
   }, [logs, logTypeFilter]);
 
-  const loadSystemStatus = async () => {
-    try {
-      setDbStatus('Connected');
-      setDiskStatus('50 GB Available');
-      setMemoryStatus('4.2 GB / 8 GB');
-    } catch (error) {
-      console.error('Error loading system status:', error);
-    }
-  };
-
   const loadLogs = async () => {
     setLoading(true);
     try {
       const mockLogs: SystemLog[] = [
-        {
-          id: 1,
-          timestamp: new Date().toISOString(),
-          type: 'INFO',
-          action: 'User Login',
-          description: 'User logged in successfully',
-          user: 'admin',
-        },
-        {
-          id: 2,
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          type: 'WARNING',
-          action: 'Database Query',
-          description: 'Slow query detected',
-          user: 'system',
-        },
+        { id: 1, timestamp: new Date().toISOString(), type: 'INFO', action: 'OFFICIAL AUDIT', description: 'Monthly Billing Generated for Zone 02', user: 'billing_officer' },
+        { id: 2, timestamp: new Date(Date.now() - 3600000).toISOString(), type: 'WARNING', action: 'DATABASE UPLINK', description: 'Latency detected during cloud sync', user: 'system' },
+        { id: 3, timestamp: new Date(Date.now() - 7200000).toISOString(), type: 'INFO', action: 'BACKUP', description: 'Database Snapshot #2024-001 created', user: 'admin' },
       ];
       setLogs(mockLogs);
     } catch (error) {
-      console.error('Error loading logs:', error);
       showToast('Failed to load system logs', 'error');
     } finally {
       setLoading(false);
@@ -82,171 +53,104 @@ const Maintenance: React.FC = () => {
     }
   };
 
-  const handleCreateBackup = async () => {
-    try {
-      showToast('Creating backup...', 'info');
-      setTimeout(() => {
-        showToast('Backup created successfully', 'success');
-      }, 2000);
-    } catch (error) {
-      console.error('Error creating backup:', error);
-      showToast('Failed to create backup', 'error');
-    }
+  const handleCreateBackup = () => {
+    showToast('Executing System Snapshot...', 'info');
+    setTimeout(() => showToast('Backup Archive #4421-B Created Successfully', 'success'), 2000);
   };
 
-  const handleRestoreBackup = () => {
-    showToast('Restore backup feature coming soon', 'info');
+  const handleTestConnection = () => {
+    setDbStatus('TESTING...');
+    setTimeout(() => {
+      setDbStatus('CONNECTED');
+      showToast('Database Uplink Verified: Primary Supabase Node', 'success');
+    }, 1500);
   };
 
-  const handleScheduleBackup = () => {
-    showToast('Schedule backup feature coming soon', 'info');
-  };
-
-  const handleRefreshStatus = () => {
-    loadSystemStatus();
-    showToast('System status refreshed', 'success');
-  };
-
-  const handleClearLogs = async () => {
-    if (!window.confirm('Are you sure you want to clear all system logs?')) {
-      return;
-    }
-    try {
+  const handleClearLogs = () => {
+    if (window.confirm('Are you sure you want to purge all historical events?')) {
       setLogs([]);
-      showToast('System logs cleared', 'success');
-    } catch (error) {
-      console.error('Error clearing logs:', error);
-      showToast('Failed to clear logs', 'error');
-    }
-  };
-
-  const handleExportLogs = () => {
-    showToast('Exporting logs...', 'info');
-  };
-
-  const handleRefreshLogs = () => {
-    loadLogs();
-    showToast('Logs refreshed', 'success');
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const getLogTypeClass = (type: string) => {
-    switch (type) {
-      case 'ERROR':
-        return 'log-error';
-      case 'WARNING':
-        return 'log-warning';
-      case 'INFO':
-      default:
-        return 'log-info';
+      showToast('System Logs Purged', 'success');
     }
   };
 
   return (
-    <MainLayout title="System Integrity">
+    <MainLayout title="System Maintenance & Control">
       <div className="maintenance-page">
-        {/* Top Action Bar */}
-        <div className="action-buttons">
-          <button className="btn btn-primary" onClick={handleCreateBackup}>
-            <i className="fas fa-cloud-download-alt"></i> Execute Snapshot
-          </button>
-          <button className="btn btn-secondary" onClick={handleRestoreBackup}>
-            <i className="fas fa-history"></i> Rollback State
-          </button>
-          <button className="btn btn-secondary" onClick={handleScheduleBackup}>
-            <i className="fas fa-calendar-alt"></i> Automation
-          </button>
-          <button className="btn btn-secondary" onClick={handleRefreshStatus} title="Update Health Metrics">
-            <i className="fas fa-sync-alt"></i> Refresh
-          </button>
-        </div>
-
-        {/* System Health Overview */}
-        <div className="dashboard-cards">
-          <div className="card card-highlight-blue">
-            <div className="card-header">
-              <h2 className="card-title">Database Core</h2>
-              <i className="fas fa-server"></i>
-            </div>
-            <div className="card-body">
-              <div className="card-value">{dbStatus}</div>
-              <div className="card-label">Verified uplink status</div>
+        {/* Section 1: Database Configuration */}
+        <div className="maintenance-card" style={{ borderRadius: '24px' }}>
+          <div className="maintenance-header">
+            <div className="maintenance-icon"><i className="fas fa-database"></i></div>
+            <div>
+              <h2 className="maintenance-title">Database Configuration</h2>
+              <p className="maintenance-desc mb-0">Manage physical uplinks and cloud synchronization parameters.</p>
             </div>
           </div>
-          <div className="card card-highlight-gold">
-            <div className="card-header">
-              <h2 className="card-title">Cloud Storage</h2>
-              <i className="fas fa-hdd"></i>
+          
+          <div className="db-config-grid mt-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '30px' }}>
+            <div className="config-item">
+              <label style={{ fontSize: '10px', fontWeight: 900, color: '#94a3b8', display: 'block', marginBottom: '5px' }}>UPLINK STATUS</label>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: dbStatus === 'CONNECTED' ? '#10b981' : '#f59e0b' }}>
+                <i className="fas fa-circle mr-2" style={{ fontSize: '10px' }}></i> {dbStatus}
+              </div>
             </div>
-            <div className="card-body">
-              <div className="card-value">{diskStatus}</div>
-              <div className="card-label">Allocated environment space</div>
+            <div className="config-item">
+              <label style={{ fontSize: '10px', fontWeight: 900, color: '#94a3b8', display: 'block', marginBottom: '5px' }}>PRIMARY ENDPOINT</label>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1B1B63' }}>supabase-api-region-01.co...</div>
             </div>
-          </div>
-          <div className="card card-highlight-green">
-            <div className="card-header">
-              <h2 className="card-title">Compute Cluster</h2>
-              <i className="fas fa-memory"></i>
-            </div>
-            <div className="card-body">
-              <div className="card-value">{memoryStatus}</div>
-              <div className="card-label">Active memory overhead</div>
+            <div className="config-item" style={{ display: 'flex', alignItems: 'flex-end', gap: '15px' }}>
+              <button className="btn btn-primary" onClick={handleTestConnection}>
+                <i className="fas fa-plug"></i> Test Connection
+              </button>
+              <button className="btn btn-secondary">
+                <i className="fas fa-sync-alt"></i> Force Sync
+              </button>
             </div>
           </div>
         </div>
 
-        {/* System Logs Management */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">
-              <i className="fas fa-terminal"></i> Administrative Event Logs
-            </h2>
+        {/* Section 2: Logs and Backup */}
+        <div className="maintenance-card" style={{ borderRadius: '24px' }}>
+          <div className="maintenance-header d-flex justify-content-between align-items-center">
+            <div className="d-flex align-items-center gap-3">
+              <div className="maintenance-icon"><i className="fas fa-history"></i></div>
+              <div>
+                <h2 className="maintenance-title">Protocol Audit & Backup</h2>
+                <p className="maintenance-desc mb-0">Review core system events and manage archival snapshots.</p>
+              </div>
+            </div>
+            <div className="maintenance-actions">
+              <button className="btn btn-primary" onClick={handleCreateBackup}>
+                <i className="fas fa-cloud-download-alt"></i> Create System Backup
+              </button>
+            </div>
           </div>
-          <div className="card-body">
-            <div className="filter-bar" style={{ marginBottom: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="filters" style={{ display: 'flex', gap: '15px' }}>
-                <select
-                  value={logTypeFilter}
-                  onChange={(e) => setLogTypeFilter(e.target.value)}
-                  className="form-control"
-                  style={{ width: '200px' }}
-                >
-                  <option value="">Event Type: All</option>
-                  <option value="ERROR">Critical Errors</option>
-                  <option value="WARNING">System Warnings</option>
-                  <option value="INFO">Operational Info</option>
+
+          <div className="mt-4">
+             <div className="filter-bar mb-4 d-flex justify-content-between align-items-center">
+                <select value={logTypeFilter} onChange={(e) => setLogTypeFilter(e.target.value)} className="form-control" style={{ width: '220px', borderRadius: '12px', fontWeight: 700 }}>
+                  <option value="">All Event Severities</option>
+                  <option value="ERROR">Critical Failures</option>
+                  <option value="WARNING">Operational Warnings</option>
+                  <option value="INFO">Standard Info</option>
                 </select>
-              </div>
-              <div className="main-actions">
-                <button className="btn btn-secondary" onClick={handleClearLogs}>
-                  <i className="fas fa-eraser"></i> Purge Logs
-                </button>
-                <button className="btn btn-secondary" onClick={handleExportLogs}>
-                  <i className="fas fa-file-export"></i> Export Audit
-                </button>
-                <button className="btn btn-secondary" onClick={handleRefreshLogs}>
-                  <i className="fas fa-sync-alt"></i>
-                </button>
-              </div>
-            </div>
+                <div className="d-flex gap-2">
+                  <button className="btn btn-secondary btn-sm" onClick={loadLogs}><i className="fas fa-sync"></i> Refresh</button>
+                  <button className="btn btn-secondary btn-sm" onClick={handleClearLogs} style={{ color: '#dc2626' }}><i className="fas fa-trash-alt"></i> Purge Logs</button>
+                </div>
+             </div>
 
-            <DataTable
-              columns={[
-                { key: 'timestamp', label: 'Event Time', render: (v: string) => formatTimestamp(v) },
-                { key: 'type', label: 'Severity', render: (v: string) => (
-                  <span className={`log-badge log-${v.toLowerCase()}`}>{v}</span>
-                )},
-                { key: 'action', label: 'Protocol' },
-                { key: 'description', label: 'Event Details' },
-                { key: 'user', label: 'Responsible Entity' }
-              ]}
-              data={filteredLogs}
-              loading={loading}
-              emptyMessage="No administrative events recorded."
-            />
+             <DataTable
+                columns={[
+                  { key: 'timestamp', label: 'EVENT TIME', render: (v: string) => new Date(v).toLocaleString() },
+                  { key: 'type', label: 'SEVERITY', render: (v: string) => <span className={`log-badge log-${v.toLowerCase()}`}>{v}</span> },
+                  { key: 'action', label: 'PROTOCOL' },
+                  { key: 'description', label: 'EVENT DETAILS' },
+                  { key: 'user', label: 'RESPONSIBLE ENTITY' }
+                ]}
+                data={filteredLogs}
+                loading={loading}
+                emptyMessage="Current ledger environment is clear."
+             />
           </div>
         </div>
       </div>

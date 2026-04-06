@@ -14,8 +14,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   // --- Admin (Role 1) ---
   { path: '/dashboard',     icon: 'fas fa-tachometer-alt',      label: 'Dashboard',          roles: [1, 2, 3, 4] },
-  { path: '/users',         icon: 'fas fa-users',               label: 'User Management',     roles: [1] },
-  { path: '/consumers',     icon: 'fas fa-database',            label: 'Master Records',      roles: [1] },
+  { path: '/accounts',      icon: 'fas fa-address-book',        label: 'Account Management', roles: [1] },
   { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Reports',             roles: [1] },
   { path: '/settings',      icon: 'fas fa-cogs',                label: 'System Settings',     roles: [1] },
   { path: '/maintenance',   icon: 'fas fa-tools',               label: 'System Maintenance',  roles: [1] },
@@ -31,15 +30,37 @@ const menuItems: MenuItem[] = [
   { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Bills Review',        roles: [3] },
   // --- Treasurer (Role 4) ---
   { path: '/payments',      icon: 'fas fa-money-bill-wave',     label: 'Process Payment',     roles: [4] },
-  { path: '/verify-payment',icon: 'fas fa-check-circle',        label: 'Verify Payment',      roles: [4] },
-  { path: '/view-bill',     icon: 'fas fa-file-alt',            label: 'View Bill',           roles: [4] },
   { path: '/ledger',        icon: 'fas fa-book',                label: 'Digital Ledger',      roles: [4] },
-  { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Reports',             roles: [4] },
+  { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Report',              roles: [4] },
 ];
 
 const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [pendingCount, setPendingCount] = React.useState(0);
+
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+
+  React.useEffect(() => {
+    if (user?.role_id === 1) {
+      loadPendingCount();
+      const interval = setInterval(loadPendingCount, 30000); // Check every 30s
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const loadPendingCount = async () => {
+    try {
+      const response = await fetch(`${API_URL}/users/unified`);
+      const result = await response.json();
+      if (result.success) {
+        const pending = result.data.filter((u: any) => u.Status === 'Pending').length;
+        setPendingCount(pending);
+      }
+    } catch (error) {
+      console.error('Error loading pending count:', error);
+    }
+  };
 
   const filteredMenuItems = menuItems.filter(item => 
     user && item.roles.includes(user.role_id)
@@ -65,7 +86,13 @@ const Sidebar: React.FC = () => {
             className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
           >
             <Link to={item.path}>
-              <i className={item.icon}></i> <span>{item.label}</span>
+              <div className="menu-icon-wrapper">
+                <i className={item.icon}></i>
+                {item.path === '/accounts' && pendingCount > 0 && (
+                  <span className="notification-dot"></span>
+                )}
+              </div>
+              <span>{item.label}</span>
             </Link>
           </li>
         ))}

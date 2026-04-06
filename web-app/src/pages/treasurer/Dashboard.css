@@ -25,11 +25,6 @@
   border: 1px solid #f1f5f9;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s;
-}
-
-.card:hover {
-  transform: translateY(-5px);
 }
 
 .card::before {
@@ -124,7 +119,6 @@
 }
 
 .btn-large:hover {
-  transform: translateY(-2px);
   filter: brightness(1.1);
   box-shadow: 0 10px 20px rgba(245, 158, 11, 0.2);
 }
@@ -133,4 +127,100 @@
   .dashboard-cards {
     grid-template-columns: 1fr;
   }
+}
+
+/* ─── Quick View Section ────────────────────────────────────────── */
+.quick-view-section {
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.quick-view-section .card-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 15px;
+}
+
+.quick-view-section .card-title {
+  color: #1B1B63;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-search {
+  display: flex;
+  gap: 10px;
+}
+
+.quick-search-input {
+  padding: 8px 15px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1B1B63;
+  width: 200px;
+  transition: all 0.2s;
+}
+
+.quick-search-input:focus {
+  outline: none;
+  border-color: #1B1B63;
+  width: 250px;
+}
+
+.quick-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 10px 0;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.quick-item .label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.quick-item .value {
+  font-size: 18px;
+  font-weight: 900;
+  color: #1B1B63;
+}
+
+.quick-item.highlight .value {
+  color: #10b981;
+  font-size: 22px;
+}
+
+.quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.empty-quick-view {
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+}
+
+.empty-quick-view i {
+  font-size: 40px;
+  margin-bottom: 10px;
+  opacity: 0.3;
+}
+
+.empty-quick-view p {
+  font-size: 13px;
+  font-weight: 600;
 }

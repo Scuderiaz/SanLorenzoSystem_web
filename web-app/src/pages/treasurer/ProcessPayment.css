@@ -160,3 +160,130 @@
 @media (max-width: 900px) {
   .form-grid { grid-template-columns: 1fr; }
 }
+
+/* ─── Detailed Bill Breakdown ────────────────────────────────────── */
+.bill-detail-breakdown {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
+  margin-bottom: 30px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+}
+
+.breakdown-header {
+  background: #1B1B63;
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.breakdown-header i {
+  color: #fbbf24;
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  padding: 20px;
+  gap: 15px;
+}
+
+.breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.breakdown-item.highlight {
+  background: #fffbeb;
+  border-color: #fef3c7;
+}
+
+.breakdown-item.highlight-total {
+  background: #ecfdf5;
+  border-color: #d1fae5;
+}
+
+.breakdown-item .label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.breakdown-item .value {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1B1B63;
+}
+
+.breakdown-item.highlight-total .value {
+  color: #059669;
+  font-size: 18px;
+}
+
+.breakdown-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f1f5f9;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ─── PRINT OPTIMIZATION ─────────────────────────────────────────── */
+@media print {
+  /* Hide all UI elements except the receipt modal content */
+  body * {
+    visibility: hidden;
+  }
+  .modal-overlay, .modal-overlay * {
+    visibility: hidden;
+  }
+  .official-receipt-print, .official-receipt-print * {
+    visibility: visible;
+  }
+  .official-receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 40px;
+    background: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  /* Remove modal borders and shadows for print */
+  .modal-content {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+
+.official-receipt-print {
+  background: #fff;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #1B1B63;
+}
+
+.receipt-header-official {
+  margin-bottom: 25px;
+}
+
+.receipt-metadata {
+  background: #f8fafc;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}

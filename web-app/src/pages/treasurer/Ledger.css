@@ -1,0 +1,236 @@
+.treasurer-ledger-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Registry Control Hub (Search & Filters) ─────────────────────── */
+.registry-control-hub {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  border: 1px solid #f1f5f9;
+}
+
+.hub-layout {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.hub-search-main {
+  flex: 1;
+  min-width: 300px;
+}
+
+.input-group-custom {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.input-icon-wrapper {
+  position: absolute;
+  left: 18px;
+  color: #1B1B63;
+  font-size: 16px;
+  z-index: 5;
+}
+
+.input-group-custom .form-control {
+  width: 100%;
+  padding: 14px 20px 14px 48px;
+  border: 2px solid #f1f5f9;
+  border-radius: 14px 0 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1B1B63;
+  transition: all 0.2s;
+  background-color: #f8fafc;
+  border-right: none;
+}
+
+.input-group-custom .form-control:focus {
+  outline: none;
+  border-color: #1B1B63;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(27, 27, 99, 0.05);
+}
+
+.hub-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-sync-registry {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 2px solid #f1f5f9;
+  color: #1B1B63;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-sync-registry:hover {
+  background: #ffffff;
+  border-color: #1B1B63;
+}
+
+/* ─── Search Suggestions ───────────────────────────────────────── */
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 140px; /* Perfectly aligns with input (excluding button) */
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-top: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.suggestion-item {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1B1B63;
+  transition: all 0.2s;
+}
+
+.suggestion-item:hover {
+  background: #f1f5f9;
+}
+
+.suggestion-item i {
+  color: #64748b;
+}
+
+/* ─── Profile Dashboard ───────────────────────────────────────── */
+.profile-dashboard {
+  background: #f8fafc;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1.5px dashed #e2e8f0;
+}
+
+.profile-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-item .label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+.profile-item .name {
+  font-size: 24px;
+  font-weight: 900;
+  color: #1B1B63;
+  letter-spacing: -0.5px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.profile-item.small .value {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1B1B63;
+}
+
+/* ─── Table Styling ───────────────────────────────────────────── */
+.or-badge {
+  background: #fffbeb;
+  color: #dc2626;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 900;
+  border: 1px solid #fef3c7;
+}
+
+.data-table-container {
+  border-radius: 0;
+  border: none;
+  width: 100%;
+}
+
+.data-table {
+  width: 100%;
+}
+
+.data-table th {
+  background: #f1f5f9;
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  padding: 18px 24px;
+  text-transform: uppercase;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.data-table td {
+  font-size: 13px;
+  padding: 15px 20px;
+  font-weight: 600;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.data-table tr:hover td {
+  background-color: transparent !important;
+}
+
+/* Explicitly disable any card-level move effects */
+.card {
+  transition: none !important;
+}
+
+.card:hover {
+  transform: none !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+}
+
+.data-table tr td {
+  transition: none;
+}
+
+@media (max-width: 768px) {
+  .search-input-wrapper {
+    flex-direction: column;
+  }
+}

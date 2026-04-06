@@ -1,0 +1,94 @@
+.account-management-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.management-header {
+  margin-bottom: 5px;
+}
+
+.management-header .subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ─── Tab Customization ────────────────────────────────────────── */
+.tabs-container {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.tab-header {
+  display: flex;
+  padding: 0 20px;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.tab-link {
+  padding: 18px 30px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 800;
+  color: #94a3b8;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tab-link:hover {
+  color: #1B1B63;
+}
+
+.tab-link.active {
+  color: #1B1B63;
+}
+
+.tab-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #1B1B63;
+}
+
+.tab-content {
+  padding: 24px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── High Density Table Updates ───────────────────────────────── */
+.concessionaires-tab table td, 
+.users-tab table td {
+  padding: 12px 18px;
+}
+
+.concessionaires-tab .filter-bar,
+.users-tab .filter-bar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 15px;
+  align-items: end;
+}
+
+@media (max-width: 1200px) {
+  .concessionaires-tab .filter-bar,
+  .users-tab .filter-bar {
+    grid-template-columns: 1fr;
+  }
+}

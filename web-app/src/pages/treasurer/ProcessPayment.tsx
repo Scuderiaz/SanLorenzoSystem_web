@@ -10,10 +10,17 @@ interface Consumer {
   Consumer_Name: string;
   Address: string;
   Classification: string;
+  Billing_Month: string;
+  Previous_Reading: number;
+  Current_Reading: number;
+  Consumption: number;
+  Basic_Charge: number;
+  Environmental_Fee: number;
   Current_Bill: number;
   Previous_Balance: number;
   Penalties: number;
   Total_Amount_Due: number;
+  Status: string;
 }
 
 interface Payment {
@@ -36,6 +43,7 @@ const ProcessPayment: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showFullBillModal, setShowFullBillModal] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<Payment | null>(null);
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
@@ -78,10 +86,17 @@ const ProcessPayment: React.FC = () => {
         Consumer_Name: 'Juan Dela Cruz',
         Address: '123 Main St, Zone 1',
         Classification: 'Residential',
+        Billing_Month: 'March 2026',
+        Previous_Reading: 100,
+        Current_Reading: 125,
+        Consumption: 25,
+        Basic_Charge: 375.0,
+        Environmental_Fee: 25.0,
         Current_Bill: 450.0,
         Previous_Balance: 400.0,
         Penalties: 50.0,
         Total_Amount_Due: 900.0,
+        Status: 'Unpaid',
       };
       setSelectedConsumer(mockConsumer);
       setAmountPaid(mockConsumer.Total_Amount_Due.toString());
@@ -116,12 +131,12 @@ const ProcessPayment: React.FC = () => {
         Amount: parseFloat(amountPaid),
         Payment_Date: currentDate,
         Payment_Method: paymentMethod,
-        Status: 'Pending',
+        Status: 'Recorded',
       };
 
       setCurrentReceipt(newPayment);
       setShowReceiptModal(true);
-      showToast('Payment processed successfully', 'success');
+      showToast('Collection Record successfully finalized. Synced to Billing Officer for audit.', 'success');
       
       // Clear form
       setSelectedConsumer(null);
@@ -168,32 +183,60 @@ const ProcessPayment: React.FC = () => {
   return (
     <MainLayout title="Collections Point (Manual OR Entry)">
       <div className="process-payment-page">
-        {/* Recent Collections Feed */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Recent Daily Collections Audit</h2>
-            <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700' }}>
-                <i className="fas fa-external-link-alt"></i> Collection Summary
-            </button>
-          </div>
-          <div className="card-body">
-            <div style={{ padding: '24px' }}>
-                <DataTable columns={paymentColumns} data={payments} loading={loading} />
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Processing Hub */}
+        {/* Payment Processing Hub - MOVED TO TOP */}
         <div className="card">
           <div className="card-header" style={{ marginBottom: '30px' }}>
             <h2 className="card-title">Manual Official Receipt (OR) Processor</h2>
           </div>
           <div className="card-body">
-            {/* High-Fidelity Process Guide */}
-            <div className="process-steps">
-              <i className="fas fa-shield-alt"></i>
-              <span><strong>Protocol:</strong> Search → Collect Cash → Accomplish Booklet → Verify Booklet OR → Finalize & Record Transaction</span>
-            </div>
+            {/* DETAILED VIEW: FULL BILL BREAKDOWN (MOVED FROM VIEW BILL) */}
+            {selectedConsumer && (
+              <div className="bill-detail-breakdown">
+                <div className="breakdown-header">
+                  <i className="fas fa-file-invoice-dollar"></i>
+                  <span>Detailed Bill Status for {selectedConsumer.Billing_Month}</span>
+                </div>
+                <div className="breakdown-grid">
+                  <div className="breakdown-item">
+                    <span className="label">Prev/Current Reading</span>
+                    <span className="value">{selectedConsumer.Previous_Reading} / {selectedConsumer.Current_Reading}</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span className="label">Consumption (m³)</span>
+                    <span className="value">{selectedConsumer.Consumption}</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span className="label">Basic Tariff</span>
+                    <span className="value">₱{selectedConsumer.Basic_Charge.toFixed(2)}</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span className="label">Fees (Env/Maint)</span>
+                    <span className="value">₱{selectedConsumer.Environmental_Fee.toFixed(2)}</span>
+                  </div>
+                  <div className="breakdown-item highlight">
+                    <span className="label">Arrears/Penalty</span>
+                    <span className="value">₱{(selectedConsumer.Previous_Balance + selectedConsumer.Penalties).toFixed(2)}</span>
+                  </div>
+                  <div className="breakdown-item highlight-total">
+                    <span className="label">TOTAL DUE</span>
+                    <span className="value">₱{selectedConsumer.Total_Amount_Due.toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="breakdown-footer">
+                  <span className={`status-badge status-${selectedConsumer.Status.toLowerCase()}`}>
+                    Status: {selectedConsumer.Status}
+                  </span>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setShowFullBillModal(true)}>
+                      <i className="fas fa-file-invoice"></i> View Full Statement
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => window.print()}>
+                      <i className="fas fa-print"></i> Print Quick Summary
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Premium Form Layout */}
             <div className="form-grid">
@@ -276,12 +319,6 @@ const ProcessPayment: React.FC = () => {
               </div>
             </div>
 
-            {/* Verification Status Banner */}
-            <div className="info-box">
-              <i className="fas fa-paper-plane"></i>
-              <span>This collection event will be automatically queued for <strong>Billing Department validation</strong>.</span>
-            </div>
-
             {/* Strategic Action Bar */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
               <button 
@@ -304,6 +341,21 @@ const ProcessPayment: React.FC = () => {
           </div>
         </div>
 
+        {/* Recent Collections Feed - MOVED TO BOTTOM */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">Recent Daily Collections Audit</h2>
+            <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700' }}>
+                <i className="fas fa-external-link-alt"></i> Collection Summary
+            </button>
+          </div>
+          <div className="card-body">
+            <div style={{ padding: '24px' }}>
+                <DataTable columns={paymentColumns} data={payments} loading={loading} />
+            </div>
+          </div>
+        </div>
+
         {/* Transaction Success Overlay */}
         {showReceiptModal && currentReceipt && (
           <Modal
@@ -312,51 +364,166 @@ const ProcessPayment: React.FC = () => {
             onClose={() => setShowReceiptModal(false)}
             size="medium"
           >
-            <div className="receipt-preview">
-              <div className="receipt-header">
-                <img 
-                  src="/images/Waterworks System Payment Logo 1.svg" 
-                  alt="San Lorenzo Ruiz Water Logo" 
-                  style={{ height: '50px', width: 'auto', marginBottom: '10px', objectFit: 'contain' }}
-                />
-                <p>Digital Collection Record</p>
-              </div>
-              <div className="receipt-details">
-                <div className="receipt-row">
-                  <span>OR Sequence:</span>
-                  <span>{currentReceipt.Receipt_No}</span>
-                </div>
-                <div className="receipt-row">
-                  <span>Authorized At:</span>
-                  <span>{currentReceipt.Payment_Date}</span>
-                </div>
-                <div className="receipt-row">
-                  <span>Acct No:</span>
-                  <span>{currentReceipt.Account_Number}</span>
-                </div>
-                <div className="receipt-row">
-                  <span>Internal Consumer:</span>
-                  <span>{currentReceipt.Consumer_Name}</span>
-                </div>
-                <div className="receipt-row">
-                  <span style={{ fontSize: '16px', color: '#10b981' }}>Gross Amount:</span>
-                  <span style={{ fontSize: '18px', color: '#1B1B63' }}>₱{(currentReceipt.Amount || 0).toFixed(2)}</span>
-                </div>
-                <div className="receipt-row">
-                  <span>Mechanism:</span>
-                  <span>{currentReceipt.Payment_Method}</span>
-                </div>
-              </div>
-              <div className="receipt-footer">
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                    <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowReceiptModal(false)}>
-                        <i className="fas fa-print"></i> Print Proof
-                    </button>
-                    <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setShowReceiptModal(false)}>
-                        <i className="fas fa-envelope"></i> Send Copy
-                    </button>
+            <div className="official-receipt-print">
+              {/* PH Government Style Header */}
+              <div className="receipt-header-official">
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <p style={{ margin: 0, fontSize: '10px', fontWeight: '800' }}>REPUBLIC OF THE PHILIPPINES</p>
+                  <p style={{ margin: 0, fontSize: '12px', fontWeight: '900' }}>SAN LORENZO RUIZ WATERWORKS SYSTEM</p>
+                  <p style={{ margin: 0, fontSize: '10px' }}>PROVINCE OF CAMARINES NORTE</p>
+                  <h2 style={{ color: '#1B1B63', fontSize: '20px', margin: '10px 0', borderTop: '1px solid #1B1B63', borderBottom: '1px solid #1B1B63', padding: '5px 0' }}>OFFICIAL RECEIPT</h2>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+                    <span><strong>OR No:</strong> <span style={{ color: '#dc2626', fontSize: '18px' }}>{currentReceipt.Receipt_No}</span></span>
+                    <span><strong>Date:</strong> {currentReceipt.Payment_Date}</span>
                   </div>
-                <p style={{ marginTop: '20px' }}>Collection successfully audited internally.</p>
+                </div>
+              </div>
+
+              {/* Consumer & Acct Metadata */}
+              <div className="receipt-metadata">
+                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '5px', fontSize: '13px' }}>
+                  <strong>PAYOR:</strong>
+                  <span style={{ borderBottom: '1px solid #e2e8f0', display: 'block' }}>{currentReceipt.Consumer_Name}</span>
+                  
+                  <strong>ACCT NO:</strong>
+                  <span style={{ borderBottom: '1px solid #e2e8f0', display: 'block' }}>{currentReceipt.Account_Number}</span>
+                </div>
+              </div>
+
+              {/* Structured Financial Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ borderTop: '1.5px solid #1B1B63', borderBottom: '1.5px solid #1B1B63' }}>
+                    <th style={{ textAlign: 'left', padding: '8px' }}>NATURE OF COLLECTION</th>
+                    <th style={{ textAlign: 'right', padding: '8px' }}>AMOUNT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '8px' }}>Water Utility Bill (Current)</td>
+                    <td style={{ textAlign: 'right', padding: '8px' }}>₱{(currentReceipt.Amount * 0.8).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '8px' }}>Arrears / Penalties</td>
+                    <td style={{ textAlign: 'right', padding: '8px' }}>₱{(currentReceipt.Amount * 0.2).toFixed(2)}</td>
+                  </tr>
+                  <tr style={{ borderTop: '1px double #1B1B63', fontWeight: '900', fontSize: '15px' }}>
+                    <td style={{ padding: '8px' }}>TOTAL PAID</td>
+                    <td style={{ textAlign: 'right', padding: '8px', color: '#10b981' }}>₱{(currentReceipt.Amount || 0).toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Authorization Footer */}
+              <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div style={{ fontSize: '10px', color: '#64748b', maxWidth: '200px' }}>
+                  * This digital record is automatically synchronized with the Billing Officer for financial reconciliation.
+                </div>
+                <div style={{ textAlign: 'center', borderTop: '1.5px solid #1B1B63', minWidth: '180px', paddingTop: '5px' }}>
+                  <p style={{ margin: 0, fontWeight: '900', color: '#1B1B63' }}>TREASURER OFFICER</p>
+                  <p style={{ margin: 0, fontSize: '10px' }}>Authorized Signature</p>
+                </div>
+              </div>
+
+              {/* Modal Actions (Hidden in Print) */}
+              <div className="receipt-actions no-print" style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
+                <button className="btn btn-primary" style={{ flex: 1, padding: '15px' }} onClick={() => window.print()}>
+                    <i className="fas fa-print"></i> AUTHORIZE & PRINT RECEIPT
+                </button>
+                <button className="btn btn-secondary" style={{ flex: 1, padding: '15px' }} onClick={() => setShowReceiptModal(false)}>
+                    Close
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* Full Bill Statement Modal - MOVED FROM VIEW BILL PAGE */}
+        {showFullBillModal && selectedConsumer && (
+          <Modal
+            isOpen={showFullBillModal}
+            title="Strategic Financial Statement"
+            onClose={() => setShowFullBillModal(false)}
+            size="large"
+          >
+            <div className="bill-container-modal">
+              {/* Official Header */}
+              <div className="bill-header" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #1B1B63', paddingBottom: '20px', marginBottom: '30px' }}>
+                <img src="/images/Waterworks System Payment Logo 1.svg" alt="Logo" style={{ height: '70px' }} />
+                <div style={{ textAlign: 'right' }}>
+                  <h2 style={{ margin: 0, color: '#1B1B63' }}>San Lorenzo Ruiz Waterworks</h2>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Municipal Treasury Office</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Camarines Norte, Philippines</p>
+                </div>
+              </div>
+
+              {/* Bill Details */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '30px' }}>
+                <div>
+                  <h4 style={{ color: '#1B1B63', marginBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>Consumer Information</h4>
+                  <p><strong>Account:</strong> {selectedConsumer.Account_Number}</p>
+                  <p><strong>Name:</strong> {selectedConsumer.Consumer_Name}</p>
+                  <p><strong>Address:</strong> {selectedConsumer.Address}</p>
+                </div>
+                <div>
+                  <h4 style={{ color: '#1B1B63', marginBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>Billing Summary</h4>
+                  <p><strong>Month:</strong> {selectedConsumer.Billing_Month}</p>
+                  <p><strong>Due Date:</strong> 2026-03-31</p>
+                  <p><strong>Status:</strong> {selectedConsumer.Status}</p>
+                </div>
+              </div>
+
+              {/* Consumption Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                    <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Previous</th>
+                    <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Current</th>
+                    <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Usage</th>
+                    <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '12px' }}>{selectedConsumer.Previous_Reading}</td>
+                    <td style={{ padding: '12px' }}>{selectedConsumer.Current_Reading}</td>
+                    <td style={{ padding: '12px' }}>{selectedConsumer.Consumption} m³</td>
+                    <td style={{ padding: '12px' }}>₱{selectedConsumer.Basic_Charge.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Financial Breakdown */}
+              <div style={{ marginLeft: 'auto', width: '300px', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span>Basic:</span>
+                  <span>₱{selectedConsumer.Basic_Charge.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span>Fees:</span>
+                  <span>₱{selectedConsumer.Environmental_Fee.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span>Balance:</span>
+                  <span>₱{selectedConsumer.Previous_Balance.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span>Penalty:</span>
+                  <span>₱{selectedConsumer.Penalties.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #1B1B63', paddingTop: '10px', marginTop: '10px', fontWeight: '900', color: '#1B1B63' }}>
+                  <span>TOTAL:</span>
+                  <span>₱{selectedConsumer.Total_Amount_Due.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '40px', display: 'flex', gap: '15px' }}>
+                <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => window.print()}>
+                  <i className="fas fa-print"></i> Authorize & Print Statement
+                </button>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowFullBillModal(false)}>
+                  Close
+                </button>
               </div>
             </div>
           </Modal>

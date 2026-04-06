@@ -319,3 +319,5 @@
 [2026-04-06T11:19:18.602Z] [supabase.sync.meterreadings] Could not find the 'excess_consumption' column of 'meterreadings' in the schema cache
 [2026-04-06T11:19:18.863Z] [supabase.sync.bills] Could not find the 'class_cost' column of 'bills' in the schema cache
 [2026-04-06T11:19:19.143Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
+[2026-04-06T11:36:00.767Z] [server.start] AggregateError
+[2026-04-06T14:35:10.399Z] [server.start] AggregateError

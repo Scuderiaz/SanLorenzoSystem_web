@@ -28,15 +28,6 @@ const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
       </div>
       
       <div className="header-right">
-        <div className="header-icons">
-          <i className="far fa-bell header-icon"></i>
-          <i className="far fa-comment-dots header-icon"></i>
-          <div className="online-status">
-            <span className={`status-indicator ${isOnline ? 'online' : 'offline'}`}></span>
-            <span>{isOnline ? 'Online' : 'Offline'}</span>
-          </div>
-        </div>
-
         <div className="user-profile">
           <div className="avatar">
             {getInitials(user?.fullName || user?.username || 'A')}

@@ -38,26 +38,83 @@ const GenerateBills: React.FC = () => {
   const loadBills = useCallback(async () => {
     setLoading(true);
     try {
+      // 1. Get rates and settings from localStorage
+      const savedRates = JSON.parse(localStorage.getItem('water_rates') || '{}');
+      const savedSystem = JSON.parse(localStorage.getItem('system_settings') || '{}');
+
+      // 2. Default Values (Fallback)
+      const config = {
+        min10: parseFloat(savedRates.minimumRate || '160.00'),
+        r11_20: parseFloat(savedRates.rate11to20 || '16.00'),
+        r21_30: parseFloat(savedRates.rate21to30 || '18.00'),
+        r31_40: parseFloat(savedRates.rate31to40 || '20.00'),
+        rPlus: parseFloat(savedRates.rate41Plus || '22.00'),
+        offset: parseInt(savedSystem.dueDateDays || '30')
+      };
+
+      // 3. Helper for Progressive Math
+      const calculateBill = (cons: number) => {
+        let total = config.min10; // First 10
+        if (cons > 10) {
+          const tier1 = Math.min(cons - 10, 10);
+          total += tier1 * config.r11_20;
+        }
+        if (cons > 20) {
+          const tier2 = Math.min(cons - 20, 10);
+          total += tier2 * config.r21_30;
+        }
+        if (cons > 30) {
+          const tier3 = Math.min(cons - 30, 10);
+          total += tier3 * config.r31_40;
+        }
+        if (cons > 40) {
+          const tier4 = cons - 40;
+          total += tier4 * config.rPlus;
+        }
+        return total;
+      };
+
+      // 4. Helper for Due Date
+      const getDueDate = (readingStr: string) => {
+        const date = new Date(readingStr);
+        date.setDate(date.getDate() + config.offset);
+        return date.toISOString().split('T')[0];
+      };
+
       const mockBills: Bill[] = [
         {
-          Bill_ID: 1,
-          Account_Number: 'ACC-001',
-          Consumer_Name: 'Juan Dela Cruz',
-          Previous_Reading: 100,
-          Current_Reading: 125,
+          Bill_ID: 2024001,
+          Account_Number: '02-11-149-5',
+          Consumer_Name: 'NATURA VERDE FARM',
+          Previous_Reading: 517,
+          Current_Reading: 542,
           Consumption: 25,
-          Bill_Amount: 450.0,
-          Due_Date: '2026-04-15',
+          Bill_Amount: calculateBill(25), 
+          Due_Date: getDueDate('2026-03-01'), 
           Status: 'Unpaid',
           Billing_Period: 'March 2026',
-          Bill_Date: '2026-03-18',
-          Address: '123 Main St, Zone 1',
+          Bill_Date: '2026-03-01',
+          Address: 'DAGOTDOTAN, SLR',
+          Classification: 'Commercial',
+        },
+        {
+          Bill_ID: 2024002,
+          Account_Number: '02-05-102-1',
+          Consumer_Name: 'JUAN DELA CRUZ',
+          Previous_Reading: 120,
+          Current_Reading: 128,
+          Consumption: 8,
+          Bill_Amount: calculateBill(8),
+          Due_Date: getDueDate('2026-03-01'),
+          Status: 'Unpaid',
+          Billing_Period: 'March 2026',
+          Bill_Date: '2026-03-01',
+          Address: 'P-1 MATACONG, SLR',
           Classification: 'Residential',
         },
       ];
       setBills(mockBills);
     } catch (error) {
-      console.error('Error loading bills:', error);
       showToast('Failed to load bills', 'error');
     } finally {
       setLoading(false);

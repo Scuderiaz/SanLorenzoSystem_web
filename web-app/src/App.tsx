@@ -6,8 +6,7 @@ import { initOfflineDB } from './config/database';
 import { syncService } from './services/api';
 import Login from './pages/login/Login';
 import AssessorDashboard from './pages/assessor_admin/Dashboard';
-import Users from './pages/assessor_admin/Users';
-import AssessorConsumers from './pages/assessor_admin/Consumers';
+import AccountManagement from './pages/assessor_admin/AccountManagement';
 import Settings from './pages/assessor_admin/Settings';
 import Maintenance from './pages/assessor_admin/Maintenance';
 import Reports from './pages/assessor_admin/Reports';
@@ -19,15 +18,19 @@ import GenerateBills from './pages/billing_officer/GenerateBills';
 import BillingLedger from './pages/billing_officer/Ledger';
 import TreasurerDashboard from './pages/treasurer/Dashboard';
 import ProcessPayment from './pages/treasurer/ProcessPayment';
-import VerifyPayment from './pages/treasurer/VerifyPayment';
-import ViewBill from './pages/treasurer/ViewBill';
+import TreasurerLedger from './pages/treasurer/Ledger';
 import ForgotPassword from './pages/login/ForgotPassword';
 import SignUp from './pages/login/SignUp';
 import ConsumerMain from './pages/consumer/ConsumerMain';
 import './App.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return null; // Stay on the current path while checking session
+  }
+  
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
@@ -39,11 +42,16 @@ const RoleDashboard: React.FC = () => {
   return <AssessorDashboard />;
 };
 
+const RoleLedger: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.role_id === 4) return <TreasurerLedger />;
+  return <BillingLedger />;
+};
+
 const RoleConsumers: React.FC = () => {
   const { user } = useAuth();
-  if (user?.role_id === 1) return <AssessorConsumers />;
   if (user?.role_id === 3) return <BillingConsumers />;
-  return <AssessorConsumers />;
+  return <Navigate to="/accounts" />;
 };
 
 const AppContent: React.FC = () => {
@@ -81,10 +89,10 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/users"
+        path="/accounts"
         element={
           <ProtectedRoute>
-            <Users />
+            <AccountManagement />
           </ProtectedRoute>
         }
       />
@@ -148,7 +156,7 @@ const AppContent: React.FC = () => {
         path="/ledger"
         element={
           <ProtectedRoute>
-            <BillingLedger />
+            <RoleLedger />
           </ProtectedRoute>
         }
       />
@@ -157,22 +165,6 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <ProcessPayment />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/verify-payment"
-        element={
-          <ProtectedRoute>
-            <VerifyPayment />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/view-bill"
-        element={
-          <ProtectedRoute>
-            <ViewBill />
           </ProtectedRoute>
         }
       />

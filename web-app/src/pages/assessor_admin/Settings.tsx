@@ -33,8 +33,19 @@ const Settings: React.FC = () => {
 
   const [currentRates, setCurrentRates] = useState<WaterRate[]>([]);
   const [loading, setLoading] = useState(false);
-
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+
+  const loadSavedSettings = useCallback(() => {
+    const savedRates = localStorage.getItem('water_rates');
+    const savedSystem = localStorage.getItem('system_settings');
+    
+    if (savedRates) {
+      setWaterRates(JSON.parse(savedRates));
+    }
+    if (savedSystem) {
+      setSystemSettings(JSON.parse(savedSystem));
+    }
+  }, []);
 
   const loadCurrentRates = useCallback(async () => {
     setLoading(true);
@@ -56,12 +67,15 @@ const Settings: React.FC = () => {
   }, [showToast]);
 
   useEffect(() => {
+    loadSavedSettings();
     loadCurrentRates();
-  }, [loadCurrentRates]);
+  }, [loadSavedSettings, loadCurrentRates]);
 
   const handleSaveWaterRates = async () => {
     try {
-      showToast('Water rates saved successfully', 'success');
+      localStorage.setItem('water_rates', JSON.stringify(waterRates));
+      showToast('Water rates committed successfully', 'success');
+      loadCurrentRates(); // Keep consistency
     } catch (error) {
       console.error('Error saving water rates:', error);
       showToast('Failed to save water rates', 'error');
@@ -70,10 +84,11 @@ const Settings: React.FC = () => {
 
   const handleSaveSystemSettings = async () => {
     try {
-      showToast('System settings saved successfully', 'success');
+      localStorage.setItem('system_settings', JSON.stringify(systemSettings));
+      showToast('System configuration updated', 'success');
     } catch (error) {
       console.error('Error saving system settings:', error);
-      showToast('Failed to save system settings', 'error');
+      showToast('Failed to update configuration', 'error');
     }
   };
 
@@ -99,87 +114,74 @@ const Settings: React.FC = () => {
         </div>
 
         <div className="settings-grid">
-          {/* Water Rates Section */}
-          <div className="settings-card">
-            <div className="settings-card-header">
-              <i className="fas fa-tint"></i>
-              <h2 className="settings-card-title">Water Rate Table</h2>
-            </div>
-            <div className="settings-form">
-              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <FormInput
-                  label="Minimum (0-10 cu.m)"
-                  type="number"
-                  value={waterRates.minimumRate}
-                  onChange={(value) => setWaterRates({ ...waterRates, minimumRate: value })}
-                  icon="fa-money-bill-wave"
-                />
-                <FormInput
-                  label="11-20 cu.m Tier"
-                  type="number"
-                  value={waterRates.rate11to20}
-                  onChange={(value) => setWaterRates({ ...waterRates, rate11to20: value })}
-                />
-                <FormInput
-                  label="21-30 cu.m Tier"
-                  type="number"
-                  value={waterRates.rate21to30}
-                  onChange={(value) => setWaterRates({ ...waterRates, rate21to30: value })}
-                />
-                <FormInput
-                  label="31-40 cu.m Tier"
-                  type="number"
-                  value={waterRates.rate31to40}
-                  onChange={(value) => setWaterRates({ ...waterRates, rate31to40: value })}
-                />
-                <FormInput
-                  label="41+ cu.m Tier"
-                  type="number"
-                  value={waterRates.rate41Plus}
-                  onChange={(value) => setWaterRates({ ...waterRates, rate41Plus: value })}
-                />
+          {/* Combined System Configuration Card */}
+          <div className="settings-card combined-config" style={{ borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+            <div className="settings-card-header" style={{ borderBottom: 'none', marginBottom: '0' }}>
+              <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '12px', marginRight: '15px' }}>
+                <i className="fas fa-tools" style={{ fontSize: '24px', color: '#1B1B63', background: 'none', padding: '0' }}></i>
               </div>
+              <h2 className="settings-card-title" style={{ fontSize: '20px', fontWeight: 800 }}>System & Rate Configuration</h2>
             </div>
-          </div>
+            
+            <div className="settings-form" style={{ marginTop: '30px' }}>
+              <div className="settings-subsection">
+                <h3 className="subsection-title" style={{ color: '#1B1B63', fontWeight: 900, marginBottom: '25px', letterSpacing: '0.05em' }}>WATER RATE TABLE</h3>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                  <FormInput
+                    label="MINIMUM (0-10 CU.M)"
+                    type="number"
+                    value={waterRates.minimumRate}
+                    onChange={(value) => setWaterRates({ ...waterRates, minimumRate: value })}
+                    icon="fa-money-bill-wave"
+                  />
+                  <FormInput
+                    label="11-20 CU.M TIER"
+                    type="number"
+                    value={waterRates.rate11to20}
+                    onChange={(value) => setWaterRates({ ...waterRates, rate11to20: value })}
+                  />
+                  <FormInput
+                    label="21-30 CU.M TIER"
+                    type="number"
+                    value={waterRates.rate21to30}
+                    onChange={(value) => setWaterRates({ ...waterRates, rate21to30: value })}
+                  />
+                  <FormInput
+                    label="31-40 CU.M TIER"
+                    type="number"
+                    value={waterRates.rate31to40}
+                    onChange={(value) => setWaterRates({ ...waterRates, rate31to40: value })}
+                  />
+                  <FormInput
+                    label="41+ CU.M TIER"
+                    type="number"
+                    value={waterRates.rate41Plus}
+                    onChange={(value) => setWaterRates({ ...waterRates, rate41Plus: value })}
+                  />
+                </div>
+              </div>
 
-          {/* Billing Options Sections */}
-          <div className="settings-card">
-            <div className="settings-card-header">
-              <i className="fas fa-cog"></i>
-              <h2 className="settings-card-title">Billing & System Logic</h2>
-            </div>
-            <div className="settings-form">
-              <FormInput
-                label="Organization Identification"
-                value={systemSettings.systemName}
-                onChange={(value) => setSystemSettings({ ...systemSettings, systemName: value })}
-                icon="fa-university"
-              />
-              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <FormSelect
-                  label="Currency Unit"
-                  value={systemSettings.currency}
-                  onChange={(value) => setSystemSettings({ ...systemSettings, currency: value })}
-                  options={[
-                    { value: 'PHP', label: 'PHP (₱)' },
-                    { value: 'USD', label: 'USD ($)' },
-                  ]}
-                  icon="fa-coins"
-                />
-                <FormInput
-                  label="Due Date Offset"
-                  type="number"
-                  value={systemSettings.dueDateDays}
-                  onChange={(value) => setSystemSettings({ ...systemSettings, dueDateDays: value })}
-                />
+              <div style={{ height: '1px', background: '#f1f5f9', margin: '40px 0' }}></div>
+
+              <div className="settings-subsection">
+                <h3 className="subsection-title" style={{ color: '#1B1B63', fontWeight: 900, marginBottom: '25px', letterSpacing: '0.05em' }}>BILLING & SYSTEM LOGIC</h3>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '30px' }}>
+                  <FormInput
+                    label="DUE DATE OFFSET (DAYS)"
+                    type="number"
+                    value={systemSettings.dueDateDays}
+                    onChange={(value) => setSystemSettings({ ...systemSettings, dueDateDays: value })}
+                    icon="fa-calendar-day"
+                  />
+                  <FormInput
+                    label="LATE FEE PERCENTAGE (%)"
+                    type="number"
+                    value={systemSettings.lateFee}
+                    onChange={(value) => setSystemSettings({ ...systemSettings, lateFee: value })}
+                    icon="fa-percent"
+                  />
+                </div>
               </div>
-              <FormInput
-                label="Late Fee Percentage (%)"
-                type="number"
-                value={systemSettings.lateFee}
-                onChange={(value) => setSystemSettings({ ...systemSettings, lateFee: value })}
-                icon="fa-percent"
-              />
             </div>
           </div>
         </div>
