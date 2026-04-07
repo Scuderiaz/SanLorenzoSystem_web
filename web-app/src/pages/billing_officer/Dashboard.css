@@ -121,6 +121,13 @@
   margin-right: 8px;
 }
 
+.dashboard-action-strip {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 20px 24px 0;
+}
+
 .action-buttons {
   display: flex;
   gap: 10px;
@@ -170,8 +177,70 @@
   cursor: pointer;
 }
 
+.dashboard-refresh-btn {
+  margin: 0 0 0 auto;
+}
+
+.dashboard-table-wrap {
+  padding: 24px;
+}
+
+.queue-badge {
+  color: #f59e0b;
+  background: #fffbeb;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.dashboard-link-btn {
+  background: #f8fafc;
+  color: #1B1B63;
+  border: 1px solid #dbe3ef;
+}
+
+.dashboard-link-btn:hover {
+  background: #eef2ff;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.status-pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.status-overdue {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.status-unpaid,
+.status-partially-paid {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 @media (max-width: 768px) {
   .dashboard-cards {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-action-strip {
+    padding-top: 16px;
+  }
+
+  .dashboard-refresh-btn {
+    margin-left: 0;
   }
 }

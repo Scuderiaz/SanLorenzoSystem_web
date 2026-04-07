@@ -149,7 +149,7 @@ const Settings: React.FC = () => {
             <div className="settings-form-optimized">
               <div className="settings-subsection">
                 <h3 className="subsection-title">
-                   <i className="fas fa-tint"></i> WATER RATE TABLE
+                   WATER RATE TABLE
                 </h3>
                 <div className="form-row-grid">
                   <FormInput
@@ -180,7 +180,7 @@ const Settings: React.FC = () => {
 
               <div className="settings-subsection">
                 <h3 className="subsection-title">
-                  <i className="fas fa-calculator"></i> BILLING & SYSTEM LOGIC
+                  BILLING & SYSTEM LOGIC
                 </h3>
                 <div className="form-row-grid">
                   <FormInput

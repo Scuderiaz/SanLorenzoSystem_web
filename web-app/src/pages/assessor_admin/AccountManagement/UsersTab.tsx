@@ -13,7 +13,7 @@ interface User {
   Full_Name: string;
   Role_ID: number;
   Role_Name: string;
-  Status: 'Active' | 'Pending' | 'Inactive';
+  Status: 'Active' | 'Pending' | 'Inactive' | 'Rejected';
   Phone_Number?: string;
 }
 
@@ -85,7 +85,7 @@ const UsersTab: React.FC = () => {
       const res = await fetch(`${API_URL}/admin/approve-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId }),
+        body: JSON.stringify({ accountId, approvedBy: currentUser?.id }),
       });
       const result = await res.json();
       if (result.success) {
@@ -105,11 +105,11 @@ const UsersTab: React.FC = () => {
       const res = await fetch(`${API_URL}/admin/reject-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId }),
+        body: JSON.stringify({ accountId, approvedBy: currentUser?.id }),
       });
       const result = await res.json();
       if (result.success) {
-        showToast('Account rejected and deleted', 'success');
+        showToast('Application rejected successfully', 'success');
         loadUsers();
       } else {
         showToast(result.message || 'Failed to reject account', 'error');
@@ -234,6 +234,7 @@ const UsersTab: React.FC = () => {
             <option value="Active">Active</option>
             <option value="Pending">Pending</option>
             <option value="Inactive">Inactive</option>
+            <option value="Rejected">Rejected</option>
           </select>
         </div>
         <div className="main-actions">

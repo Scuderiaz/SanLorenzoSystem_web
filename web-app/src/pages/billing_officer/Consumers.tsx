@@ -19,6 +19,7 @@ interface Consumer {
   Classification_Name?: string;
   Account_Number: string;
   Meter_Number: string;
+  Meter_Status?: string;
   Status: string;
   Contact_Number: string;
   Connection_Date: string;
@@ -51,6 +52,8 @@ const Consumers: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
 
   const [formData, setFormData] = useState({
+    username: '',
+    password: '',
     firstName: '',
     middleName: '',
     lastName: '',
@@ -59,6 +62,7 @@ const Consumers: React.FC = () => {
     classificationId: '',
     accountNumber: '',
     meterNumber: '',
+    meterStatus: 'Active',
     contactNumber: '',
     connectionDate: '',
     status: 'Active',
@@ -95,7 +99,10 @@ const Consumers: React.FC = () => {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
       if (result.success) {
-        setZones(result.data);
+        setZones((result.data || []).map((zone: any) => ({
+          Zone_ID: zone.Zone_ID ?? zone.zone_id,
+          Zone_Name: zone.Zone_Name ?? zone.zone_name,
+        })));
       }
     } catch (error) {
       console.error('Error loading zones:', error);
@@ -148,6 +155,8 @@ const Consumers: React.FC = () => {
     setEditingConsumer(null);
     setFormData({
       firstName: '',
+      username: '',
+      password: '',
       middleName: '',
       lastName: '',
       address: '',
@@ -155,6 +164,7 @@ const Consumers: React.FC = () => {
       classificationId: '',
       accountNumber: '',
       meterNumber: '',
+      meterStatus: 'Active',
       contactNumber: '',
       connectionDate: new Date().toISOString().split('T')[0],
       status: 'Active',
@@ -166,6 +176,8 @@ const Consumers: React.FC = () => {
     setEditingConsumer(consumer);
     setFormData({
       firstName: consumer.First_Name,
+      username: '',
+      password: '',
       middleName: consumer.Middle_Name || '',
       lastName: consumer.Last_Name,
       address: consumer.Address,
@@ -173,6 +185,7 @@ const Consumers: React.FC = () => {
       classificationId: consumer.Classification_ID.toString(),
       accountNumber: consumer.Account_Number,
       meterNumber: consumer.Meter_Number,
+      meterStatus: consumer.Meter_Status || 'Active',
       contactNumber: consumer.Contact_Number,
       connectionDate: consumer.Connection_Date,
       status: consumer.Status,
@@ -206,8 +219,13 @@ const Consumers: React.FC = () => {
   };
 
   const handleSaveConsumer = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.accountNumber) {
+    if (!formData.firstName || !formData.lastName || !formData.accountNumber || !formData.zoneId || !formData.classificationId) {
       showToast('Please fill in all required fields', 'error');
+      return;
+    }
+
+    if (!editingConsumer && (!formData.username || !formData.password)) {
+      showToast('Username and password are required for new consumers.', 'error');
       return;
     }
 
@@ -219,6 +237,8 @@ const Consumers: React.FC = () => {
       const method = editingConsumer ? 'PUT' : 'POST';
 
       const body = {
+        Username: formData.username,
+        Password: formData.password,
         First_Name: formData.firstName,
         Middle_Name: formData.middleName,
         Last_Name: formData.lastName,
@@ -227,6 +247,7 @@ const Consumers: React.FC = () => {
         Classification_ID: parseInt(formData.classificationId),
         Account_Number: formData.accountNumber,
         Meter_Number: formData.meterNumber,
+        Meter_Status: formData.meterStatus,
         Contact_Number: formData.contactNumber,
         Connection_Date: formData.connectionDate,
         Status: formData.status,
@@ -273,8 +294,16 @@ const Consumers: React.FC = () => {
     },
     { key: 'Classification_Name', label: 'Type', sortable: true },
     {
+      key: 'Meter_Status',
+      label: 'Meter Status',
+      sortable: true,
+      render: (value: string) => (
+        <span className={`status-badge status-${(value || 'active').toLowerCase()}`}>{value || 'Active'}</span>
+      ),
+    },
+    {
       key: 'Status',
-      label: 'Status',
+      label: 'Account Status',
       render: (value: string) => (
         <span className={`status-badge status-${(value || 'unknown').toLowerCase()}`}>{value}</span>
       ),
@@ -298,7 +327,7 @@ const Consumers: React.FC = () => {
     },
   ];
 
-  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: z.Zone_Name }));
+  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: `Zone ${z.Zone_ID}` }));
   const classificationOptions = classifications.map((c) => ({
     value: c.Classification_ID,
     label: c.Classification_Name,
@@ -331,11 +360,10 @@ const Consumers: React.FC = () => {
               value={statusFilter}
               onChange={setStatusFilter}
               options={[
-                { value: 'Active', label: 'Active Status' },
-                { value: 'Inactive', label: 'Inactive Status' },
-                { value: 'Disconnected', label: 'Disconnected' },
+                { value: 'Active', label: 'Active Account' },
+                { value: 'Inactive', label: 'Inactive Account' },
               ]}
-              placeholder="All Account Status"
+              placeholder="All Account Statuses"
             />
           </div>
           <div className="main-actions">
@@ -418,6 +446,12 @@ const Consumers: React.FC = () => {
                     <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConsumer.Classification_Name}</span>
                   </div>
                   <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Meter Status:</span>
+                    <span className={`status-badge status-${(selectedConsumer.Meter_Status || 'active').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
+                      {selectedConsumer.Meter_Status || 'Active'}
+                    </span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                     <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Status:</span>
                     <span className={`status-badge status-${(selectedConsumer.Status || 'active').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
                       {selectedConsumer.Status}
@@ -443,15 +477,41 @@ const Consumers: React.FC = () => {
           }
         >
           <div className="form-grid">
+            {!editingConsumer && (
+              <>
+                <FormInput label="Username" value={formData.username} onChange={(v) => setFormData({ ...formData, username: v })} required />
+                <FormInput label="Password" type="password" value={formData.password} onChange={(v) => setFormData({ ...formData, password: v })} required />
+              </>
+            )}
             <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
             <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
             <FormInput label="Last Name" value={formData.lastName} onChange={(v) => setFormData({ ...formData, lastName: v })} required />
             <FormInput label="Account Number" value={formData.accountNumber} onChange={(v) => setFormData({ ...formData, accountNumber: v })} required />
             <FormInput label="Meter Number" value={formData.meterNumber} onChange={(v) => setFormData({ ...formData, meterNumber: v })} />
+            <FormSelect
+              label="Meter Status"
+              value={formData.meterStatus}
+              onChange={(v) => setFormData({ ...formData, meterStatus: v })}
+              options={[
+                { value: 'Active', label: 'Active' },
+                { value: 'Inactive', label: 'Inactive' },
+                { value: 'Defective', label: 'Defective' },
+                { value: 'Disconnected', label: 'Disconnected' },
+              ]}
+            />
             <FormInput label="Address" value={formData.address} onChange={(v) => setFormData({ ...formData, address: v })} />
             <FormInput label="Contact #" value={formData.contactNumber} onChange={(v) => setFormData({ ...formData, contactNumber: v })} />
             <FormSelect label="Zone" value={formData.zoneId} onChange={(v) => setFormData({ ...formData, zoneId: v })} options={zoneOptions} required />
             <FormSelect label="Type" value={formData.classificationId} onChange={(v) => setFormData({ ...formData, classificationId: v })} options={classificationOptions} required />
+            <FormSelect
+              label="Account Status"
+              value={formData.status}
+              onChange={(v) => setFormData({ ...formData, status: v })}
+              options={[
+                { value: 'Active', label: 'Active' },
+                { value: 'Inactive', label: 'Inactive' },
+              ]}
+            />
             <FormInput label="Date Joined" type="date" value={formData.connectionDate} onChange={(v) => setFormData({ ...formData, connectionDate: v })} />
           </div>
         </Modal>

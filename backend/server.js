@@ -4,6 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
@@ -96,7 +97,7 @@ const syncTableColumns = {
   roles: ['role_id', 'role_name'],
   zone: ['zone_id', 'zone_name'],
   classification: ['classification_id', 'classification_name'],
-  accounts: ['account_id', 'username', 'password', 'role_id', 'account_status', 'created_at'],
+  accounts: ['account_id', 'username', 'password', 'role_id', 'account_status', 'created_at', 'auth_user_id'],
   consumer: [
     'consumer_id',
     'first_name',
@@ -250,8 +251,113 @@ function quoteIdentifier(identifier) {
   return `"${identifier}"`;
 }
 
+function dedupeRowsByPrimaryKey(rows, primaryKey) {
+  const dedupedRows = new Map();
+  for (const row of rows) {
+    const key = row?.[primaryKey];
+    if (key === undefined || key === null) {
+      dedupedRows.set(Symbol('missing-primary-key'), row);
+      continue;
+    }
+    dedupedRows.set(String(key), row);
+  }
+  return Array.from(dedupedRows.values());
+}
+
+async function alignConsumerRowsForPostgres(rows) {
+  const loginIds = rows
+    .map((row) => Number(row?.login_id))
+    .filter((value) => Number.isInteger(value) && value > 0);
+
+  if (!loginIds.length) {
+    return rows;
+  }
+
+  const { rows: existingRows } = await pool.query(
+    'SELECT consumer_id, login_id FROM consumer WHERE login_id = ANY($1::int[])',
+    [Array.from(new Set(loginIds))]
+  );
+
+  if (!existingRows.length) {
+    return rows;
+  }
+
+  const consumerIdByLoginId = new Map(
+    existingRows.map((row) => [Number(row.login_id), Number(row.consumer_id)])
+  );
+
+  return dedupeRowsByPrimaryKey(
+    rows.map((row) => {
+      const loginId = Number(row?.login_id);
+      const existingConsumerId = consumerIdByLoginId.get(loginId);
+
+      if (!existingConsumerId || Number(row?.consumer_id) === existingConsumerId) {
+        return row;
+      }
+
+      return {
+        ...row,
+        consumer_id: existingConsumerId,
+      };
+    }),
+    'consumer_id'
+  );
+}
+
+async function alignConsumerRowsForSupabase(rows) {
+  if (!supabase) {
+    return rows;
+  }
+
+  const loginIds = rows
+    .map((row) => Number(row?.login_id))
+    .filter((value) => Number.isInteger(value) && value > 0);
+
+  if (!loginIds.length) {
+    return rows;
+  }
+
+  const { data, error } = await supabase
+    .from('consumer')
+    .select('consumer_id, login_id')
+    .in('login_id', Array.from(new Set(loginIds)));
+
+  if (error) {
+    throw error;
+  }
+
+  if (!(data || []).length) {
+    return rows;
+  }
+
+  const consumerIdByLoginId = new Map(
+    (data || []).map((row) => [Number(row.login_id), Number(row.consumer_id)])
+  );
+
+  return dedupeRowsByPrimaryKey(
+    rows.map((row) => {
+      const loginId = Number(row?.login_id);
+      const existingConsumerId = consumerIdByLoginId.get(loginId);
+
+      if (!existingConsumerId || Number(row?.consumer_id) === existingConsumerId) {
+        return row;
+      }
+
+      return {
+        ...row,
+        consumer_id: existingConsumerId,
+      };
+    }),
+    'consumer_id'
+  );
+}
+
 async function upsertRowsToPostgres(tableName, primaryKey, rows) {
-  const normalizedRows = normalizeSyncRows(tableName, rows);
+  let normalizedRows = normalizeSyncRows(tableName, rows);
+
+  if (tableName === 'consumer') {
+    normalizedRows = await alignConsumerRowsForPostgres(normalizedRows);
+  }
 
   if (!normalizedRows.length) {
     return 0;
@@ -512,6 +618,223 @@ function logRequestError(req, moduleName, error, userId) {
   );
 }
 
+function getRegisterErrorMessage(error) {
+  const constraint = String(error?.constraint || '');
+  const details = String(error?.details || '');
+  const message = String(error?.message || '');
+  const loweredMessage = message.toLowerCase();
+
+  if (constraint === 'accounts_username_key' || loweredMessage.includes('accounts_username_key')) {
+    return 'Username is already taken.';
+  }
+
+  if (constraint === 'consumer_account_number_key' || loweredMessage.includes('consumer_account_number_key')) {
+    return 'Generated account number already exists. Please try again.';
+  }
+
+  if (constraint === 'fk_consumer_zone' || loweredMessage.includes('fk_consumer_zone')) {
+    return 'Selected zone is invalid.';
+  }
+
+  if (constraint === 'fk_consumer_classification' || loweredMessage.includes('fk_consumer_classification')) {
+    return 'Selected classification is invalid.';
+  }
+
+  if (constraint === 'consumer_status_check' || loweredMessage.includes('consumer_status_check')) {
+    return 'Consumer status is invalid.';
+  }
+
+  if (constraint === 'accounts_account_status_check' || loweredMessage.includes('accounts_account_status_check')) {
+    return 'Account status is invalid.';
+  }
+
+  if (error?.code === '23505' && details.includes('(username)=')) {
+    return 'Username is already taken.';
+  }
+
+  if (error?.code === '23503') {
+    return 'One of the selected registration values is invalid.';
+  }
+
+  if (error?.code === '23514') {
+    return 'Registration data failed validation.';
+  }
+
+  return message || 'Registration failed.';
+}
+
+function generateRegistrationTicketNumber() {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, '')
+    .slice(0, 14);
+  const suffix = Math.floor(Math.random() * 9000) + 1000;
+  return `REG-${timestamp}-${suffix}`;
+}
+
+function generatePendingAccountNumber(zoneId) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, '')
+    .slice(2, 14);
+  const normalizedZoneId = String(Number(zoneId) || 0).padStart(2, '0');
+  const suffix = Math.floor(Math.random() * 900) + 100;
+  return `PENDING-${normalizedZoneId}-${timestamp}-${suffix}`;
+}
+
+function buildSupabaseAuthEmail(username) {
+  const normalized = String(username || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '.')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^\.+|\.+$/g, '');
+
+  const localPart = normalized || `user.${crypto.randomUUID().slice(0, 8)}`;
+  return `${localPart}@slrws.local`;
+}
+
+async function findSupabaseAuthUserByEmail(email) {
+  if (!supabase?.auth?.admin) {
+    return null;
+  }
+
+  let page = 1;
+  const perPage = 200;
+
+  while (true) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      throw error;
+    }
+
+    const users = data?.users || [];
+    const matchedUser = users.find((user) => String(user.email || '').toLowerCase() === email.toLowerCase());
+    if (matchedUser) {
+      return matchedUser;
+    }
+
+    if (users.length < perPage) {
+      return null;
+    }
+
+    page += 1;
+  }
+}
+
+async function persistAccountAuthUserId(accountId, authUserId) {
+  if (!accountId || !authUserId) {
+    return;
+  }
+
+  const updates = [];
+
+  if (isPostgresAvailable) {
+    updates.push(
+      pool.query(
+        'UPDATE accounts SET auth_user_id = $1 WHERE account_id = $2 AND (auth_user_id IS NULL OR auth_user_id::text <> $1::text)',
+        [authUserId, accountId]
+      ).catch((error) => {
+        console.warn(`Failed to persist auth_user_id in PostgreSQL for account ${accountId}: ${error.message}`);
+      })
+    );
+  }
+
+  if (supabase) {
+    updates.push(
+      supabase
+        .from('accounts')
+        .update({ auth_user_id: authUserId })
+        .eq('account_id', accountId)
+        .then(({ error }) => {
+          if (error) {
+            throw error;
+          }
+        })
+        .catch((error) => {
+          console.warn(`Failed to persist auth_user_id in Supabase for account ${accountId}: ${error.message}`);
+        })
+    );
+  }
+
+  await Promise.all(updates);
+}
+
+async function ensureAccountAuthUser({ accountId, username, password, authUserId }) {
+  if (!supabase?.auth?.admin || !accountId || !username || !password) {
+    return authUserId || null;
+  }
+
+  if (authUserId) {
+    return authUserId;
+  }
+
+  const email = buildSupabaseAuthEmail(username);
+  let authId = null;
+
+  try {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        account_id: accountId,
+        username,
+      },
+    });
+
+    if (error) {
+      const existingUser = await findSupabaseAuthUserByEmail(email);
+      if (!existingUser) {
+        throw error;
+      }
+      authId = existingUser.id;
+    } else {
+      authId = data?.user?.id || null;
+    }
+
+    if (authId) {
+      await persistAccountAuthUserId(accountId, authId);
+      return authId;
+    }
+  } catch (error) {
+    console.warn(`Supabase auth user link failed for account ${accountId}: ${error.message}`);
+  }
+
+  return null;
+}
+
+async function isUsernameTaken(username) {
+  const normalizedUsername = String(username || '').trim();
+  if (!normalizedUsername) {
+    return false;
+  }
+
+  return withPostgresPrimary(
+    'register.usernameCheck',
+    async () => {
+      const { rows } = await pool.query(
+        'SELECT 1 FROM accounts WHERE LOWER(TRIM(username)) = LOWER(TRIM($1)) LIMIT 1',
+        [normalizedUsername]
+      );
+      return rows.length > 0;
+    },
+    async () => {
+      if (!supabase) {
+        return false;
+      }
+
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('account_id')
+        .ilike('username', normalizedUsername)
+        .limit(1);
+      if (error) throw error;
+      return (data || []).some((row) => String(row.username || normalizedUsername).trim().toLowerCase() === normalizedUsername.toLowerCase()) || (data || []).length > 0;
+    }
+  );
+}
+
 async function logPostgresEvent(message, options = {}) {
   await logSyncEvent('postgres', message, options);
 }
@@ -552,9 +875,21 @@ function legacyRequestError(req, moduleName, error, userId) {
 
 async function initDb() {
   await pool.query(`
-    -- Your new schema handles the table creation via water_billing_postgresql_schema.sql.
-    -- This function now simply ensures the connection is healthy.
-    SELECT 1;
+    ALTER TABLE accounts
+      ADD COLUMN IF NOT EXISTS auth_user_id UUID;
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'accounts_auth_user_id_key'
+      ) THEN
+        ALTER TABLE accounts
+          ADD CONSTRAINT accounts_auth_user_id_key UNIQUE (auth_user_id);
+      END IF;
+    END
+    $$;
   `);
 
   const seedRes = await pool.query('SELECT COUNT(*)::int AS count FROM roles');
@@ -586,7 +921,11 @@ async function initDb() {
 async function syncTableToSupabase(tableName, primaryKey) {
   await logPostgresEvent(`Preparing sync for table ${tableName}.`);
   const { rows } = await pool.query(`SELECT * FROM ${tableName}`);
-  const normalizedRows = normalizeSyncRows(tableName, rows);
+  let normalizedRows = normalizeSyncRows(tableName, rows);
+
+  if (tableName === 'consumer') {
+    normalizedRows = await alignConsumerRowsForSupabase(normalizedRows);
+  }
 
   if (normalizedRows.length === 0) {
     await logSupabaseEvent(`Table ${tableName}: no rows to sync.`);
@@ -675,7 +1014,9 @@ async function withPostgresPrimary(operationName, postgresHandler, supabaseHandl
   }
 
   try {
-    return await postgresHandler();
+    const result = await postgresHandler();
+    isPostgresAvailable = true;
+    return result;
   } catch (error) {
     const message = String(error?.message || '').toLowerCase();
     const shouldFallback =
@@ -1085,21 +1426,505 @@ app.get('/api/users/unified', async (req, res) => {
   }
 });
 
+app.get('/api/applications/pending', async (req, res) => {
+  try {
+    const result = await withPostgresPrimary(
+      'applications.pending.fetch',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT
+            ct.ticket_id AS "Ticket_ID",
+            ct.ticket_number AS "Ticket_Number",
+            ct.status AS "Application_Status",
+            ct.application_date AS "Application_Date",
+            ct.connection_type AS "Connection_Type",
+            ct.requirements_submitted AS "Requirements_Submitted",
+            a.account_id AS "Account_ID",
+            a.username AS "Username",
+            a.account_status AS "Account_Status",
+            c.consumer_id AS "Consumer_ID",
+            CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) AS "Consumer_Name",
+            c.contact_number AS "Contact_Number",
+            c.address AS "Address",
+            c.purok AS "Purok",
+            c.barangay AS "Barangay",
+            c.municipality AS "Municipality",
+            c.zip_code AS "Zip_Code",
+            c.account_number AS "Account_Number",
+            c.status AS "Consumer_Status",
+            c.zone_id AS "Zone_ID",
+            z.zone_name AS "Zone_Name",
+            c.classification_id AS "Classification_ID",
+            cl.classification_name AS "Classification_Name"
+          FROM connection_ticket ct
+          JOIN accounts a ON a.account_id = ct.account_id
+          LEFT JOIN consumer c ON c.consumer_id = ct.consumer_id
+          LEFT JOIN zone z ON z.zone_id = c.zone_id
+          LEFT JOIN classification cl ON cl.classification_id = c.classification_id
+          WHERE ct.status = 'Pending'
+          ORDER BY ct.application_date DESC NULLS LAST, ct.ticket_id DESC
+        `);
+        return { success: true, data: rows };
+      },
+      async () => {
+        const [
+          { data: tickets, error: ticketError },
+          { data: accounts, error: accountError },
+          { data: consumers, error: consumerError },
+          { data: zones, error: zoneError },
+          { data: classifications, error: classificationError },
+        ] = await Promise.all([
+          supabase
+            .from('connection_ticket')
+            .select('ticket_id, ticket_number, status, application_date, connection_type, requirements_submitted, account_id, consumer_id')
+            .order('application_date', { ascending: false }),
+          supabase
+            .from('accounts')
+            .select('account_id, username, account_status'),
+          supabase
+            .from('consumer')
+            .select('consumer_id, first_name, middle_name, last_name, contact_number, address, purok, barangay, municipality, zip_code, account_number, status, zone_id, classification_id, login_id'),
+          supabase
+            .from('zone')
+            .select('zone_id, zone_name'),
+          supabase
+            .from('classification')
+            .select('classification_id, classification_name'),
+        ]);
+
+        if (ticketError) throw ticketError;
+        if (accountError) throw accountError;
+        if (consumerError) throw consumerError;
+        if (zoneError) throw zoneError;
+        if (classificationError) throw classificationError;
+
+        const accountMap = new Map((accounts || []).map((row) => [row.account_id, row]));
+        const consumerMap = new Map((consumers || []).map((row) => [row.consumer_id, row]));
+        const consumerByLoginId = new Map((consumers || []).map((row) => [row.login_id, row]));
+        const zoneMap = new Map((zones || []).map((row) => [row.zone_id, row.zone_name]));
+        const classificationMap = new Map((classifications || []).map((row) => [row.classification_id, row.classification_name]));
+
+        const mapped = (tickets || [])
+          .map((ticket) => {
+            const account = accountMap.get(ticket.account_id);
+            const consumer = consumerMap.get(ticket.consumer_id) || consumerByLoginId.get(ticket.account_id);
+            return {
+              Ticket_ID: ticket.ticket_id,
+              Ticket_Number: ticket.ticket_number,
+              Application_Status: ticket.status,
+              Application_Date: ticket.application_date,
+              Connection_Type: ticket.connection_type,
+              Requirements_Submitted: ticket.requirements_submitted,
+              Account_ID: account?.account_id ?? ticket.account_id,
+              Username: account?.username ?? null,
+              Account_Status: account?.account_status ?? null,
+              Consumer_ID: consumer?.consumer_id ?? ticket.consumer_id ?? null,
+              Consumer_Name: consumer ? [consumer.first_name, consumer.middle_name, consumer.last_name].filter(Boolean).join(' ') : null,
+              Contact_Number: consumer?.contact_number ?? null,
+              Address: consumer?.address ?? null,
+              Purok: consumer?.purok ?? null,
+              Barangay: consumer?.barangay ?? null,
+              Municipality: consumer?.municipality ?? null,
+              Zip_Code: consumer?.zip_code ?? null,
+              Account_Number: consumer?.account_number ?? null,
+              Consumer_Status: consumer?.status ?? null,
+              Zone_ID: consumer?.zone_id ?? null,
+              Zone_Name: zoneMap.get(consumer?.zone_id) || null,
+              Classification_ID: consumer?.classification_id ?? null,
+              Classification_Name: classificationMap.get(consumer?.classification_id) || null,
+            };
+          })
+          .filter((row) => row.Application_Status === 'Pending');
+
+        return { success: true, data: mapped };
+      }
+    );
+    return res.json(result);
+  } catch (error) {
+    await logRequestError(req, 'applications.pending.fetch', error);
+    console.error('Error fetching pending applications:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/applications', async (req, res) => {
+  try {
+    const result = await withPostgresPrimary(
+      'applications.fetchAll',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT
+            ct.ticket_id AS "Ticket_ID",
+            ct.ticket_number AS "Ticket_Number",
+            ct.status AS "Application_Status",
+            ct.application_date AS "Application_Date",
+            ct.connection_type AS "Connection_Type",
+            ct.requirements_submitted AS "Requirements_Submitted",
+            a.account_id AS "Account_ID",
+            a.username AS "Username",
+            a.account_status AS "Account_Status",
+            c.consumer_id AS "Consumer_ID",
+            CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) AS "Consumer_Name",
+            c.contact_number AS "Contact_Number",
+            c.address AS "Address",
+            c.purok AS "Purok",
+            c.barangay AS "Barangay",
+            c.municipality AS "Municipality",
+            c.zip_code AS "Zip_Code",
+            c.account_number AS "Account_Number",
+            c.status AS "Consumer_Status",
+            c.zone_id AS "Zone_ID",
+            z.zone_name AS "Zone_Name",
+            c.classification_id AS "Classification_ID",
+            cl.classification_name AS "Classification_Name"
+          FROM connection_ticket ct
+          JOIN accounts a ON a.account_id = ct.account_id
+          LEFT JOIN consumer c ON c.consumer_id = ct.consumer_id
+          LEFT JOIN zone z ON z.zone_id = c.zone_id
+          LEFT JOIN classification cl ON cl.classification_id = c.classification_id
+          ORDER BY ct.application_date DESC NULLS LAST, ct.ticket_id DESC
+        `);
+        return { success: true, data: rows };
+      },
+      async () => {
+        const [
+          { data: tickets, error: ticketError },
+          { data: accounts, error: accountError },
+          { data: consumers, error: consumerError },
+          { data: zones, error: zoneError },
+          { data: classifications, error: classificationError },
+        ] = await Promise.all([
+          supabase
+            .from('connection_ticket')
+            .select('ticket_id, ticket_number, status, application_date, connection_type, requirements_submitted, account_id, consumer_id')
+            .order('application_date', { ascending: false }),
+          supabase
+            .from('accounts')
+            .select('account_id, username, account_status'),
+          supabase
+            .from('consumer')
+            .select('consumer_id, first_name, middle_name, last_name, contact_number, address, purok, barangay, municipality, zip_code, account_number, status, zone_id, classification_id, login_id'),
+          supabase
+            .from('zone')
+            .select('zone_id, zone_name'),
+          supabase
+            .from('classification')
+            .select('classification_id, classification_name'),
+        ]);
+
+        if (ticketError) throw ticketError;
+        if (accountError) throw accountError;
+        if (consumerError) throw consumerError;
+        if (zoneError) throw zoneError;
+        if (classificationError) throw classificationError;
+
+        const accountMap = new Map((accounts || []).map((row) => [row.account_id, row]));
+        const consumerMap = new Map((consumers || []).map((row) => [row.consumer_id, row]));
+        const consumerByLoginId = new Map((consumers || []).map((row) => [row.login_id, row]));
+        const zoneMap = new Map((zones || []).map((row) => [row.zone_id, row.zone_name]));
+        const classificationMap = new Map((classifications || []).map((row) => [row.classification_id, row.classification_name]));
+
+        const mapped = (tickets || []).map((ticket) => {
+          const account = accountMap.get(ticket.account_id);
+          const consumer = consumerMap.get(ticket.consumer_id) || consumerByLoginId.get(ticket.account_id);
+          return {
+            Ticket_ID: ticket.ticket_id,
+            Ticket_Number: ticket.ticket_number,
+            Application_Status: ticket.status,
+            Application_Date: ticket.application_date,
+            Connection_Type: ticket.connection_type,
+            Requirements_Submitted: ticket.requirements_submitted,
+            Account_ID: account?.account_id ?? ticket.account_id,
+            Username: account?.username ?? null,
+            Account_Status: account?.account_status ?? null,
+            Consumer_ID: consumer?.consumer_id ?? ticket.consumer_id ?? null,
+            Consumer_Name: consumer ? [consumer.first_name, consumer.middle_name, consumer.last_name].filter(Boolean).join(' ') : null,
+            Contact_Number: consumer?.contact_number ?? null,
+            Address: consumer?.address ?? null,
+            Purok: consumer?.purok ?? null,
+            Barangay: consumer?.barangay ?? null,
+            Municipality: consumer?.municipality ?? null,
+            Zip_Code: consumer?.zip_code ?? null,
+            Account_Number: consumer?.account_number ?? null,
+            Consumer_Status: consumer?.status ?? null,
+            Zone_ID: consumer?.zone_id ?? null,
+            Zone_Name: zoneMap.get(consumer?.zone_id) || null,
+            Classification_ID: consumer?.classification_id ?? null,
+            Classification_Name: classificationMap.get(consumer?.classification_id) || null,
+          };
+        });
+
+        return { success: true, data: mapped };
+      }
+    );
+    return res.json(result);
+  } catch (error) {
+    await logRequestError(req, 'applications.fetchAll', error);
+    console.error('Error fetching applications:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+const updatePendingApplicationHandler = async (req, res) => {
+  const { accountId } = req.params;
+  const payload = req.body || {};
+  const normalizedUsername = String(payload.username || '').trim();
+  const normalizedZoneId = Number(payload.zoneId);
+  const normalizedClassificationId = Number(payload.classificationId);
+
+  if (!normalizedUsername || !payload.firstName || !payload.lastName) {
+    return res.status(400).json({ success: false, message: 'Username, first name, and last name are required.' });
+  }
+
+  if (!Number.isInteger(normalizedZoneId) || normalizedZoneId <= 0) {
+    return res.status(400).json({ success: false, message: 'Zone is required.' });
+  }
+
+  if (!Number.isInteger(normalizedClassificationId) || normalizedClassificationId <= 0) {
+    return res.status(400).json({ success: false, message: 'Classification is required.' });
+  }
+
+  try {
+    const existingUsername = await withPostgresPrimary(
+      'applications.pending.usernameCheck',
+      async () => {
+        const { rows } = await pool.query(
+          'SELECT account_id FROM accounts WHERE LOWER(TRIM(username)) = LOWER(TRIM($1)) AND account_id <> $2 LIMIT 1',
+          [normalizedUsername, accountId]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('accounts')
+          .select('account_id, username')
+          .neq('account_id', accountId);
+        if (error) throw error;
+        return (data || []).find((row) => String(row.username || '').trim().toLowerCase() === normalizedUsername.toLowerCase()) || null;
+      }
+    );
+
+    if (existingUsername) {
+      return res.status(400).json({ success: false, message: 'Username is already taken.' });
+    }
+
+    const composedAddress = [
+      String(payload.purok || '').trim(),
+      String(payload.barangay || '').trim(),
+      String(payload.municipality || '').trim(),
+      String(payload.zipCode || '').trim(),
+    ].filter(Boolean).join(', ');
+
+    await withPostgresPrimary(
+      'applications.pending.update',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+
+          await client.query(
+            'UPDATE accounts SET username = $1 WHERE account_id = $2',
+            [normalizedUsername, accountId]
+          );
+
+          await client.query(`
+            UPDATE consumer
+            SET first_name = $1,
+                middle_name = $2,
+                last_name = $3,
+                address = $4,
+                purok = $5,
+                barangay = $6,
+                municipality = $7,
+                zip_code = $8,
+                zone_id = $9,
+                classification_id = $10,
+                contact_number = $11,
+                account_number = $12
+            WHERE login_id = $13
+          `, [
+            String(payload.firstName || '').trim(),
+            String(payload.middleName || '').trim() || null,
+            String(payload.lastName || '').trim(),
+            composedAddress,
+            String(payload.purok || '').trim() || null,
+            String(payload.barangay || '').trim() || null,
+            String(payload.municipality || '').trim() || null,
+            String(payload.zipCode || '').trim() || null,
+            normalizedZoneId,
+            normalizedClassificationId,
+            String(payload.contactNumber || '').trim() || null,
+            String(payload.accountNumber || '').trim() || null,
+            accountId,
+          ]);
+
+          await client.query(`
+            UPDATE connection_ticket
+            SET requirements_submitted = $1,
+                connection_type = $2
+            WHERE account_id = $3
+          `, [
+            String(payload.requirementsSubmitted || '').trim() || null,
+            String(payload.connectionType || '').trim() || 'New Connection',
+            accountId,
+          ]);
+
+          await client.query('COMMIT');
+
+          if (supabase) {
+            const { error: accountMirrorError } = await supabase
+              .from('accounts')
+              .update({ username: normalizedUsername })
+              .eq('account_id', accountId);
+            if (accountMirrorError) throw accountMirrorError;
+
+            const { error: consumerMirrorError } = await supabase
+              .from('consumer')
+              .update({
+                first_name: String(payload.firstName || '').trim(),
+                middle_name: String(payload.middleName || '').trim() || null,
+                last_name: String(payload.lastName || '').trim(),
+                address: composedAddress,
+                purok: String(payload.purok || '').trim() || null,
+                barangay: String(payload.barangay || '').trim() || null,
+                municipality: String(payload.municipality || '').trim() || null,
+                zip_code: String(payload.zipCode || '').trim() || null,
+                zone_id: normalizedZoneId,
+                classification_id: normalizedClassificationId,
+                contact_number: String(payload.contactNumber || '').trim() || null,
+                account_number: String(payload.accountNumber || '').trim() || null,
+              })
+              .eq('login_id', accountId);
+            if (consumerMirrorError) throw consumerMirrorError;
+
+            const { error: ticketMirrorError } = await supabase
+              .from('connection_ticket')
+              .update({
+                requirements_submitted: String(payload.requirementsSubmitted || '').trim() || null,
+                connection_type: String(payload.connectionType || '').trim() || 'New Connection',
+              })
+              .eq('account_id', accountId);
+            if (ticketMirrorError) throw ticketMirrorError;
+          }
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { error: accountError } = await supabase
+          .from('accounts')
+          .update({ username: normalizedUsername })
+          .eq('account_id', accountId);
+        if (accountError) throw accountError;
+
+        const { error: consumerError } = await supabase
+          .from('consumer')
+          .update({
+            first_name: String(payload.firstName || '').trim(),
+            middle_name: String(payload.middleName || '').trim() || null,
+            last_name: String(payload.lastName || '').trim(),
+            address: composedAddress,
+            purok: String(payload.purok || '').trim() || null,
+            barangay: String(payload.barangay || '').trim() || null,
+            municipality: String(payload.municipality || '').trim() || null,
+            zip_code: String(payload.zipCode || '').trim() || null,
+            zone_id: normalizedZoneId,
+            classification_id: normalizedClassificationId,
+            contact_number: String(payload.contactNumber || '').trim() || null,
+            account_number: String(payload.accountNumber || '').trim() || null,
+          })
+          .eq('login_id', accountId);
+        if (consumerError) throw consumerError;
+
+        const { error: ticketError } = await supabase
+          .from('connection_ticket')
+          .update({
+            requirements_submitted: String(payload.requirementsSubmitted || '').trim() || null,
+            connection_type: String(payload.connectionType || '').trim() || 'New Connection',
+          })
+          .eq('account_id', accountId);
+        if (ticketError) throw ticketError;
+      }
+    );
+
+    scheduleImmediateSync('applications-update');
+    return res.json({ success: true, message: 'Application updated successfully.' });
+  } catch (error) {
+    await logRequestError(req, 'applications.pending.update', error);
+    console.error('Error updating application:', error);
+    return res.status(500).json({ success: false, message: getRegisterErrorMessage(error) });
+  }
+};
+
+app.put('/api/applications/:accountId', updatePendingApplicationHandler);
+app.post('/api/applications/:accountId/update', updatePendingApplicationHandler);
+app.post('/api/update-application/:accountId', updatePendingApplicationHandler);
+
 // Approve Pending Account
 app.post('/api/admin/approve-user', async (req, res) => {
-  const { accountId } = req.body;
+  const { accountId, approvedBy, remarks } = req.body;
+  const approverId = Number(approvedBy);
   try {
+    if (!accountId || !Number.isInteger(approverId) || approverId <= 0) {
+      return res.status(400).json({ success: false, message: 'Approver information is required.' });
+    }
+
     await withPostgresPrimary(
       'users.approve',
       async () => {
-        await pool.query('UPDATE accounts SET account_status = $1 WHERE account_id = $2', ['Active', accountId]);
-        await pool.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('UPDATE accounts SET account_status = $1 WHERE account_id = $2', ['Active', accountId]);
+          await client.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
+          await client.query('UPDATE connection_ticket SET status = $1 WHERE account_id = $2', ['Approved', accountId]);
+          await client.query(`
+            INSERT INTO account_approval (account_id, approved_by, approval_status, approval_date, remarks)
+            VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
+          `, [accountId, approverId, 'Approved', String(remarks || '').trim() || null]);
+          await client.query('COMMIT');
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+
+        if (supabase) {
+          const { error: mirroredAccountError } = await supabase.from('accounts').update({ account_status: 'Active' }).eq('account_id', accountId);
+          if (mirroredAccountError) throw mirroredAccountError;
+          const { error: mirroredConsumerError } = await supabase.from('consumer').update({ status: 'Active' }).eq('login_id', accountId);
+          if (mirroredConsumerError) throw mirroredConsumerError;
+          const { error: mirroredTicketError } = await supabase.from('connection_ticket').update({ status: 'Approved' }).eq('account_id', accountId);
+          if (mirroredTicketError) throw mirroredTicketError;
+          const { error: mirroredApprovalError } = await supabase.from('account_approval').insert([{
+            account_id: accountId,
+            approved_by: approverId,
+            approval_status: 'Approved',
+            approval_date: new Date().toISOString(),
+            remarks: String(remarks || '').trim() || null,
+          }]);
+          if (mirroredApprovalError) throw mirroredApprovalError;
+        }
       },
       async () => {
         const { error: accountError } = await supabase.from('accounts').update({ account_status: 'Active' }).eq('account_id', accountId);
         if (accountError) throw accountError;
         const { error: consumerError } = await supabase.from('consumer').update({ status: 'Active' }).eq('login_id', accountId);
         if (consumerError) throw consumerError;
+        const { error: ticketError } = await supabase.from('connection_ticket').update({ status: 'Approved' }).eq('account_id', accountId);
+        if (ticketError) throw ticketError;
+        const { error: approvalError } = await supabase.from('account_approval').insert([{
+          account_id: accountId,
+          approved_by: approverId,
+          approval_status: 'Approved',
+          approval_date: new Date().toISOString(),
+          remarks: String(remarks || '').trim() || null,
+        }]);
+        if (approvalError) throw approvalError;
       }
     );
     scheduleImmediateSync('admin-approve-user');
@@ -1113,29 +1938,59 @@ app.post('/api/admin/approve-user', async (req, res) => {
 
 // Reject Pending Account (Delete)
 app.post('/api/admin/reject-user', async (req, res) => {
-  const { accountId } = req.body;
+  const { accountId, approvedBy, remarks } = req.body;
+  const approverId = Number(approvedBy);
   try {
+    if (!accountId || !Number.isInteger(approverId) || approverId <= 0) {
+      return res.status(400).json({ success: false, message: 'Approver information is required.' });
+    }
+
     await withPostgresPrimary(
       'users.reject',
       async () => {
-        const { rows: consumers } = await pool.query('SELECT consumer_id FROM consumer WHERE login_id = $1', [accountId]);
-        await pool.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
-        await pool.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
+        await pool.query('UPDATE accounts SET account_status = $1 WHERE account_id = $2', ['Rejected', accountId]);
+        await pool.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Inactive', accountId]);
+        await pool.query('UPDATE connection_ticket SET status = $1 WHERE account_id = $2', ['Rejected', accountId]);
+        await pool.query(`
+          INSERT INTO account_approval (account_id, approved_by, approval_status, approval_date, remarks)
+          VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
+        `, [accountId, approverId, 'Rejected', String(remarks || '').trim() || null]);
         if (supabase) {
-          for (const consumer of consumers) {
-            await mirrorDeleteToSupabase('consumer', 'consumer_id', consumer.consumer_id);
-          }
-          await mirrorDeleteToSupabase('accounts', 'account_id', accountId);
+          const { error: mirroredAccountError } = await supabase.from('accounts').update({ account_status: 'Rejected' }).eq('account_id', accountId);
+          if (mirroredAccountError) throw mirroredAccountError;
+          const { error: mirroredConsumerError } = await supabase.from('consumer').update({ status: 'Inactive' }).eq('login_id', accountId);
+          if (mirroredConsumerError) throw mirroredConsumerError;
+          const { error: mirroredTicketError } = await supabase.from('connection_ticket').update({ status: 'Rejected' }).eq('account_id', accountId);
+          if (mirroredTicketError) throw mirroredTicketError;
+          const { error: mirroredApprovalError } = await supabase.from('account_approval').insert([{
+            account_id: accountId,
+            approved_by: approverId,
+            approval_status: 'Rejected',
+            approval_date: new Date().toISOString(),
+            remarks: String(remarks || '').trim() || null,
+          }]);
+          if (mirroredApprovalError) throw mirroredApprovalError;
         }
       },
       async () => {
-        const { error: consumerError } = await supabase.from('consumer').delete().eq('login_id', accountId);
-        if (consumerError) throw consumerError;
-        const { error: accountError } = await supabase.from('accounts').delete().eq('account_id', accountId);
+        const { error: accountError } = await supabase.from('accounts').update({ account_status: 'Rejected' }).eq('account_id', accountId);
         if (accountError) throw accountError;
+        const { error: consumerError } = await supabase.from('consumer').update({ status: 'Inactive' }).eq('login_id', accountId);
+        if (consumerError) throw consumerError;
+        const { error: ticketError } = await supabase.from('connection_ticket').update({ status: 'Rejected' }).eq('account_id', accountId);
+        if (ticketError) throw ticketError;
+        const { error: approvalError } = await supabase.from('account_approval').insert([{
+          account_id: accountId,
+          approved_by: approverId,
+          approval_status: 'Rejected',
+          approval_date: new Date().toISOString(),
+          remarks: String(remarks || '').trim() || null,
+        }]);
+        if (approvalError) throw approvalError;
       }
     );
-    return res.json({ success: true, message: 'Account rejected and deleted' });
+    scheduleImmediateSync('admin-reject-user');
+    return res.json({ success: true, message: 'Application rejected successfully' });
   } catch (error) {
     await logRequestError(req, 'users.reject', error);
     console.error('Rejection error:', error);
@@ -1171,6 +2026,12 @@ app.post('/api/users', async (req, res) => {
         return data;
       }
     );
+    user.auth_user_id = await ensureAccountAuthUser({
+      accountId: user.account_id,
+      username: user.username,
+      password,
+      authUserId: user.auth_user_id,
+    }) || user.auth_user_id || null;
     scheduleImmediateSync('users-create');
     return res.json({ success: true, data: user });
   } catch (error) {
@@ -1263,6 +2124,7 @@ app.post('/api/login', async (req, res) => {
           account_id,
           username,
           password,
+          auth_user_id,
           role_id,
           account_status,
           roles ( role_name )
@@ -1279,6 +2141,7 @@ app.post('/api/login', async (req, res) => {
           account_id: data.account_id,
           username: data.username,
           password: data.password,
+          auth_user_id: data.auth_user_id,
           full_name: data.username,
           role_id: data.role_id,
           account_status: data.account_status,
@@ -1292,7 +2155,7 @@ app.post('/api/login', async (req, res) => {
         'auth.login',
         async () => {
           const { rows } = await pool.query(`
-            SELECT a.account_id, a.username, a.password, a.username AS full_name, a.role_id, a.account_status, r.role_name
+            SELECT a.account_id, a.username, a.password, a.auth_user_id, a.username AS full_name, a.role_id, a.account_status, r.role_name
             FROM accounts a
             JOIN roles r ON a.role_id = r.role_id
             WHERE a.username = $1
@@ -1306,6 +2169,7 @@ app.post('/api/login', async (req, res) => {
               account_id,
               username,
               password,
+              auth_user_id,
               role_id,
               account_status,
               roles ( role_name )
@@ -1318,6 +2182,7 @@ app.post('/api/login', async (req, res) => {
                 account_id: data.account_id,
                 username: data.username,
                 password: data.password,
+                auth_user_id: data.auth_user_id,
                 full_name: data.username,
                 role_id: data.role_id,
                 account_status: data.account_status,
@@ -1334,9 +2199,22 @@ app.post('/api/login', async (req, res) => {
     if (user.account_status === 'Pending') {
       return res.status(401).json({ success: false, message: 'Please wait until you are registered to access the dashboard.' });
     }
+    if (user.account_status === 'Rejected') {
+      return res.status(401).json({ success: false, message: 'Your registration was rejected. Please contact the office for assistance.' });
+    }
+    if (user.account_status === 'Inactive') {
+      return res.status(401).json({ success: false, message: 'Your account is inactive. Please contact the office for assistance.' });
+    }
     if (user.password !== password) {
       return res.status(401).json({ success: false, message: 'Invalid password' });
     }
+
+    user.auth_user_id = await ensureAccountAuthUser({
+      accountId: user.account_id,
+      username: user.username,
+      password,
+      authUserId: user.auth_user_id,
+    }) || user.auth_user_id || null;
 
     return res.status(200).json({
       success: true,
@@ -1344,6 +2222,7 @@ app.post('/api/login', async (req, res) => {
         id: user.account_id,
         username: user.username,
         fullName: user.full_name || user.username,
+        auth_user_id: user.auth_user_id || null,
         role_id: user.role_id,
         role_name: user.role_name,
       },
@@ -1450,7 +2329,9 @@ app.post('/api/water-rates', async (req, res) => {
     const row = await withPostgresPrimary(
       'waterRates.create',
       async () => {
-        const { rows } = await pool.query(
+        const { rows } = await insertWithSequenceRetry(
+          'waterrates',
+          'rate_id',
           `INSERT INTO waterrates (minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
           [
@@ -1499,11 +2380,12 @@ app.get('/api/consumers', async (req, res) => {
             c.connection_date AS "Connection_Date",
             m.meter_id AS "Meter_ID",
             m.meter_serial_number AS "Meter_Number",
+            m.meter_status AS "Meter_Status",
             z.zone_name AS "Zone_Name", 
             cl.classification_name AS "Classification_Name"
           FROM consumer c
           LEFT JOIN LATERAL (
-            SELECT meter_id, meter_serial_number
+            SELECT meter_id, meter_serial_number, meter_status
             FROM meter
             WHERE consumer_id = c.consumer_id
             ORDER BY meter_id DESC
@@ -1520,7 +2402,7 @@ app.get('/api/consumers', async (req, res) => {
           supabase.from('consumer').select('*').order('consumer_id', { ascending: false }),
           supabase.from('zone').select('*'),
           supabase.from('classification').select('*'),
-          supabase.from('meter').select('meter_id, consumer_id, meter_serial_number').order('meter_id', { ascending: false }),
+          supabase.from('meter').select('meter_id, consumer_id, meter_serial_number, meter_status').order('meter_id', { ascending: false }),
         ]);
 
         if (consumerError) throw consumerError;
@@ -1551,13 +2433,18 @@ app.get('/api/consumers', async (req, res) => {
 app.post('/api/consumers', async (req, res) => {
   try {
     const consumer = req.body;
-    const loginId = Number(consumer.Login_ID || consumer.login_id);
+    const providedLoginId = Number(consumer.Login_ID || consumer.login_id);
+    const accountUsername = String(consumer.Username || consumer.username || '').trim();
+    const accountPassword = String(consumer.Password || consumer.password || '').trim();
     const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
+    const meterStatus = String(consumer.Meter_Status || consumer.meter_status || 'Active').trim() || 'Active';
+    const consumerStatus = String(consumer.Status || 'Active').trim() || 'Active';
+    const accountStatus = consumerStatus === 'Inactive' ? 'Inactive' : 'Active';
 
-    if (!loginId) {
+    if (!providedLoginId && (!accountUsername || !accountPassword)) {
       return res.status(400).json({
         success: false,
-        message: 'Login_ID is required to create a consumer because consumer.login_id is required by the schema.',
+        message: 'Username and password are required when creating a new consumer account.',
       });
     }
 
@@ -1567,6 +2454,16 @@ app.post('/api/consumers', async (req, res) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
+
+          let loginId = providedLoginId;
+          if (!loginId) {
+            const accountInsert = await client.query(`
+              INSERT INTO accounts (username, password, role_id, account_status)
+              VALUES ($1, $2, $3, $4)
+              RETURNING account_id
+            `, [accountUsername, accountPassword, 5, accountStatus]);
+            loginId = accountInsert.rows[0].account_id;
+          }
 
           const { rows } = await client.query(`
             INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, account_number, status, contact_number, connection_date, login_id)
@@ -1580,7 +2477,7 @@ app.post('/api/consumers', async (req, res) => {
             consumer.Zone_ID,
             consumer.Classification_ID,
             consumer.Account_Number,
-            consumer.Status || 'Active',
+            consumerStatus,
             consumer.Contact_Number,
             consumer.Connection_Date,
             loginId
@@ -1588,9 +2485,9 @@ app.post('/api/consumers', async (req, res) => {
 
           if (meterNumber) {
             await client.query(`
-              INSERT INTO meter (consumer_id, meter_serial_number)
-              VALUES ($1, $2)
-            `, [rows[0].consumer_id, meterNumber]);
+              INSERT INTO meter (consumer_id, meter_serial_number, meter_status)
+              VALUES ($1, $2, $3)
+            `, [rows[0].consumer_id, meterNumber, meterStatus]);
           }
 
           await client.query('COMMIT');
@@ -1603,33 +2500,69 @@ app.post('/api/consumers', async (req, res) => {
         }
       },
       async () => {
-        const { data, error } = await supabase
-          .from('consumer')
-          .insert([{
-            first_name: consumer.First_Name,
-            middle_name: consumer.Middle_Name,
-            last_name: consumer.Last_Name,
-            address: consumer.Address,
-            zone_id: consumer.Zone_ID,
-            classification_id: consumer.Classification_ID,
-            account_number: consumer.Account_Number,
-            status: consumer.Status || 'Active',
-            contact_number: consumer.Contact_Number,
-            connection_date: consumer.Connection_Date,
-            login_id: loginId,
-          }])
-          .select()
-          .single();
-        if (error) throw error;
+        let dataRow;
+        if (!providedLoginId) {
+          const { data: accountData, error: accountError } = await supabase
+            .from('accounts')
+            .insert([{
+              username: accountUsername,
+              password: accountPassword,
+              role_id: 5,
+              account_status: accountStatus,
+            }])
+            .select('account_id')
+            .single();
+          if (accountError) throw accountError;
+
+          const { data: consumerData, error: consumerInsertError } = await supabase
+            .from('consumer')
+            .insert([{
+              first_name: consumer.First_Name,
+              middle_name: consumer.Middle_Name,
+              last_name: consumer.Last_Name,
+              address: consumer.Address,
+              zone_id: consumer.Zone_ID,
+              classification_id: consumer.Classification_ID,
+              account_number: consumer.Account_Number,
+              status: consumerStatus,
+              contact_number: consumer.Contact_Number,
+              connection_date: consumer.Connection_Date,
+              login_id: accountData.account_id,
+            }])
+            .select()
+            .single();
+          if (consumerInsertError) throw consumerInsertError;
+          dataRow = consumerData;
+        } else {
+          const { data: consumerData, error: consumerError } = await supabase
+            .from('consumer')
+            .insert([{
+              first_name: consumer.First_Name,
+              middle_name: consumer.Middle_Name,
+              last_name: consumer.Last_Name,
+              address: consumer.Address,
+              zone_id: consumer.Zone_ID,
+              classification_id: consumer.Classification_ID,
+              account_number: consumer.Account_Number,
+              status: consumerStatus,
+              contact_number: consumer.Contact_Number,
+              connection_date: consumer.Connection_Date,
+              login_id: providedLoginId,
+            }])
+            .select()
+            .single();
+          if (consumerError) throw consumerError;
+          dataRow = consumerData;
+        }
 
         if (meterNumber) {
           const { error: meterError } = await supabase
             .from('meter')
-            .insert([{ consumer_id: data.consumer_id, meter_serial_number: meterNumber }]);
+            .insert([{ consumer_id: dataRow.consumer_id, meter_serial_number: meterNumber, meter_status: meterStatus }]);
           if (meterError) throw meterError;
         }
 
-        return data;
+        return dataRow;
       }
     );
     scheduleImmediateSync('consumers-create');
@@ -1640,6 +2573,7 @@ app.post('/api/consumers', async (req, res) => {
         Login_ID: createdConsumer.login_id,
         ...consumer,
         Meter_Number: meterNumber || null,
+        Meter_Status: meterNumber ? meterStatus : null,
       },
     });
   } catch (error) {
@@ -1653,6 +2587,7 @@ app.put('/api/consumers/:id', async (req, res) => {
   const { id } = req.params;
   const consumer = req.body;
   const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
+  const meterStatus = String(consumer.Meter_Status || consumer.meter_status || 'Active').trim() || 'Active';
   
   try {
     await withPostgresPrimary(
@@ -1694,14 +2629,15 @@ app.put('/api/consumers/:id', async (req, res) => {
             if (existingMeters.length > 0) {
               await client.query(`
                 UPDATE meter
-                SET meter_serial_number = $1
-                WHERE meter_id = $2
-              `, [meterNumber, existingMeters[0].meter_id]);
+                SET meter_serial_number = $1,
+                    meter_status = $2
+                WHERE meter_id = $3
+              `, [meterNumber, meterStatus, existingMeters[0].meter_id]);
             } else {
               await client.query(`
-                INSERT INTO meter (consumer_id, meter_serial_number)
-                VALUES ($1, $2)
-              `, [id, meterNumber]);
+                INSERT INTO meter (consumer_id, meter_serial_number, meter_status)
+                VALUES ($1, $2, $3)
+              `, [id, meterNumber, meterStatus]);
             }
           }
 
@@ -1743,13 +2679,13 @@ app.put('/api/consumers/:id', async (req, res) => {
           if (existingMeters?.length) {
             const { error: meterUpdateError } = await supabase
               .from('meter')
-              .update({ meter_serial_number: meterNumber })
+              .update({ meter_serial_number: meterNumber, meter_status: meterStatus })
               .eq('meter_id', existingMeters[0].meter_id);
             if (meterUpdateError) throw meterUpdateError;
           } else {
             const { error: meterInsertError } = await supabase
               .from('meter')
-              .insert([{ consumer_id: Number(id), meter_serial_number: meterNumber }]);
+              .insert([{ consumer_id: Number(id), meter_serial_number: meterNumber, meter_status: meterStatus }]);
             if (meterInsertError) throw meterInsertError;
           }
         }
@@ -2237,6 +3173,15 @@ app.post('/api/register', async (req, res) => {
   }
 
   try {
+    if (await isUsernameTaken(username)) {
+      return res.status(400).json({ success: false, message: 'Username is already taken.' });
+    }
+
+    const ticketNumber = generateRegistrationTicketNumber();
+    const pendingAccountNumber = generatePendingAccountNumber(zoneId);
+    let createdAccountId = null;
+    let authUserId = null;
+
     await withPostgresPrimary(
       'register',
       async () => {
@@ -2249,11 +3194,18 @@ app.post('/api/register', async (req, res) => {
             [username, password, 4, 'Pending']
           );
           const accountId = rows[0].account_id;
+          createdAccountId = accountId;
 
-          await client.query(`
+          const { rows: consumerRows } = await client.query(`
             INSERT INTO consumer (first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code, zone_id, classification_id, login_id, status, contact_number, account_number)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-          `, [firstName, middleName, lastName, address, purok, barangay, municipality, zipCode, zoneId, classificationId, accountId, 'Pending', phone, `ACC-${Date.now()}`]);
+            RETURNING consumer_id
+          `, [firstName, middleName, lastName, address, purok, barangay, municipality, zipCode, zoneId, classificationId, accountId, 'Pending', phone, pendingAccountNumber]);
+
+          await client.query(`
+            INSERT INTO connection_ticket (consumer_id, account_id, ticket_number, connection_type, requirements_submitted, status)
+            VALUES ($1, $2, $3, $4, $5, $6)
+          `, [consumerRows[0].consumer_id, accountId, ticketNumber, 'New Connection', 'Sedula', 'Pending']);
 
           await client.query('COMMIT');
           scheduleImmediateSync('register');
@@ -2276,8 +3228,9 @@ app.post('/api/register', async (req, res) => {
           .select();
         if (accountError) throw accountError;
         const accountId = accountRows[0].account_id;
+        createdAccountId = accountId;
 
-        const { error: consumerError } = await supabase
+        const { data: consumerRow, error: consumerError } = await supabase
           .from('consumer')
           .insert([{
             first_name: firstName,
@@ -2293,17 +3246,45 @@ app.post('/api/register', async (req, res) => {
             login_id: accountId,
             status: 'Pending',
             contact_number: phone,
-            account_number: `ACC-${Date.now()}`
-          }]);
+            account_number: pendingAccountNumber
+          }])
+          .select('consumer_id')
+          .single();
         if (consumerError) throw consumerError;
+
+        const { error: ticketError } = await supabase
+          .from('connection_ticket')
+          .insert([{
+            consumer_id: consumerRow?.consumer_id ?? null,
+            account_id: accountId,
+            ticket_number: ticketNumber,
+            connection_type: 'New Connection',
+            requirements_submitted: 'Sedula',
+            status: 'Pending',
+          }]);
+        if (ticketError) throw ticketError;
       }
     );
 
-    return res.json({ success: true, message: 'Registration requested successfully. Please wait for admin approval.' });
+    if (createdAccountId) {
+      authUserId = await ensureAccountAuthUser({
+        accountId: createdAccountId,
+        username,
+        password,
+        authUserId: null,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Registration requested successfully. Please wait for admin approval.',
+      ticketNumber,
+      authUserId,
+    });
   } catch (error) {
     await logRequestError(req, 'auth.register', error);
     console.error('Registration error:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: getRegisterErrorMessage(error) });
   }
 });
 
@@ -2385,6 +3366,7 @@ async function startServer() {
   try {
     console.log(`Attempting connection to ${postgresConfig.host}:${postgresConfig.port}...`);
     await pool.query('SELECT 1');
+    isPostgresAvailable = true;
     await logPostgresEvent(`PostgreSQL connection established for database ${process.env.DB_NAME || 'SLRWs'}.`);
     await initDb();
     await logPostgresEvent('PostgreSQL initialization check completed.');

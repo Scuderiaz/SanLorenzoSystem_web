@@ -107,6 +107,17 @@
   filter: brightness(1.1);
 }
 
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.15);
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
 .btn-secondary {
   background-color: #f8fafc;
   color: #64748b;
@@ -137,6 +148,10 @@
   font-size: 18px;
   font-weight: 800;
   color: #1B1B63;
+}
+
+.card-body {
+  padding: 24px;
 }
 
 /* ─── Action Buttons Inline ─────────────────────────────────────────────── */
@@ -175,6 +190,46 @@
   background: #fff5f5;
   color: #dc2626;
   border-color: #f56565;
+}
+
+.application-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 20px;
+}
+
+.application-detail-grid p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.application-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 20px;
+}
+
+.application-notes-block {
+  margin-top: 18px;
+}
+
+.application-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #334155;
+  background: #fff;
+  resize: vertical;
+  min-height: 110px;
+}
+
+.application-textarea:focus {
+  outline: none;
+  border-color: #1B1B63;
+  box-shadow: 0 0 0 4px rgba(27, 27, 99, 0.05);
 }
 
 /* Responsive Table */

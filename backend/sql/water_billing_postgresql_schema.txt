@@ -22,6 +22,7 @@ CREATE TABLE accounts (
     account_id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    auth_user_id UUID UNIQUE,
     role_id INT NOT NULL,
     account_status VARCHAR(20) NOT NULL DEFAULT 'Pending'
         CHECK (account_status IN ('Pending', 'Approved', 'Rejected', 'Active', 'Inactive')),
@@ -67,7 +68,7 @@ CREATE TABLE consumer (
     login_id INT NOT NULL UNIQUE,
     account_number VARCHAR(50) NOT NULL UNIQUE,
     status VARCHAR(20) NOT NULL DEFAULT 'Active'
-        CHECK (status IN ('Active', 'Inactive')),
+        CHECK (status IN ('Pending', 'Active', 'Inactive')),
     contact_number VARCHAR(20),
     connection_date TIMESTAMP,
 

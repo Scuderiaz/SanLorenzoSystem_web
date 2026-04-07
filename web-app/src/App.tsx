@@ -16,6 +16,8 @@ import BillingConsumers from './pages/billing_officer/Consumers';
 import MeterReading from './pages/billing_officer/MeterReading';
 import GenerateBills from './pages/billing_officer/GenerateBills';
 import BillingLedger from './pages/billing_officer/Ledger';
+import BillingReports from './pages/billing_officer/Reports';
+import PendingApplications from './pages/shared/PendingApplications';
 import TreasurerDashboard from './pages/treasurer/Dashboard';
 import ProcessPayment from './pages/treasurer/ProcessPayment';
 import TreasurerLedger from './pages/treasurer/Ledger';
@@ -47,6 +49,12 @@ const RoleLedger: React.FC = () => {
   const { user } = useAuth();
   if (user?.role_id === 4) return <TreasurerLedger />;
   return <BillingLedger />;
+};
+
+const RoleReports: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.role_id === 2) return <BillingReports />;
+  return <Reports />;
 };
 
 const RoleConsumers: React.FC = () => {
@@ -98,6 +106,14 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
+        path="/applications"
+        element={
+          <ProtectedRoute>
+            <PendingApplications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/consumers"
         element={
           <ProtectedRoute>
@@ -125,7 +141,7 @@ const AppContent: React.FC = () => {
         path="/reports"
         element={
           <ProtectedRoute>
-            <Reports />
+            <RoleReports />
           </ProtectedRoute>
         }
       />

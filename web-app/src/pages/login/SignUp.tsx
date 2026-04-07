@@ -17,28 +17,14 @@ const SignUp: React.FC = () => {
     purok: '',
     barangay: '',
     municipality: 'San Lorenzo Ruiz',
-    zipCode: '',
+    zipCode: '4610',
     classificationId: ''
   });
-  const [zones, setZones] = useState<any[]>([]);
   const [classifications, setClassifications] = useState<any[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [ticketNumber, setTicketNumber] = useState('');
-  const [addrStep, setAddrStep] = useState<'barangay' | 'purok'>('barangay');
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [pickerStep, setPickerStep] = useState<'city' | 'barangay'>('city');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    if (isPickerOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => { document.body.style.overflow = 'auto'; };
-  }, [isPickerOpen]);
 
   const barangays = [
     'Daculang Bolo', 'Dagotdotan', 'Langga', 'Laniton', 
@@ -46,7 +32,12 @@ const SignUp: React.FC = () => {
     'Salvacion', 'San Antonio', 'San Isidro', 'San Ramon'
   ].sort();
 
-  const puroks = [1, 2, 3, 4, 5, 6, 7];
+  const puroksByBarangay: Record<string, string[]> = Object.fromEntries(
+    barangays.map((barangay) => [
+      barangay,
+      ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5'],
+    ])
+  );
 
   const navigate = useNavigate();
 
@@ -61,6 +52,16 @@ const SignUp: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const composedAddress = [formData.purok, formData.barangay, formData.municipality, formData.zipCode]
+      .filter(Boolean)
+      .join(', ');
+
+    if (formData.address !== composedAddress) {
+      setFormData((current) => ({ ...current, address: composedAddress }));
+    }
+  }, [formData.purok, formData.barangay, formData.municipality, formData.zipCode, formData.address]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -153,26 +154,24 @@ const SignUp: React.FC = () => {
         return (
           <div className="forgot-pass-step">
             <h3>Consumer Details</h3>
-            <div className="form-row">
-              <div className="form-group flex-1">
-                <label>First Name</label>
-                <input name="firstName" value={formData.firstName} onChange={handleChange} required />
-              </div>
-              <div className="form-group flex-1">
-                <label>Middle Name</label>
-                <input name="middleName" value={formData.middleName} onChange={handleChange} />
-              </div>
+            <div className="form-group">
+              <label>First Name</label>
+              <input name="firstName" value={formData.firstName} onChange={handleChange} required />
             </div>
-            
-            <div className="form-row">
-              <div className="form-group flex-1">
-                <label>Last Name</label>
-                <input name="lastName" value={formData.lastName} onChange={handleChange} required />
-              </div>
-              <div className="form-group flex-1">
-                <label>Phone Number</label>
-                <input name="phone" value={formData.phone} onChange={handleChange} required placeholder="09xxxxxxxxx" />
-              </div>
+
+            <div className="form-group">
+              <label>Middle Name</label>
+              <input name="middleName" value={formData.middleName} onChange={handleChange} />
+            </div>
+
+            <div className="form-group">
+              <label>Last Name</label>
+              <input name="lastName" value={formData.lastName} onChange={handleChange} required />
+            </div>
+
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input name="phone" value={formData.phone} onChange={handleChange} required placeholder="09xxxxxxxxx" />
             </div>
             
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
@@ -190,46 +189,86 @@ const SignUp: React.FC = () => {
         );
       case 2:
         return (
-          <>
-            <div className="forgot-pass-step">
-              <h3>Select Address</h3>
-              <div className="shopee-path" onClick={() => { setIsPickerOpen(true); setPickerStep('city'); }} style={{ cursor: 'pointer', border: '1px solid #e0e0e0', padding: '15px', borderRadius: '8px', background: 'white', minHeight: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#9e9e9e', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Region, Province, Municipality, Barangay
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: '15px', fontWeight: '500', color: formData.barangay ? '#212121' : '#bdbdbd' }}>
-                    {formData.barangay 
-                      ? `Region 5, Camarines Norte, San Lorenzo Ruiz, ${formData.barangay}` 
-                      : 'Select Address'}
-                  </div>
-                  <i className="fas fa-chevron-right" style={{ color: '#bdbdbd' }}></i>
-                </div>
-              </div>
+          <div className="forgot-pass-step">
+            <h3>Select Address</h3>
 
-              <div className="form-group" style={{ marginTop: '20px' }}>
-                <label style={{ fontSize: '12px', color: '#9e9e9e' }}>Postal Code</label>
-                <input name="zipCode" value={formData.zipCode} onChange={handleChange} required placeholder="Enter Postal Code" style={{ border: 'none', borderBottom: '1px solid #eee', padding: '10px 0', fontSize: '16px', width: '100%', outline: 'none' }} />
-              </div>
-
-              <div className="form-group" style={{ marginTop: '20px' }}>
-                <label style={{ fontSize: '12px', color: '#9e9e9e' }}>Detailed Address</label>
-                <input name="address" value={formData.address} onChange={handleChange} required placeholder="Street Name, Purok, Building, House No." style={{ border: 'none', borderBottom: '1px solid #eee', padding: '10px 0', fontSize: '16px', width: '100%', outline: 'none' }} />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
-                <button type="button" className="login-btn" style={{ backgroundColor: '#ccc' }} onClick={() => setStep(1)}>Back</button>
-                <button type="button" className="login-btn" onClick={() => {
-                  if (!formData.barangay || !formData.address) {
-                    setError('Please select barangay and complete address.');
-                    return;
-                  }
-                  setError('');
-                  setStep(3);
-                }}>NEXT</button>
-              </div>
+            <div className="form-group">
+              <label>Municipality</label>
+              <input
+                name="municipality"
+                value={formData.municipality}
+                readOnly
+                style={{ color: '#5f6368', background: '#f8f9fa' }}
+              />
             </div>
-          </>
+
+            <div className="form-group">
+              <label>Postal Code</label>
+              <input
+                name="zipCode"
+                value={formData.zipCode}
+                readOnly
+                style={{ color: '#5f6368', background: '#f8f9fa' }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Barangay</label>
+              <select
+                name="barangay"
+                value={formData.barangay}
+                onChange={(e) => setFormData({ ...formData, barangay: e.target.value, purok: '' })}
+                required
+              >
+                <option value="">Select Barangay</option>
+                {barangays.map((barangay) => (
+                  <option key={barangay} value={barangay}>
+                    {barangay}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Purok</label>
+              <select
+                name="purok"
+                value={formData.purok}
+                onChange={handleChange}
+                required
+                disabled={!formData.barangay}
+              >
+                <option value="">{formData.barangay ? 'Select Purok' : 'Select Barangay First'}</option>
+                {(puroksByBarangay[formData.barangay] || []).map((purok) => (
+                  <option key={purok} value={purok}>
+                    {purok}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Full Address</label>
+              <input
+                name="address"
+                value={formData.address}
+                readOnly
+                style={{ color: '#5f6368', background: '#f8f9fa' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
+              <button type="button" className="login-btn" style={{ backgroundColor: '#ccc' }} onClick={() => setStep(1)}>Back</button>
+              <button type="button" className="login-btn" onClick={() => {
+                if (!formData.barangay || !formData.purok) {
+                  setError('Please select barangay and purok.');
+                  return;
+                }
+                setError('');
+                setStep(3);
+              }}>NEXT</button>
+            </div>
+          </div>
         );
       case 3:
         return (
@@ -276,7 +315,7 @@ const SignUp: React.FC = () => {
           <div className="forgot-pass-step">
             <h3>Submission Requirements</h3>
             <ul className="requirements-list">
-              <li><i className="fas fa-check"></i> Sedula</li>
+              <li className="requirement-highlight"><i className="fas fa-check"></i> Sedula</li>
             </ul>
             <div className="charges-panel">
               <h4>Registration Charges</h4>
@@ -335,65 +374,6 @@ const SignUp: React.FC = () => {
           {step !== 5 && <Link to="/login" className="back-link">Already have an account? Login</Link>}
         </div>
       </div>
-
-      {isPickerOpen && (
-        <div className="shopee-overlay" onClick={() => setIsPickerOpen(false)}>
-          <div className="shopee-panel slide-up" onClick={(e) => e.stopPropagation()}>
-            <div className="shopee-header">
-              <button type="button" className="close-btn" onClick={() => setIsPickerOpen(false)}>
-                <i className="fas fa-arrow-left"></i>
-              </button>
-              {pickerStep === 'barangay' && (
-                <div className="search-box">
-                  <i className="fas fa-search"></i>
-                  <input 
-                    placeholder="Search Barangay" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="shopee-body">
-              {pickerStep === 'city' ? (
-                <div className="picker-section">
-                  <div className="category-label">Municipality</div>
-                  <div className="city-list">
-                    {['San Lorenzo Ruiz'].filter(c => c.toLowerCase().includes(searchTerm.toLowerCase())).map(c => (
-                      <div key={c} className="picker-item" onClick={() => { setPickerStep('barangay'); setSearchTerm(''); }}>
-                        <span className="alphabet">S</span>
-                        <span className="item-name">{c}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="picker-section">
-                  <div className="category-label">Barangay (San Lorenzo Ruiz)</div>
-                  <div className="barangay-list">
-                    {barangays.filter(b => b.toLowerCase().includes(searchTerm.toLowerCase())).map(b => (
-                      <div key={b} className="picker-item" onClick={() => { 
-                        setFormData({ 
-                          ...formData, 
-                          barangay: b,
-                          zipCode: '4601'
-                        }); 
-                        setIsPickerOpen(false); 
-                        setSearchTerm('');
-                      }}>
-                        <span className="alphabet">{b[0]}</span>
-                        <span className="item-name">{b}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

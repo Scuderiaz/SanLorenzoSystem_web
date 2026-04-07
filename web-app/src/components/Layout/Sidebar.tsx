@@ -15,15 +15,16 @@ const menuItems: MenuItem[] = [
   // --- Admin (Role 1) ---
   { path: '/dashboard',     icon: 'fas fa-tachometer-alt',      label: 'Dashboard',          roles: [1, 2, 3, 4] },
   { path: '/accounts',      icon: 'fas fa-address-book',        label: 'Account Management', roles: [1] },
+  { path: '/applications',  icon: 'fas fa-file-signature',      label: 'Applications',       roles: [1, 2] },
   { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Reports',             roles: [1] },
   { path: '/settings',      icon: 'fas fa-cogs',                label: 'System Settings',     roles: [1] },
   { path: '/maintenance',   icon: 'fas fa-tools',               label: 'System Maintenance',  roles: [1] },
   { path: '/close-day',     icon: 'fas fa-lock',                label: 'Close Day',           roles: [1] },
   // --- Billing Officer (Role 2) ---
   { path: '/consumers',     icon: 'fas fa-users',               label: 'Consumer Management', roles: [2] },
-  { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Generate Bills',      roles: [2] },
-  { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Reports',             roles: [2] },
-  { path: '/ledger',        icon: 'fas fa-book',                label: 'Digital Ledger',      roles: [2] },
+  { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Bills Registry',      roles: [2] },
+  { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Billing Reports',     roles: [2] },
+  { path: '/ledger',        icon: 'fas fa-book',                label: 'Account Ledger',      roles: [2] },
   // --- Meter Reader (Role 3) ---
   { path: '/consumers',     icon: 'fas fa-users',               label: 'Consumer Management', roles: [3] },
   { path: '/meter-reading', icon: 'fas fa-calendar-alt',        label: 'Reading Schedule',    roles: [3] },
@@ -42,7 +43,7 @@ const Sidebar: React.FC = () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   React.useEffect(() => {
-    if (user?.role_id === 1) {
+    if (user?.role_id === 1 || user?.role_id === 2) {
       loadPendingCount();
       const interval = setInterval(loadPendingCount, 30000); // Check every 30s
       return () => clearInterval(interval);
@@ -51,11 +52,10 @@ const Sidebar: React.FC = () => {
 
   const loadPendingCount = async () => {
     try {
-      const response = await fetch(`${API_URL}/users/unified`);
+      const response = await fetch(`${API_URL}/applications/pending`);
       const result = await response.json();
       if (result.success) {
-        const pending = result.data.filter((u: any) => u.Status === 'Pending').length;
-        setPendingCount(pending);
+        setPendingCount((result.data || []).length);
       }
     } catch (error) {
       console.error('Error loading pending count:', error);
@@ -88,7 +88,7 @@ const Sidebar: React.FC = () => {
             <Link to={item.path}>
               <div className="menu-icon-wrapper">
                 <i className={item.icon}></i>
-                {item.path === '/accounts' && pendingCount > 0 && (
+                {item.path === '/applications' && pendingCount > 0 && (
                   <span className="notification-dot"></span>
                 )}
               </div>

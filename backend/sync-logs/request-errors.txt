@@ -914,3 +914,179 @@
 [2026-04-07T13:12:13.645Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-04-07T13:21:29.715Z] [server.start] AggregateError
 [2026-04-07T14:22:28.534Z] [auth.login] Cannot coerce the result to a single JSON object | POST /api/login | params={} | query={} | body={"username":"asd","password":"asd"}
+[2026-04-07T15:04:42.199Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:04:54.733Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:05:27.975Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:06:33.243Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:06:45.391Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:07:21.422Z] [waterRates.create] duplicate key value violates unique constraint "waterrates_pkey" | POST /api/water-rates | params={} | query={} | body={"minimum_cubic":"10","minimum_rate":"75","excess_rate_per_cubic":"7.5","modified_by":1}
+[2026-04-07T15:07:33.244Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:07:46.382Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:08:33.249Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:08:45.286Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:09:27.966Z] [sync.cycle] Hybrid sync cycle started via immediate:water-rates-create.
+[2026-04-07T15:09:39.409Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:10:33.258Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:10:45.510Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:11:17.075Z] [auth.register] new row for relation "consumer" violates check constraint "consumer_status_check" | POST /api/register | params={} | query={} | body={"username":"Ivan","password":"qwerty123","confirmPassword":"qwerty123","phone":"09480840967","firstName":"Charles Ivan","middleName":"Ornales","lastName":"De Vera","address":"purok 5","purok":"","barangay":"Langga","municipality":"San Lorenzo Ruiz","zipCode":"4610","classificationId":"1"}
+[2026-04-07T15:11:33.271Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:11:44.666Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:12:32.592Z] [auth.register] duplicate key value violates unique constraint "accounts_username_key" | POST /api/register | params={} | query={} | body={"username":"Ivan","password":"qwerty123","confirmPassword":"qwerty123","phone":"09480840967","firstName":"Charles Ivan","middleName":"Ornales","lastName":"De Vera","address":"purok 5","purok":"","barangay":"Langga","municipality":"San Lorenzo Ruiz","zipCode":"4610","classificationId":"1"}
+[2026-04-07T15:12:33.283Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:12:45.404Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:13:33.291Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:13:45.383Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:14:33.298Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:14:44.789Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:15:33.306Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:15:45.667Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:16:33.312Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:16:44.868Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:17:33.312Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:17:45.115Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:18:33.327Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:18:44.350Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:19:33.346Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:19:46.231Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:20:33.352Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:20:45.614Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:21:33.351Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:21:46.093Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:22:33.365Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:22:44.874Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:23:33.378Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:23:44.808Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:24:33.381Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:24:45.516Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:25:33.391Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:25:45.926Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:26:33.402Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:26:45.655Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:27:33.406Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:27:44.158Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:28:33.412Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:28:45.096Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:29:33.415Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:29:44.849Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:30:33.415Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:30:46.403Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:30:54.619Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:31:33.419Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:31:45.651Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:32:33.428Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:32:45.531Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:33:33.436Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:33:45.431Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:34:33.451Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:34:46.540Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:35:33.461Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:35:45.617Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:36:33.468Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:36:47.605Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:37:33.469Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:37:46.083Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:38:33.474Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:38:45.577Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:39:33.489Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:39:46.088Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:40:33.494Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:40:44.895Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:41:33.496Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:41:46.351Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:42:33.509Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:42:46.296Z] [supabase.sync.consumer] duplicate key value violates unique constraint "consumer_login_id_key"
+[2026-04-07T15:44:49.696Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:45:49.709Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:46:49.722Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:47:49.729Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:48:49.730Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:49:38.241Z] [sync.cycle] Hybrid sync cycle started via immediate:consumers-update.
+[2026-04-07T15:50:49.740Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:51:49.750Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:52:49.761Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:53:49.771Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:54:49.772Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:55:49.785Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:56:49.790Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:57:49.798Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T15:59:42.014Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:00:42.028Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:01:42.038Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:02:42.048Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:03:42.050Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:04:42.053Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:05:42.053Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:06:42.059Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:07:42.088Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:08:42.094Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:09:42.106Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:10:42.108Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:11:42.113Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:12:42.118Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:13:42.122Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:14:42.127Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:15:42.129Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:16:42.138Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:17:42.146Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:18:42.148Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:19:42.159Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:20:42.168Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:20:48.678Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-approve-user.
+[2026-04-07T16:21:42.180Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:22:51.920Z] [sync.cycle] Hybrid sync cycle started via immediate:applications-update.
+[2026-04-07T16:23:42.192Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:24:42.206Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:25:59.742Z] [sync.cycle] Hybrid sync cycle started via immediate:applications-update.
+[2026-04-07T16:26:42.130Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:27:42.138Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:28:42.139Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:29:42.140Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:31:20.620Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:33:02.669Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:34:02.676Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:35:02.679Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:35:40.820Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-approve-user.
+[2026-04-07T16:36:02.686Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:37:02.695Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:37:33.674Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-approve-user.
+[2026-04-07T16:37:42.567Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-approve-user.
+[2026-04-07T16:38:02.698Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:39:02.712Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:40:02.725Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:41:02.735Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:42:02.745Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:43:02.750Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:44:02.754Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:45:02.757Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:46:23.852Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-approve-user.
+[2026-04-07T16:46:59.653Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:47:59.657Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:48:59.669Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:49:59.680Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:50:59.680Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:51:59.681Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:52:59.682Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:53:59.686Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:54:59.693Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:55:59.700Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:57:53.730Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:58:53.737Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T16:59:53.752Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:00:53.765Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:01:53.766Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:02:53.783Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:03:53.789Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:04:53.791Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:05:53.796Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:06:53.805Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:07:53.814Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:08:53.817Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:09:53.831Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:10:53.831Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:11:53.841Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:12:53.847Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:13:53.855Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:14:53.869Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:15:53.876Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:16:53.884Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-07T17:18:30.197Z] [sync.cycle] Hybrid sync cycle started via scheduler.

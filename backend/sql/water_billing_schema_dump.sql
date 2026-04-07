@@ -38,6 +38,7 @@ CREATE TABLE water_billing.accounts (
     account_id integer NOT NULL,
     username character varying(50) NOT NULL,
     password character varying(255) NOT NULL,
+    auth_user_id uuid,
     role_id integer NOT NULL,
     account_status character varying(20) DEFAULT 'Pending'::character varying NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -972,6 +973,14 @@ ALTER TABLE ONLY water_billing.accounts
 
 ALTER TABLE ONLY water_billing.accounts
     ADD CONSTRAINT accounts_username_key UNIQUE (username);
+
+
+--
+-- Name: accounts accounts_auth_user_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.accounts
+    ADD CONSTRAINT accounts_auth_user_id_key UNIQUE (auth_user_id);
 
 
 --
