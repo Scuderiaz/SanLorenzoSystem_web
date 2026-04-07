@@ -4365,3 +4365,5 @@
 [2026-04-07T08:21:54.281Z] Table error_logs: synced 4518 row(s).
 [2026-04-07T08:22:00.905Z] Table system_logs: synced 22382 row(s).
 [2026-04-07T08:22:01.225Z] Table backuplogs: no rows to sync.
+[2026-04-07T08:22:01.704Z] Table waterrates: synced 3 row(s).
+[2026-04-07T08:22:01.866Z] Sync cycle complete for 18 table(s).
