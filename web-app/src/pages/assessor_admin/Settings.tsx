@@ -57,7 +57,6 @@ const Settings: React.FC = () => {
           minimum_rate: result.data.minimum_rate.toString(),
           excess_rate_per_cubic: result.data.excess_rate_per_cubic.toString(),
         });
-        // Also save to localStorage for offline fallback/speed
         localStorage.setItem('water_rates', JSON.stringify({
             minimumRate: result.data.minimum_rate,
             minimumCubic: result.data.minimum_cubic,
@@ -65,8 +64,7 @@ const Settings: React.FC = () => {
         }));
       }
     } catch (error) {
-      console.error('Error loading rates from API:', error);
-      // Fallback to localStorage if API fails
+      console.error('Error loading rates:', error);
       const savedRates = localStorage.getItem('water_rates');
       if (savedRates) {
         const parsed = JSON.parse(savedRates);
@@ -79,35 +77,15 @@ const Settings: React.FC = () => {
     }
   }, [API_URL]);
 
-  const loadHistoricalRates = useCallback(async () => {
-    setLoading(true);
-    try {
-      // For now, we'll just show the latest as the table data
-      // In a real app, we might have an endpoint for historical list
-      const response = await fetch(`${API_URL}/water-rates/latest`);
-      const result = await response.json();
-      if (result.success && result.data) {
-        setCurrentRates([result.data]);
-      } else {
-        // Fallback for UI mockup if no data yet
-        setCurrentRates([]);
-      }
-    } catch (error) {
-      console.error('Error loading historical rates:', error);
-      showToast('Failed to load water rate history', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [API_URL, showToast]);
-
   useEffect(() => {
     loadSavedSettings();
-    loadHistoricalRates();
-  }, [loadSavedSettings, loadHistoricalRates]);
+  }, [loadSavedSettings]);
 
-  const handleSaveWaterRates = async () => {
+  const handleSaveAllChanges = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/water-rates`, {
+      // 1. Save Water Rates to Backend
+      const rateResponse = await fetch(`${API_URL}/water-rates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -118,71 +96,62 @@ const Settings: React.FC = () => {
         }),
       });
 
-      const result = await response.json();
-      if (result.success) {
-        // Also update localStorage for fallback
-        localStorage.setItem('water_rates', JSON.stringify({
-            minimumRate: waterRates.minimum_rate,
-            minimumCubic: waterRates.minimum_cubic,
-            excessRate: waterRates.excess_rate_per_cubic
-        }));
-        
-        showToast('Water rates committed to database', 'success');
-        loadHistoricalRates();
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error: any) {
-      console.error('Error saving water rates:', error);
-      showToast(`Failed to save rates: ${error.message}`, 'error');
-    }
-  };
+      const rateResult = await rateResponse.json();
+      if (!rateResult.success) throw new Error(rateResult.message || 'Failed to sync water rates');
 
-  const handleSaveSystemSettings = async () => {
-    try {
+      // 2. Sync to localStorage for fallback
+      localStorage.setItem('water_rates', JSON.stringify({
+          minimumRate: waterRates.minimum_rate,
+          minimumCubic: waterRates.minimum_cubic,
+          excessRate: waterRates.excess_rate_per_cubic
+      }));
+
+      // 3. Save Global System settings to localStorage
       localStorage.setItem('system_settings', JSON.stringify(systemSettings));
-      showToast('System configuration updated', 'success');
-    } catch (error) {
-      console.error('Error saving system settings:', error);
-      showToast('Failed to update configuration', 'error');
+      
+      showToast('All system configurations updated and synchronized', 'success');
+      loadSavedSettings();
+    } catch (error: any) {
+      console.error('Error saving configurations:', error);
+      showToast(`Error: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleRefreshRates = () => {
-    loadHistoricalRates();
-    showToast('Water rates refreshed', 'success');
   };
 
   return (
     <MainLayout title="System Configuration">
       <div className="settings-page">
-        {/* Top Control Bar */}
-        <div className="action-buttons">
-          <button className="btn btn-primary" onClick={handleSaveWaterRates}>
-            <i className="fas fa-save"></i> Commit Water Rates
-          </button>
-          <button className="btn btn-primary" onClick={handleSaveSystemSettings}>
-            <i className="fas fa-server"></i> Update Global Config
-          </button>
-          <button className="btn btn-secondary" onClick={handleRefreshRates} title="Reload Data">
-            <i className="fas fa-sync-alt"></i> Refresh
+        {/* Unified Control Bar */}
+        <div className="settings-actions-bar">
+          <div className="action-info">
+            <p>Update system-wide rules, billing logic, and water rate hierarchies.</p>
+          </div>
+          <button className="btn btn-primary btn-lg" onClick={handleSaveAllChanges} disabled={loading}>
+            <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> 
+            {loading ? 'Saving Changes...' : 'Save All Configuration'}
           </button>
         </div>
 
-        <div className="settings-grid">
+        <div className="settings-grid single-column">
           {/* Combined System Configuration Card */}
-          <div className="settings-card combined-config" style={{ borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-            <div className="settings-card-header" style={{ borderBottom: 'none', marginBottom: '0' }}>
-              <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '12px', marginRight: '15px' }}>
-                <i className="fas fa-tools" style={{ fontSize: '24px', color: '#1B1B63', background: 'none', padding: '0' }}></i>
+          <div className="settings-card premium-card">
+            <div className="settings-card-header">
+              <div className="header-icon">
+                <i className="fas fa-sliders-h"></i>
               </div>
-              <h2 className="settings-card-title" style={{ fontSize: '20px', fontWeight: 800 }}>System & Rate Configuration</h2>
+              <div>
+                <h2 className="settings-card-title">System & Rate Configuration</h2>
+                <p className="settings-card-subtitle">Manage water pricing and billing offsets</p>
+              </div>
             </div>
             
-            <div className="settings-form" style={{ marginTop: '30px' }}>
+            <div className="settings-form-optimized">
               <div className="settings-subsection">
-                <h3 className="subsection-title" style={{ color: '#1B1B63', fontWeight: 900, marginBottom: '25px', letterSpacing: '0.05em' }}>WATER RATE TABLE</h3>
-                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                <h3 className="subsection-title">
+                   <i className="fas fa-tint"></i> WATER RATE TABLE
+                </h3>
+                <div className="form-row-grid">
                   <FormInput
                     label="MINIMUM CONSUMPTION (CU.M)"
                     type="number"
@@ -207,11 +176,13 @@ const Settings: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ height: '1px', background: '#f1f5f9', margin: '40px 0' }}></div>
+              <div className="settings-divider"></div>
 
               <div className="settings-subsection">
-                <h3 className="subsection-title" style={{ color: '#1B1B63', fontWeight: 900, marginBottom: '25px', letterSpacing: '0.05em' }}>BILLING & SYSTEM LOGIC</h3>
-                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '30px' }}>
+                <h3 className="subsection-title">
+                  <i className="fas fa-calculator"></i> BILLING & SYSTEM LOGIC
+                </h3>
+                <div className="form-row-grid">
                   <FormInput
                     label="DUE DATE OFFSET (DAYS)"
                     type="number"
@@ -229,26 +200,6 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Current Rates Table Card */}
-        <div className="card" style={{ marginTop: '30px' }}>
-          <div className="card-header">
-            <h2 className="card-title">Active Operational Rates</h2>
-          </div>
-          <div className="card-body">
-            <DataTable
-              columns={[
-                { key: 'minimum_cubic', label: 'Min. Consumption', render: (v: number) => `${v} cu.m` },
-                { key: 'minimum_rate', label: 'Min. Charge', render: (v: number) => `₱${toAmount(v).toFixed(2)}` },
-                { key: 'excess_rate_per_cubic', label: 'Excess Rate', render: (v: number) => `₱${toAmount(v).toFixed(2)} / cu.m` },
-                { key: 'effective_date', label: 'Effective Date', render: (v: string) => new Date(v).toLocaleDateString() },
-              ]}
-              data={currentRates}
-              loading={loading}
-              emptyMessage="No historical rates found."
-            />
           </div>
         </div>
       </div>

@@ -1980,10 +1980,12 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
       .order('payment_date', { ascending: false });
     const { data: readings } = await supabase
       .from('meterreadings')
-      .select('reading_date, consumption')
+      .select('*') // Select all to see what's actually there
       .eq('consumer_id', consumerId)
       .order('reading_date', { ascending: false })
       .limit(6);
+
+    console.log(`[DEBUG] Found ${readings ? readings.length : 0} readings for consumer_id ${consumerId}`);
 
     return res.json({
       success: true,
@@ -1996,7 +1998,10 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
         Payment_Date: p.payment_date,
         Reference_Number: p.reference_number,
       })),
-      readings: (readings || []).map((r) => ({ Reading_Date: r.reading_date, Consumption: r.consumption })).reverse(),
+      readings: (readings || []).map((r) => ({ 
+        Reading_Date: r.reading_date || r.created_at || r.created_date, 
+        Consumption: r.consumption 
+      })).reverse(),
     });
   } catch (error) {
     await logRequestError(req, 'consumerDashboard.fetch', error);

@@ -2,6 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  LabelList 
+} from 'recharts';
 import './ConsumerMain.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -55,19 +65,162 @@ const fullMonth = (dateStr?: string) => {
   return d.toLocaleString('default', { month: 'long', year: 'numeric' });
 };
 
-// ─── Bar Chart ─────────────────────────────────────────────────────────────
-const BarChart: React.FC<BarChartProps> = ({ readings }) => {
-  if (!readings.length) return <p style={{ color: '#5f6368', fontSize: 13 }}>No reading data available.</p>;
-  const max = Math.max(...readings.map(r => r.Consumption || 0));
+// ─── Format Name (Capitalize) ───
+const formatName = (str?: string) => {
+  if (!str) return 'Consumer';
+  return str.split(/[\s.]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+// ─── Custom Floating Label for Peaks ───
+const CustomLabel = (props: any) => {
+  const { x, y, value } = props;
+  if (value === 0) return null; // Hide the label for zero/anchor points
   return (
-    <div className="bar-chart">
-      {readings.map((r, i) => (
-        <div key={i} className="bar-col">
-          <span className="bar-value">{r.Consumption}m³</span>
-          <div className="bar-fill" style={{ height: max > 0 ? `${((r.Consumption || 0) / max) * 100}%` : '5%' }} />
-          <span className="bar-label">{shortMonth(r.Reading_Date)}</span>
+    <g>
+      <rect x={x - 20} y={y - 35} width={40} height={20} rx={4} fill="#202124" />
+      <text x={x} y={y - 21} textAnchor="middle" fill="#fff" fontSize={11} fontWeight={800}>
+        {value}
+      </text>
+    </g>
+  );
+};
+
+// ─── Premium Consumption Chart ─────────────────────────────────────────────
+const ConsumptionChart: React.FC<BarChartProps> = ({ readings }) => {
+  const [viewMode, setViewMode] = useState<'recent' | 'annual'>('recent');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  if (!readings.length) {
+    return <p style={{ color: '#5f6368', fontSize: 13, padding: '20px' }}>No reading data available.</p>;
+  }
+
+  // 1. Get available years from data
+  const availableYears = Array.from(new Set(readings.map(r => new Date(r.Reading_Date).getFullYear()))).sort((a,b) => b-a);
+  if (!availableYears.includes(new Date().getFullYear())) {
+    availableYears.unshift(new Date().getFullYear());
+  }
+
+  // 2. Prepare Data
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  let chartData: any[] = [];
+
+  if (viewMode === 'annual') {
+    // Annual Mode: Full 12-month calendar
+    chartData = monthNames.map((month) => ({ name: month, consumption: 0 }));
+    readings.forEach(r => {
+      const d = new Date(r.Reading_Date);
+      if (d.getFullYear() === selectedYear) {
+        chartData[d.getMonth()].consumption = r.Consumption || 0;
+      }
+    });
+  } else {
+    // Recent Mode: Only show months with data for the selected year
+    const yearReadings = readings
+      .filter(r => new Date(r.Reading_Date).getFullYear() === selectedYear)
+      .sort((a,b) => new Date(a.Reading_Date).getTime() - new Date(b.Reading_Date).getTime());
+    
+    chartData = yearReadings.map(r => ({
+      name: monthNames[new Date(r.Reading_Date).getMonth()],
+      consumption: r.Consumption
+    }));
+
+    // Start anchor if we have data to make it look "Area"
+    if (chartData.length > 0) {
+      chartData = [{ name: '', consumption: 0 }, ...chartData];
+    }
+  }
+
+  return (
+    <div className="cm-chart-wrapper">
+      <div className="cm-chart-controls">
+        <div className="cm-view-toggle">
+          <button 
+            className={`cm-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
+            onClick={() => setViewMode('recent')}
+          >
+            Recent
+          </button>
+          <button 
+            className={`cm-toggle-btn ${viewMode === 'annual' ? 'active' : ''}`}
+            onClick={() => setViewMode('annual')}
+          >
+            Annual
+          </button>
         </div>
-      ))}
+        
+        <div className="cm-year-select-wrapper">
+          <label>Year:</label>
+          <select 
+            value={selectedYear} 
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="cm-year-select"
+          >
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="consumption-chart-container" style={{ width: '100%', height: 320 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 60, right: 20, left: 0, bottom: 30 }}>
+            <defs>
+              <linearGradient id="colorConsumption" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.5}/>
+                <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
+            <XAxis 
+              dataKey="name" 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#475569', fontSize: 13, fontWeight: 800 }}
+              dy={15}
+            />
+            <YAxis 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#475569', fontSize: 13, fontWeight: 800 }}
+            />
+            <Tooltip 
+              cursor={{ stroke: '#2563eb', strokeWidth: 1, strokeDasharray: '5 5' }}
+              contentStyle={{ 
+                borderRadius: '12px', 
+                border: 'none', 
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                padding: '12px'
+              }}
+              labelStyle={{ color: '#1B1B63', fontWeight: 900, marginBottom: '4px' }}
+              itemStyle={{ color: '#2563eb', fontWeight: 700 }}
+              formatter={(value: any) => [`${value} m³`, 'Consumption']}
+            />
+            <Area 
+              type="monotone" 
+              dataKey="consumption" 
+              stroke="#2563eb" 
+              strokeWidth={4.5}
+              fillOpacity={1} 
+              fill="url(#colorConsumption)" 
+              dot={(props: any) => {
+                const { cx, cy, value } = props;
+                if (value > 0) {
+                  return <circle cx={cx} cy={cy} r={6} fill="#ffffff" stroke="#2563eb" strokeWidth={3} />;
+                }
+                return <circle cx={cx} cy={cy} r={2} fill="#cbd5e1" />;
+              }}
+              activeDot={{ r: 8, fill: '#2563eb', stroke: '#fff', strokeWidth: 3 }}
+              animationDuration={1500}
+              isAnimationActive={true}
+            >
+              <LabelList dataKey="consumption" content={<CustomLabel />} />
+            </Area>
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };
@@ -149,15 +302,14 @@ const ConsumerMain: React.FC = () => {
       {/* ── Header ── */}
       <div className="cm-header">
         <div className="cm-header-info">
-          <h1 className="cm-name">{consumer?.name || user?.fullName}</h1>
           <div className="cm-dashboard-label">San Lorenzo Ruiz Water System</div>
+          <h1 className="cm-name">{formatName(consumer?.name || user?.fullName)}</h1>
           <div className="cm-meta">
-            <span>
-              <i className="fas fa-id-card" style={{ color: 'var(--primary-navy)' }} /> 
-              Account No: <strong>{consumer?.accountNo}</strong>
+            <span className="cm-meta-item">
+              <i className="fas fa-id-card" /> Account: <strong>{consumer?.accountNo}</strong>
             </span>
             <span className={`cm-status ${consumer?.connectionStatus === 'Active' ? 'active' : 'inactive'}`}>
-              <i className="fas fa-circle" /> Connection Status: {consumer?.connectionStatus}
+              <i className="fas fa-circle" /> Status: {consumer?.connectionStatus}
             </span>
           </div>
         </div>
@@ -222,10 +374,9 @@ const ConsumerMain: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Chart ── */}
       <div className="cm-section">
-        <div className="cm-section-title"><i className="fas fa-chart-bar" /> Monthly Water Consumption (m³)</div>
-        <BarChart readings={readings} />
+        <div className="cm-section-title"><i className="fas fa-chart-line" /> Monthly Water Consumption (m³)</div>
+        <ConsumptionChart readings={readings} />
       </div>
 
       {/* ── Payments ── */}

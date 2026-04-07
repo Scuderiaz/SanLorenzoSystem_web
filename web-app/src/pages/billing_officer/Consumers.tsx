@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
-import Modal from '../../components/Common/Modal';
+import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
+import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
 import './Consumers.css';
 
 interface Consumer {
   Consumer_ID: number;
-  Account_Number: string;
   First_Name: string;
   Middle_Name?: string;
   Last_Name: string;
@@ -17,29 +17,59 @@ interface Consumer {
   Zone_Name?: string;
   Classification_ID: number;
   Classification_Name?: string;
+  Account_Number: string;
+  Meter_Number: string;
   Status: string;
-  Contact_Number?: string;
-  Meter_Number?: string;
-  Connection_Date?: string;
+  Contact_Number: string;
+  Connection_Date: string;
+}
+
+interface Zone {
+  Zone_ID: number;
+  Zone_Name: string;
+}
+
+interface Classification {
+  Classification_ID: number;
+  Classification_Name: string;
 }
 
 const Consumers: React.FC = () => {
   const { showToast } = useToast();
   const [consumers, setConsumers] = useState<Consumer[]>([]);
   const [filteredConsumers, setFilteredConsumers] = useState<Consumer[]>([]);
-  const [zones, setZones] = useState<any[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [classifications, setClassifications] = useState<Classification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [selectedConsumer, setSelectedConsumer] = useState<Consumer | null>(null);
+  const [editingConsumer, setEditingConsumer] = useState<Consumer | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [selectedConsumer, setSelectedConsumer] = useState<Consumer | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const [formData, setFormData] = useState({
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    address: '',
+    zoneId: '',
+    classificationId: '',
+    accountNumber: '',
+    meterNumber: '',
+    contactNumber: '',
+    connectionDate: '',
+    status: 'Active',
+  });
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
     loadConsumers();
     loadZones();
+    loadClassifications();
   }, []);
 
   useEffect(() => {
@@ -72,16 +102,29 @@ const Consumers: React.FC = () => {
     }
   };
 
+  const loadClassifications = async () => {
+    try {
+      const response = await fetch(`${API_URL}/classifications`);
+      const result = await response.json();
+      if (result.success) {
+        setClassifications(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading classifications:', error);
+    }
+  };
+
   const filterConsumers = () => {
-    let filtered = consumers;
+    let filtered = [...consumers];
 
     if (searchTerm) {
+      const search = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (c) =>
-          c.First_Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.Last_Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.Account_Number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.Address?.toLowerCase().includes(searchTerm.toLowerCase())
+          c.First_Name?.toLowerCase().includes(search) ||
+          c.Last_Name?.toLowerCase().includes(search) ||
+          c.Account_Number?.toLowerCase().includes(search) ||
+          c.Address?.toLowerCase().includes(search)
       );
     }
 
@@ -98,77 +141,179 @@ const Consumers: React.FC = () => {
 
   const handleViewDetails = (consumer: Consumer) => {
     setSelectedConsumer(consumer);
-    setShowDetailsModal(true);
+    setIsDetailsModalOpen(true);
   };
 
-  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: z.Zone_Name }));
+  const handleAddConsumer = () => {
+    setEditingConsumer(null);
+    setFormData({
+      firstName: '',
+      middleName: '',
+      lastName: '',
+      address: '',
+      zoneId: '',
+      classificationId: '',
+      accountNumber: '',
+      meterNumber: '',
+      contactNumber: '',
+      connectionDate: new Date().toISOString().split('T')[0],
+      status: 'Active',
+    });
+    setIsFormModalOpen(true);
+  };
+
+  const handleEditConsumer = (consumer: Consumer) => {
+    setEditingConsumer(consumer);
+    setFormData({
+      firstName: consumer.First_Name,
+      middleName: consumer.Middle_Name || '',
+      lastName: consumer.Last_Name,
+      address: consumer.Address,
+      zoneId: consumer.Zone_ID.toString(),
+      classificationId: consumer.Classification_ID.toString(),
+      accountNumber: consumer.Account_Number,
+      meterNumber: consumer.Meter_Number,
+      contactNumber: consumer.Contact_Number,
+      connectionDate: consumer.Connection_Date,
+      status: consumer.Status,
+    });
+    setIsFormModalOpen(true);
+    setIsDetailsModalOpen(false);
+  };
+
+  const handleDeleteConsumer = async (consumer: Consumer) => {
+    if (!window.confirm(`Are you sure you want to delete consumer "${consumer.First_Name} ${consumer.Last_Name}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/consumers/${consumer.Consumer_ID}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        showToast('Consumer deleted successfully', 'success');
+        loadConsumers();
+        setIsDetailsModalOpen(false);
+      } else {
+        showToast(result.message || 'Failed to delete consumer', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting consumer:', error);
+      showToast('Failed to delete consumer', 'error');
+    }
+  };
+
+  const handleSaveConsumer = async () => {
+    if (!formData.firstName || !formData.lastName || !formData.accountNumber) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+
+    try {
+      const url = editingConsumer
+        ? `${API_URL}/consumers/${editingConsumer.Consumer_ID}`
+        : `${API_URL}/consumers`;
+
+      const method = editingConsumer ? 'PUT' : 'POST';
+
+      const body = {
+        First_Name: formData.firstName,
+        Middle_Name: formData.middleName,
+        Last_Name: formData.lastName,
+        Address: formData.address,
+        Zone_ID: parseInt(formData.zoneId),
+        Classification_ID: parseInt(formData.classificationId),
+        Account_Number: formData.accountNumber,
+        Meter_Number: formData.meterNumber,
+        Contact_Number: formData.contactNumber,
+        Connection_Date: formData.connectionDate,
+        Status: formData.status,
+      };
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const result = await response.json();
+
+      if (result.success || response.ok) {
+        showToast(
+          editingConsumer ? 'Consumer updated successfully' : 'Consumer created successfully',
+          'success'
+        );
+        setIsFormModalOpen(false);
+        loadConsumers();
+      } else {
+        showToast(result.message || 'Failed to save consumer', 'error');
+      }
+    } catch (error) {
+      console.error('Error saving consumer:', error);
+      showToast('Failed to save consumer', 'error');
+    }
+  };
 
   const columns = [
+    { key: 'Account_Number', label: 'Account #', sortable: true },
     {
-      key: 'Account_Number',
-      label: 'Account Number',
-      sortable: true,
-    },
-    {
-      key: 'consumerName',
+      key: 'name',
       label: 'Consumer Name',
       sortable: true,
-      render: (_: any, consumer: Consumer) => `${consumer.First_Name || ''} ${consumer.Middle_Name ? consumer.Middle_Name.charAt(0) + '.' : ''} ${consumer.Last_Name || ''}`,
+      render: (_: any, row: Consumer) => `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '.' : ''} ${row.Last_Name}`,
     },
-    {
-      key: 'Address',
-      label: 'Address',
-      sortable: true,
-    },
-    {
-      key: 'Zone_Name',
-      label: 'Zone',
-      sortable: true,
-    },
-    {
-      key: 'Classification_Name',
-      label: 'Classification',
-      sortable: true,
-    },
+    { key: 'Address', label: 'Address', sortable: true },
+    { key: 'Zone_Name', label: 'Zone', sortable: true },
+    { key: 'Classification_Name', label: 'Type', sortable: true },
     {
       key: 'Status',
       label: 'Status',
-      sortable: true,
-      render: (val: string) => (
-        <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>
-          {val}
-        </span>
+      render: (value: string) => (
+        <span className={`status-badge status-${(value || 'unknown').toLowerCase()}`}>{value}</span>
       ),
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (_: any, consumer: Consumer) => (
-        <button className="btn btn-sm btn-info" onClick={() => handleViewDetails(consumer)}>
-          <i className="fas fa-eye"></i> View
-        </button>
+      render: (_: any, row: Consumer) => (
+        <div className="action-buttons-inline">
+          <button className="btn-icon" title="View Details" onClick={() => handleViewDetails(row)}>
+            <i className="fas fa-eye"></i>
+          </button>
+          <button className="btn-icon" title="Edit" onClick={() => handleEditConsumer(row)}>
+            <i className="fas fa-edit"></i>
+          </button>
+          <button className="btn-icon btn-danger" title="Delete" onClick={() => handleDeleteConsumer(row)}>
+            <i className="fas fa-trash"></i>
+          </button>
+        </div>
       ),
     },
   ];
 
+  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: z.Zone_Name }));
+  const classificationOptions = classifications.map((c) => ({
+    value: c.Classification_ID,
+    label: c.Classification_Name,
+  }));
+
   return (
-    <MainLayout title="Consumer Registry Cache">
+    <MainLayout title="Consumer Registry">
       <div className="billing-consumers-page">
-        {/* Advanced Search & Multi-Filter */}
-        <div className="search-filters">
-          <div className="search-group">
-            <input
-              type="text"
-              placeholder="Search by name, account ID, or meter serial..."
-              className="form-control"
+        {/* Search & Actions Bar */}
+        <div className="filter-bar" style={{ marginBottom: '20px' }}>
+          <div className="search-box">
+            <i className="fas fa-search"></i>
+            <input 
+              type="text" 
+              placeholder="Search by name, account number..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <button className="btn btn-primary" style={{ borderRadius: '12px' }}>
-              <i className="fas fa-search"></i> Find Consumer
-            </button>
           </div>
-          <div className="filter-group">
+          <div className="filters">
             <FormSelect
               label=""
               value={zoneFilter}
@@ -176,48 +321,67 @@ const Consumers: React.FC = () => {
               options={zoneOptions}
               placeholder="All Map Zones"
             />
-            <select
-              className="form-control"
+            <FormSelect
+              label=""
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">All Status Levels</option>
-              <option value="Active">Active Account</option>
-              <option value="Inactive">Inactive Account</option>
-              <option value="Suspended">Suspended/Delinquent</option>
-            </select>
-            <button className="btn btn-secondary" style={{ padding: '10px 16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #f1f5f9', fontWeight: '700', color: '#1B1B63' }} onClick={loadConsumers}>
-                <i className="fas fa-sync-alt"></i>
+              onChange={setStatusFilter}
+              options={[
+                { value: 'Active', label: 'Active Status' },
+                { value: 'Inactive', label: 'Inactive Status' },
+                { value: 'Disconnected', label: 'Disconnected' },
+              ]}
+              placeholder="All Account Status"
+            />
+          </div>
+          <div className="main-actions">
+            <button className="btn btn-primary" onClick={handleAddConsumer}>
+              <i className="fas fa-plus"></i> New Consumer
+            </button>
+            <button className="btn btn-secondary" onClick={loadConsumers} title="Refresh Records">
+              <i className="fas fa-sync-alt"></i>
             </button>
           </div>
         </div>
 
-        {/* Dynamic Consumer List */}
         <div className="consumers-card">
-          <div className="card-header">
-            <h2 className="card-title">Detailed Consumer Records</h2>
-            <span className="badge">{filteredConsumers.length} ACTIVE RECORDS</span>
-          </div>
-          <div className="card-body">
-            <div style={{ padding: '24px' }}>
-                <DataTable columns={columns} data={filteredConsumers} loading={loading} />
-            </div>
+          <div className="card-body p-0">
+            <DataTable
+              columns={columns}
+              data={filteredConsumers}
+              loading={loading}
+              emptyMessage="No consumers found matching your search criteria."
+            />
           </div>
         </div>
 
-        {showDetailsModal && selectedConsumer && (
-          <Modal
-            isOpen={showDetailsModal}
-            title="Consumer Details"
-            onClose={() => setShowDetailsModal(false)}
-            size="large"
-          >
+        {/* Details Modal */}
+        <Modal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          title="Consumer Information"
+          size="large"
+          footer={
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button className="btn btn-secondary" onClick={() => setIsDetailsModalOpen(false)}>
+                Close
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ backgroundColor: '#1B1B63', borderColor: '#1B1B63' }}
+                onClick={() => selectedConsumer && handleEditConsumer(selectedConsumer)}
+              >
+                <i className="fas fa-edit"></i> Edit Records
+              </button>
+            </div>
+          }
+        >
+          {selectedConsumer && (
             <div className="details-container" style={{ padding: '20px' }}>
               <div className="details-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
                 {/* Personal Data Column */}
                 <div className="detail-col">
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-                    <i className="fas fa-user"></i> Personal Data
+                    <i className="fas fa-user-circle"></i> Personal Data
                   </h3>
                   <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                     <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Account No:</span>
@@ -238,7 +402,7 @@ const Consumers: React.FC = () => {
                 {/* Account Info Column */}
                 <div className="detail-col">
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-                    <i className="fas fa-credit-card"></i> Account Info
+                    <i className="fas fa-id-card"></i> Account Info
                   </h3>
                   <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                     <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Map Zone:</span>
@@ -250,15 +414,42 @@ const Consumers: React.FC = () => {
                   </div>
                   <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                     <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Status:</span>
-                    <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
+                    <span className={`status-badge status-${(selectedConsumer.Status || 'active').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
                       {selectedConsumer.Status}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-          </Modal>
-        )}
+          )}
+        </Modal>
+
+        {/* Form Modal */}
+        <Modal
+          isOpen={isFormModalOpen}
+          onClose={() => setIsFormModalOpen(false)}
+          title={editingConsumer ? 'Update Consumer' : 'Add New Consumer'}
+          size="large"
+          footer={
+            <>
+              <button className="btn btn-secondary" onClick={() => setIsFormModalOpen(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSaveConsumer}><i className="fas fa-save"></i> Save Changes</button>
+            </>
+          }
+        >
+          <div className="form-grid">
+            <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
+            <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
+            <FormInput label="Last Name" value={formData.lastName} onChange={(v) => setFormData({ ...formData, lastName: v })} required />
+            <FormInput label="Account Number" value={formData.accountNumber} onChange={(v) => setFormData({ ...formData, accountNumber: v })} required />
+            <FormInput label="Meter Number" value={formData.meterNumber} onChange={(v) => setFormData({ ...formData, meterNumber: v })} />
+            <FormInput label="Address" value={formData.address} onChange={(v) => setFormData({ ...formData, address: v })} />
+            <FormInput label="Contact #" value={formData.contactNumber} onChange={(v) => setFormData({ ...formData, contactNumber: v })} />
+            <FormSelect label="Zone" value={formData.zoneId} onChange={(v) => setFormData({ ...formData, zoneId: v })} options={zoneOptions} required />
+            <FormSelect label="Type" value={formData.classificationId} onChange={(v) => setFormData({ ...formData, classificationId: v })} options={classificationOptions} required />
+            <FormInput label="Date Joined" type="date" value={formData.connectionDate} onChange={(v) => setFormData({ ...formData, connectionDate: v })} />
+          </div>
+        </Modal>
       </div>
     </MainLayout>
   );

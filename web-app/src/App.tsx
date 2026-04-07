@@ -37,8 +37,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const RoleDashboard: React.FC = () => {
   const { user } = useAuth();
   if (user?.role_id === 1) return <AssessorDashboard />;
-  if (user?.role_id === 3) return <BillingDashboard />;
+  if (user?.role_id === 2) return <BillingDashboard />;
   if (user?.role_id === 4) return <TreasurerDashboard />;
+  if (user?.role_id === 3) return <Navigate to="/meter-reading" />;
   return <AssessorDashboard />;
 };
 
@@ -50,7 +51,7 @@ const RoleLedger: React.FC = () => {
 
 const RoleConsumers: React.FC = () => {
   const { user } = useAuth();
-  if (user?.role_id === 3) return <BillingConsumers />;
+  if (user?.role_id === 2 || user?.role_id === 3) return <BillingConsumers />;
   return <Navigate to="/accounts" />;
 };
 

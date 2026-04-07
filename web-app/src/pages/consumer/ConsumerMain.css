@@ -26,11 +26,26 @@
 
 /* ─── Header Section ─────────────────────────────────────────────────────── */
 .cm-header {
-  margin-bottom: 45px;
+  margin-bottom: 50px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   animation: fadeInDown 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-bottom: 30px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+/* Subtle Shadow Line Effect */
+.cm-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.1), transparent);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
 .cm-header-info {
@@ -39,49 +54,57 @@
 }
 
 .cm-dashboard-label {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--primary-navy);
+  font-size: 12px;
+  font-weight: 700;
+  color: #2563eb;
   text-transform: uppercase;
-  letter-spacing: 2.5px;
-  margin-bottom: 10px;
-  opacity: 0.8;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  opacity: 0.9;
 }
 
 .cm-name {
-  font-size: 40px;
-  font-weight: 900;
+  font-size: 36px;
+  font-weight: 800;
   color: var(--dark-navy);
-  margin: 0 0 16px;
-  letter-spacing: -1px;
+  margin: 0 0 12px;
+  letter-spacing: -0.5px;
 }
 
 .cm-meta {
   display: flex;
-  gap: 25px;
+  gap: 15px;
   align-items: center;
+  margin-top: 5px;
 }
 
-.cm-meta span {
-  font-size: 16px;
+.cm-meta-item {
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-muted);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 40px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+  border: 1px solid #f1f5f9;
 }
+
+.cm-meta-item i { color: #2563eb; font-size: 14px; }
 
 .cm-status {
   padding: 8px 18px;
   border-radius: 40px;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
 }
 
 .cm-status.active { 
@@ -169,6 +192,7 @@
 .cm-card-amount.green { 
   background: linear-gradient(135deg, #059669, #10b981);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -176,6 +200,7 @@
 .cm-card-amount.red { 
   background: linear-gradient(135deg, #dc2626, #ef4444);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -274,74 +299,112 @@
 
 /* ─── Sections ───────────────────────────────────────────────────────────── */
 .cm-section {
-  background: var(--glass-bg);
-  border-radius: var(--radius-lg);
-  padding: 30px;
-  box-shadow: var(--shadow-premium);
-  margin-bottom: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  animation: fadeInUp 0.5s ease-out;
+  background: white;
+  padding: 35px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+  margin-top: 40px;
+  border: 1px solid #f1f5f9;
 }
 
 .cm-section-title {
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 800;
   color: var(--dark-navy);
   margin-bottom: 25px;
   display: flex;
   align-items: center;
   gap: 12px;
-  letter-spacing: -0.5px;
 }
 
-.cm-section-title i { color: var(--primary-navy); }
+.cm-section-title i { color: #2563eb; font-size: 18px; }
 
-/* ─── Bar Chart: Vibrant Gradients ────────────────────────────────────────── */
-.bar-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 20px;
-  height: 200px;
-  padding: 10px 0 40px;
+/* ─── Chart Controls ─── */
+.cm-chart-wrapper {
   position: relative;
 }
 
-.bar-col {
-  flex: 1;
+.cm-chart-controls {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: flex-end;
-  height: 100%;
+  margin-bottom: 30px;
+  padding: 0 10px;
 }
 
-.bar-value { 
-  font-size: 13px; 
-  font-weight: 800; 
-  margin-bottom: 6px; 
-  color: var(--dark-navy); 
+.cm-view-toggle {
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  display: flex;
+  gap: 4px;
 }
 
-.bar-fill {
-  width: 100%;
-  /* Modern Vibrant Green to Yellow gradient */
-  background: linear-gradient(180deg, var(--vibrant-green), var(--vibrant-gold));
-  border-radius: 10px 10px 2px 2px;
-  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
-}
-
-.bar-col:hover .bar-fill {
-  transform: scaleY(1.02);
-  filter: brightness(1.1);
-}
-
-.bar-label { 
-  font-size: 12px; 
+.cm-toggle-btn {
+  padding: 8px 20px;
+  border-radius: 9px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text-muted); 
-  margin-top: 10px; 
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #64748b;
+  background: transparent;
 }
+
+.cm-toggle-btn.active {
+  background: white;
+  color: #2563eb;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.cm-year-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cm-year-select-wrapper label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.cm-year-select {
+  padding: 8px 15px;
+  border-radius: 10px;
+  border: 1.5px solid #f1f5f9;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark-navy);
+  background: white;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.cm-year-select:focus {
+  border-color: #2563eb;
+}
+
+/* ─── Bar Chart: Vibrant Gradients ────────────────────────────────────────── */
+/* ─── Premium Consumption Chart ───────────────────────────────────────────── */
+.consumption-chart-container {
+  background: white;
+  padding: 10px;
+  border-radius: 16px;
+  margin-bottom: 10px;
+}
+
+.recharts-cartesian-axis-tick-value {
+  font-family: 'Outfit', 'Inter', sans-serif !important;
+  font-weight: 700;
+}
+
+.recharts-tooltip-wrapper {
+  outline: none;
+}
+
 
 /* ─── Table: Clean & Modern ───────────────────────────────────────────────── */
 .cm-table-wrapper {
