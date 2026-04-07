@@ -346,21 +346,41 @@ async function writeSystemLog(action, options = {}) {
   const role = options.role || 'System';
 
   try {
-    const { rows } = await pool.query(
-      'INSERT INTO system_logs (account_id, role, action) VALUES ($1, $2, $3) RETURNING *',
-      [accountId, role, truncateLogValue(action)]
-    );
+    await withPostgresPrimary(
+      'logs.system.write',
+      async () => {
+        const { rows } = await pool.query(
+          'INSERT INTO system_logs (account_id, role, action) VALUES ($1, $2, $3) RETURNING *',
+          [accountId, role, truncateLogValue(action)]
+        );
 
-    if (supabase && rows[0]) {
-      const { error } = await supabase.from('system_logs').upsert(rows, {
-        onConflict: 'log_id',
-        ignoreDuplicates: false,
-      });
+        if (supabase && rows[0]) {
+          const { error } = await supabase.from('system_logs').upsert(rows, {
+            onConflict: 'log_id',
+            ignoreDuplicates: false,
+          });
 
-      if (error) {
-        console.error('Supabase system log mirror failed:', error.message);
+          if (error) {
+            console.error('Supabase system log mirror failed:', error.message);
+          }
+        }
+      },
+      async () => {
+        if (!supabase) {
+          return;
+        }
+
+        const { error } = await supabase.from('system_logs').insert([{
+          account_id: accountId,
+          role,
+          action: truncateLogValue(action),
+        }]);
+
+        if (error) {
+          throw error;
+        }
       }
-    }
+    );
   } catch (error) {
     console.error('Database system log write failed:', error.message);
   }
@@ -374,21 +394,43 @@ async function writeErrorLog(details) {
   const status = details.status || 'Open';
 
   try {
-    const { rows } = await pool.query(
-      'INSERT INTO error_logs (severity, module, error_message, user_id, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [severity, moduleName, errorMessage, userId, status]
-    );
+    await withPostgresPrimary(
+      'logs.error.write',
+      async () => {
+        const { rows } = await pool.query(
+          'INSERT INTO error_logs (severity, module, error_message, user_id, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+          [severity, moduleName, errorMessage, userId, status]
+        );
 
-    if (supabase && rows[0]) {
-      const { error } = await supabase.from('error_logs').upsert(rows, {
-        onConflict: 'error_id',
-        ignoreDuplicates: false,
-      });
+        if (supabase && rows[0]) {
+          const { error } = await supabase.from('error_logs').upsert(rows, {
+            onConflict: 'error_id',
+            ignoreDuplicates: false,
+          });
 
-      if (error) {
-        console.error('Supabase error log mirror failed:', error.message);
+          if (error) {
+            console.error('Supabase error log mirror failed:', error.message);
+          }
+        }
+      },
+      async () => {
+        if (!supabase) {
+          return;
+        }
+
+        const { error } = await supabase.from('error_logs').insert([{
+          severity,
+          module: moduleName,
+          error_message: errorMessage,
+          user_id: userId,
+          status,
+        }]);
+
+        if (error) {
+          throw error;
+        }
       }
-    }
+    );
   } catch (error) {
     console.error('Database error log write failed:', error.message);
   }
@@ -746,6 +788,79 @@ function startSupabaseSyncScheduler() {
   }, syncIntervalMs);
 }
 
+function mapConsumerRecord(consumer, zoneMap = new Map(), classificationMap = new Map(), meterMap = new Map()) {
+  return {
+    Consumer_ID: consumer.consumer_id,
+    First_Name: consumer.first_name,
+    Middle_Name: consumer.middle_name,
+    Last_Name: consumer.last_name,
+    Address: consumer.address,
+    Zone_ID: consumer.zone_id,
+    Classification_ID: consumer.classification_id,
+    Account_Number: consumer.account_number,
+    Status: consumer.status,
+    Contact_Number: consumer.contact_number,
+    Connection_Date: consumer.connection_date,
+    Meter_ID: meterMap.get(consumer.consumer_id)?.meter_id || null,
+    Meter_Number: meterMap.get(consumer.consumer_id)?.meter_serial_number || null,
+    Zone_Name: zoneMap.get(consumer.zone_id) || null,
+    Classification_Name: classificationMap.get(consumer.classification_id) || null,
+  };
+}
+
+function mapBillRecord(bill, consumerMap = new Map(), classificationMap = new Map()) {
+  const consumer = consumerMap.get(bill.consumer_id);
+  return {
+    Bill_ID: bill.bill_id,
+    Consumer_ID: bill.consumer_id,
+    Reading_ID: bill.reading_id,
+    Bill_Date: bill.bill_date,
+    Due_Date: bill.due_date,
+    Total_Amount: bill.total_amount,
+    Status: bill.status,
+    Billing_Month: bill.billing_month,
+    Consumer_Name: consumer ? `${consumer.first_name || ''} ${consumer.last_name || ''}`.trim() : null,
+    Address: consumer?.address || null,
+    Account_Number: consumer?.account_number || null,
+    Classification: consumer ? classificationMap.get(consumer.classification_id) || null : null,
+  };
+}
+
+function mapPaymentRecord(payment, consumerMap = new Map(), billMap = new Map()) {
+  const consumer = consumerMap.get(payment.consumer_id);
+  const bill = billMap.get(payment.bill_id);
+  return {
+    Payment_ID: payment.payment_id,
+    Bill_ID: payment.bill_id,
+    Consumer_ID: payment.consumer_id,
+    Amount_Paid: payment.amount_paid,
+    Payment_Date: payment.payment_date,
+    Payment_Method: payment.payment_method,
+    Reference_No: payment.reference_number,
+    Reference_Number: payment.reference_number,
+    OR_Number: payment.or_number,
+    Status: payment.status,
+    Consumer_Name: consumer ? `${consumer.first_name || ''} ${consumer.last_name || ''}`.trim() : null,
+    Bill_Amount: bill?.total_amount || null,
+  };
+}
+
+function mapMeterReadingRecord(reading, consumerMap = new Map()) {
+  const consumer = consumerMap.get(reading.consumer_id);
+  return {
+    Reading_ID: reading.reading_id,
+    Consumer_ID: reading.consumer_id,
+    Meter_ID: reading.meter_id,
+    Previous_Reading: reading.previous_reading,
+    Current_Reading: reading.current_reading,
+    Consumption: reading.consumption,
+    Reading_Status: reading.reading_status,
+    Notes: reading.notes,
+    Reading_Date: reading.reading_date,
+    Consumer_Name: consumer ? `${consumer.first_name || ''} ${consumer.last_name || ''}`.trim() : null,
+  };
+}
+
 // Get roles
 app.get('/api/roles', async (req, res) => {
   try {
@@ -934,8 +1049,19 @@ app.get('/api/users/unified', async (req, res) => {
 app.post('/api/admin/approve-user', async (req, res) => {
   const { accountId } = req.body;
   try {
-    await pool.query('UPDATE accounts SET account_status = $1 WHERE account_id = $2', ['Active', accountId]);
-    await pool.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
+    await withPostgresPrimary(
+      'users.approve',
+      async () => {
+        await pool.query('UPDATE accounts SET account_status = $1 WHERE account_id = $2', ['Active', accountId]);
+        await pool.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
+      },
+      async () => {
+        const { error: accountError } = await supabase.from('accounts').update({ account_status: 'Active' }).eq('account_id', accountId);
+        if (accountError) throw accountError;
+        const { error: consumerError } = await supabase.from('consumer').update({ status: 'Active' }).eq('login_id', accountId);
+        if (consumerError) throw consumerError;
+      }
+    );
     scheduleImmediateSync('admin-approve-user');
     return res.json({ success: true, message: 'Account approved successfully' });
   } catch (error) {
@@ -949,15 +1075,26 @@ app.post('/api/admin/approve-user', async (req, res) => {
 app.post('/api/admin/reject-user', async (req, res) => {
   const { accountId } = req.body;
   try {
-    const { rows: consumers } = await pool.query('SELECT consumer_id FROM consumer WHERE login_id = $1', [accountId]);
-    await pool.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
-    await pool.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
-    if (supabase) {
-      for (const consumer of consumers) {
-        await mirrorDeleteToSupabase('consumer', 'consumer_id', consumer.consumer_id);
+    await withPostgresPrimary(
+      'users.reject',
+      async () => {
+        const { rows: consumers } = await pool.query('SELECT consumer_id FROM consumer WHERE login_id = $1', [accountId]);
+        await pool.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
+        await pool.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
+        if (supabase) {
+          for (const consumer of consumers) {
+            await mirrorDeleteToSupabase('consumer', 'consumer_id', consumer.consumer_id);
+          }
+          await mirrorDeleteToSupabase('accounts', 'account_id', accountId);
+        }
+      },
+      async () => {
+        const { error: consumerError } = await supabase.from('consumer').delete().eq('login_id', accountId);
+        if (consumerError) throw consumerError;
+        const { error: accountError } = await supabase.from('accounts').delete().eq('account_id', accountId);
+        if (accountError) throw accountError;
       }
-      await mirrorDeleteToSupabase('accounts', 'account_id', accountId);
-    }
+    );
     return res.json({ success: true, message: 'Account rejected and deleted' });
   } catch (error) {
     await logRequestError(req, 'users.reject', error);
@@ -975,12 +1112,27 @@ app.post('/api/users', async (req, res) => {
   }
   
   try {
-    const { rows } = await pool.query(
-      'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING *',
-      [username, password, roleId, 'Active']
+    const user = await withPostgresPrimary(
+      'users.create',
+      async () => {
+        const { rows } = await pool.query(
+          'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING *',
+          [username, password, roleId, 'Active']
+        );
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('accounts')
+          .insert([{ username, password, role_id: roleId, account_status: 'Active' }])
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
     );
     scheduleImmediateSync('users-create');
-    return res.json({ success: true, data: rows[0] });
+    return res.json({ success: true, data: user });
   } catch (error) {
     await logRequestError(req, 'users.create', error);
     console.error('Error creating user:', error);
@@ -994,18 +1146,31 @@ app.put('/api/users/:id', async (req, res) => {
   const { username, fullName, password, roleId } = req.body;
   
   try {
-    let query = 'UPDATE accounts SET role_id = $1';
-    let params = [roleId];
-    
-    if (password) {
-      query += ', password = $2';
-      params.push(password);
-    }
-    
-    query += ` WHERE account_id = $${params.length + 1}`;
-    params.push(id);
-    
-    await pool.query(query, params);
+    await withPostgresPrimary(
+      'users.update',
+      async () => {
+        let query = 'UPDATE accounts SET role_id = $1';
+        let params = [roleId];
+        
+        if (password) {
+          query += ', password = $2';
+          params.push(password);
+        }
+        
+        query += ` WHERE account_id = $${params.length + 1}`;
+        params.push(id);
+        
+        await pool.query(query, params);
+      },
+      async () => {
+        const payload = { role_id: roleId };
+        if (password) {
+          payload.password = password;
+        }
+        const { error } = await supabase.from('accounts').update(payload).eq('account_id', id);
+        if (error) throw error;
+      }
+    );
     scheduleImmediateSync('users-update');
     return res.json({ success: true, message: 'User updated successfully' });
   } catch (error) {
@@ -1020,10 +1185,19 @@ app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    await pool.query('DELETE FROM accounts WHERE account_id = $1', [id]);
-    if (supabase) {
-      await mirrorDeleteToSupabase('accounts', 'account_id', id);
-    }
+    await withPostgresPrimary(
+      'users.delete',
+      async () => {
+        await pool.query('DELETE FROM accounts WHERE account_id = $1', [id]);
+        if (supabase) {
+          await mirrorDeleteToSupabase('accounts', 'account_id', id);
+        }
+      },
+      async () => {
+        const { error } = await supabase.from('accounts').delete().eq('account_id', id);
+        if (error) throw error;
+      }
+    );
     return res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     await logRequestError(req, 'users.delete', error);
@@ -1144,7 +1318,18 @@ app.post('/api/login', async (req, res) => {
 // Get zones
 app.get('/api/zones', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM zone');
+    const rows = await withPostgresPrimary(
+      'zones.fetch',
+      async () => {
+        const { rows } = await pool.query('SELECT * FROM zone');
+        return rows;
+      },
+      async () => {
+        const { data, error } = await supabase.from('zone').select('*').order('zone_id');
+        if (error) throw error;
+        return data || [];
+      }
+    );
     return res.json({ success: true, data: rows });
   } catch (error) {
     await logRequestError(req, 'zones.fetch', error);
@@ -1156,7 +1341,18 @@ app.get('/api/zones', async (req, res) => {
 // Get classifications
 app.get('/api/classifications', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM classification');
+    const rows = await withPostgresPrimary(
+      'classifications.fetch',
+      async () => {
+        const { rows } = await pool.query('SELECT * FROM classification');
+        return rows;
+      },
+      async () => {
+        const { data, error } = await supabase.from('classification').select('*').order('classification_id');
+        if (error) throw error;
+        return data || [];
+      }
+    );
     return res.json({ success: true, data: rows });
   } catch (error) {
     await logRequestError(req, 'classifications.fetch', error);
@@ -1169,10 +1365,26 @@ app.get('/api/classifications', async (req, res) => {
 // Get latest water rates
 app.get('/api/water-rates/latest', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      'SELECT * FROM waterrates ORDER BY effective_date DESC LIMIT 1'
+    const row = await withPostgresPrimary(
+      'waterRates.fetchLatest',
+      async () => {
+        const { rows } = await pool.query(
+          'SELECT * FROM waterrates ORDER BY effective_date DESC LIMIT 1'
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('waterrates')
+          .select('*')
+          .order('effective_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        return data || null;
+      }
     );
-    return res.json({ success: true, data: rows[0] });
+    return res.json({ success: true, data: row });
   } catch (error) {
     await logRequestError(req, 'waterRates.fetchLatest', error);
     console.error('Error fetching latest water rates:', error);
@@ -1186,20 +1398,40 @@ app.post('/api/water-rates', async (req, res) => {
   const effective_date = new Date().toISOString();
 
   try {
-    const { rows } = await pool.query(
-      `INSERT INTO waterrates (minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [
-        parseInt(minimum_cubic),
-        parseFloat(minimum_rate),
-        parseFloat(excess_rate_per_cubic),
-        effective_date,
-        modified_by ? parseInt(modified_by) : null,
-        effective_date
-      ]
+    const payload = {
+      minimum_cubic: parseInt(minimum_cubic),
+      minimum_rate: parseFloat(minimum_rate),
+      excess_rate_per_cubic: parseFloat(excess_rate_per_cubic),
+      effective_date,
+      modified_by: modified_by ? parseInt(modified_by) : null,
+      modified_date: effective_date,
+    };
+
+    const row = await withPostgresPrimary(
+      'waterRates.create',
+      async () => {
+        const { rows } = await pool.query(
+          `INSERT INTO waterrates (minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+          [
+            payload.minimum_cubic,
+            payload.minimum_rate,
+            payload.excess_rate_per_cubic,
+            payload.effective_date,
+            payload.modified_by,
+            payload.modified_date
+          ]
+        );
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase.from('waterrates').insert([payload]).select().single();
+        if (error) throw error;
+        return data;
+      }
     );
     scheduleImmediateSync('water-rates-create');
-    return res.json({ success: true, data: rows[0] });
+    return res.json({ success: true, data: row });
   } catch (error) {
     await logRequestError(req, 'waterRates.create', error);
     console.error('Error creating water rate:', error);
@@ -1209,35 +1441,65 @@ app.post('/api/water-rates', async (req, res) => {
 
 app.get('/api/consumers', async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT 
-        c.consumer_id AS "Consumer_ID",
-        c.first_name AS "First_Name",
-        c.middle_name AS "Middle_Name",
-        c.last_name AS "Last_Name",
-        c.address AS "Address",
-        c.zone_id AS "Zone_ID",
-        c.classification_id AS "Classification_ID",
-        c.account_number AS "Account_Number",
-        c.status AS "Status",
-        c.contact_number AS "Contact_Number",
-        c.connection_date AS "Connection_Date",
-        m.meter_id AS "Meter_ID",
-        m.meter_serial_number AS "Meter_Number",
-        z.zone_name AS "Zone_Name", 
-        cl.classification_name AS "Classification_Name"
-      FROM consumer c
-      LEFT JOIN LATERAL (
-        SELECT meter_id, meter_serial_number
-        FROM meter
-        WHERE consumer_id = c.consumer_id
-        ORDER BY meter_id DESC
-        LIMIT 1
-      ) m ON true
-      LEFT JOIN zone z ON c.zone_id = z.zone_id
-      LEFT JOIN classification cl ON c.classification_id = cl.classification_id
-      ORDER BY c.consumer_id DESC
-    `);
+    const rows = await withPostgresPrimary(
+      'consumers.fetch',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT 
+            c.consumer_id AS "Consumer_ID",
+            c.first_name AS "First_Name",
+            c.middle_name AS "Middle_Name",
+            c.last_name AS "Last_Name",
+            c.address AS "Address",
+            c.zone_id AS "Zone_ID",
+            c.classification_id AS "Classification_ID",
+            c.account_number AS "Account_Number",
+            c.status AS "Status",
+            c.contact_number AS "Contact_Number",
+            c.connection_date AS "Connection_Date",
+            m.meter_id AS "Meter_ID",
+            m.meter_serial_number AS "Meter_Number",
+            z.zone_name AS "Zone_Name", 
+            cl.classification_name AS "Classification_Name"
+          FROM consumer c
+          LEFT JOIN LATERAL (
+            SELECT meter_id, meter_serial_number
+            FROM meter
+            WHERE consumer_id = c.consumer_id
+            ORDER BY meter_id DESC
+            LIMIT 1
+          ) m ON true
+          LEFT JOIN zone z ON c.zone_id = z.zone_id
+          LEFT JOIN classification cl ON c.classification_id = cl.classification_id
+          ORDER BY c.consumer_id DESC
+        `);
+        return rows;
+      },
+      async () => {
+        const [{ data: consumers, error: consumerError }, { data: zones, error: zoneError }, { data: classifications, error: classificationError }, { data: meters, error: meterError }] = await Promise.all([
+          supabase.from('consumer').select('*').order('consumer_id', { ascending: false }),
+          supabase.from('zone').select('*'),
+          supabase.from('classification').select('*'),
+          supabase.from('meter').select('meter_id, consumer_id, meter_serial_number').order('meter_id', { ascending: false }),
+        ]);
+
+        if (consumerError) throw consumerError;
+        if (zoneError) throw zoneError;
+        if (classificationError) throw classificationError;
+        if (meterError) throw meterError;
+
+        const zoneMap = new Map((zones || []).map((zone) => [zone.zone_id, zone.zone_name]));
+        const classificationMap = new Map((classifications || []).map((classification) => [classification.classification_id, classification.classification_name]));
+        const meterMap = new Map();
+        for (const meter of meters || []) {
+          if (!meterMap.has(meter.consumer_id)) {
+            meterMap.set(meter.consumer_id, meter);
+          }
+        }
+
+        return (consumers || []).map((consumer) => mapConsumerRecord(consumer, zoneMap, classificationMap, meterMap));
+      }
+    );
     return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'consumers.fetch', error);
@@ -1259,52 +1521,87 @@ app.post('/api/consumers', async (req, res) => {
       });
     }
 
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
+    const createdConsumer = await withPostgresPrimary(
+      'consumers.create',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
 
-      const { rows } = await client.query(`
-        INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, account_number, status, contact_number, connection_date, login_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING *
-      `, [
-        consumer.First_Name,
-        consumer.Middle_Name,
-        consumer.Last_Name,
-        consumer.Address,
-        consumer.Zone_ID,
-        consumer.Classification_ID,
-        consumer.Account_Number,
-        consumer.Status || 'Active',
-        consumer.Contact_Number,
-        consumer.Connection_Date,
-        loginId
-      ]);
+          const { rows } = await client.query(`
+            INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, account_number, status, contact_number, connection_date, login_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING *
+          `, [
+            consumer.First_Name,
+            consumer.Middle_Name,
+            consumer.Last_Name,
+            consumer.Address,
+            consumer.Zone_ID,
+            consumer.Classification_ID,
+            consumer.Account_Number,
+            consumer.Status || 'Active',
+            consumer.Contact_Number,
+            consumer.Connection_Date,
+            loginId
+          ]);
 
-      if (meterNumber) {
-        await client.query(`
-          INSERT INTO meter (consumer_id, meter_serial_number)
-          VALUES ($1, $2)
-        `, [rows[0].consumer_id, meterNumber]);
+          if (meterNumber) {
+            await client.query(`
+              INSERT INTO meter (consumer_id, meter_serial_number)
+              VALUES ($1, $2)
+            `, [rows[0].consumer_id, meterNumber]);
+          }
+
+          await client.query('COMMIT');
+          return rows[0];
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('consumer')
+          .insert([{
+            first_name: consumer.First_Name,
+            middle_name: consumer.Middle_Name,
+            last_name: consumer.Last_Name,
+            address: consumer.Address,
+            zone_id: consumer.Zone_ID,
+            classification_id: consumer.Classification_ID,
+            account_number: consumer.Account_Number,
+            status: consumer.Status || 'Active',
+            contact_number: consumer.Contact_Number,
+            connection_date: consumer.Connection_Date,
+            login_id: loginId,
+          }])
+          .select()
+          .single();
+        if (error) throw error;
+
+        if (meterNumber) {
+          const { error: meterError } = await supabase
+            .from('meter')
+            .insert([{ consumer_id: data.consumer_id, meter_serial_number: meterNumber }]);
+          if (meterError) throw meterError;
+        }
+
+        return data;
       }
-
-      await client.query('COMMIT');
-      scheduleImmediateSync('consumers-create');
-      return res.json({
-        success: true,
-        data: {
-          Consumer_ID: rows[0].consumer_id,
-          Login_ID: rows[0].login_id,
-          ...consumer,
-          Meter_Number: meterNumber || null,
-        },
-      });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    );
+    scheduleImmediateSync('consumers-create');
+    return res.json({
+      success: true,
+      data: {
+        Consumer_ID: createdConsumer.consumer_id,
+        Login_ID: createdConsumer.login_id,
+        ...consumer,
+        Meter_Number: meterNumber || null,
+      },
+    });
   } catch (error) {
     await logRequestError(req, 'consumers.create', error);
     console.error('Error creating consumer:', error);
@@ -1318,60 +1615,106 @@ app.put('/api/consumers/:id', async (req, res) => {
   const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
   
   try {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
+    await withPostgresPrimary(
+      'consumers.update',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
 
-      await client.query(`
-        UPDATE consumer SET 
-          first_name = $1, middle_name = $2, last_name = $3, address = $4, zone_id = $5, 
-          classification_id = $6, account_number = $7, 
-          status = $8, contact_number = $9, connection_date = $10
-        WHERE consumer_id = $11
-      `, [
-        consumer.First_Name,
-        consumer.Middle_Name,
-        consumer.Last_Name,
-        consumer.Address,
-        consumer.Zone_ID,
-        consumer.Classification_ID,
-        consumer.Account_Number,
-        consumer.Status,
-        consumer.Contact_Number,
-        consumer.Connection_Date,
-        id
-      ]);
-
-      if (meterNumber) {
-        const { rows: existingMeters } = await client.query(`
-          SELECT meter_id
-          FROM meter
-          WHERE consumer_id = $1
-          ORDER BY meter_id DESC
-          LIMIT 1
-        `, [id]);
-
-        if (existingMeters.length > 0) {
           await client.query(`
-            UPDATE meter
-            SET meter_serial_number = $1
-            WHERE meter_id = $2
-          `, [meterNumber, existingMeters[0].meter_id]);
-        } else {
-          await client.query(`
-            INSERT INTO meter (consumer_id, meter_serial_number)
-            VALUES ($1, $2)
-          `, [id, meterNumber]);
+            UPDATE consumer SET 
+              first_name = $1, middle_name = $2, last_name = $3, address = $4, zone_id = $5, 
+              classification_id = $6, account_number = $7, 
+              status = $8, contact_number = $9, connection_date = $10
+            WHERE consumer_id = $11
+          `, [
+            consumer.First_Name,
+            consumer.Middle_Name,
+            consumer.Last_Name,
+            consumer.Address,
+            consumer.Zone_ID,
+            consumer.Classification_ID,
+            consumer.Account_Number,
+            consumer.Status,
+            consumer.Contact_Number,
+            consumer.Connection_Date,
+            id
+          ]);
+
+          if (meterNumber) {
+            const { rows: existingMeters } = await client.query(`
+              SELECT meter_id
+              FROM meter
+              WHERE consumer_id = $1
+              ORDER BY meter_id DESC
+              LIMIT 1
+            `, [id]);
+
+            if (existingMeters.length > 0) {
+              await client.query(`
+                UPDATE meter
+                SET meter_serial_number = $1
+                WHERE meter_id = $2
+              `, [meterNumber, existingMeters[0].meter_id]);
+            } else {
+              await client.query(`
+                INSERT INTO meter (consumer_id, meter_serial_number)
+                VALUES ($1, $2)
+              `, [id, meterNumber]);
+            }
+          }
+
+          await client.query('COMMIT');
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { error: consumerError } = await supabase
+          .from('consumer')
+          .update({
+            first_name: consumer.First_Name,
+            middle_name: consumer.Middle_Name,
+            last_name: consumer.Last_Name,
+            address: consumer.Address,
+            zone_id: consumer.Zone_ID,
+            classification_id: consumer.Classification_ID,
+            account_number: consumer.Account_Number,
+            status: consumer.Status,
+            contact_number: consumer.Contact_Number,
+            connection_date: consumer.Connection_Date,
+          })
+          .eq('consumer_id', id);
+        if (consumerError) throw consumerError;
+
+        if (meterNumber) {
+          const { data: existingMeters, error: meterLookupError } = await supabase
+            .from('meter')
+            .select('meter_id')
+            .eq('consumer_id', id)
+            .order('meter_id', { ascending: false })
+            .limit(1);
+          if (meterLookupError) throw meterLookupError;
+
+          if (existingMeters?.length) {
+            const { error: meterUpdateError } = await supabase
+              .from('meter')
+              .update({ meter_serial_number: meterNumber })
+              .eq('meter_id', existingMeters[0].meter_id);
+            if (meterUpdateError) throw meterUpdateError;
+          } else {
+            const { error: meterInsertError } = await supabase
+              .from('meter')
+              .insert([{ consumer_id: Number(id), meter_serial_number: meterNumber }]);
+            if (meterInsertError) throw meterInsertError;
+          }
         }
       }
-
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    );
 
     scheduleImmediateSync('consumers-update');
     return res.json({ success: true, message: 'Consumer updated successfully' });
@@ -1386,10 +1729,19 @@ app.delete('/api/consumers/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    await pool.query('DELETE FROM consumer WHERE consumer_id = $1', [id]);
-    if (supabase) {
-      await mirrorDeleteToSupabase('consumer', 'consumer_id', id);
-    }
+    await withPostgresPrimary(
+      'consumers.delete',
+      async () => {
+        await pool.query('DELETE FROM consumer WHERE consumer_id = $1', [id]);
+        if (supabase) {
+          await mirrorDeleteToSupabase('consumer', 'consumer_id', id);
+        }
+      },
+      async () => {
+        const { error } = await supabase.from('consumer').delete().eq('consumer_id', id);
+        if (error) throw error;
+      }
+    );
     return res.json({ success: true, message: 'Consumer deleted successfully' });
   } catch (error) {
     await logRequestError(req, 'consumers.delete', error);
@@ -1400,16 +1752,33 @@ app.delete('/api/consumers/:id', async (req, res) => {
 
 app.get('/api/meter-readings', async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT 
-        m.reading_id AS "Reading_ID", m.consumer_id AS "Consumer_ID", m.meter_id AS "Meter_ID",
-        m.previous_reading AS "Previous_Reading", m.current_reading AS "Current_Reading", 
-        m.consumption AS "Consumption", m.reading_status AS "Reading_Status", 
-        m.notes AS "Notes", m.reading_date AS "Reading_Date",
-        CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name"
-      FROM meterreadings m
-      LEFT JOIN consumer c ON m.consumer_id = c.consumer_id
-    `);
+    const rows = await withPostgresPrimary(
+      'meterReadings.fetch',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT 
+            m.reading_id AS "Reading_ID", m.consumer_id AS "Consumer_ID", m.meter_id AS "Meter_ID",
+            m.previous_reading AS "Previous_Reading", m.current_reading AS "Current_Reading", 
+            m.consumption AS "Consumption", m.reading_status AS "Reading_Status", 
+            m.notes AS "Notes", m.reading_date AS "Reading_Date",
+            CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name"
+          FROM meterreadings m
+          LEFT JOIN consumer c ON m.consumer_id = c.consumer_id
+        `);
+        return rows;
+      },
+      async () => {
+        const [{ data: readings, error: readingsError }, { data: consumers, error: consumersError }] = await Promise.all([
+          supabase.from('meterreadings').select('*').order('reading_id', { ascending: false }),
+          supabase.from('consumer').select('consumer_id, first_name, last_name'),
+        ]);
+        if (readingsError) throw readingsError;
+        if (consumersError) throw consumersError;
+
+        const consumerMap = new Map((consumers || []).map((consumer) => [consumer.consumer_id, consumer]));
+        return (readings || []).map((reading) => mapMeterReadingRecord(reading, consumerMap));
+      }
+    );
     return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'meterReadings.fetch', error);
@@ -1421,23 +1790,47 @@ app.get('/api/meter-readings', async (req, res) => {
 app.post('/api/meter-readings', async (req, res) => {
   try {
     const reading = req.body;
-    const { rows } = await pool.query(`
-      INSERT INTO meterreadings (consumer_id, meter_id, previous_reading, current_reading, consumption, reading_status, notes, reading_date, route_id, meter_reader_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *, reading_id AS "Reading_ID"
-    `, [
-      reading.Consumer_ID,
-      reading.Meter_ID,
-      reading.Previous_Reading,
-      reading.Current_Reading,
-      reading.Consumption,
-      reading.Reading_Status || 'Recorded',
-      reading.Notes,
-      reading.Reading_Date,
-      1, 1
-    ]);
+    const payload = {
+      consumer_id: reading.Consumer_ID,
+      meter_id: reading.Meter_ID,
+      previous_reading: reading.Previous_Reading,
+      current_reading: reading.Current_Reading,
+      consumption: reading.Consumption,
+      reading_status: reading.Reading_Status || 'Recorded',
+      notes: reading.Notes,
+      reading_date: reading.Reading_Date,
+      route_id: 1,
+      meter_reader_id: 1,
+    };
+    const row = await withPostgresPrimary(
+      'meterReadings.create',
+      async () => {
+        const { rows } = await pool.query(`
+          INSERT INTO meterreadings (consumer_id, meter_id, previous_reading, current_reading, consumption, reading_status, notes, reading_date, route_id, meter_reader_id)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING *, reading_id AS "Reading_ID"
+        `, [
+          payload.consumer_id,
+          payload.meter_id,
+          payload.previous_reading,
+          payload.current_reading,
+          payload.consumption,
+          payload.reading_status,
+          payload.notes,
+          payload.reading_date,
+          payload.route_id,
+          payload.meter_reader_id
+        ]);
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase.from('meterreadings').insert([payload]).select().single();
+        if (error) throw error;
+        return { ...data, Reading_ID: data.reading_id };
+      }
+    );
     scheduleImmediateSync('meter-readings-create');
-    return res.json(rows[0]);
+    return res.json(row);
   } catch (error) {
     await logRequestError(req, 'meterReadings.create', error);
     console.error('Error creating meter reading:', error);
@@ -1448,31 +1841,54 @@ app.post('/api/meter-readings', async (req, res) => {
 app.get('/api/bills', async (req, res) => {
   const { Account_Number, status } = req.query;
   try {
-    let queryStr = `
-      SELECT 
-        b.bill_id AS "Bill_ID", b.consumer_id AS "Consumer_ID", b.reading_id AS "Reading_ID",
-        b.bill_date AS "Bill_Date", b.due_date AS "Due_Date", b.total_amount AS "Total_Amount",
-        b.status AS "Status", b.billing_month AS "Billing_Month",
-        CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
-        c.address AS "Address", c.account_number AS "Account_Number",
-        cl.classification_name AS "Classification"
-      FROM bills b
-      LEFT JOIN consumer c ON b.consumer_id = c.consumer_id
-      LEFT JOIN classification cl ON c.classification_id = cl.classification_id
-      WHERE 1=1
-    `;
-    const params = [];
-    if (Account_Number) {
-      params.push(Account_Number);
-      queryStr += ` AND c.account_number = $${params.length}`;
-    }
-    if (status) {
-      params.push(status);
-      queryStr += ` AND b.status = $${params.length}`;
-    }
-    queryStr += ` ORDER BY b.bill_date DESC`;
-    
-    const { rows } = await pool.query(queryStr, params);
+    const rows = await withPostgresPrimary(
+      'bills.fetch',
+      async () => {
+        let queryStr = `
+          SELECT 
+            b.bill_id AS "Bill_ID", b.consumer_id AS "Consumer_ID", b.reading_id AS "Reading_ID",
+            b.bill_date AS "Bill_Date", b.due_date AS "Due_Date", b.total_amount AS "Total_Amount",
+            b.status AS "Status", b.billing_month AS "Billing_Month",
+            CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
+            c.address AS "Address", c.account_number AS "Account_Number",
+            cl.classification_name AS "Classification"
+          FROM bills b
+          LEFT JOIN consumer c ON b.consumer_id = c.consumer_id
+          LEFT JOIN classification cl ON c.classification_id = cl.classification_id
+          WHERE 1=1
+        `;
+        const params = [];
+        if (Account_Number) {
+          params.push(Account_Number);
+          queryStr += ` AND c.account_number = $${params.length}`;
+        }
+        if (status) {
+          params.push(status);
+          queryStr += ` AND b.status = $${params.length}`;
+        }
+        queryStr += ` ORDER BY b.bill_date DESC`;
+        
+        const { rows } = await pool.query(queryStr, params);
+        return rows;
+      },
+      async () => {
+        const [{ data: bills, error: billsError }, { data: consumers, error: consumersError }, { data: classifications, error: classificationsError }] = await Promise.all([
+          supabase.from('bills').select('*').order('bill_date', { ascending: false }),
+          supabase.from('consumer').select('consumer_id, first_name, last_name, address, account_number, classification_id'),
+          supabase.from('classification').select('classification_id, classification_name'),
+        ]);
+        if (billsError) throw billsError;
+        if (consumersError) throw consumersError;
+        if (classificationsError) throw classificationsError;
+
+        const consumerMap = new Map((consumers || []).map((consumer) => [consumer.consumer_id, consumer]));
+        const classificationMap = new Map((classifications || []).map((classification) => [classification.classification_id, classification.classification_name]));
+
+        return (bills || [])
+          .map((bill) => mapBillRecord(bill, consumerMap, classificationMap))
+          .filter((bill) => (!Account_Number || bill.Account_Number === Account_Number) && (!status || bill.Status === status));
+      }
+    );
     return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'bills.fetch', error);
@@ -1484,21 +1900,47 @@ app.get('/api/bills', async (req, res) => {
 app.post('/api/bills', async (req, res) => {
   try {
     const bill = req.body;
-    const { rows } = await pool.query(`
-      INSERT INTO bills (consumer_id, reading_id, bill_date, due_date, total_amount, status, billing_officer_id, billing_month, date_covered_from, date_covered_to)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *, bill_id AS "Bill_ID"
-    `, [
-      bill.Consumer_ID,
-      bill.Reading_ID,
-      bill.Bill_Date,
-      bill.Due_Date,
-      bill.Total_Amount,
-      bill.Status || 'Unpaid',
-      1, 'April 2026', new Date(), new Date()
-    ]);
+    const payload = {
+      consumer_id: bill.Consumer_ID,
+      reading_id: bill.Reading_ID,
+      bill_date: bill.Bill_Date,
+      due_date: bill.Due_Date,
+      total_amount: bill.Total_Amount,
+      status: bill.Status || 'Unpaid',
+      billing_officer_id: 1,
+      billing_month: 'April 2026',
+      date_covered_from: new Date(),
+      date_covered_to: new Date(),
+    };
+    const row = await withPostgresPrimary(
+      'bills.create',
+      async () => {
+        const { rows } = await pool.query(`
+          INSERT INTO bills (consumer_id, reading_id, bill_date, due_date, total_amount, status, billing_officer_id, billing_month, date_covered_from, date_covered_to)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING *, bill_id AS "Bill_ID"
+        `, [
+          payload.consumer_id,
+          payload.reading_id,
+          payload.bill_date,
+          payload.due_date,
+          payload.total_amount,
+          payload.status,
+          payload.billing_officer_id,
+          payload.billing_month,
+          payload.date_covered_from,
+          payload.date_covered_to
+        ]);
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase.from('bills').insert([payload]).select().single();
+        if (error) throw error;
+        return { ...data, Bill_ID: data.bill_id };
+      }
+    );
     scheduleImmediateSync('bills-create');
-    return res.json(rows[0]);
+    return res.json(row);
   } catch (error) {
     await logRequestError(req, 'bills.create', error);
     console.error('Error creating bill:', error);
@@ -1565,19 +2007,39 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
 
 app.get('/api/payments', async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT 
-        p.payment_id AS "Payment_ID", p.bill_id AS "Bill_ID", p.consumer_id AS "Consumer_ID",
-        p.amount_paid AS "Amount_Paid", p.payment_date AS "Payment_Date", 
-        p.payment_method AS "Payment_Method", p.reference_number AS "Reference_No",
-        p.reference_number AS "Reference_Number", p.or_number AS "OR_Number",
-        p.status AS "Status",
-        CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
-        b.total_amount AS "Bill_Amount"
-      FROM payment p
-      LEFT JOIN consumer c ON p.consumer_id = c.consumer_id
-      LEFT JOIN bills b ON p.bill_id = b.bill_id
-    `);
+    const rows = await withPostgresPrimary(
+      'payments.fetch',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT 
+            p.payment_id AS "Payment_ID", p.bill_id AS "Bill_ID", p.consumer_id AS "Consumer_ID",
+            p.amount_paid AS "Amount_Paid", p.payment_date AS "Payment_Date", 
+            p.payment_method AS "Payment_Method", p.reference_number AS "Reference_No",
+            p.reference_number AS "Reference_Number", p.or_number AS "OR_Number",
+            p.status AS "Status",
+            CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
+            b.total_amount AS "Bill_Amount"
+          FROM payment p
+          LEFT JOIN consumer c ON p.consumer_id = c.consumer_id
+          LEFT JOIN bills b ON p.bill_id = b.bill_id
+        `);
+        return rows;
+      },
+      async () => {
+        const [{ data: payments, error: paymentsError }, { data: consumers, error: consumersError }, { data: bills, error: billsError }] = await Promise.all([
+          supabase.from('payment').select('*').order('payment_date', { ascending: false }),
+          supabase.from('consumer').select('consumer_id, first_name, last_name'),
+          supabase.from('bills').select('bill_id, total_amount'),
+        ]);
+        if (paymentsError) throw paymentsError;
+        if (consumersError) throw consumersError;
+        if (billsError) throw billsError;
+
+        const consumerMap = new Map((consumers || []).map((consumer) => [consumer.consumer_id, consumer]));
+        const billMap = new Map((bills || []).map((bill) => [bill.bill_id, bill]));
+        return (payments || []).map((payment) => mapPaymentRecord(payment, consumerMap, billMap));
+      }
+    );
     return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'payments.fetch', error);
@@ -1589,24 +2051,47 @@ app.get('/api/payments', async (req, res) => {
 app.post('/api/payments', async (req, res) => {
   try {
     const payment = req.body;
-    const { rows } = await pool.query(`
-      INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number, or_number, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *, payment_id AS "Payment_ID"
-    `, [
-      payment.Bill_ID,
-      payment.Consumer_ID,
-      payment.Amount_Paid,
-      payment.Payment_Date,
-      payment.Payment_Method,
-      payment.Reference_No || payment.Reference_Number || null,
-      payment.OR_Number || null,
-      payment.Status || 'Pending'
-    ]);
-    
-    await pool.query('UPDATE bills SET status = $1 WHERE bill_id = $2', ['Paid', payment.Bill_ID]);
+    const payload = {
+      bill_id: payment.Bill_ID,
+      consumer_id: payment.Consumer_ID,
+      amount_paid: payment.Amount_Paid,
+      payment_date: payment.Payment_Date,
+      payment_method: payment.Payment_Method,
+      reference_number: payment.Reference_No || payment.Reference_Number || null,
+      or_number: payment.OR_Number || null,
+      status: payment.Status || 'Pending',
+    };
+    const row = await withPostgresPrimary(
+      'payments.create',
+      async () => {
+        const { rows } = await pool.query(`
+          INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number, or_number, status)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          RETURNING *, payment_id AS "Payment_ID"
+        `, [
+          payload.bill_id,
+          payload.consumer_id,
+          payload.amount_paid,
+          payload.payment_date,
+          payload.payment_method,
+          payload.reference_number,
+          payload.or_number,
+          payload.status
+        ]);
+        
+        await pool.query('UPDATE bills SET status = $1 WHERE bill_id = $2', ['Paid', payment.Bill_ID]);
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase.from('payment').insert([payload]).select().single();
+        if (error) throw error;
+        const { error: billError } = await supabase.from('bills').update({ status: 'Paid' }).eq('bill_id', payment.Bill_ID);
+        if (billError) throw billError;
+        return { ...data, Payment_ID: data.payment_id };
+      }
+    );
     scheduleImmediateSync('payments-create');
-    return res.json(rows[0]);
+    return res.json(row);
   } catch (error) {
     await logRequestError(req, 'payments.create', error);
     console.error('Error creating payment:', error);
