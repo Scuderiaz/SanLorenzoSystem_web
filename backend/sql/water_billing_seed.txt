@@ -1,0 +1,625 @@
+-- UPDATED Seed Data for San Lorenzo Water System
+-- App-aligned roles:
+-- 1 Admin
+-- 2 Meter Reader
+-- 3 Billing Officer
+-- 4 Treasurer
+-- 5 Consumer
+
+SET search_path TO water_billing;
+
+INSERT INTO roles (role_id, role_name) VALUES
+(1, 'Admin'),
+(2, 'Meter Reader'),
+(3, 'Billing Officer'),
+(4, 'Treasurer'),
+(5, 'Consumer')
+ON CONFLICT (role_name) DO UPDATE
+SET role_id = EXCLUDED.role_id;
+
+INSERT INTO classification (classification_id, classification_name) VALUES
+(1, 'Residential'),
+(2, 'Commercial'),
+(3, 'Institutional')
+ON CONFLICT (classification_name) DO UPDATE
+SET classification_id = EXCLUDED.classification_id;
+
+INSERT INTO zone (zone_id, zone_name) VALUES
+(1, 'Zone 1'),
+(2, 'Zone 2'),
+(3, 'Zone 3'),
+(4, 'Zone 4'),
+(5, 'Zone 5'),
+(6, 'Zone 6'),
+(7, 'Zone 7')
+ON CONFLICT (zone_name) DO UPDATE
+SET zone_id = EXCLUDED.zone_id;
+
+INSERT INTO accounts (username, password, role_id, account_status) VALUES
+('admin', 'admin123', 1, 'Active'),
+('juan.delacruz', 'reader123', 2, 'Active'),
+('pedro.reyes', 'billing123', 3, 'Active'),
+('carlos.bautista', 'treasurer123', 4, 'Active'),
+('natividad.paran', 'consumer123', 5, 'Active'),
+('ricardo.mendoza', 'consumer123', 5, 'Active'),
+('elena.cruz', 'consumer123', 5, 'Active')
+ON CONFLICT (username) DO UPDATE
+SET
+    password = EXCLUDED.password,
+    role_id = EXCLUDED.role_id,
+    account_status = EXCLUDED.account_status;
+
+INSERT INTO consumer (
+    first_name,
+    middle_name,
+    last_name,
+    address,
+    zone_id,
+    classification_id,
+    login_id,
+    account_number,
+    status,
+    contact_number,
+    connection_date
+)
+SELECT
+    'Natividad',
+    'Venta',
+    'Paran',
+    'Purok 3, Dagotongan',
+    3,
+    1,
+    a.account_id,
+    '03-N-149-5',
+    'Active',
+    '09171234567',
+    TIMESTAMP '2020-01-15 00:00:00'
+FROM accounts a
+WHERE a.username = 'natividad.paran'
+ON CONFLICT (account_number) DO UPDATE
+SET
+    first_name = EXCLUDED.first_name,
+    middle_name = EXCLUDED.middle_name,
+    last_name = EXCLUDED.last_name,
+    address = EXCLUDED.address,
+    zone_id = EXCLUDED.zone_id,
+    classification_id = EXCLUDED.classification_id,
+    login_id = EXCLUDED.login_id,
+    status = EXCLUDED.status,
+    contact_number = EXCLUDED.contact_number,
+    connection_date = EXCLUDED.connection_date;
+
+INSERT INTO consumer (
+    first_name,
+    middle_name,
+    last_name,
+    address,
+    zone_id,
+    classification_id,
+    login_id,
+    account_number,
+    status,
+    contact_number,
+    connection_date
+)
+SELECT
+    'Ricardo',
+    NULL,
+    'Mendoza',
+    'Purok 1, Poblacion',
+    1,
+    2,
+    a.account_id,
+    '01-R-201-3',
+    'Active',
+    '09181234568',
+    TIMESTAMP '2019-06-20 00:00:00'
+FROM accounts a
+WHERE a.username = 'ricardo.mendoza'
+ON CONFLICT (account_number) DO UPDATE
+SET
+    first_name = EXCLUDED.first_name,
+    middle_name = EXCLUDED.middle_name,
+    last_name = EXCLUDED.last_name,
+    address = EXCLUDED.address,
+    zone_id = EXCLUDED.zone_id,
+    classification_id = EXCLUDED.classification_id,
+    login_id = EXCLUDED.login_id,
+    status = EXCLUDED.status,
+    contact_number = EXCLUDED.contact_number,
+    connection_date = EXCLUDED.connection_date;
+
+INSERT INTO consumer (
+    first_name,
+    middle_name,
+    last_name,
+    address,
+    zone_id,
+    classification_id,
+    login_id,
+    account_number,
+    status,
+    contact_number,
+    connection_date
+)
+SELECT
+    'Elena',
+    NULL,
+    'Cruz',
+    'Purok 5, San Isidro',
+    5,
+    1,
+    a.account_id,
+    '05-E-301-7',
+    'Active',
+    '09191234569',
+    TIMESTAMP '2021-03-10 00:00:00'
+FROM accounts a
+WHERE a.username = 'elena.cruz'
+ON CONFLICT (account_number) DO UPDATE
+SET
+    first_name = EXCLUDED.first_name,
+    middle_name = EXCLUDED.middle_name,
+    last_name = EXCLUDED.last_name,
+    address = EXCLUDED.address,
+    zone_id = EXCLUDED.zone_id,
+    classification_id = EXCLUDED.classification_id,
+    login_id = EXCLUDED.login_id,
+    status = EXCLUDED.status,
+    contact_number = EXCLUDED.contact_number,
+    connection_date = EXCLUDED.connection_date;
+
+INSERT INTO meter (consumer_id, meter_serial_number, meter_size, meter_status, installed_date)
+SELECT consumer_id, 'SN-2020-001', '1/2 inch', 'Active', TIMESTAMP '2020-01-15 00:00:00'
+FROM consumer
+WHERE account_number = '03-N-149-5'
+ON CONFLICT (meter_serial_number) DO UPDATE
+SET
+    consumer_id = EXCLUDED.consumer_id,
+    meter_size = EXCLUDED.meter_size,
+    meter_status = EXCLUDED.meter_status,
+    installed_date = EXCLUDED.installed_date;
+
+INSERT INTO meter (consumer_id, meter_serial_number, meter_size, meter_status, installed_date)
+SELECT consumer_id, 'SN-2019-002', '1/2 inch', 'Active', TIMESTAMP '2019-06-20 00:00:00'
+FROM consumer
+WHERE account_number = '01-R-201-3'
+ON CONFLICT (meter_serial_number) DO UPDATE
+SET
+    consumer_id = EXCLUDED.consumer_id,
+    meter_size = EXCLUDED.meter_size,
+    meter_status = EXCLUDED.meter_status,
+    installed_date = EXCLUDED.installed_date;
+
+INSERT INTO meter (consumer_id, meter_serial_number, meter_size, meter_status, installed_date)
+SELECT consumer_id, 'SN-2021-003', '1/2 inch', 'Active', TIMESTAMP '2021-03-10 00:00:00'
+FROM consumer
+WHERE account_number = '05-E-301-7'
+ON CONFLICT (meter_serial_number) DO UPDATE
+SET
+    consumer_id = EXCLUDED.consumer_id,
+    meter_size = EXCLUDED.meter_size,
+    meter_status = EXCLUDED.meter_status,
+    installed_date = EXCLUDED.installed_date;
+
+INSERT INTO route (meter_reader_id, zone_id)
+SELECT a.account_id, z.zone_id
+FROM accounts a
+JOIN zone z ON z.zone_id IN (1, 3, 5)
+WHERE a.username = 'juan.delacruz'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM route r
+      WHERE r.meter_reader_id = a.account_id
+        AND r.zone_id = z.zone_id
+  );
+
+INSERT INTO waterrates (
+    minimum_cubic,
+    minimum_rate,
+    excess_rate_per_cubic,
+    effective_date,
+    modified_by
+)
+SELECT
+    10,
+    75.00,
+    7.50,
+    TIMESTAMP '2025-11-01 00:00:00',
+    a.account_id
+FROM accounts a
+WHERE a.username = 'pedro.reyes'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM waterrates wr
+      WHERE wr.effective_date = TIMESTAMP '2025-11-01 00:00:00'
+  );
+
+INSERT INTO meterreadings (
+    route_id,
+    consumer_id,
+    meter_id,
+    meter_reader_id,
+    reading_date,
+    previous_reading,
+    current_reading,
+    consumption,
+    excess_consumption,
+    reading_status,
+    status
+)
+SELECT
+    r.route_id,
+    c.consumer_id,
+    m.meter_id,
+    a.account_id,
+    TIMESTAMP '2025-11-01 00:00:00',
+    4415,
+    4419,
+    4,
+    0,
+    'Verified',
+    'Active'
+FROM route r
+JOIN consumer c ON r.zone_id = c.zone_id
+JOIN meter m ON c.consumer_id = m.consumer_id
+JOIN accounts a ON a.username = 'juan.delacruz'
+WHERE c.account_number = '03-N-149-5'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM meterreadings mr
+      WHERE mr.consumer_id = c.consumer_id
+        AND mr.reading_date = TIMESTAMP '2025-11-01 00:00:00'
+  )
+LIMIT 1;
+
+INSERT INTO meterreadings (
+    route_id,
+    consumer_id,
+    meter_id,
+    meter_reader_id,
+    reading_date,
+    previous_reading,
+    current_reading,
+    consumption,
+    excess_consumption,
+    reading_status,
+    status
+)
+SELECT
+    r.route_id,
+    c.consumer_id,
+    m.meter_id,
+    a.account_id,
+    TIMESTAMP '2025-11-01 00:00:00',
+    3200,
+    3213,
+    13,
+    3,
+    'Verified',
+    'Active'
+FROM route r
+JOIN consumer c ON r.zone_id = c.zone_id
+JOIN meter m ON c.consumer_id = m.consumer_id
+JOIN accounts a ON a.username = 'juan.delacruz'
+WHERE c.account_number = '01-R-201-3'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM meterreadings mr
+      WHERE mr.consumer_id = c.consumer_id
+        AND mr.reading_date = TIMESTAMP '2025-11-01 00:00:00'
+  )
+LIMIT 1;
+
+INSERT INTO meterreadings (
+    route_id,
+    consumer_id,
+    meter_id,
+    meter_reader_id,
+    reading_date,
+    previous_reading,
+    current_reading,
+    consumption,
+    excess_consumption,
+    reading_status,
+    status
+)
+SELECT
+    r.route_id,
+    c.consumer_id,
+    m.meter_id,
+    a.account_id,
+    TIMESTAMP '2025-11-01 00:00:00',
+    1500,
+    1508,
+    8,
+    0,
+    'Verified',
+    'Active'
+FROM route r
+JOIN consumer c ON r.zone_id = c.zone_id
+JOIN meter m ON c.consumer_id = m.consumer_id
+JOIN accounts a ON a.username = 'juan.delacruz'
+WHERE c.account_number = '05-E-301-7'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM meterreadings mr
+      WHERE mr.consumer_id = c.consumer_id
+        AND mr.reading_date = TIMESTAMP '2025-11-01 00:00:00'
+  )
+LIMIT 1;
+
+INSERT INTO bills (
+    consumer_id,
+    reading_id,
+    billing_officer_id,
+    billing_month,
+    date_covered_from,
+    date_covered_to,
+    bill_date,
+    due_date,
+    disconnection_date,
+    class_cost,
+    water_charge,
+    meter_maintenance_fee,
+    connection_fee,
+    amount_due,
+    previous_balance,
+    previous_penalty,
+    penalty,
+    total_amount,
+    total_after_due_date,
+    status
+)
+SELECT
+    c.consumer_id,
+    mr.reading_id,
+    a.account_id,
+    'November 2025',
+    TIMESTAMP '2025-10-01 00:00:00',
+    TIMESTAMP '2025-10-31 23:59:59',
+    TIMESTAMP '2025-11-05 00:00:00',
+    TIMESTAMP '2025-11-20 00:00:00',
+    TIMESTAMP '2025-11-27 00:00:00',
+    75.00,
+    0.00,
+    10.00,
+    0.00,
+    85.00,
+    0.00,
+    0.00,
+    0.00,
+    85.00,
+    85.00,
+    'Paid'
+FROM consumer c
+JOIN meterreadings mr ON c.consumer_id = mr.consumer_id
+JOIN accounts a ON a.username = 'pedro.reyes'
+WHERE c.account_number = '03-N-149-5'
+  AND mr.reading_date = TIMESTAMP '2025-11-01 00:00:00'
+ON CONFLICT (reading_id) DO UPDATE
+SET
+    billing_officer_id = EXCLUDED.billing_officer_id,
+    billing_month = EXCLUDED.billing_month,
+    date_covered_from = EXCLUDED.date_covered_from,
+    date_covered_to = EXCLUDED.date_covered_to,
+    bill_date = EXCLUDED.bill_date,
+    due_date = EXCLUDED.due_date,
+    disconnection_date = EXCLUDED.disconnection_date,
+    class_cost = EXCLUDED.class_cost,
+    water_charge = EXCLUDED.water_charge,
+    meter_maintenance_fee = EXCLUDED.meter_maintenance_fee,
+    connection_fee = EXCLUDED.connection_fee,
+    amount_due = EXCLUDED.amount_due,
+    previous_balance = EXCLUDED.previous_balance,
+    previous_penalty = EXCLUDED.previous_penalty,
+    penalty = EXCLUDED.penalty,
+    total_amount = EXCLUDED.total_amount,
+    total_after_due_date = EXCLUDED.total_after_due_date,
+    status = EXCLUDED.status;
+
+INSERT INTO bills (
+    consumer_id,
+    reading_id,
+    billing_officer_id,
+    billing_month,
+    date_covered_from,
+    date_covered_to,
+    bill_date,
+    due_date,
+    disconnection_date,
+    class_cost,
+    water_charge,
+    meter_maintenance_fee,
+    connection_fee,
+    amount_due,
+    previous_balance,
+    previous_penalty,
+    penalty,
+    total_amount,
+    total_after_due_date,
+    status
+)
+SELECT
+    c.consumer_id,
+    mr.reading_id,
+    a.account_id,
+    'November 2025',
+    TIMESTAMP '2025-10-01 00:00:00',
+    TIMESTAMP '2025-10-31 23:59:59',
+    TIMESTAMP '2025-11-05 00:00:00',
+    TIMESTAMP '2025-11-20 00:00:00',
+    TIMESTAMP '2025-11-27 00:00:00',
+    75.00,
+    22.50,
+    10.00,
+    0.00,
+    107.50,
+    0.00,
+    0.00,
+    0.00,
+    107.50,
+    107.50,
+    'Unpaid'
+FROM consumer c
+JOIN meterreadings mr ON c.consumer_id = mr.consumer_id
+JOIN accounts a ON a.username = 'pedro.reyes'
+WHERE c.account_number = '01-R-201-3'
+  AND mr.reading_date = TIMESTAMP '2025-11-01 00:00:00'
+ON CONFLICT (reading_id) DO UPDATE
+SET
+    billing_officer_id = EXCLUDED.billing_officer_id,
+    billing_month = EXCLUDED.billing_month,
+    date_covered_from = EXCLUDED.date_covered_from,
+    date_covered_to = EXCLUDED.date_covered_to,
+    bill_date = EXCLUDED.bill_date,
+    due_date = EXCLUDED.due_date,
+    disconnection_date = EXCLUDED.disconnection_date,
+    class_cost = EXCLUDED.class_cost,
+    water_charge = EXCLUDED.water_charge,
+    meter_maintenance_fee = EXCLUDED.meter_maintenance_fee,
+    connection_fee = EXCLUDED.connection_fee,
+    amount_due = EXCLUDED.amount_due,
+    previous_balance = EXCLUDED.previous_balance,
+    previous_penalty = EXCLUDED.previous_penalty,
+    penalty = EXCLUDED.penalty,
+    total_amount = EXCLUDED.total_amount,
+    total_after_due_date = EXCLUDED.total_after_due_date,
+    status = EXCLUDED.status;
+
+INSERT INTO bills (
+    consumer_id,
+    reading_id,
+    billing_officer_id,
+    billing_month,
+    date_covered_from,
+    date_covered_to,
+    bill_date,
+    due_date,
+    disconnection_date,
+    class_cost,
+    water_charge,
+    meter_maintenance_fee,
+    connection_fee,
+    amount_due,
+    previous_balance,
+    previous_penalty,
+    penalty,
+    total_amount,
+    total_after_due_date,
+    status
+)
+SELECT
+    c.consumer_id,
+    mr.reading_id,
+    a.account_id,
+    'November 2025',
+    TIMESTAMP '2025-10-01 00:00:00',
+    TIMESTAMP '2025-10-31 23:59:59',
+    TIMESTAMP '2025-11-05 00:00:00',
+    TIMESTAMP '2025-11-20 00:00:00',
+    TIMESTAMP '2025-11-27 00:00:00',
+    75.00,
+    0.00,
+    10.00,
+    0.00,
+    85.00,
+    0.00,
+    0.00,
+    0.00,
+    85.00,
+    85.00,
+    'Partially Paid'
+FROM consumer c
+JOIN meterreadings mr ON c.consumer_id = mr.consumer_id
+JOIN accounts a ON a.username = 'pedro.reyes'
+WHERE c.account_number = '05-E-301-7'
+  AND mr.reading_date = TIMESTAMP '2025-11-01 00:00:00'
+ON CONFLICT (reading_id) DO UPDATE
+SET
+    billing_officer_id = EXCLUDED.billing_officer_id,
+    billing_month = EXCLUDED.billing_month,
+    date_covered_from = EXCLUDED.date_covered_from,
+    date_covered_to = EXCLUDED.date_covered_to,
+    bill_date = EXCLUDED.bill_date,
+    due_date = EXCLUDED.due_date,
+    disconnection_date = EXCLUDED.disconnection_date,
+    class_cost = EXCLUDED.class_cost,
+    water_charge = EXCLUDED.water_charge,
+    meter_maintenance_fee = EXCLUDED.meter_maintenance_fee,
+    connection_fee = EXCLUDED.connection_fee,
+    amount_due = EXCLUDED.amount_due,
+    previous_balance = EXCLUDED.previous_balance,
+    previous_penalty = EXCLUDED.previous_penalty,
+    penalty = EXCLUDED.penalty,
+    total_amount = EXCLUDED.total_amount,
+    total_after_due_date = EXCLUDED.total_after_due_date,
+    status = EXCLUDED.status;
+
+INSERT INTO payment (
+    consumer_id,
+    bill_id,
+    payment_date,
+    amount_paid,
+    or_number,
+    payment_method,
+    reference_number,
+    status,
+    validated_by,
+    validated_date
+)
+SELECT
+    c.consumer_id,
+    b.bill_id,
+    TIMESTAMP '2025-11-10 00:00:00',
+    85.00,
+    'OR-2025-001',
+    'Cash',
+    NULL,
+    'Validated',
+    a.account_id,
+    TIMESTAMP '2025-11-10 00:05:00'
+FROM consumer c
+JOIN bills b ON c.consumer_id = b.consumer_id
+JOIN accounts a ON a.username = 'carlos.bautista'
+WHERE c.account_number = '03-N-149-5'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM payment p
+      WHERE p.or_number = 'OR-2025-001'
+  )
+LIMIT 1;
+
+INSERT INTO payment (
+    consumer_id,
+    bill_id,
+    payment_date,
+    amount_paid,
+    or_number,
+    payment_method,
+    reference_number,
+    status,
+    validated_by,
+    validated_date
+)
+SELECT
+    c.consumer_id,
+    b.bill_id,
+    TIMESTAMP '2025-11-12 00:00:00',
+    40.00,
+    'OR-2025-002',
+    'Cash',
+    NULL,
+    'Validated',
+    a.account_id,
+    TIMESTAMP '2025-11-12 00:05:00'
+FROM consumer c
+JOIN bills b ON c.consumer_id = b.consumer_id
+JOIN accounts a ON a.username = 'carlos.bautista'
+WHERE c.account_number = '05-E-301-7'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM payment p
+      WHERE p.or_number = 'OR-2025-002'
+  )
+LIMIT 1;

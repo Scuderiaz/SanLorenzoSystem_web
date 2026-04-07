@@ -5,6 +5,11 @@ import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
 import './ProcessPayment.css';
 
+const toAmount = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 interface Consumer {
   Bill_ID?: number;
   Consumer_ID?: number;
@@ -193,7 +198,7 @@ const ProcessPayment: React.FC = () => {
       key: 'Amount', 
       label: 'Amount', 
       sortable: true, 
-      render: (val: number) => `₱${(val || 0).toFixed(2)}` 
+      render: (val: number) => `₱${toAmount(val).toFixed(2)}` 
     },
     { key: 'Payment_Method', label: 'Method', sortable: true },
     { key: 'Payment_Date', label: 'Date', sortable: true },
@@ -568,3 +573,5 @@ const ProcessPayment: React.FC = () => {
 };
 
 export default ProcessPayment;
+
+

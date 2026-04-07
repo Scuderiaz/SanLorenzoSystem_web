@@ -13,8 +13,11 @@ app.use(cors());
 app.use(express.json());
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-const supabaseSchema = process.env.SUPABASE_DB_SCHEMA || 'public';
+const supabaseKey =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_ANON_KEY;
+const supabaseSchema = process.env.SUPABASE_DB_SCHEMA || 'water_billing';
 
 const supabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey, {
@@ -25,6 +28,7 @@ const postgresConfig = process.env.DATABASE_URL
   ? {
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      options: `-c search_path=${supabaseSchema},public`,
     }
   : {
       host: process.env.DB_HOST || 'localhost',
@@ -33,6 +37,7 @@ const postgresConfig = process.env.DATABASE_URL
       password: process.env.DB_PASSWORD || 'Miswa1211',
       database: process.env.DB_NAME || 'SLRWs',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      options: `-c search_path=${supabaseSchema},public`,
     };
 
 const pool = new Pool(postgresConfig);
@@ -41,12 +46,8 @@ if (supabase) {
   console.log('Connecting to Supabase schema:', supabaseSchema);
 }
 
-// Set search_path for every connection to use the new schema
-pool.on('connect', (client) => {
-  client.query('SET search_path TO water_billing, public');
-});
-
 const syncIntervalMs = Number(process.env.SUPABASE_SYNC_INTERVAL_MS || 60000);
+const immediateSyncDelayMs = Number(process.env.IMMEDIATE_SYNC_DELAY_MS || 1000);
 const defaultSystemLogAccountId = Number(process.env.SYSTEM_LOG_ACCOUNT_ID || 1);
 const logDirectory = path.join(__dirname, 'sync-logs');
 const logFiles = {
@@ -55,6 +56,20 @@ const logFiles = {
   requestErrors: path.join(logDirectory, 'request-errors.txt'),
 };
 let isSupabaseSyncRunning = false;
+let immediateSyncTimer = null;
+let isPostgresAvailable = false;
+const syncState = {
+  enabled: false,
+  intervalMs: syncIntervalMs,
+  running: false,
+  lastStartedAt: null,
+  lastCompletedAt: null,
+  lastError: null,
+  lastResults: {
+    supabaseToPostgres: [],
+    postgresToSupabase: [],
+  },
+};
 
 const syncTableConfigs = [
   { tableName: 'roles', primaryKey: 'role_id' },
@@ -67,11 +82,162 @@ const syncTableConfigs = [
   { tableName: 'meterreadings', primaryKey: 'reading_id' },
   { tableName: 'bills', primaryKey: 'bill_id' },
   { tableName: 'payment', primaryKey: 'payment_id' },
-  { tableName: 'error_logs', primaryKey: 'error_id', syncWithSupabase: false },
-  { tableName: 'system_logs', primaryKey: 'log_id', syncWithSupabase: false },
-  { tableName: 'backuplogs', primaryKey: 'backup_id', syncWithSupabase: false },
+  { tableName: 'ledger_entry', primaryKey: 'ledger_id' },
+  { tableName: 'connection_ticket', primaryKey: 'ticket_id' },
+  { tableName: 'password_reset', primaryKey: 'reset_id' },
+  { tableName: 'account_approval', primaryKey: 'approval_id' },
+  { tableName: 'error_logs', primaryKey: 'error_id' },
+  { tableName: 'system_logs', primaryKey: 'log_id' },
+  { tableName: 'backuplogs', primaryKey: 'backup_id' },
   { tableName: 'waterrates', primaryKey: 'rate_id' },
 ];
+
+const syncTableColumns = {
+  roles: ['role_id', 'role_name'],
+  zone: ['zone_id', 'zone_name'],
+  classification: ['classification_id', 'classification_name'],
+  accounts: ['account_id', 'username', 'password', 'role_id', 'account_status', 'created_at'],
+  consumer: [
+    'consumer_id',
+    'first_name',
+    'middle_name',
+    'last_name',
+    'address',
+    'zone_id',
+    'classification_id',
+    'login_id',
+    'account_number',
+    'status',
+    'contact_number',
+    'connection_date',
+  ],
+  meter: ['meter_id', 'consumer_id', 'meter_serial_number', 'meter_size', 'meter_status', 'installed_date'],
+  route: ['route_id', 'meter_reader_id', 'zone_id'],
+  meterreadings: [
+    'reading_id',
+    'route_id',
+    'consumer_id',
+    'meter_id',
+    'meter_reader_id',
+    'created_date',
+    'reading_status',
+    'previous_reading',
+    'current_reading',
+    'consumption',
+    'excess_consumption',
+    'notes',
+    'status',
+    'reading_date',
+  ],
+  bills: [
+    'bill_id',
+    'consumer_id',
+    'reading_id',
+    'billing_officer_id',
+    'billing_month',
+    'date_covered_from',
+    'date_covered_to',
+    'bill_date',
+    'due_date',
+    'disconnection_date',
+    'class_cost',
+    'water_charge',
+    'meter_maintenance_fee',
+    'connection_fee',
+    'amount_due',
+    'previous_balance',
+    'previous_penalty',
+    'penalty',
+    'total_amount',
+    'total_after_due_date',
+    'status',
+  ],
+  payment: [
+    'payment_id',
+    'consumer_id',
+    'bill_id',
+    'payment_date',
+    'amount_paid',
+    'or_number',
+    'payment_method',
+    'reference_number',
+    'status',
+    'validated_by',
+    'validated_date',
+  ],
+  ledger_entry: [
+    'ledger_id',
+    'consumer_id',
+    'transaction_type',
+    'reference_id',
+    'amount',
+    'balance',
+    'transaction_date',
+    'notes',
+  ],
+  connection_ticket: [
+    'ticket_id',
+    'consumer_id',
+    'account_id',
+    'ticket_number',
+    'application_date',
+    'connection_type',
+    'requirements_submitted',
+    'status',
+    'inspection_date',
+    'approved_by',
+    'approved_date',
+    'remarks',
+    'created_at',
+  ],
+  password_reset: [
+    'reset_id',
+    'account_id',
+    'reset_token',
+    'expiration_time',
+    'status',
+    'created_at',
+  ],
+  account_approval: [
+    'approval_id',
+    'account_id',
+    'approved_by',
+    'approval_status',
+    'approval_date',
+    'remarks',
+  ],
+  waterrates: [
+    'rate_id',
+    'minimum_cubic',
+    'minimum_rate',
+    'excess_rate_per_cubic',
+    'effective_date',
+    'modified_by',
+    'modified_date',
+  ],
+  backuplogs: ['backup_id', 'backup_name', 'backup_time', 'backup_size', 'backup_type', 'created_by'],
+  error_logs: ['error_id', 'error_time', 'severity', 'module', 'error_message', 'user_id', 'status'],
+  system_logs: ['log_id', 'account_id', 'role', 'action', 'timestamp'],
+};
+
+function normalizeSyncRows(tableName, rows) {
+  const allowedColumns = syncTableColumns[tableName];
+  if (!allowedColumns) {
+    return rows;
+  }
+
+  return rows
+    .map((row) => {
+      const normalizedRow = {};
+      for (const column of allowedColumns) {
+        if (Object.prototype.hasOwnProperty.call(row, column)) {
+          normalizedRow[column] = row[column];
+        }
+      }
+      return normalizedRow;
+    })
+    .filter((row) => Object.keys(row).length > 0);
+}
 
 function quoteIdentifier(identifier) {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
@@ -81,7 +247,9 @@ function quoteIdentifier(identifier) {
 }
 
 async function upsertRowsToPostgres(tableName, primaryKey, rows) {
-  if (!rows.length) {
+  const normalizedRows = normalizeSyncRows(tableName, rows);
+
+  if (!normalizedRows.length) {
     return 0;
   }
 
@@ -90,7 +258,7 @@ async function upsertRowsToPostgres(tableName, primaryKey, rows) {
   try {
     await client.query('BEGIN');
 
-    for (const row of rows) {
+    for (const row of normalizedRows) {
       const columns = Object.keys(row);
       if (!columns.length) {
         continue;
@@ -113,7 +281,7 @@ async function upsertRowsToPostgres(tableName, primaryKey, rows) {
     }
 
     await client.query('COMMIT');
-    return rows.length;
+    return normalizedRows.length;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -336,13 +504,14 @@ async function initDb() {
 async function syncTableToSupabase(tableName, primaryKey) {
   await logPostgresEvent(`Preparing sync for table ${tableName}.`);
   const { rows } = await pool.query(`SELECT * FROM ${tableName}`);
+  const normalizedRows = normalizeSyncRows(tableName, rows);
 
-  if (rows.length === 0) {
+  if (normalizedRows.length === 0) {
     await logSupabaseEvent(`Table ${tableName}: no rows to sync.`);
     return { tableName, synced: 0 };
   }
 
-  const { error } = await supabase.from(tableName).upsert(rows, {
+  const { error } = await supabase.from(tableName).upsert(normalizedRows, {
     onConflict: primaryKey,
     ignoreDuplicates: false,
   });
@@ -352,8 +521,8 @@ async function syncTableToSupabase(tableName, primaryKey) {
     throw new Error(`${tableName}: ${error.message}`);
   }
 
-  await logSupabaseEvent(`Table ${tableName}: synced ${rows.length} row(s).`);
-  return { tableName, synced: rows.length };
+  await logSupabaseEvent(`Table ${tableName}: synced ${normalizedRows.length} row(s).`);
+  return { tableName, synced: normalizedRows.length };
 }
 
 async function syncTableToPostgres(tableName, primaryKey) {
@@ -365,7 +534,7 @@ async function syncTableToPostgres(tableName, primaryKey) {
     throw new Error(`${tableName}: ${error.message}`);
   }
 
-  const rows = data || [];
+  const rows = normalizeSyncRows(tableName, data || []);
   if (!rows.length) {
     await logPostgresEvent(`Table ${tableName}: no rows pulled from Supabase.`);
     return { tableName, synced: 0 };
@@ -382,6 +551,9 @@ async function syncPostgresToSupabase() {
   }
 
   isSupabaseSyncRunning = true;
+  syncState.running = true;
+  syncState.lastStartedAt = new Date().toISOString();
+  syncState.lastError = null;
 
   try {
     await logSupabaseEvent('Starting PostgreSQL to Supabase sync cycle.');
@@ -400,9 +572,44 @@ async function syncPostgresToSupabase() {
     }
 
     await logSupabaseEvent(`Sync cycle complete for ${results.length} table(s).`);
+    syncState.lastResults.postgresToSupabase = results;
     return results;
+  } catch (error) {
+    syncState.lastError = error.message;
+    throw error;
   } finally {
     isSupabaseSyncRunning = false;
+    syncState.running = false;
+    syncState.lastCompletedAt = new Date().toISOString();
+  }
+}
+
+async function withPostgresPrimary(operationName, postgresHandler, supabaseHandler) {
+  if (!isPostgresAvailable) {
+    if (!supabase || !supabaseHandler) {
+      throw new Error('PostgreSQL is unavailable and no Supabase fallback is configured.');
+    }
+    return supabaseHandler();
+  }
+
+  try {
+    return await postgresHandler();
+  } catch (error) {
+    const message = String(error?.message || '').toLowerCase();
+    const shouldFallback =
+      message.includes('connect') ||
+      message.includes('connection') ||
+      message.includes('econnrefused') ||
+      message.includes('terminating connection') ||
+      message.includes('the database system is starting up');
+
+    if (!shouldFallback || !supabase || !supabaseHandler) {
+      throw error;
+    }
+
+    console.warn(`[fallback:${operationName}] Switching to Supabase: ${error.message}`);
+    isPostgresAvailable = false;
+    return supabaseHandler();
   }
 }
 
@@ -412,6 +619,9 @@ async function syncSupabaseToPostgres() {
   }
 
   isSupabaseSyncRunning = true;
+  syncState.running = true;
+  syncState.lastStartedAt = new Date().toISOString();
+  syncState.lastError = null;
 
   try {
     await logPostgresEvent('Starting Supabase to PostgreSQL sync cycle.');
@@ -430,24 +640,106 @@ async function syncSupabaseToPostgres() {
     }
 
     await logPostgresEvent(`Supabase pull cycle complete for ${results.length} table(s).`);
+    syncState.lastResults.supabaseToPostgres = results;
     return results;
+  } catch (error) {
+    syncState.lastError = error.message;
+    throw error;
   } finally {
     isSupabaseSyncRunning = false;
+    syncState.running = false;
+    syncState.lastCompletedAt = new Date().toISOString();
+  }
+}
+
+async function runHybridSyncCycle(trigger = 'manual') {
+  if (!supabase) {
+    return {
+      success: false,
+      message: 'Supabase is not configured on this server.',
+      trigger,
+      results: {
+        supabaseToPostgres: [],
+        postgresToSupabase: [],
+      },
+    };
+  }
+
+  if (isSupabaseSyncRunning) {
+    return {
+      success: false,
+      message: 'A sync cycle is already running.',
+      trigger,
+      results: syncState.lastResults,
+    };
+  }
+
+  await logRequestInfo('sync.cycle', `Hybrid sync cycle started via ${trigger}.`);
+
+  const supabaseToPostgres = await syncSupabaseToPostgres();
+  const postgresToSupabase = await syncPostgresToSupabase();
+
+  return {
+    success: true,
+    trigger,
+    startedAt: syncState.lastStartedAt,
+    completedAt: syncState.lastCompletedAt,
+    results: {
+      supabaseToPostgres,
+      postgresToSupabase,
+    },
+  };
+}
+
+function scheduleImmediateSync(trigger = 'write', delayMs = immediateSyncDelayMs) {
+  if (!supabase) {
+    return;
+  }
+
+  if (immediateSyncTimer) {
+    clearTimeout(immediateSyncTimer);
+  }
+
+  immediateSyncTimer = setTimeout(() => {
+    immediateSyncTimer = null;
+    runHybridSyncCycle(`immediate:${trigger}`).catch((error) => {
+      syncState.lastError = error.message;
+      logDatabaseError('sync.immediate', error).catch(() => {});
+      console.warn('Immediate sync failed:', error.message);
+    });
+  }, delayMs);
+}
+
+async function mirrorDeleteToSupabase(tableName, primaryKey, idValue) {
+  if (!supabase) {
+    return;
+  }
+
+  try {
+    const { error } = await supabase.from(tableName).delete().eq(primaryKey, idValue);
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    await logDatabaseError(`supabase.delete.${tableName}`, error);
+    throw error;
   }
 }
 
 function startSupabaseSyncScheduler() {
   if (!supabase) {
+    syncState.enabled = false;
     logPostgresEvent('Supabase sync scheduler disabled: running in PostgreSQL-only mode.').catch(() => {});
     console.log('Supabase sync scheduler disabled: running in PostgreSQL-only mode.');
     return;
   }
 
+  syncState.enabled = true;
   logSupabaseEvent(`Supabase sync scheduler started with interval ${syncIntervalMs}ms.`).catch(() => {});
   setInterval(() => {
-    syncSupabaseToPostgres()
-      .then(() => syncPostgresToSupabase())
+    runHybridSyncCycle('scheduler')
       .catch((error) => {
+        syncState.lastError = error.message;
         logDatabaseError('supabase.sync.scheduler', error).catch(() => {});
         console.warn('Supabase sync skipped:', error.message);
       });
@@ -457,16 +749,16 @@ function startSupabaseSyncScheduler() {
 // Get roles
 app.get('/api/roles', async (req, res) => {
   try {
-    const result = await withSupabaseFallback(
+    const result = await withPostgresPrimary(
       'roles.fetch',
+      async () => {
+        const { rows } = await pool.query('SELECT * FROM roles');
+        return { success: true, data: rows };
+      },
       async () => {
         const { data, error } = await supabase.from('roles').select('*');
         if (error) throw error;
         return { success: true, data };
-      },
-      async () => {
-      const { rows } = await pool.query('SELECT * FROM roles');
-        return { success: true, data: rows };
       }
     );
     return res.json(result);
@@ -483,53 +775,54 @@ app.get('/api/users/type/:type', async (req, res) => {
   const { type } = req.params;
   
   try {
-    if (supabase) {
-      let roleIds;
-      if (type === 'desktop') {
-        roleIds = [1, 3, 4]; // Admin, Billing Officer, Cashier
-      } else {
-        roleIds = [2, 5]; // Meter Reader, Consumer
-      }
-      
-      const { data, error } = await supabase
-        .from('accounts')
-        .select(`
-          AccountID,
-          Username,
-          Password,
-          Full_Name,
-          Role_ID,
-          Status,
-          roles ( Role_Name )
-        `)
-        .in('Role_ID', roleIds);
-      
-      if (error) throw error;
-      
-      const users = data.map(u => ({
-        ...u,
-        Role_Name: u.roles?.Role_Name
-      }));
-      
-      return res.json({ success: true, data: users });
+    let roleIds;
+    if (type === 'desktop') {
+      roleIds = [1, 3, 4];
     } else {
-      let roleIds;
-      if (type === 'desktop') {
-        roleIds = [1, 3, 4];
-      } else {
-        roleIds = [2, 5];
-      }
-      
-      const { rows } = await pool.query(`
-        SELECT a.account_id AS "AccountID", a.username AS "Username", a.password AS "Password", 
-               'N/A' AS "Full_Name", a.role_id AS "Role_ID", a.account_status AS "Status", r.role_name AS "Role_Name"
-        FROM accounts a
-        JOIN roles r ON a.role_id = r.role_id
-        WHERE a.role_id = ANY($1)
-      `, [roleIds]);
-      
-      return res.json({ success: true, data: rows });
+      roleIds = [2, 5];
     }
+    
+    const result = await withPostgresPrimary(
+      'users.fetchByType',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT a.account_id AS "AccountID", a.username AS "Username", a.password AS "Password", 
+                 a.username AS "Full_Name", a.role_id AS "Role_ID", a.account_status AS "Status", r.role_name AS "Role_Name"
+          FROM accounts a
+          JOIN roles r ON a.role_id = r.role_id
+          WHERE a.role_id = ANY($1)
+        `, [roleIds]);
+        return { success: true, data: rows };
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('accounts')
+          .select(`
+            account_id,
+            username,
+            password,
+            role_id,
+            account_status,
+            roles ( role_name )
+          `)
+          .in('role_id', roleIds);
+        if (error) throw error;
+        return {
+          success: true,
+          data: (data || []).map((u) => ({
+            AccountID: u.account_id,
+            Username: u.username,
+            Password: u.password,
+            Full_Name: u.username || 'N/A',
+            Role_ID: u.role_id,
+            Status: u.account_status,
+            Role_Name: u.roles?.role_name,
+          })),
+        };
+      }
+    );
+    
+    return res.json(result);
   } catch (error) {
     await logRequestError(req, 'users.fetchByType', error);
     console.error('Error fetching users:', error);
@@ -540,44 +833,47 @@ app.get('/api/users/type/:type', async (req, res) => {
 // GET Staff Users
 app.get('/api/users/staff', async (req, res) => {
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('accounts')
-        .select(`
-          account_id,
-          username,
-          full_name,
-          role_id,
-          account_status,
-          roles ( role_name )
-        `)
-        .in('role_id', [1, 2, 3]) // Admin, Reader, Officer
-        .order('account_id', { ascending: false });
-      
-      if (error) throw error;
-      
-      const staff = data.map(u => ({
-        AccountID: u.account_id,
-        Username: u.username,
-        Full_Name: u.full_name,
-        Role_ID: u.role_id,
-        Status: u.account_status,
-        Role_Name: u.roles?.role_name
-      }));
-      
-      return res.json({ success: true, data: staff });
-    } else {
-      const { rows } = await pool.query(`
-        SELECT a.account_id AS "AccountID", a.username AS "Username", 
-               'N/A' AS "Full_Name", a.role_id AS "Role_ID", 
-               a.account_status AS "Status", r.role_name AS "Role_Name"
-        FROM accounts a
-        LEFT JOIN roles r ON a.role_id = r.role_id
-        WHERE a.role_id IN (1, 2, 3)
-        ORDER BY a.account_id DESC
-      `);
-      return res.json({ success: true, data: rows });
-    }
+    const result = await withPostgresPrimary(
+      'users.fetchStaff',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT a.account_id AS "AccountID", a.username AS "Username", 
+                 a.username AS "Full_Name", a.role_id AS "Role_ID", 
+                 a.account_status AS "Status", r.role_name AS "Role_Name"
+          FROM accounts a
+          LEFT JOIN roles r ON a.role_id = r.role_id
+          WHERE a.role_id IN (1, 2, 3)
+          ORDER BY a.account_id DESC
+        `);
+        return { success: true, data: rows };
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('accounts')
+          .select(`
+            account_id,
+            username,
+            role_id,
+            account_status,
+            roles ( role_name )
+          `)
+          .in('role_id', [1, 2, 3])
+          .order('account_id', { ascending: false });
+        if (error) throw error;
+        return {
+          success: true,
+          data: (data || []).map((u) => ({
+            AccountID: u.account_id,
+            Username: u.username,
+            Full_Name: u.username || 'N/A',
+            Role_ID: u.role_id,
+            Status: u.account_status,
+            Role_Name: u.roles?.role_name,
+          })),
+        };
+      }
+    );
+    return res.json(result);
   } catch (error) {
     await logRequestError(req, 'users.fetchStaff', error);
     console.error('Error fetching staff:', error);
@@ -588,42 +884,45 @@ app.get('/api/users/staff', async (req, res) => {
 // GET Unified Users (Staff + Consumers + IoT)
 app.get('/api/users/unified', async (req, res) => {
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('accounts')
-        .select(`
-          account_id,
-          username,
-          full_name,
-          role_id,
-          account_status,
-          roles ( role_name )
-        `)
-        .order('account_id', { ascending: false });
-      
-      if (error) throw error;
-      
-      const users = data.map(u => ({
-        AccountID: u.account_id,
-        Username: u.username,
-        Full_Name: u.full_name,
-        Role_ID: u.role_id,
-        Status: u.account_status,
-        Role_Name: u.roles?.role_name
-      }));
-      
-      return res.json({ success: true, data: users });
-    } else {
-      const { rows } = await pool.query(`
-        SELECT a.account_id AS "AccountID", a.username AS "Username", 
-               'N/A' AS "Full_Name", a.role_id AS "Role_ID", 
-               a.account_status AS "Status", r.role_name AS "Role_Name"
-        FROM accounts a
-        LEFT JOIN roles r ON a.role_id = r.role_id
-        ORDER BY a.account_id DESC
-      `);
-      return res.json({ success: true, data: rows });
-    }
+    const result = await withPostgresPrimary(
+      'users.fetchUnified',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT a.account_id AS "AccountID", a.username AS "Username", 
+                 a.username AS "Full_Name", a.role_id AS "Role_ID", 
+                 a.account_status AS "Status", r.role_name AS "Role_Name"
+          FROM accounts a
+          LEFT JOIN roles r ON a.role_id = r.role_id
+          ORDER BY a.account_id DESC
+        `);
+        return { success: true, data: rows };
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('accounts')
+          .select(`
+            account_id,
+            username,
+            role_id,
+            account_status,
+            roles ( role_name )
+          `)
+          .order('account_id', { ascending: false });
+        if (error) throw error;
+        return {
+          success: true,
+          data: (data || []).map((u) => ({
+            AccountID: u.account_id,
+            Username: u.username,
+            Full_Name: u.username || 'N/A',
+            Role_ID: u.role_id,
+            Status: u.account_status,
+            Role_Name: u.roles?.role_name,
+          })),
+        };
+      }
+    );
+    return res.json(result);
   } catch (error) {
     await logRequestError(req, 'users.fetchUnified', error);
     console.error('Error fetching unified users:', error);
@@ -635,17 +934,10 @@ app.get('/api/users/unified', async (req, res) => {
 app.post('/api/admin/approve-user', async (req, res) => {
   const { accountId } = req.body;
   try {
-    if (supabase) {
-      const { error: aErr } = await supabase.from('accounts').update({ account_status: 'Active' }).eq('account_id', accountId);
-      if (aErr) throw aErr;
-      const { error: cErr } = await supabase.from('consumer').update({ status: 'Active' }).eq('login_id', accountId);
-      if (cErr) throw cErr;
-      return res.json({ success: true, message: 'Account approved successfully' });
-    } else {
-      await pool.query('UPDATE accounts SET account_status = $1 WHERE account_id = $2', ['Active', accountId]);
-      await pool.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
-      return res.json({ success: true, message: 'Account approved successfully' });
-    }
+    await pool.query('UPDATE accounts SET account_status = $1 WHERE account_id = $2', ['Active', accountId]);
+    await pool.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
+    scheduleImmediateSync('admin-approve-user');
+    return res.json({ success: true, message: 'Account approved successfully' });
   } catch (error) {
     await logRequestError(req, 'users.approve', error);
     console.error('Approval error:', error);
@@ -657,18 +949,16 @@ app.post('/api/admin/approve-user', async (req, res) => {
 app.post('/api/admin/reject-user', async (req, res) => {
   const { accountId } = req.body;
   try {
+    const { rows: consumers } = await pool.query('SELECT consumer_id FROM consumer WHERE login_id = $1', [accountId]);
+    await pool.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
+    await pool.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
     if (supabase) {
-      // Delete consumer record
-      await supabase.from('consumer').delete().eq('login_id', accountId);
-      // Delete account
-      const { error } = await supabase.from('accounts').delete().eq('account_id', accountId);
-      if (error) throw error;
-      return res.json({ success: true, message: 'Account rejected and deleted' });
-    } else {
-      await pool.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
-      await pool.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
-      return res.json({ success: true, message: 'Account rejected and deleted' });
+      for (const consumer of consumers) {
+        await mirrorDeleteToSupabase('consumer', 'consumer_id', consumer.consumer_id);
+      }
+      await mirrorDeleteToSupabase('accounts', 'account_id', accountId);
     }
+    return res.json({ success: true, message: 'Account rejected and deleted' });
   } catch (error) {
     await logRequestError(req, 'users.reject', error);
     console.error('Rejection error:', error);
@@ -685,21 +975,12 @@ app.post('/api/users', async (req, res) => {
   }
   
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('accounts')
-        .insert([{ username: username, password: password, role_id: roleId, account_status: 'Active' }])
-        .select();
-      
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
-      const { rows } = await pool.query(
-        'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING *',
-        [username, password, roleId, 'Active']
-      );
-      return res.json({ success: true, data: rows[0] });
-    }
+    const { rows } = await pool.query(
+      'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING *',
+      [username, password, roleId, 'Active']
+    );
+    scheduleImmediateSync('users-create');
+    return res.json({ success: true, data: rows[0] });
   } catch (error) {
     await logRequestError(req, 'users.create', error);
     console.error('Error creating user:', error);
@@ -713,35 +994,20 @@ app.put('/api/users/:id', async (req, res) => {
   const { username, fullName, password, roleId } = req.body;
   
   try {
-    if (supabase) {
-      const updateData = { role_id: roleId };
-      if (password) {
-        updateData.password = password;
-      }
-      
-      const { data, error } = await supabase
-        .from('accounts')
-        .update(updateData)
-        .eq('account_id', id)
-        .select();
-      
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
-      let query = 'UPDATE accounts SET role_id = $1';
-      let params = [roleId];
-      
-      if (password) {
-        query += ', password = $2';
-        params.push(password);
-      }
-      
-      query += ` WHERE account_id = $${params.length + 1}`;
-      params.push(id);
-      
-      await pool.query(query, params);
-      return res.json({ success: true, message: 'User updated successfully' });
+    let query = 'UPDATE accounts SET role_id = $1';
+    let params = [roleId];
+    
+    if (password) {
+      query += ', password = $2';
+      params.push(password);
     }
+    
+    query += ` WHERE account_id = $${params.length + 1}`;
+    params.push(id);
+    
+    await pool.query(query, params);
+    scheduleImmediateSync('users-update');
+    return res.json({ success: true, message: 'User updated successfully' });
   } catch (error) {
     await logRequestError(req, 'users.update', error);
     console.error('Error updating user:', error);
@@ -754,18 +1020,11 @@ app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
+    await pool.query('DELETE FROM accounts WHERE account_id = $1', [id]);
     if (supabase) {
-      const { error } = await supabase
-        .from('accounts')
-        .delete()
-        .eq('account_id', id);
-      
-      if (error) throw error;
-      return res.json({ success: true, message: 'User deleted successfully' });
-    } else {
-      await pool.query('DELETE FROM accounts WHERE account_id = $1', [id]);
-      return res.json({ success: true, message: 'User deleted successfully' });
+      await mirrorDeleteToSupabase('accounts', 'account_id', id);
     }
+    return res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     await logRequestError(req, 'users.delete', error);
     console.error('Error deleting user:', error);
@@ -781,88 +1040,100 @@ app.post('/api/login', async (req, res) => {
   }
 
   try {
-    const result = await withSupabaseFallback(
-      'auth.login',
-      async () => {
-        const { data: userData, error: userError } = await supabase
-          .from('accounts')
-          .select(`
-            account_id,
-            username,
-            password,
-            full_name,
-            role_id,
-            account_status,
-            roles ( role_name )
-          `)
-          .eq('username', username)
-          .single();
+    let user = null;
 
-        if (userError || !userData) {
-          return { status: 401, body: { success: false, message: 'Invalid username' } };
-        }
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select(`
+          account_id,
+          username,
+          password,
+          role_id,
+          account_status,
+          roles ( role_name )
+        `)
+        .eq('username', username)
+        .maybeSingle();
 
-        if (userData.account_status === 'Pending') {
-          return { status: 401, body: { success: false, message: 'Please wait until you are registered to access the dashboard.' } };
-        }
+      if (error) {
+        throw error;
+      }
 
-        if (userData.password !== password) {
-          return { status: 401, body: { success: false, message: 'Invalid password' } };
-        }
-
-        return {
-          status: 200,
-          body: {
-            success: true,
-            user: {
-              id: userData.account_id,
-              username: userData.username,
-              fullName: userData.full_name || userData.username,
-              role_id: userData.role_id,
-              role_name: userData.roles.role_name,
-            },
-          },
-        };
-      },
-      async () => {
-        const { rows } = await pool.query(`
-          SELECT a.account_id, a.username, a.password, a.full_name, a.role_id, a.account_status, r.role_name
-          FROM accounts a
-          JOIN roles r ON a.role_id = r.role_id
-          WHERE a.username = $1
-        `, [username]);
-
-        const user = rows[0];
-
-        if (!user) {
-          return { status: 401, body: { success: false, message: 'Invalid username' } };
-        }
-
-        if (user.account_status === 'Pending') {
-          return { status: 401, body: { success: false, message: 'Please wait until you are registered to access the dashboard.' } };
-        }
-
-        if (user.password !== password) {
-          return { status: 401, body: { success: false, message: 'Invalid password' } };
-        }
-
-        return {
-          status: 200,
-          body: {
-            success: true,
-            user: {
-              id: user.account_id,
-              username: user.username,
-              fullName: user.full_name || user.username,
-              role_id: user.role_id,
-              role_name: user.role_name,
-            },
-          },
+      if (data?.role_id === 5) {
+        user = {
+          account_id: data.account_id,
+          username: data.username,
+          password: data.password,
+          full_name: data.username,
+          role_id: data.role_id,
+          account_status: data.account_status,
+          role_name: data.roles?.role_name,
         };
       }
-    );
+    }
 
-    return res.status(result.status).json(result.body);
+    if (!user) {
+      user = await withPostgresPrimary(
+        'auth.login',
+        async () => {
+          const { rows } = await pool.query(`
+            SELECT a.account_id, a.username, a.password, a.username AS full_name, a.role_id, a.account_status, r.role_name
+            FROM accounts a
+            JOIN roles r ON a.role_id = r.role_id
+            WHERE a.username = $1
+          `, [username]);
+          return rows[0];
+        },
+        async () => {
+          const { data, error } = await supabase
+            .from('accounts')
+            .select(`
+              account_id,
+              username,
+              password,
+              role_id,
+              account_status,
+              roles ( role_name )
+            `)
+            .eq('username', username)
+            .single();
+          if (error) throw error;
+          return data
+            ? {
+                account_id: data.account_id,
+                username: data.username,
+                password: data.password,
+                full_name: data.username,
+                role_id: data.role_id,
+                account_status: data.account_status,
+                role_name: data.roles?.role_name,
+              }
+            : null;
+        }
+      );
+    }
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid username' });
+    }
+    if (user.account_status === 'Pending') {
+      return res.status(401).json({ success: false, message: 'Please wait until you are registered to access the dashboard.' });
+    }
+    if (user.password !== password) {
+      return res.status(401).json({ success: false, message: 'Invalid password' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user.account_id,
+        username: user.username,
+        fullName: user.full_name || user.username,
+        role_id: user.role_id,
+        role_name: user.role_name,
+      },
+    });
   } catch (error) {
     await logRequestError(req, 'auth.login', error);
     console.error('Login error:', error);
@@ -873,19 +1144,8 @@ app.post('/api/login', async (req, res) => {
 // Get zones
 app.get('/api/zones', async (req, res) => {
   try {
-    const result = await withSupabaseFallback(
-      'zones.fetch',
-      async () => {
-        const { data, error } = await supabase.from('zone').select('*');
-        if (error) throw error;
-        return { success: true, data };
-      },
-      async () => {
-      const { rows } = await pool.query('SELECT * FROM zone');
-        return { success: true, data: rows };
-      }
-    );
-    return res.json(result);
+    const { rows } = await pool.query('SELECT * FROM zone');
+    return res.json({ success: true, data: rows });
   } catch (error) {
     await logRequestError(req, 'zones.fetch', error);
     console.error('Error fetching zones:', error);
@@ -896,19 +1156,8 @@ app.get('/api/zones', async (req, res) => {
 // Get classifications
 app.get('/api/classifications', async (req, res) => {
   try {
-    const result = await withSupabaseFallback(
-      'classifications.fetch',
-      async () => {
-        const { data, error } = await supabase.from('classification').select('*');
-        if (error) throw error;
-        return { success: true, data };
-      },
-      async () => {
-      const { rows } = await pool.query('SELECT * FROM classification');
-        return { success: true, data: rows };
-      }
-    );
-    return res.json(result);
+    const { rows } = await pool.query('SELECT * FROM classification');
+    return res.json({ success: true, data: rows });
   } catch (error) {
     await logRequestError(req, 'classifications.fetch', error);
     console.error('Error fetching classifications:', error);
@@ -920,26 +1169,10 @@ app.get('/api/classifications', async (req, res) => {
 // Get latest water rates
 app.get('/api/water-rates/latest', async (req, res) => {
   try {
-    const result = await withSupabaseFallback(
-      'waterRates.fetchLatest',
-      async () => {
-        const { data, error } = await supabase
-          .from('waterrates')
-          .select('*')
-          .order('effective_date', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (error) throw error;
-        return { success: true, data };
-      },
-      async () => {
-        const { rows } = await pool.query(
-          'SELECT * FROM waterrates ORDER BY effective_date DESC LIMIT 1'
-        );
-        return { success: true, data: rows[0] };
-      }
+    const { rows } = await pool.query(
+      'SELECT * FROM waterrates ORDER BY effective_date DESC LIMIT 1'
     );
-    return res.json(result);
+    return res.json({ success: true, data: rows[0] });
   } catch (error) {
     await logRequestError(req, 'waterRates.fetchLatest', error);
     console.error('Error fetching latest water rates:', error);
@@ -953,40 +1186,20 @@ app.post('/api/water-rates', async (req, res) => {
   const effective_date = new Date().toISOString();
 
   try {
-    const result = await withSupabaseFallback(
-      'waterRates.create',
-      async () => {
-        const { data, error } = await supabase
-          .from('waterrates')
-          .insert([{
-            minimum_cubic: parseInt(minimum_cubic),
-            minimum_rate: parseFloat(minimum_rate),
-            excess_rate_per_cubic: parseFloat(excess_rate_per_cubic),
-            effective_date,
-            modified_by: modified_by ? parseInt(modified_by) : null,
-            modified_date: effective_date
-          }])
-          .select();
-        if (error) throw error;
-        return { success: true, data: data[0] };
-      },
-      async () => {
-        const { rows } = await pool.query(
-          `INSERT INTO waterrates (minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
-           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-          [
-            parseInt(minimum_cubic),
-            parseFloat(minimum_rate),
-            parseFloat(excess_rate_per_cubic),
-            effective_date,
-            modified_by ? parseInt(modified_by) : null,
-            effective_date
-          ]
-        );
-        return { success: true, data: rows[0] };
-      }
+    const { rows } = await pool.query(
+      `INSERT INTO waterrates (minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [
+        parseInt(minimum_cubic),
+        parseFloat(minimum_rate),
+        parseFloat(excess_rate_per_cubic),
+        effective_date,
+        modified_by ? parseInt(modified_by) : null,
+        effective_date
+      ]
     );
-    return res.json(result);
+    scheduleImmediateSync('water-rates-create');
+    return res.json({ success: true, data: rows[0] });
   } catch (error) {
     await logRequestError(req, 'waterRates.create', error);
     console.error('Error creating water rate:', error);
@@ -996,57 +1209,36 @@ app.post('/api/water-rates', async (req, res) => {
 
 app.get('/api/consumers', async (req, res) => {
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('consumer')
-        .select(`
-          Consumer_ID:consumer_id,
-          First_Name:first_name,
-          Middle_Name:middle_name,
-          Last_Name:last_name,
-          Address:address,
-          Zone_ID:zone_id,
-          Classification_ID:classification_id,
-          Account_Number:account_number,
-          Status:status,
-          Contact_Number:contact_number,
-          Connection_Date:connection_date,
-          Zone_Name:zone(zone_name),
-          Classification_Name:classification(classification_name)
-        `)
-        .order('consumer_id', { ascending: false });
-      if (error) throw error;
-      
-      const consumers = data.map(c => ({
-        ...c,
-        Zone_Name: c.Zone_Name?.zone_name,
-        Classification_Name: c.Classification_Name?.classification_name
-      }));
-      
-      return res.json(consumers);
-    } else {
-      const { rows } = await pool.query(`
-        SELECT 
-          c.consumer_id AS "Consumer_ID",
-          c.first_name AS "First_Name",
-          c.middle_name AS "Middle_Name",
-          c.last_name AS "Last_Name",
-          c.address AS "Address",
-          c.zone_id AS "Zone_ID",
-          c.classification_id AS "Classification_ID",
-          c.account_number AS "Account_Number",
-          c.status AS "Status",
-          c.contact_number AS "Contact_Number",
-          c.connection_date AS "Connection_Date",
-          z.zone_name AS "Zone_Name", 
-          cl.classification_name AS "Classification_Name"
-        FROM consumer c
-        LEFT JOIN zone z ON c.zone_id = z.zone_id
-        LEFT JOIN classification cl ON c.classification_id = cl.classification_id
-        ORDER BY c.consumer_id DESC
-      `);
-      return res.json(rows);
-    }
+    const { rows } = await pool.query(`
+      SELECT 
+        c.consumer_id AS "Consumer_ID",
+        c.first_name AS "First_Name",
+        c.middle_name AS "Middle_Name",
+        c.last_name AS "Last_Name",
+        c.address AS "Address",
+        c.zone_id AS "Zone_ID",
+        c.classification_id AS "Classification_ID",
+        c.account_number AS "Account_Number",
+        c.status AS "Status",
+        c.contact_number AS "Contact_Number",
+        c.connection_date AS "Connection_Date",
+        m.meter_id AS "Meter_ID",
+        m.meter_serial_number AS "Meter_Number",
+        z.zone_name AS "Zone_Name", 
+        cl.classification_name AS "Classification_Name"
+      FROM consumer c
+      LEFT JOIN LATERAL (
+        SELECT meter_id, meter_serial_number
+        FROM meter
+        WHERE consumer_id = c.consumer_id
+        ORDER BY meter_id DESC
+        LIMIT 1
+      ) m ON true
+      LEFT JOIN zone z ON c.zone_id = z.zone_id
+      LEFT JOIN classification cl ON c.classification_id = cl.classification_id
+      ORDER BY c.consumer_id DESC
+    `);
+    return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'consumers.fetch', error);
     console.error('Error fetching consumers:', error);
@@ -1057,24 +1249,21 @@ app.get('/api/consumers', async (req, res) => {
 app.post('/api/consumers', async (req, res) => {
   try {
     const consumer = req.body;
-    if (supabase) {
-      const { data, error } = await supabase.from('consumer').insert([{
-        first_name: consumer.First_Name,
-        middle_name: consumer.Middle_Name,
-        last_name: consumer.Last_Name,
-        address: consumer.Address,
-        zone_id: consumer.Zone_ID,
-        classification_id: consumer.Classification_ID,
-        account_number: consumer.Account_Number,
-        status: consumer.Status || 'Active',
-        contact_number: consumer.Contact_Number,
-        connection_date: consumer.Connection_Date,
-        login_id: consumer.Login_ID
-      }]).select();
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
-      const { rows } = await pool.query(`
+    const loginId = Number(consumer.Login_ID || consumer.login_id);
+    const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
+
+    if (!loginId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Login_ID is required to create a consumer because consumer.login_id is required by the schema.',
+      });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const { rows } = await client.query(`
         INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, account_number, status, contact_number, connection_date, login_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
@@ -1089,9 +1278,32 @@ app.post('/api/consumers', async (req, res) => {
         consumer.Status || 'Active',
         consumer.Contact_Number,
         consumer.Connection_Date,
-        consumer.Login_ID
+        loginId
       ]);
-      return res.json({ success: true, data: { Consumer_ID: rows[0].consumer_id, ...consumer } });
+
+      if (meterNumber) {
+        await client.query(`
+          INSERT INTO meter (consumer_id, meter_serial_number)
+          VALUES ($1, $2)
+        `, [rows[0].consumer_id, meterNumber]);
+      }
+
+      await client.query('COMMIT');
+      scheduleImmediateSync('consumers-create');
+      return res.json({
+        success: true,
+        data: {
+          Consumer_ID: rows[0].consumer_id,
+          Login_ID: rows[0].login_id,
+          ...consumer,
+          Meter_Number: meterNumber || null,
+        },
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
   } catch (error) {
     await logRequestError(req, 'consumers.create', error);
@@ -1100,66 +1312,17 @@ app.post('/api/consumers', async (req, res) => {
   }
 });
 
-// --- CLASSIFICATIONS ---
-app.get('/api/classifications', async (req, res) => {
-  try {
-    if (supabase) {
-      const { data, error } = await supabase.from('classifications').select('*').order('Classification_ID');
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
-      const { rows } = await pool.query('SELECT * FROM classifications ORDER BY Classification_ID');
-      return res.json({ success: true, data: rows });
-    }
-  } catch (error) {
-    console.error('Error fetching classifications:', error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// --- ZONES ---
-app.get('/api/zones', async (req, res) => {
-  try {
-    if (supabase) {
-      const { data, error } = await supabase.from('zones').select('*').order('Zone_ID');
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
-      const { rows } = await pool.query('SELECT * FROM zones ORDER BY Zone_ID');
-      return res.json({ success: true, data: rows });
-    }
-  } catch (error) {
-    console.error('Error fetching zones:', error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
 app.put('/api/consumers/:id', async (req, res) => {
   const { id } = req.params;
   const consumer = req.body;
+  const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
   
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('consumer')
-        .update({
-          first_name: consumer.First_Name,
-          middle_name: consumer.Middle_Name,
-          last_name: consumer.Last_Name,
-          address: consumer.Address,
-          zone_id: consumer.Zone_ID,
-          classification_id: consumer.Classification_ID,
-          account_number: consumer.Account_Number,
-          status: consumer.Status,
-          contact_number: consumer.Contact_Number,
-          connection_date: consumer.Connection_Date
-        })
-        .eq('consumer_id', id)
-        .select();
-      if (error) throw error;
-      return res.json({ success: true, data });
-    } else {
-      await pool.query(`
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      await client.query(`
         UPDATE consumer SET 
           first_name = $1, middle_name = $2, last_name = $3, address = $4, zone_id = $5, 
           classification_id = $6, account_number = $7, 
@@ -1178,8 +1341,40 @@ app.put('/api/consumers/:id', async (req, res) => {
         consumer.Connection_Date,
         id
       ]);
-      return res.json({ success: true, message: 'Consumer updated successfully' });
+
+      if (meterNumber) {
+        const { rows: existingMeters } = await client.query(`
+          SELECT meter_id
+          FROM meter
+          WHERE consumer_id = $1
+          ORDER BY meter_id DESC
+          LIMIT 1
+        `, [id]);
+
+        if (existingMeters.length > 0) {
+          await client.query(`
+            UPDATE meter
+            SET meter_serial_number = $1
+            WHERE meter_id = $2
+          `, [meterNumber, existingMeters[0].meter_id]);
+        } else {
+          await client.query(`
+            INSERT INTO meter (consumer_id, meter_serial_number)
+            VALUES ($1, $2)
+          `, [id, meterNumber]);
+        }
+      }
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
+
+    scheduleImmediateSync('consumers-update');
+    return res.json({ success: true, message: 'Consumer updated successfully' });
   } catch (error) {
     await logRequestError(req, 'consumers.update', error);
     console.error('Error updating consumer:', error);
@@ -1191,17 +1386,11 @@ app.delete('/api/consumers/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
+    await pool.query('DELETE FROM consumer WHERE consumer_id = $1', [id]);
     if (supabase) {
-      const { error } = await supabase
-        .from('consumer')
-        .delete()
-        .eq('consumer_id', id);
-      if (error) throw error;
-      return res.json({ success: true, message: 'Consumer deleted successfully' });
-    } else {
-      await pool.query('DELETE FROM consumer WHERE consumer_id = $1', [id]);
-      return res.json({ success: true, message: 'Consumer deleted successfully' });
+      await mirrorDeleteToSupabase('consumer', 'consumer_id', id);
     }
+    return res.json({ success: true, message: 'Consumer deleted successfully' });
   } catch (error) {
     await logRequestError(req, 'consumers.delete', error);
     console.error('Error deleting consumer:', error);
@@ -1211,36 +1400,17 @@ app.delete('/api/consumers/:id', async (req, res) => {
 
 app.get('/api/meter-readings', async (req, res) => {
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('meterreadings')
-        .select(`
-          Reading_ID:reading_id,
-          Consumer_ID:consumer_id,
-          Meter_ID:meter_id,
-          Previous_Reading:previous_reading,
-          Current_Reading:current_reading,
-          Consumption:consumption,
-          Reading_Status:reading_status,
-          Notes:notes,
-          Reading_Date:reading_date,
-          Consumer_Name:consumer(first_name, last_name)
-        `);
-      if (error) throw error;
-      return res.json(data.map(r => ({ ...r, Consumer_Name: r.Consumer_Name ? `${r.Consumer_Name.first_name} ${r.Consumer_Name.last_name}` : 'Unknown' })));
-    } else {
-      const { rows } = await pool.query(`
-        SELECT 
-          m.reading_id AS "Reading_ID", m.consumer_id AS "Consumer_ID", m.meter_id AS "Meter_ID",
-          m.previous_reading AS "Previous_Reading", m.current_reading AS "Current_Reading", 
-          m.consumption AS "Consumption", m.reading_status AS "Reading_Status", 
-          m.notes AS "Notes", m.reading_date AS "Reading_Date",
-          CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name"
-        FROM meterreadings m
-        LEFT JOIN consumer c ON m.consumer_id = c.consumer_id
-      `);
-      return res.json(rows);
-    }
+    const { rows } = await pool.query(`
+      SELECT 
+        m.reading_id AS "Reading_ID", m.consumer_id AS "Consumer_ID", m.meter_id AS "Meter_ID",
+        m.previous_reading AS "Previous_Reading", m.current_reading AS "Current_Reading", 
+        m.consumption AS "Consumption", m.reading_status AS "Reading_Status", 
+        m.notes AS "Notes", m.reading_date AS "Reading_Date",
+        CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name"
+      FROM meterreadings m
+      LEFT JOIN consumer c ON m.consumer_id = c.consumer_id
+    `);
+    return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'meterReadings.fetch', error);
     console.error('Error fetching meter readings:', error);
@@ -1251,39 +1421,23 @@ app.get('/api/meter-readings', async (req, res) => {
 app.post('/api/meter-readings', async (req, res) => {
   try {
     const reading = req.body;
-    if (supabase) {
-      const { data, error } = await supabase.from('meterreadings').insert([{
-        consumer_id: reading.Consumer_ID,
-        meter_id: reading.Meter_ID,
-        previous_reading: reading.Previous_Reading,
-        current_reading: reading.Current_Reading,
-        consumption: reading.Consumption,
-        reading_status: reading.Reading_Status || 'Recorded',
-        notes: reading.Notes,
-        reading_date: reading.Reading_Date,
-        route_id: 1, // Default or derived
-        meter_reader_id: 1 // Default or derived
-      }]).select();
-      if (error) throw error;
-      return res.json(data);
-    } else {
-      const { rows } = await pool.query(`
-        INSERT INTO meterreadings (consumer_id, meter_id, previous_reading, current_reading, consumption, reading_status, notes, reading_date, route_id, meter_reader_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING *, reading_id AS "Reading_ID"
-      `, [
-        reading.Consumer_ID,
-        reading.Meter_ID,
-        reading.Previous_Reading,
-        reading.Current_Reading,
-        reading.Consumption,
-        reading.Reading_Status || 'Recorded',
-        reading.Notes,
-        reading.Reading_Date,
-        1, 1
-      ]);
-      return res.json(rows[0]);
-    }
+    const { rows } = await pool.query(`
+      INSERT INTO meterreadings (consumer_id, meter_id, previous_reading, current_reading, consumption, reading_status, notes, reading_date, route_id, meter_reader_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *, reading_id AS "Reading_ID"
+    `, [
+      reading.Consumer_ID,
+      reading.Meter_ID,
+      reading.Previous_Reading,
+      reading.Current_Reading,
+      reading.Consumption,
+      reading.Reading_Status || 'Recorded',
+      reading.Notes,
+      reading.Reading_Date,
+      1, 1
+    ]);
+    scheduleImmediateSync('meter-readings-create');
+    return res.json(rows[0]);
   } catch (error) {
     await logRequestError(req, 'meterReadings.create', error);
     console.error('Error creating meter reading:', error);
@@ -1294,65 +1448,32 @@ app.post('/api/meter-readings', async (req, res) => {
 app.get('/api/bills', async (req, res) => {
   const { Account_Number, status } = req.query;
   try {
-    if (supabase) {
-      let query = supabase
-        .from('bills')
-        .select(`
-          Bill_ID:bill_id,
-          Consumer_ID:consumer_id,
-          Reading_ID:reading_id,
-          Bill_Date:bill_date,
-          Due_Date:due_date,
-          Total_Amount:total_amount,
-          Status:status,
-          Billing_Month:billing_month,
-          Consumer_Name:consumer(first_name, last_name),
-          Address:consumer(address),
-          Classification:consumer(classification(classification_name))
-        `);
-      
-      if (status) query = query.eq('status', status);
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      
-      let billList = data.map(b => ({ 
-        ...b, 
-        Consumer_Name: b.Consumer_Name ? `${b.Consumer_Name.first_name} ${b.Consumer_Name.last_name}` : 'Unknown',
-        Address: b.Address?.address,
-        Classification: b.Classification?.classification?.classification_name,
-        Account_Number: Account_Number // Placeholder if we don't join on account directly
-      }));
-
-      return res.json(billList);
-    } else {
-      let queryStr = `
-        SELECT 
-          b.bill_id AS "Bill_ID", b.consumer_id AS "Consumer_ID", b.reading_id AS "Reading_ID",
-          b.bill_date AS "Bill_Date", b.due_date AS "Due_Date", b.total_amount AS "Total_Amount",
-          b.status AS "Status", b.billing_month AS "Billing_Month",
-          CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
-          c.address AS "Address", c.account_number AS "Account_Number",
-          cl.classification_name AS "Classification"
-        FROM bills b
-        LEFT JOIN consumer c ON b.consumer_id = c.consumer_id
-        LEFT JOIN classification cl ON c.classification_id = cl.classification_id
-        WHERE 1=1
-      `;
-      const params = [];
-      if (Account_Number) {
-        params.push(Account_Number);
-        queryStr += ` AND c.account_number = $${params.length}`;
-      }
-      if (status) {
-        params.push(status);
-        queryStr += ` AND b.status = $${params.length}`;
-      }
-      queryStr += ` ORDER BY b.bill_date DESC`;
-      
-      const { rows } = await pool.query(queryStr, params);
-      return res.json(rows);
+    let queryStr = `
+      SELECT 
+        b.bill_id AS "Bill_ID", b.consumer_id AS "Consumer_ID", b.reading_id AS "Reading_ID",
+        b.bill_date AS "Bill_Date", b.due_date AS "Due_Date", b.total_amount AS "Total_Amount",
+        b.status AS "Status", b.billing_month AS "Billing_Month",
+        CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
+        c.address AS "Address", c.account_number AS "Account_Number",
+        cl.classification_name AS "Classification"
+      FROM bills b
+      LEFT JOIN consumer c ON b.consumer_id = c.consumer_id
+      LEFT JOIN classification cl ON c.classification_id = cl.classification_id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (Account_Number) {
+      params.push(Account_Number);
+      queryStr += ` AND c.account_number = $${params.length}`;
     }
+    if (status) {
+      params.push(status);
+      queryStr += ` AND b.status = $${params.length}`;
+    }
+    queryStr += ` ORDER BY b.bill_date DESC`;
+    
+    const { rows } = await pool.query(queryStr, params);
+    return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'bills.fetch', error);
     console.error('Error fetching bills:', error);
@@ -1363,37 +1484,21 @@ app.get('/api/bills', async (req, res) => {
 app.post('/api/bills', async (req, res) => {
   try {
     const bill = req.body;
-    if (supabase) {
-      const { data, error } = await supabase.from('bills').insert([{
-        consumer_id: bill.Consumer_ID,
-        reading_id: bill.Reading_ID,
-        bill_date: bill.Bill_Date,
-        due_date: bill.Due_Date,
-        total_amount: bill.Total_Amount,
-        status: bill.Status || 'Unpaid',
-        billing_officer_id: 1, // Default or derived
-        billing_month: 'April 2026', // Placeholder or derived
-        date_covered_from: new Date(),
-        date_covered_to: new Date()
-      }]).select();
-      if (error) throw error;
-      return res.json(data);
-    } else {
-      const { rows } = await pool.query(`
-        INSERT INTO bills (consumer_id, reading_id, bill_date, due_date, total_amount, status, billing_officer_id, billing_month, date_covered_from, date_covered_to)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING *, bill_id AS "Bill_ID"
-      `, [
-        bill.Consumer_ID,
-        bill.Reading_ID,
-        bill.Bill_Date,
-        bill.Due_Date,
-        bill.Total_Amount,
-        bill.Status || 'Unpaid',
-        1, 'April 2026', new Date(), new Date()
-      ]);
-      return res.json(rows[0]);
-    }
+    const { rows } = await pool.query(`
+      INSERT INTO bills (consumer_id, reading_id, bill_date, due_date, total_amount, status, billing_officer_id, billing_month, date_covered_from, date_covered_to)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *, bill_id AS "Bill_ID"
+    `, [
+      bill.Consumer_ID,
+      bill.Reading_ID,
+      bill.Bill_Date,
+      bill.Due_Date,
+      bill.Total_Amount,
+      bill.Status || 'Unpaid',
+      1, 'April 2026', new Date(), new Date()
+    ]);
+    scheduleImmediateSync('bills-create');
+    return res.json(rows[0]);
   } catch (error) {
     await logRequestError(req, 'bills.create', error);
     console.error('Error creating bill:', error);
@@ -1405,65 +1510,52 @@ app.post('/api/bills', async (req, res) => {
 app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
   const { accountId } = req.params;
   try {
-    if (supabase) {
-      const { data: consumer, error: cErr } = await supabase
-        .from('consumer')
-        .select('*')
-        .eq('login_id', accountId)
-        .maybeSingle();
-      
-      if (cErr) throw cErr;
-      if (!consumer) return res.status(404).json({ success: false, message: 'Consumer profile not found' });
-
-      const consumerId = consumer.consumer_id;
-
-      // Get bills
-      const { data: bills } = await supabase
-        .from('bills')
-        .select('*')
-        .eq('consumer_id', consumerId)
-        .order('bill_date', { ascending: false });
-
-      // Get payments
-      const { data: payments } = await supabase
-        .from('payment')
-        .select('*, bills(bill_date)')
-        .eq('consumer_id', consumerId)
-        .order('payment_date', { ascending: false });
-
-      // Get meter readings (last 6)
-      const { data: readings } = await supabase
-        .from('meterreadings')
-        .select('reading_date, consumption')
-        .eq('consumer_id', consumerId)
-        .order('reading_date', { ascending: false })
-        .limit(6);
-
-      return res.json({ 
-        success: true, 
-        consumer: { ...consumer, Consumer_ID: consumer.consumer_id }, 
-        bills: (bills || []).map(b => ({ ...b, Bill_ID: b.bill_id, Bill_Date: b.bill_date, Total_Amount: b.total_amount })), 
-        payments: (payments || []).map(p => ({ ...p, Payment_ID: p.payment_id, Amount_Paid: p.amount_paid, Payment_Date: p.payment_date })), 
-        readings: (readings || []).map(r => ({ Reading_Date: r.reading_date, Consumption: r.consumption })).reverse() 
-      });
-    } else {
-      const { rows: consumers } = await pool.query('SELECT * FROM consumer WHERE login_id = $1', [accountId]);
-      const consumer = consumers[0];
-      if (!consumer) return res.status(404).json({ success: false, message: 'Consumer not found' });
-
-      const consumerId = consumer.consumer_id;
-      const { rows: bills } = await pool.query('SELECT *, bill_id AS "Bill_ID", bill_date AS "Bill_Date", total_amount AS "Total_Amount" FROM bills WHERE consumer_id = $1 ORDER BY bill_date DESC', [consumerId]);
-      const { rows: payments } = await pool.query('SELECT p.*, p.payment_id AS "Payment_ID", p.amount_paid AS "Amount_Paid", p.payment_date AS "Payment_Date", b.bill_date AS "Bill_Date" FROM payment p LEFT JOIN bills b ON p.bill_id = b.bill_id WHERE p.consumer_id = $1 ORDER BY p.payment_date DESC', [consumerId]);
-      const { rows: readings } = await pool.query('SELECT reading_date AS "Reading_Date", consumption AS "Consumption" FROM meterreadings WHERE consumer_id = $1 ORDER BY reading_date DESC LIMIT 6', [consumerId]);
-
-      return res.json({ 
-        success: true, 
-        consumer: { ...consumer, Consumer_ID: consumer.consumer_id }, 
-        bills, 
-        payments, 
-        readings: readings.reverse() 
+    if (!supabase) {
+      return res.status(503).json({
+        success: false,
+        message: 'Consumer app data is only available through Supabase in online mode.',
       });
     }
+
+    const { data: consumer, error: cErr } = await supabase
+      .from('consumer')
+      .select('*')
+      .eq('login_id', accountId)
+      .maybeSingle();
+    if (cErr) throw cErr;
+    if (!consumer) return res.status(404).json({ success: false, message: 'Consumer not found' });
+
+    const consumerId = consumer.consumer_id;
+    const { data: bills } = await supabase
+      .from('bills')
+      .select('*')
+      .eq('consumer_id', consumerId)
+      .order('bill_date', { ascending: false });
+    const { data: payments } = await supabase
+      .from('payment')
+      .select('*, bills(bill_date)')
+      .eq('consumer_id', consumerId)
+      .order('payment_date', { ascending: false });
+    const { data: readings } = await supabase
+      .from('meterreadings')
+      .select('reading_date, consumption')
+      .eq('consumer_id', consumerId)
+      .order('reading_date', { ascending: false })
+      .limit(6);
+
+    return res.json({
+      success: true,
+      consumer: { ...consumer, Consumer_ID: consumer.consumer_id },
+      bills: (bills || []).map((b) => ({ ...b, Bill_ID: b.bill_id, Bill_Date: b.bill_date, Total_Amount: b.total_amount })),
+      payments: (payments || []).map((p) => ({
+        ...p,
+        Payment_ID: p.payment_id,
+        Amount_Paid: p.amount_paid,
+        Payment_Date: p.payment_date,
+        Reference_Number: p.reference_number,
+      })),
+      readings: (readings || []).map((r) => ({ Reading_Date: r.reading_date, Consumption: r.consumption })).reverse(),
+    });
   } catch (error) {
     await logRequestError(req, 'consumerDashboard.fetch', error);
     console.error('Consumer dashboard error:', error);
@@ -1473,42 +1565,20 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
 
 app.get('/api/payments', async (req, res) => {
   try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('payment')
-        .select(`
-          Payment_ID:payment_id,
-          Bill_ID:bill_id,
-          Consumer_ID:consumer_id,
-          Amount_Paid:amount_paid,
-          Payment_Date:payment_date,
-          Payment_Method:payment_method,
-          Reference_No:reference_no,
-          Remarks:remarks,
-          Consumer_Name:consumer(first_name, last_name),
-          Bill_Amount:bills(total_amount)
-        `);
-      if (error) throw error;
-      return res.json(data.map(p => ({ 
-        ...p, 
-        Consumer_Name: p.Consumer_Name ? `${p.Consumer_Name.first_name} ${p.Consumer_Name.last_name}` : 'Unknown',
-        Bill_Amount: p.Bill_Amount?.total_amount
-      })));
-    } else {
-      const { rows } = await pool.query(`
-        SELECT 
-          p.payment_id AS "Payment_ID", p.bill_id AS "Bill_ID", p.consumer_id AS "Consumer_ID",
-          p.amount_paid AS "Amount_Paid", p.payment_date AS "Payment_Date", 
-          p.payment_method AS "Payment_Method", p.reference_no AS "Reference_No",
-          p.remarks AS "Remarks",
-          CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
-          b.total_amount AS "Bill_Amount"
-        FROM payment p
-        LEFT JOIN consumer c ON p.consumer_id = c.consumer_id
-        LEFT JOIN bills b ON p.bill_id = b.bill_id
-      `);
-      return res.json(rows);
-    }
+    const { rows } = await pool.query(`
+      SELECT 
+        p.payment_id AS "Payment_ID", p.bill_id AS "Bill_ID", p.consumer_id AS "Consumer_ID",
+        p.amount_paid AS "Amount_Paid", p.payment_date AS "Payment_Date", 
+        p.payment_method AS "Payment_Method", p.reference_number AS "Reference_No",
+        p.reference_number AS "Reference_Number", p.or_number AS "OR_Number",
+        p.status AS "Status",
+        CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
+        b.total_amount AS "Bill_Amount"
+      FROM payment p
+      LEFT JOIN consumer c ON p.consumer_id = c.consumer_id
+      LEFT JOIN bills b ON p.bill_id = b.bill_id
+    `);
+    return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'payments.fetch', error);
     console.error('Error fetching payments:', error);
@@ -1519,40 +1589,24 @@ app.get('/api/payments', async (req, res) => {
 app.post('/api/payments', async (req, res) => {
   try {
     const payment = req.body;
-    if (supabase) {
-      const { data, error } = await supabase.from('payment').insert([{
-        bill_id: payment.Bill_ID,
-        consumer_id: payment.Consumer_ID,
-        amount_paid: payment.Amount_Paid,
-        payment_date: payment.Payment_Date,
-        payment_method: payment.Payment_Method,
-        reference_no: payment.Reference_No || payment.Reference_Number
-      }]).select();
-      if (error) throw error;
-
-      // Update Bill Status
-      await supabase.from('bills').update({ status: 'Paid' }).eq('bill_id', payment.Bill_ID);
-      
-      return res.json(data);
-    } else {
-      const { rows } = await pool.query(`
-        INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_no)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *, payment_id AS "Payment_ID"
-      `, [
-        payment.Bill_ID,
-        payment.Consumer_ID,
-        payment.Amount_Paid,
-        payment.Payment_Date,
-        payment.Payment_Method,
-        payment.Reference_No || payment.Reference_Number
-      ]);
-      
-      // Update Bill Status
-      await pool.query('UPDATE bills SET status = $1 WHERE bill_id = $2', ['Paid', payment.Bill_ID]);
-      
-      return res.json(rows[0]);
-    }
+    const { rows } = await pool.query(`
+      INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number, or_number, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *, payment_id AS "Payment_ID"
+    `, [
+      payment.Bill_ID,
+      payment.Consumer_ID,
+      payment.Amount_Paid,
+      payment.Payment_Date,
+      payment.Payment_Method,
+      payment.Reference_No || payment.Reference_Number || null,
+      payment.OR_Number || null,
+      payment.Status || 'Pending'
+    ]);
+    
+    await pool.query('UPDATE bills SET status = $1 WHERE bill_id = $2', ['Paid', payment.Bill_ID]);
+    scheduleImmediateSync('payments-create');
+    return res.json(rows[0]);
   } catch (error) {
     await logRequestError(req, 'payments.create', error);
     console.error('Error creating payment:', error);
@@ -1562,11 +1616,16 @@ app.post('/api/payments', async (req, res) => {
 
 // Helper to send SMS (Mock for now)
 const sendSMS = async (phone, message) => {
-  console.log(`\n--- MOCK SMS SENT ---`);
-  console.log(`To: ${phone}`);
-  console.log(`Message: ${message}`);
-  console.log(`----------------------\n`);
-  return { success: true };
+  try {
+    console.log(`\n--- MOCK SMS SENT ---`);
+    console.log(`To: ${phone}`);
+    console.log(`Message: ${message}`);
+    console.log(`----------------------\n`);
+    return { success: true };
+  } catch (error) {
+    await logDatabaseError('sms.mock.send', error, { severity: 'WARNING' });
+    return { success: false, message: error.message };
+  }
 };
 
 // --- FORGOT PASSWORD ENDPOINTS ---
@@ -1576,16 +1635,16 @@ const sendSMS = async (phone, message) => {
 app.post('/api/forgot-password/request', async (req, res) => {
   const { username } = req.body;
   try {
-    const user = await withSupabaseFallback(
+    const user = await withPostgresPrimary(
       'forgotPassword.request',
+      async () => {
+        const { rows } = await pool.query('SELECT account_id, username FROM accounts WHERE username = $1', [username]);
+        return rows[0];
+      },
       async () => {
         const { data, error } = await supabase.from('accounts').select('account_id, username').eq('username', username).single();
         if (error) throw error;
         return data;
-      },
-      async () => {
-        const { rows } = await pool.query('SELECT account_id, username FROM accounts WHERE username = $1', [username]);
-        return rows[0];
       }
     );
 
@@ -1615,14 +1674,15 @@ app.post('/api/forgot-password/verify-otp', async (req, res) => {
 app.post('/api/forgot-password/reset', async (req, res) => {
   const { username, code, newPassword } = req.body;
   try {
-    await withSupabaseFallback(
+    await withPostgresPrimary(
       'forgotPassword.reset',
+      async () => {
+        await pool.query('UPDATE accounts SET password = $1 WHERE username = $2', [newPassword, username]);
+        scheduleImmediateSync('forgot-password-reset');
+      },
       async () => {
         const { error } = await supabase.from('accounts').update({ password: newPassword }).eq('username', username);
         if (error) throw error;
-      },
-      async () => {
-        await pool.query('UPDATE accounts SET password = $1 WHERE username = $2', [newPassword, username]);
       }
     );
     return res.json({ success: true, message: 'Password reset successful' });
@@ -1644,42 +1704,53 @@ app.post('/api/register', async (req, res) => {
   }
 
   try {
-    // 1. Create Account (Status: Pending)
-    const accountId = await withSupabaseFallback(
-      'auth.register.account',
+    await withPostgresPrimary(
+      'register',
       async () => {
-        const { data, error } = await supabase
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+
+          const { rows } = await client.query(
+            'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING account_id',
+            [username, password, 4, 'Pending']
+          );
+          const accountId = rows[0].account_id;
+
+          await client.query(`
+            INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, login_id, status, contact_number, account_number)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          `, [firstName, middleName, lastName, address, zoneId, classificationId, accountId, 'Pending', phone, `ACC-${Date.now()}`]);
+
+          await client.query('COMMIT');
+          scheduleImmediateSync('register');
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { data: accountRows, error: accountError } = await supabase
           .from('accounts')
-          .insert([{ 
-            username, 
-            password, 
+          .insert([{
+            username,
+            password,
             role_id: 4,
             account_status: 'Pending'
           }])
           .select();
-        if (error) throw error;
-        return data[0].account_id;
-      },
-      async () => {
-        const { rows } = await pool.query(
-          'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING account_id',
-          [username, password, 4, 'Pending']
-        );
-        return rows[0].account_id;
-      }
-    );
+        if (accountError) throw accountError;
+        const accountId = accountRows[0].account_id;
 
-    // 2. Create Consumer Record
-    await withSupabaseFallback(
-      'auth.register.consumer',
-      async () => {
-        const { error } = await supabase
+        const { error: consumerError } = await supabase
           .from('consumer')
           .insert([{
             first_name: firstName,
             middle_name: middleName,
             last_name: lastName,
-            address: address,
+            address,
             zone_id: zoneId,
             classification_id: classificationId,
             login_id: accountId,
@@ -1687,13 +1758,7 @@ app.post('/api/register', async (req, res) => {
             contact_number: phone,
             account_number: `ACC-${Date.now()}`
           }]);
-        if (error) throw error;
-      },
-      async () => {
-        await pool.query(`
-          INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, login_id, status, contact_number, account_number)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        `, [firstName, middleName, lastName, address, zoneId, classificationId, accountId, 'Pending', phone, `ACC-${Date.now()}`]);
+        if (consumerError) throw consumerError;
       }
     );
 
@@ -1747,6 +1812,34 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'admin.syncPostgres', error);
     console.error('Manual PostgreSQL sync failed:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/admin/sync/run', async (req, res) => {
+  try {
+    const result = await runHybridSyncCycle('api');
+    const status = result.success ? 200 : 409;
+    return res.status(status).json(result);
+  } catch (error) {
+    await logRequestError(req, 'admin.sync.run', error);
+    console.error('Hybrid sync cycle failed:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/admin/sync/status', async (req, res) => {
+  try {
+    return res.json({
+      success: true,
+      sync: {
+        ...syncState,
+        configured: Boolean(supabase),
+        schema: supabaseSchema,
+      },
+    });
+  } catch (error) {
+    await logRequestError(req, 'admin.sync.status', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });

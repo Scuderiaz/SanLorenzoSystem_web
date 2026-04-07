@@ -5,6 +5,11 @@ import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
 import './VerifyPayment.css';
 
+const toAmount = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 interface PendingPayment {
   OR_No: string;
   Account_Number: string;
@@ -109,7 +114,7 @@ const VerifyPayment: React.FC = () => {
       key: 'Amount',
       label: 'Amount',
       sortable: true,
-      render: (val: number) => `₱${(val || 0).toFixed(2)}`,
+      render: (val: number) => `₱${toAmount(val).toFixed(2)}`,
     },
     {
       key: 'Entered_By',
@@ -163,7 +168,7 @@ const VerifyPayment: React.FC = () => {
       key: 'Amount',
       label: 'Amount',
       sortable: true,
-      render: (val: number) => `₱${(val || 0).toFixed(2)}`,
+      render: (val: number) => `₱${toAmount(val).toFixed(2)}`,
     },
     {
       key: 'Entered_By',
@@ -284,3 +289,5 @@ const VerifyPayment: React.FC = () => {
 };
 
 export default VerifyPayment;
+
+

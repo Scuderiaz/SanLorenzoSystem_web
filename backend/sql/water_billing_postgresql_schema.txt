@@ -30,7 +30,7 @@ CREATE TABLE accounts (
     CONSTRAINT fk_accounts_role
         FOREIGN KEY (role_id) REFERENCES roles(role_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        ON DELETE NO ACTION
 );
 
 -- =========================================
@@ -70,17 +70,17 @@ CREATE TABLE consumer (
     CONSTRAINT fk_consumer_zone
         FOREIGN KEY (zone_id) REFERENCES zone(zone_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        ON DELETE NO ACTION,
 
     CONSTRAINT fk_consumer_classification
         FOREIGN KEY (classification_id) REFERENCES classification(classification_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        ON DELETE NO ACTION,
 
     CONSTRAINT fk_consumer_login
         FOREIGN KEY (login_id) REFERENCES accounts(account_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        ON DELETE NO ACTION
 );
 
 -- =========================================
@@ -112,12 +112,12 @@ CREATE TABLE route (
     CONSTRAINT fk_route_meter_reader
         FOREIGN KEY (meter_reader_id) REFERENCES accounts(account_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        ON DELETE NO ACTION,
 
     CONSTRAINT fk_route_zone
         FOREIGN KEY (zone_id) REFERENCES zone(zone_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        ON DELETE NO ACTION
 );
 
 -- =========================================
@@ -144,7 +144,7 @@ CREATE TABLE meterreadings (
     CONSTRAINT fk_meterreadings_route
         FOREIGN KEY (route_id) REFERENCES route(route_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        ON DELETE NO ACTION,
 
     CONSTRAINT fk_meterreadings_consumer
         FOREIGN KEY (consumer_id) REFERENCES consumer(consumer_id)
@@ -159,7 +159,7 @@ CREATE TABLE meterreadings (
     CONSTRAINT fk_meterreadings_reader
         FOREIGN KEY (meter_reader_id) REFERENCES accounts(account_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        ON DELETE NO ACTION,
 
     CONSTRAINT chk_meterreadings_values
         CHECK (
@@ -204,12 +204,12 @@ CREATE TABLE bills (
     CONSTRAINT fk_bills_reading
         FOREIGN KEY (reading_id) REFERENCES meterreadings(reading_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        ON DELETE NO ACTION,
 
     CONSTRAINT fk_bills_billing_officer
         FOREIGN KEY (billing_officer_id) REFERENCES accounts(account_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        ON DELETE NO ACTION
 );
 
 -- =========================================
@@ -312,7 +312,7 @@ CREATE TABLE connection_ticket (
     CONSTRAINT fk_connection_ticket_account
         FOREIGN KEY (account_id) REFERENCES accounts(account_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        ON DELETE NO ACTION,
 
     CONSTRAINT fk_connection_ticket_approved_by
         FOREIGN KEY (approved_by) REFERENCES accounts(account_id)
@@ -358,7 +358,7 @@ CREATE TABLE account_approval (
     CONSTRAINT fk_account_approval_approved_by
         FOREIGN KEY (approved_by) REFERENCES accounts(account_id)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        ON DELETE NO ACTION
 );
 
 -- =========================================
@@ -430,31 +430,3 @@ CREATE INDEX idx_connection_ticket_account_id ON connection_ticket(account_id);
 CREATE INDEX idx_connection_ticket_consumer_id ON connection_ticket(consumer_id);
 CREATE INDEX idx_system_logs_account_id ON system_logs(account_id);
 CREATE INDEX idx_error_logs_user_id ON error_logs(user_id);
-
--- =========================================
--- OPTIONAL DEFAULT DATA
--- =========================================
-INSERT INTO roles (role_name) VALUES
-('Admin'),
-('Billing Officer'),
-('Meter Reader'),
-('Consumer')
-ON CONFLICT (role_name) DO NOTHING;
-
-INSERT INTO classification (classification_name) VALUES
-('Residential'),
-('Commercial'),
-('Institutional')
-ON CONFLICT (classification_name) DO NOTHING;
-
-INSERT INTO waterrates (
-    minimum_cubic,
-    minimum_rate,
-    excess_rate_per_cubic,
-    effective_date
-) VALUES (
-    10,
-    75.00,
-    7.50,
-    CURRENT_TIMESTAMP
-);

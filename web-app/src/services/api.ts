@@ -14,6 +14,7 @@ const syncEndpointMap: Record<string, string> = {
   consumer: '/consumers',
   meterreadings: '/meter-readings',
   bills: '/bills',
+  payment: '/payments',
 };
 
 export const authService = {
@@ -339,6 +340,12 @@ export const syncService = {
         } catch (error) {
           console.error(`Error syncing record ${id}:`, error);
         }
+      }
+
+      try {
+        await api.post('/admin/sync/run');
+      } catch (error) {
+        console.error('Error triggering backend hybrid sync after offline sync:', error);
       }
 
       await saveOfflineDB(db);

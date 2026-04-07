@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "San Lorenzo Water Billing System - Monorepo",
   "scripts": {
-    "start": "concurrently \"npm run start --prefix backend\" \"npm run start --prefix web-app\" --names \"BACKEND,FRONTEND\" --prefix-colors \"red,blue\" --kill-others-on-fail",
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run start --prefix web-app\" --names \"BACKEND,FRONTEND\" --prefix-colors \"red,blue\" --kill-others-on-fail"
+    "prestart": "node scripts/free-dev-ports.js",
+    "start": "node scripts/start-root.js",
+    "predev": "node scripts/free-dev-ports.js",
+    "dev": "node scripts/start-root.js dev"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

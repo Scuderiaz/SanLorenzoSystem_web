@@ -6,6 +6,11 @@ import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
 import './Settings.css';
 
+const toAmount = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 interface WaterRate {
   rate_id: number;
   minimum_cubic: number;
@@ -236,8 +241,8 @@ const Settings: React.FC = () => {
             <DataTable
               columns={[
                 { key: 'minimum_cubic', label: 'Min. Consumption', render: (v: number) => `${v} cu.m` },
-                { key: 'minimum_rate', label: 'Min. Charge', render: (v: number) => `₱${(v || 0).toFixed(2)}` },
-                { key: 'excess_rate_per_cubic', label: 'Excess Rate', render: (v: number) => `₱${(v || 0).toFixed(2)} / cu.m` },
+                { key: 'minimum_rate', label: 'Min. Charge', render: (v: number) => `₱${toAmount(v).toFixed(2)}` },
+                { key: 'excess_rate_per_cubic', label: 'Excess Rate', render: (v: number) => `₱${toAmount(v).toFixed(2)} / cu.m` },
                 { key: 'effective_date', label: 'Effective Date', render: (v: string) => new Date(v).toLocaleDateString() },
               ]}
               data={currentRates}
@@ -252,3 +257,4 @@ const Settings: React.FC = () => {
 };
 
 export default Settings;
+

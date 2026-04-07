@@ -42,13 +42,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    try {
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Failed to persist user session:', error);
+      setUser(userData);
+    }
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+    try {
+      setUser(null);
+      localStorage.removeItem('user');
+    } catch (error) {
+      console.error('Failed to clear user session:', error);
+      setUser(null);
+    }
   };
 
   return (

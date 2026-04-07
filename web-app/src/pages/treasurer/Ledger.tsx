@@ -5,6 +5,11 @@ import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
 import './Ledger.css';
 
+const toAmount = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 interface RecordEntry {
   Month_Year: string;
   Reading: number;
@@ -106,12 +111,12 @@ const TreasurerLedger: React.FC = () => {
     { key: 'Month_Year', label: 'MONTH & YEAR' },
     { key: 'Reading', label: 'READING' },
     { key: 'Consumption', label: 'USAGE (m³)' },
-    { key: 'Water_Bill', label: 'BILL', render: (v: number) => `₱${v.toFixed(2)}` },
-    { key: 'Penalty', label: 'PENALTY', render: (v: number) => `₱${v.toFixed(2)}` },
+    { key: 'Water_Bill', label: 'BILL', render: (v: number) => `₱${toAmount(v).toFixed(2)}` },
+    { key: 'Penalty', label: 'PENALTY', render: (v: number) => `₱${toAmount(v).toFixed(2)}` },
     { key: 'OR_No', label: 'OR NO.', render: (v: string) => <span className="or-badge">{v}</span> },
     { key: 'Date_Paid', label: 'DATE PAID' },
-    { key: 'Amount_Paid', label: 'PAID', render: (v: number) => <strong style={{ color: '#10b981' }}>₱${v.toFixed(2)}</strong> },
-    { key: 'Balance', label: 'BALANCE', render: (v: number) => <span className="balance-due">₱${v.toLocaleString()}</span> }
+    { key: 'Amount_Paid', label: 'PAID', render: (v: number) => <strong style={{ color: '#10b981' }}>₱${toAmount(v).toFixed(2)}</strong> },
+    { key: 'Balance', label: 'BALANCE', render: (v: number) => <span className="balance-due">₱${toAmount(v).toLocaleString()}</span> }
   ];
 
   return (
@@ -290,3 +295,5 @@ const TreasurerLedger: React.FC = () => {
 };
 
 export default TreasurerLedger;
+
+
