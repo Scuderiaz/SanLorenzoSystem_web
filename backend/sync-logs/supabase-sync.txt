@@ -4361,3 +4361,7 @@
 [2026-04-07T08:21:51.853Z] Table ledger_entry: no rows to sync.
 [2026-04-07T08:21:52.174Z] Table connection_ticket: no rows to sync.
 [2026-04-07T08:21:52.496Z] Table password_reset: no rows to sync.
+[2026-04-07T08:21:52.811Z] Table account_approval: no rows to sync.
+[2026-04-07T08:21:54.281Z] Table error_logs: synced 4518 row(s).
+[2026-04-07T08:22:00.905Z] Table system_logs: synced 22382 row(s).
+[2026-04-07T08:22:01.225Z] Table backuplogs: no rows to sync.
