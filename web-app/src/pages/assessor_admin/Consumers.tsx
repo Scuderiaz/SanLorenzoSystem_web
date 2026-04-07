@@ -10,6 +10,7 @@ import './Consumers.css';
 interface Consumer {
   Consumer_ID: number;
   First_Name: string;
+  Middle_Name?: string;
   Last_Name: string;
   Address: string;
   Zone_ID: number;
@@ -51,6 +52,7 @@ const Consumers: React.FC = () => {
 
   const [formData, setFormData] = useState({
     firstName: '',
+    middleName: '',
     lastName: '',
     address: '',
     zoneId: '',
@@ -146,6 +148,7 @@ const Consumers: React.FC = () => {
     setEditingConsumer(null);
     setFormData({
       firstName: '',
+      middleName: '',
       lastName: '',
       address: '',
       zoneId: '',
@@ -163,6 +166,7 @@ const Consumers: React.FC = () => {
     setEditingConsumer(consumer);
     setFormData({
       firstName: consumer.First_Name,
+      middleName: consumer.Middle_Name || '',
       lastName: consumer.Last_Name,
       address: consumer.Address,
       zoneId: consumer.Zone_ID.toString(),
@@ -216,6 +220,7 @@ const Consumers: React.FC = () => {
 
       const body = {
         First_Name: formData.firstName,
+        Middle_Name: formData.middleName,
         Last_Name: formData.lastName,
         Address: formData.address,
         Zone_ID: parseInt(formData.zoneId),
@@ -257,7 +262,7 @@ const Consumers: React.FC = () => {
       key: 'name',
       label: 'Consumer Name',
       sortable: true,
-      render: (_, row: Consumer) => `${row.First_Name} ${row.Last_Name}`,
+      render: (_, row: Consumer) => `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '.' : ''} ${row.Last_Name}`,
     },
     { key: 'Address', label: 'Address', sortable: true },
     { key: 'Zone_Name', label: 'Zone', sortable: true },
@@ -370,95 +375,67 @@ const Consumers: React.FC = () => {
         <Modal
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
-          title="Consumer Details"
+          title="Concessionaire Information"
           size="large"
           footer={
-            <>
+            <div style={{ display: 'flex', gap: '15px' }}>
               <button className="btn btn-secondary" onClick={() => setIsDetailsModalOpen(false)}>
                 Close
               </button>
               <button
                 className="btn btn-primary"
+                style={{ backgroundColor: '#1B1B63', borderColor: '#1B1B63' }}
                 onClick={() => selectedConsumer && handleEditConsumer(selectedConsumer)}
               >
-                <i className="fas fa-edit"></i> Edit Consumer
+                <i className="fas fa-edit"></i> Edit Records
               </button>
-            </>
+            </div>
           }
         >
           {selectedConsumer && (
-            <div className="details-grid">
-              <div className="detail-section">
-                <h3>
-                  <i className="fas fa-user-circle"></i> Personal Information
-                </h3>
-                <div className="detail-row">
-                  <span className="detail-label">Account Number:</span>
-                  <span className="detail-value">{selectedConsumer.Account_Number}</span>
+            <div className="details-container" style={{ padding: '20px' }}>
+              <div className="details-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                {/* Personal Data Column */}
+                <div className="detail-col">
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                    <i className="fas fa-user"></i> Personal Data
+                  </h3>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Account No:</span>
+                    <span className="view-value" style={{ fontWeight: 600, color: '#333' }}>{selectedConsumer.Account_Number}</span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Name:</span>
+                    <span className="view-value" style={{ fontWeight: 800, color: '#1B1B63', fontSize: '1.1em' }}>
+                      {selectedConsumer.First_Name} {selectedConsumer.Middle_Name ? selectedConsumer.Middle_Name + ' ' : ''}{selectedConsumer.Last_Name}
+                    </span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Address:</span>
+                    <span className="view-value" style={{ fontWeight: 600, color: '#333', textAlign: 'right', maxWidth: '60%' }}>{selectedConsumer.Address}</span>
+                  </div>
                 </div>
-                <div className="detail-row">
-                  <span className="detail-label">Full Name:</span>
-                  <span className="detail-value">
-                    {selectedConsumer.First_Name} {selectedConsumer.Last_Name}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Address:</span>
-                  <span className="detail-value">{selectedConsumer.Address}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Contact Number:</span>
-                  <span className="detail-value">{selectedConsumer.Contact_Number}</span>
-                </div>
-              </div>
 
-              <div className="detail-section">
-                <h3>
-                  <i className="fas fa-id-card"></i> Account Information
-                </h3>
-                <div className="detail-row">
-                  <span className="detail-label">Zone:</span>
-                  <span className="detail-value">{selectedConsumer.Zone_Name}</span>
+                {/* Account Info Column */}
+                <div className="detail-col">
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                    <i className="fas fa-credit-card"></i> Account Info
+                  </h3>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Map Zone:</span>
+                    <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConsumer.Zone_Name}</span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Classification:</span>
+                    <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConsumer.Classification_Name}</span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Status:</span>
+                    <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
+                      {selectedConsumer.Status}
+                    </span>
+                  </div>
                 </div>
-                <div className="detail-row">
-                  <span className="detail-label">Classification:</span>
-                  <span className="detail-value">{selectedConsumer.Classification_Name}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Connection Date:</span>
-                  <span className="detail-value">{selectedConsumer.Connection_Date}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Status:</span>
-                  <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`}>
-                    {selectedConsumer.Status}
-                  </span>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <h3>
-                  <i className="fas fa-tachometer-alt"></i> Meter Information
-                </h3>
-                <div className="detail-row">
-                  <span className="detail-label">Meter Number:</span>
-                  <span className="detail-value">{selectedConsumer.Meter_Number}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Meter Brand:</span>
-                  <span className="detail-value">Arad</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Meter Size:</span>
-                  <span className="detail-value">1/2 inch</span>
-                </div>
-              </div>
-
-              <div className="detail-section full-width">
-                <h3>
-                  <i className="fas fa-history"></i> Recent Billing History
-                </h3>
-                <p className="text-muted">No billing history available</p>
               </div>
             </div>
           )}
@@ -488,6 +465,12 @@ const Consumers: React.FC = () => {
               onChange={(value) => setFormData({ ...formData, firstName: value })}
               required
               icon="fa-user"
+            />
+            <FormInput
+              label="Middle Name"
+              value={formData.middleName}
+              onChange={(value) => setFormData({ ...formData, middleName: value })}
+              icon="fa-user-tag"
             />
             <FormInput
               label="Last Name"

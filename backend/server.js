@@ -70,6 +70,7 @@ const syncTableConfigs = [
   { tableName: 'error_logs', primaryKey: 'error_id', syncWithSupabase: false },
   { tableName: 'system_logs', primaryKey: 'log_id', syncWithSupabase: false },
   { tableName: 'backuplogs', primaryKey: 'backup_id', syncWithSupabase: false },
+  { tableName: 'waterrates', primaryKey: 'rate_id' },
 ];
 
 function quoteIdentifier(identifier) {
@@ -915,36 +916,134 @@ app.get('/api/classifications', async (req, res) => {
   }
 });
 
+// --- WATER RATES ---
+// Get latest water rates
+app.get('/api/water-rates/latest', async (req, res) => {
+  try {
+    const result = await withSupabaseFallback(
+      'waterRates.fetchLatest',
+      async () => {
+        const { data, error } = await supabase
+          .from('waterrates')
+          .select('*')
+          .order('effective_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        return { success: true, data };
+      },
+      async () => {
+        const { rows } = await pool.query(
+          'SELECT * FROM waterrates ORDER BY effective_date DESC LIMIT 1'
+        );
+        return { success: true, data: rows[0] };
+      }
+    );
+    return res.json(result);
+  } catch (error) {
+    await logRequestError(req, 'waterRates.fetchLatest', error);
+    console.error('Error fetching latest water rates:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Create new water rate entry
+app.post('/api/water-rates', async (req, res) => {
+  const { minimum_cubic, minimum_rate, excess_rate_per_cubic, modified_by } = req.body;
+  const effective_date = new Date().toISOString();
+
+  try {
+    const result = await withSupabaseFallback(
+      'waterRates.create',
+      async () => {
+        const { data, error } = await supabase
+          .from('waterrates')
+          .insert([{
+            minimum_cubic: parseInt(minimum_cubic),
+            minimum_rate: parseFloat(minimum_rate),
+            excess_rate_per_cubic: parseFloat(excess_rate_per_cubic),
+            effective_date,
+            modified_by: modified_by ? parseInt(modified_by) : null,
+            modified_date: effective_date
+          }])
+          .select();
+        if (error) throw error;
+        return { success: true, data: data[0] };
+      },
+      async () => {
+        const { rows } = await pool.query(
+          `INSERT INTO waterrates (minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+          [
+            parseInt(minimum_cubic),
+            parseFloat(minimum_rate),
+            parseFloat(excess_rate_per_cubic),
+            effective_date,
+            modified_by ? parseInt(modified_by) : null,
+            effective_date
+          ]
+        );
+        return { success: true, data: rows[0] };
+      }
+    );
+    return res.json(result);
+  } catch (error) {
+    await logRequestError(req, 'waterRates.create', error);
+    console.error('Error creating water rate:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.get('/api/consumers', async (req, res) => {
   try {
     if (supabase) {
       const { data, error } = await supabase
         .from('consumer')
         .select(`
-          *,
-          zone (zone_name),
-          classification (classification_name)
-        `);
+          Consumer_ID:consumer_id,
+          First_Name:first_name,
+          Middle_Name:middle_name,
+          Last_Name:last_name,
+          Address:address,
+          Zone_ID:zone_id,
+          Classification_ID:classification_id,
+          Account_Number:account_number,
+          Status:status,
+          Contact_Number:contact_number,
+          Connection_Date:connection_date,
+          Zone_Name:zone(zone_name),
+          Classification_Name:classification(classification_name)
+        `)
+        .order('consumer_id', { ascending: false });
       if (error) throw error;
       
       const consumers = data.map(c => ({
         ...c,
-        Consumer_ID: c.consumer_id,
-        First_Name: c.first_name,
-        Last_Name: c.last_name,
-        Zone_Name: c.zone?.zone_name,
-        Classification_Name: c.classification?.classification_name
+        Zone_Name: c.Zone_Name?.zone_name,
+        Classification_Name: c.Classification_Name?.classification_name
       }));
       
       return res.json(consumers);
     } else {
       const { rows } = await pool.query(`
-        SELECT c.*, c.consumer_id AS "Consumer_ID", 
-               c.first_name AS "First_Name", c.last_name AS "Last_Name",
-               z.zone_name AS "Zone_Name", cl.classification_name AS "Classification_Name"
+        SELECT 
+          c.consumer_id AS "Consumer_ID",
+          c.first_name AS "First_Name",
+          c.middle_name AS "Middle_Name",
+          c.last_name AS "Last_Name",
+          c.address AS "Address",
+          c.zone_id AS "Zone_ID",
+          c.classification_id AS "Classification_ID",
+          c.account_number AS "Account_Number",
+          c.status AS "Status",
+          c.contact_number AS "Contact_Number",
+          c.connection_date AS "Connection_Date",
+          z.zone_name AS "Zone_Name", 
+          cl.classification_name AS "Classification_Name"
         FROM consumer c
         LEFT JOIN zone z ON c.zone_id = z.zone_id
         LEFT JOIN classification cl ON c.classification_id = cl.classification_id
+        ORDER BY c.consumer_id DESC
       `);
       return res.json(rows);
     }
@@ -961,6 +1060,7 @@ app.post('/api/consumers', async (req, res) => {
     if (supabase) {
       const { data, error } = await supabase.from('consumer').insert([{
         first_name: consumer.First_Name,
+        middle_name: consumer.Middle_Name,
         last_name: consumer.Last_Name,
         address: consumer.Address,
         zone_id: consumer.Zone_ID,
@@ -975,11 +1075,12 @@ app.post('/api/consumers', async (req, res) => {
       return res.json({ success: true, data });
     } else {
       const { rows } = await pool.query(`
-        INSERT INTO consumer (first_name, last_name, address, zone_id, classification_id, account_number, status, contact_number, connection_date, login_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, account_number, status, contact_number, connection_date, login_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
       `, [
         consumer.First_Name,
+        consumer.Middle_Name,
         consumer.Last_Name,
         consumer.Address,
         consumer.Zone_ID,
@@ -1043,6 +1144,7 @@ app.put('/api/consumers/:id', async (req, res) => {
         .from('consumer')
         .update({
           first_name: consumer.First_Name,
+          middle_name: consumer.Middle_Name,
           last_name: consumer.Last_Name,
           address: consumer.Address,
           zone_id: consumer.Zone_ID,
@@ -1059,12 +1161,13 @@ app.put('/api/consumers/:id', async (req, res) => {
     } else {
       await pool.query(`
         UPDATE consumer SET 
-          first_name = $1, last_name = $2, address = $3, zone_id = $4, 
-          classification_id = $5, account_number = $6, 
-          status = $7, contact_number = $8, connection_date = $9
-        WHERE consumer_id = $10
+          first_name = $1, middle_name = $2, last_name = $3, address = $4, zone_id = $5, 
+          classification_id = $6, account_number = $7, 
+          status = $8, contact_number = $9, connection_date = $10
+        WHERE consumer_id = $11
       `, [
         consumer.First_Name,
+        consumer.Middle_Name,
         consumer.Last_Name,
         consumer.Address,
         consumer.Zone_ID,
@@ -1109,11 +1212,33 @@ app.delete('/api/consumers/:id', async (req, res) => {
 app.get('/api/meter-readings', async (req, res) => {
   try {
     if (supabase) {
-      const { data, error } = await supabase.from('meterreadings').select('*');
+      const { data, error } = await supabase
+        .from('meterreadings')
+        .select(`
+          Reading_ID:reading_id,
+          Consumer_ID:consumer_id,
+          Meter_ID:meter_id,
+          Previous_Reading:previous_reading,
+          Current_Reading:current_reading,
+          Consumption:consumption,
+          Reading_Status:reading_status,
+          Notes:notes,
+          Reading_Date:reading_date,
+          Consumer_Name:consumer(first_name, last_name)
+        `);
       if (error) throw error;
-      return res.json(data.map(r => ({ ...r, Reading_ID: r.reading_id, Previous_Reading: r.previous_reading, Current_Reading: r.current_reading, Reading_Date: r.reading_date })));
+      return res.json(data.map(r => ({ ...r, Consumer_Name: r.Consumer_Name ? `${r.Consumer_Name.first_name} ${r.Consumer_Name.last_name}` : 'Unknown' })));
     } else {
-      const { rows } = await pool.query('SELECT *, reading_id AS "Reading_ID", previous_reading AS "Previous_Reading", current_reading AS "Current_Reading", reading_date AS "Reading_Date" FROM meterreadings');
+      const { rows } = await pool.query(`
+        SELECT 
+          m.reading_id AS "Reading_ID", m.consumer_id AS "Consumer_ID", m.meter_id AS "Meter_ID",
+          m.previous_reading AS "Previous_Reading", m.current_reading AS "Current_Reading", 
+          m.consumption AS "Consumption", m.reading_status AS "Reading_Status", 
+          m.notes AS "Notes", m.reading_date AS "Reading_Date",
+          CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name"
+        FROM meterreadings m
+        LEFT JOIN consumer c ON m.consumer_id = c.consumer_id
+      `);
       return res.json(rows);
     }
   } catch (error) {
@@ -1167,13 +1292,65 @@ app.post('/api/meter-readings', async (req, res) => {
 });
 
 app.get('/api/bills', async (req, res) => {
+  const { Account_Number, status } = req.query;
   try {
     if (supabase) {
-      const { data, error } = await supabase.from('bills').select('*');
+      let query = supabase
+        .from('bills')
+        .select(`
+          Bill_ID:bill_id,
+          Consumer_ID:consumer_id,
+          Reading_ID:reading_id,
+          Bill_Date:bill_date,
+          Due_Date:due_date,
+          Total_Amount:total_amount,
+          Status:status,
+          Billing_Month:billing_month,
+          Consumer_Name:consumer(first_name, last_name),
+          Address:consumer(address),
+          Classification:consumer(classification(classification_name))
+        `);
+      
+      if (status) query = query.eq('status', status);
+      
+      const { data, error } = await query;
       if (error) throw error;
-      return res.json(data.map(b => ({ ...b, Bill_ID: b.bill_id, Bill_Date: b.bill_date, Total_Amount: b.total_amount })));
+      
+      let billList = data.map(b => ({ 
+        ...b, 
+        Consumer_Name: b.Consumer_Name ? `${b.Consumer_Name.first_name} ${b.Consumer_Name.last_name}` : 'Unknown',
+        Address: b.Address?.address,
+        Classification: b.Classification?.classification?.classification_name,
+        Account_Number: Account_Number // Placeholder if we don't join on account directly
+      }));
+
+      return res.json(billList);
     } else {
-      const { rows } = await pool.query('SELECT *, bill_id AS "Bill_ID", bill_date AS "Bill_Date", total_amount AS "Total_Amount" FROM bills');
+      let queryStr = `
+        SELECT 
+          b.bill_id AS "Bill_ID", b.consumer_id AS "Consumer_ID", b.reading_id AS "Reading_ID",
+          b.bill_date AS "Bill_Date", b.due_date AS "Due_Date", b.total_amount AS "Total_Amount",
+          b.status AS "Status", b.billing_month AS "Billing_Month",
+          CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
+          c.address AS "Address", c.account_number AS "Account_Number",
+          cl.classification_name AS "Classification"
+        FROM bills b
+        LEFT JOIN consumer c ON b.consumer_id = c.consumer_id
+        LEFT JOIN classification cl ON c.classification_id = cl.classification_id
+        WHERE 1=1
+      `;
+      const params = [];
+      if (Account_Number) {
+        params.push(Account_Number);
+        queryStr += ` AND c.account_number = $${params.length}`;
+      }
+      if (status) {
+        params.push(status);
+        queryStr += ` AND b.status = $${params.length}`;
+      }
+      queryStr += ` ORDER BY b.bill_date DESC`;
+      
+      const { rows } = await pool.query(queryStr, params);
       return res.json(rows);
     }
   } catch (error) {
@@ -1297,11 +1474,39 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
 app.get('/api/payments', async (req, res) => {
   try {
     if (supabase) {
-      const { data, error } = await supabase.from('payment').select('*');
+      const { data, error } = await supabase
+        .from('payment')
+        .select(`
+          Payment_ID:payment_id,
+          Bill_ID:bill_id,
+          Consumer_ID:consumer_id,
+          Amount_Paid:amount_paid,
+          Payment_Date:payment_date,
+          Payment_Method:payment_method,
+          Reference_No:reference_no,
+          Remarks:remarks,
+          Consumer_Name:consumer(first_name, last_name),
+          Bill_Amount:bills(total_amount)
+        `);
       if (error) throw error;
-      return res.json(data.map(p => ({ ...p, Payment_ID: p.payment_id, Amount_Paid: p.amount_paid, Payment_Date: p.payment_date })));
+      return res.json(data.map(p => ({ 
+        ...p, 
+        Consumer_Name: p.Consumer_Name ? `${p.Consumer_Name.first_name} ${p.Consumer_Name.last_name}` : 'Unknown',
+        Bill_Amount: p.Bill_Amount?.total_amount
+      })));
     } else {
-      const { rows } = await pool.query('SELECT *, payment_id AS "Payment_ID", amount_paid AS "Amount_Paid", payment_date AS "Payment_Date" FROM payment');
+      const { rows } = await pool.query(`
+        SELECT 
+          p.payment_id AS "Payment_ID", p.bill_id AS "Bill_ID", p.consumer_id AS "Consumer_ID",
+          p.amount_paid AS "Amount_Paid", p.payment_date AS "Payment_Date", 
+          p.payment_method AS "Payment_Method", p.reference_no AS "Reference_No",
+          p.remarks AS "Remarks",
+          CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
+          b.total_amount AS "Bill_Amount"
+        FROM payment p
+        LEFT JOIN consumer c ON p.consumer_id = c.consumer_id
+        LEFT JOIN bills b ON p.bill_id = b.bill_id
+      `);
       return res.json(rows);
     }
   } catch (error) {
@@ -1321,13 +1526,17 @@ app.post('/api/payments', async (req, res) => {
         amount_paid: payment.Amount_Paid,
         payment_date: payment.Payment_Date,
         payment_method: payment.Payment_Method,
-        reference_number: payment.Reference_Number
+        reference_no: payment.Reference_No || payment.Reference_Number
       }]).select();
       if (error) throw error;
+
+      // Update Bill Status
+      await supabase.from('bills').update({ status: 'Paid' }).eq('bill_id', payment.Bill_ID);
+      
       return res.json(data);
     } else {
       const { rows } = await pool.query(`
-        INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number)
+        INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_no)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *, payment_id AS "Payment_ID"
       `, [
@@ -1336,8 +1545,12 @@ app.post('/api/payments', async (req, res) => {
         payment.Amount_Paid,
         payment.Payment_Date,
         payment.Payment_Method,
-        payment.Reference_Number
+        payment.Reference_No || payment.Reference_Number
       ]);
+      
+      // Update Bill Status
+      await pool.query('UPDATE bills SET status = $1 WHERE bill_id = $2', ['Paid', payment.Bill_ID]);
+      
       return res.json(rows[0]);
     }
   } catch (error) {

@@ -43,30 +43,54 @@ const TreasurerLedger: React.FC = () => {
       setConsumer(null);
       return;
     }
-    setLoading(true);
-    setShowSuggestions(false);
     try {
-      setConsumer({
-        Name: 'NATURA VERDE FARM & PRIVATE RESORT',
-        Address: 'DAGOTDOTAN, SAN LORENZO RUIZ',
-        Account_No: '02-11-149-5',
-        Meter_No: '0801000048',
-        Connection_Date: 'OCTOBER 15, 2021',
-        Zone_Name: '02'
-      });
+      setLoading(true);
+      // We search for a single consumer first, then get their dashboard
+      const dashboardRes = await fetch(`${API_URL}/consumer-dashboard/${termToSearch}`);
+      const result = await dashboardRes.json();
+      
+      if (result.success) {
+        const { consumer: c, bills, payments } = result;
+        
+        setConsumer({
+          Name: `${c.first_name} ${c.last_name}`,
+          Address: c.address,
+          Account_No: c.account_number,
+          Meter_No: c.meter_number || 'N/A',
+          Connection_Date: c.connection_date ? new Date(c.connection_date).toLocaleDateString() : 'N/A',
+          Zone_Name: c.zone_id?.toString()
+        });
 
-      const mockEntries: RecordEntry[] = [
-        { Month_Year: 'DEC 2023', Reading: 542, Consumption: 15, Water_Bill: 330.0, Penalty: 33.0, Meter_Fee: 5.0, Amount_Paid: 368.0, Date_Paid: '2023-12-28', OR_No: '2468135', Balance: 5270.39 },
-        { Month_Year: 'JAN 2024', Reading: 565, Consumption: 23, Water_Bill: 506.0, Penalty: 50.6, Meter_Fee: 5.0, Amount_Paid: 561.6, Date_Paid: '2024-01-30', OR_No: '2469001', Balance: 5270.39 },
-        { Month_Year: 'FEB 2024', Reading: 582, Consumption: 17, Water_Bill: 374.0, Penalty: 37.4, Meter_Fee: 5.0, Amount_Paid: 416.4, Date_Paid: '2024-02-28', OR_No: '2470088', Balance: 5270.39 }
-      ];
-      setRecords(mockEntries);
+        // Combine bills and payments for the ledger
+        const combinedRecords: RecordEntry[] = bills.map((b: any) => {
+          const payment = payments.find((p: any) => p.bill_id === b.Bill_ID);
+          return {
+            Month_Year: b.Billing_Month || new Date(b.Bill_Date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase(),
+            Reading: 0, // Placeholder
+            Consumption: 0, // Placeholder
+            Water_Bill: b.Total_Amount,
+            Penalty: 0,
+            Meter_Fee: 0,
+            Amount_Paid: payment ? payment.Amount_Paid : 0,
+            Date_Paid: payment ? new Date(payment.Payment_Date).toLocaleDateString() : 'N/A',
+            OR_No: payment ? (payment.Reference_No || payment.Payment_ID.toString()) : '-',
+            Balance: b.Status === 'Paid' ? 0 : b.Total_Amount
+          };
+        });
+
+        setRecords(combinedRecords);
+      } else {
+        showToast('Account record not found in registry.', 'warning');
+      }
     } catch (error) {
-      showToast('No records found for this account', 'error');
+      console.error('Error loading ledger:', error);
+      showToast('Failed to retrieve financial history.', 'error');
     } finally {
       setLoading(false);
     }
   };
+
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
     if (searchTerm.length >= 2) {

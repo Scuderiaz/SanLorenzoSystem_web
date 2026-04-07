@@ -10,6 +10,7 @@ interface Consumer {
   Consumer_ID: number;
   Account_Number: string;
   First_Name: string;
+  Middle_Name?: string;
   Last_Name: string;
   Address: string;
   Zone_ID: number;
@@ -112,7 +113,7 @@ const Consumers: React.FC = () => {
       key: 'consumerName',
       label: 'Consumer Name',
       sortable: true,
-      render: (_: any, consumer: Consumer) => `${consumer.First_Name || ''} ${consumer.Last_Name || ''}`,
+      render: (_: any, consumer: Consumer) => `${consumer.First_Name || ''} ${consumer.Middle_Name ? consumer.Middle_Name.charAt(0) + '.' : ''} ${consumer.Last_Name || ''}`,
     },
     {
       key: 'Address',
@@ -211,58 +212,48 @@ const Consumers: React.FC = () => {
             onClose={() => setShowDetailsModal(false)}
             size="large"
           >
-            <div className="details-grid">
-              <div className="detail-section">
-                <h3>
-                  <i className="fas fa-user"></i> Personal Information
-                </h3>
-                <div className="detail-row">
-                  <span className="detail-label">Account Number:</span>
-                  <span className="detail-value">{selectedConsumer.Account_Number}</span>
+            <div className="details-container" style={{ padding: '20px' }}>
+              <div className="details-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                {/* Personal Data Column */}
+                <div className="detail-col">
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                    <i className="fas fa-user"></i> Personal Data
+                  </h3>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Account No:</span>
+                    <span className="view-value" style={{ fontWeight: 600, color: '#333' }}>{selectedConsumer.Account_Number}</span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Name:</span>
+                    <span className="view-value" style={{ fontWeight: 800, color: '#1B1B63', fontSize: '1.1em' }}>
+                      {selectedConsumer.First_Name} {selectedConsumer.Middle_Name ? selectedConsumer.Middle_Name + ' ' : ''}{selectedConsumer.Last_Name}
+                    </span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Address:</span>
+                    <span className="view-value" style={{ fontWeight: 600, color: '#333', textAlign: 'right', maxWidth: '60%' }}>{selectedConsumer.Address}</span>
+                  </div>
                 </div>
-                <div className="detail-row">
-                  <span className="detail-label">Name:</span>
-                  <span className="detail-value">
-                    {selectedConsumer.First_Name} {selectedConsumer.Last_Name}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Contact Number:</span>
-                  <span className="detail-value">{selectedConsumer.Contact_Number || 'N/A'}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Address:</span>
-                  <span className="detail-value">{selectedConsumer.Address}</span>
-                </div>
-              </div>
 
-              <div className="detail-section">
-                <h3>
-                  <i className="fas fa-info-circle"></i> Service Information
-                </h3>
-                <div className="detail-row">
-                  <span className="detail-label">Zone:</span>
-                  <span className="detail-value">{selectedConsumer.Zone_Name}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Classification:</span>
-                  <span className="detail-value">{selectedConsumer.Classification_Name}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Meter Number:</span>
-                  <span className="detail-value">{selectedConsumer.Meter_Number || 'N/A'}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Connection Date:</span>
-                  <span className="detail-value">{selectedConsumer.Connection_Date || 'N/A'}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Status:</span>
-                  <span className="detail-value">
-                    <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`}>
+                {/* Account Info Column */}
+                <div className="detail-col">
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                    <i className="fas fa-credit-card"></i> Account Info
+                  </h3>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Map Zone:</span>
+                    <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConsumer.Zone_Name}</span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Classification:</span>
+                    <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConsumer.Classification_Name}</span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Status:</span>
+                    <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
                       {selectedConsumer.Status}
                     </span>
-                  </span>
+                  </div>
                 </div>
               </div>
             </div>

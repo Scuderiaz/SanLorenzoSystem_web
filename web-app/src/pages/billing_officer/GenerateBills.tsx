@@ -4,6 +4,7 @@ import DataTable from '../../components/Common/DataTable';
 import Tabs, { Tab } from '../../components/Common/Tabs';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import FormSelect from '../../components/Common/FormSelect';
 import './GenerateBills.css';
 
 interface Bill {
@@ -38,88 +39,76 @@ const GenerateBills: React.FC = () => {
   const loadBills = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Get rates and settings from localStorage
-      const savedRates = JSON.parse(localStorage.getItem('water_rates') || '{}');
-      const savedSystem = JSON.parse(localStorage.getItem('system_settings') || '{}');
-
-      // 2. Default Values (Fallback)
-      const config = {
-        min10: parseFloat(savedRates.minimumRate || '160.00'),
-        r11_20: parseFloat(savedRates.rate11to20 || '16.00'),
-        r21_30: parseFloat(savedRates.rate21to30 || '18.00'),
-        r31_40: parseFloat(savedRates.rate31to40 || '20.00'),
-        rPlus: parseFloat(savedRates.rate41Plus || '22.00'),
-        offset: parseInt(savedSystem.dueDateDays || '30')
+      // 1. Fetch Latest Rates and Settings
+      let rateConfig = {
+        minimum_cubic: 10,
+        minimum_rate: 75.00,
+        excess_rate_per_cubic: 7.50
+      };
+      let systemConfig = {
+        dueDateDays: 15
       };
 
-      // 3. Helper for Progressive Math
+      try {
+        const [rateRes, systemSettingsRaw] = await Promise.all([
+          fetch(`${API_URL}/water-rates/latest`).then(res => res.json()),
+          localStorage.getItem('system_settings')
+        ]);
+
+        if (rateRes.success && rateRes.data) {
+          rateConfig = {
+            minimum_cubic: rateRes.data.minimum_cubic,
+            minimum_rate: rateRes.data.minimum_rate,
+            excess_rate_per_cubic: rateRes.data.excess_rate_per_cubic
+          };
+        } else {
+            // Fallback to localStorage with new keys
+            const savedRates = JSON.parse(localStorage.getItem('water_rates') || '{}');
+            rateConfig = {
+                minimum_cubic: parseFloat(savedRates.minimumCubic || '10'),
+                minimum_rate: parseFloat(savedRates.minimumRate || '75.00'),
+                excess_rate_per_cubic: parseFloat(savedRates.excessRate || '7.50')
+            };
+        }
+
+        if (systemSettingsRaw) {
+          const parsedSystem = JSON.parse(systemSettingsRaw);
+          systemConfig.dueDateDays = parseInt(parsedSystem.dueDateDays || '15');
+        }
+      } catch (error) {
+        console.error('Error fetching billing config:', error);
+      }
+
+      // 2. Helper for Simplified calculation
       const calculateBill = (cons: number) => {
-        let total = config.min10; // First 10
-        if (cons > 10) {
-          const tier1 = Math.min(cons - 10, 10);
-          total += tier1 * config.r11_20;
+        if (cons <= rateConfig.minimum_cubic) {
+          return rateConfig.minimum_rate;
         }
-        if (cons > 20) {
-          const tier2 = Math.min(cons - 20, 10);
-          total += tier2 * config.r21_30;
-        }
-        if (cons > 30) {
-          const tier3 = Math.min(cons - 30, 10);
-          total += tier3 * config.r31_40;
-        }
-        if (cons > 40) {
-          const tier4 = cons - 40;
-          total += tier4 * config.rPlus;
-        }
-        return total;
+        return rateConfig.minimum_rate + ((cons - rateConfig.minimum_cubic) * rateConfig.excess_rate_per_cubic);
       };
 
-      // 4. Helper for Due Date
+      // 3. Helper for Due Date
       const getDueDate = (readingStr: string) => {
         const date = new Date(readingStr);
-        date.setDate(date.getDate() + config.offset);
+        date.setDate(date.getDate() + systemConfig.dueDateDays);
         return date.toISOString().split('T')[0];
       };
 
-      const mockBills: Bill[] = [
-        {
-          Bill_ID: 2024001,
-          Account_Number: '02-11-149-5',
-          Consumer_Name: 'NATURA VERDE FARM',
-          Previous_Reading: 517,
-          Current_Reading: 542,
-          Consumption: 25,
-          Bill_Amount: calculateBill(25), 
-          Due_Date: getDueDate('2026-03-01'), 
-          Status: 'Unpaid',
-          Billing_Period: 'March 2026',
-          Bill_Date: '2026-03-01',
-          Address: 'DAGOTDOTAN, SLR',
-          Classification: 'Commercial',
-        },
-        {
-          Bill_ID: 2024002,
-          Account_Number: '02-05-102-1',
-          Consumer_Name: 'JUAN DELA CRUZ',
-          Previous_Reading: 120,
-          Current_Reading: 128,
-          Consumption: 8,
-          Bill_Amount: calculateBill(8),
-          Due_Date: getDueDate('2026-03-01'),
-          Status: 'Unpaid',
-          Billing_Period: 'March 2026',
-          Bill_Date: '2026-03-01',
-          Address: 'P-1 MATACONG, SLR',
-          Classification: 'Residential',
-        },
-      ];
-      setBills(mockBills);
+      // 4. Fetch Real Bills from API
+      const response = await fetch(`${API_URL}/bills`);
+      const data = await response.json();
+      
+      // Handle array or success: true data structure
+      const billList = Array.isArray(data) ? data : (data.data || []);
+      
+      setBills(billList);
     } catch (error) {
+      console.error('Error loading bills:', error);
       showToast('Failed to load bills', 'error');
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [API_URL, showToast]);
 
   const loadZones = useCallback(async () => {
     try {
@@ -228,34 +217,29 @@ const GenerateBills: React.FC = () => {
       id: 'recent',
       label: 'Recent Bills',
       content: (
-        <div>
-          <div className="search-filters">
-            <div className="search-container">
+        <div className="tab-content">
+          <div className="filter-bar">
+            <div className="search-box">
+              <i className="fas fa-search"></i>
               <input
                 type="text"
                 placeholder="Search by account no. or consumer name..."
-                className="search-input"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <button className="btn btn-secondary">
-                <i className="fas fa-search"></i>
-              </button>
             </div>
-            <div className="filter-container">
-              <select
+            <div className="filters">
+              <FormSelect
+                label=""
                 value={zoneFilter}
-                onChange={(e) => setZoneFilter(e.target.value)}
-                className="form-control"
-              >
-                <option value="">All Zones</option>
-                {zones.map((z) => (
-                  <option key={z.Zone_ID} value={z.Zone_ID}>
-                    {z.Zone_Name}
-                  </option>
-                ))}
-              </select>
-              <button className="btn btn-secondary">Filter</button>
+                onChange={setZoneFilter}
+                options={zones.map(z => ({ value: z.Zone_ID, label: z.Zone_Name }))}
+                placeholder="All Map Zones"
+                icon="fa-map-marker-alt"
+              />
+              <button className="btn btn-secondary" onClick={loadBills} title="Refresh Records">
+                <i className="fas fa-sync-alt"></i>
+              </button>
             </div>
           </div>
 

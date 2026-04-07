@@ -30,40 +30,31 @@ const VerifyPayment: React.FC = () => {
   const loadPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const mockPending: PendingPayment[] = [
-        {
-          OR_No: 'OR-2026-001',
-          Account_Number: 'ACC-001',
-          Consumer_Name: 'Juan Dela Cruz',
-          Payment_Date: '2026-03-18',
-          Amount: 850.0,
-          Entered_By: 'Treasurer',
-          Status: 'Pending',
-        },
-      ];
+      const response = await fetch(`${API_URL}/payments`);
+      const data = await response.json();
+      const allPayments = Array.isArray(data) ? data : (data.data || []);
+      
+      // Mapping for VerifyPayment interface
+      const mapped = allPayments.map((p: any) => ({
+        OR_No: p.Reference_No || p.Payment_ID.toString(),
+        Account_Number: p.Account_Number || 'N/A',
+        Consumer_Name: p.Consumer_Name,
+        Payment_Date: p.Payment_Date,
+        Amount: p.Amount_Paid,
+        Entered_By: 'Treasurer',
+        Status: p.Status || 'Verified' // Defaulting to Verified for now
+      }));
 
-      const mockVerified: PendingPayment[] = [
-        {
-          OR_No: 'OR-2026-002',
-          Account_Number: 'ACC-002',
-          Consumer_Name: 'Maria Santos',
-          Payment_Date: '2026-03-17',
-          Amount: 920.0,
-          Entered_By: 'Treasurer',
-          Status: 'Verified',
-        },
-      ];
-
-      setPendingPayments(mockPending);
-      setVerifiedPayments(mockVerified);
-      setRejectedPayments([]);
+      setPendingPayments(mapped.filter((p: any) => p.Status === 'Pending'));
+      setVerifiedPayments(mapped.filter((p: any) => p.Status === 'Verified' || p.Status === 'Paid'));
+      setRejectedPayments(mapped.filter((p: any) => p.Status === 'Rejected'));
     } catch (error) {
       console.error('Error loading payments:', error);
       showToast('Failed to load payments', 'error');
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [API_URL, showToast]);
 
   useEffect(() => {
     loadPayments();

@@ -6,6 +6,8 @@ import { useToast } from '../../components/Common/ToastContainer';
 import './ProcessPayment.css';
 
 interface Consumer {
+  Bill_ID?: number;
+  Consumer_ID?: number;
   Account_Number: string;
   Consumer_Name: string;
   Address: string;
@@ -51,24 +53,16 @@ const ProcessPayment: React.FC = () => {
   const loadPaymentHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const mockPayments: Payment[] = [
-        {
-          Receipt_No: 'OR-2026-001',
-          Account_Number: 'ACC-001',
-          Consumer_Name: 'Juan Dela Cruz',
-          Amount: 850.0,
-          Payment_Date: '2026-03-18',
-          Payment_Method: 'Cash',
-          Status: 'Validated',
-        },
-      ];
-      setPayments(mockPayments);
+      const response = await fetch(`${API_URL}/payments`);
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : (data.data || []);
+      setPayments(list);
     } catch (error) {
       console.error('Error loading payment history:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [API_URL]);
 
   useEffect(() => {
     loadPaymentHistory();
@@ -81,28 +75,43 @@ const ProcessPayment: React.FC = () => {
     }
 
     try {
-      const mockConsumer: Consumer = {
-        Account_Number: 'ACC-001',
-        Consumer_Name: 'Juan Dela Cruz',
-        Address: '123 Main St, Zone 1',
-        Classification: 'Residential',
-        Billing_Month: 'March 2026',
-        Previous_Reading: 100,
-        Current_Reading: 125,
-        Consumption: 25,
-        Basic_Charge: 375.0,
-        Environmental_Fee: 25.0,
-        Current_Bill: 450.0,
-        Previous_Balance: 400.0,
-        Penalties: 50.0,
-        Total_Amount_Due: 900.0,
-        Status: 'Unpaid',
-      };
-      setSelectedConsumer(mockConsumer);
-      setAmountPaid(mockConsumer.Total_Amount_Due.toString());
+      setLoading(true);
+      const response = await fetch(`${API_URL}/bills?Account_Number=${searchTerm}&status=Unpaid`);
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const bill = data[0]; // Take the oldest unpaid bill
+        const mappedConsumer: Consumer = {
+          Bill_ID: bill.Bill_ID, // Adding Bill_ID to help with payment
+          Consumer_ID: bill.Consumer_ID,
+          Account_Number: bill.Account_Number || searchTerm,
+          Consumer_Name: bill.Consumer_Name,
+          Address: bill.Address || 'N/A',
+          Classification: bill.Classification || 'Residential',
+          Billing_Month: bill.Billing_Month || 'Current',
+          Previous_Reading: 0,
+          Current_Reading: 0,
+          Consumption: 0,
+          Basic_Charge: bill.Total_Amount,
+          Environmental_Fee: 0,
+          Current_Bill: bill.Total_Amount,
+          Previous_Balance: 0,
+          Penalties: 0,
+          Total_Amount_Due: bill.Total_Amount,
+          Status: bill.Status,
+        };
+        setSelectedConsumer(mappedConsumer);
+        setAmountPaid(bill.Total_Amount.toString());
+        showToast('Valid statement for settlement identified.', 'success');
+      } else {
+        showToast('No outstanding unpaid bills found for this account.', 'warning');
+        setSelectedConsumer(null);
+      }
     } catch (error) {
       console.error('Error searching consumer:', error);
-      showToast('Consumer not found', 'error');
+      showToast('Account verification failed.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,31 +132,56 @@ const ProcessPayment: React.FC = () => {
     }
 
     try {
+      setLoading(true);
       const currentDate = new Date().toISOString().split('T')[0];
-      const newPayment: Payment = {
-        Receipt_No: receiptNumber,
-        Account_Number: selectedConsumer.Account_Number,
-        Consumer_Name: selectedConsumer.Consumer_Name,
-        Amount: parseFloat(amountPaid),
+      
+      const payload = {
+        Bill_ID: (selectedConsumer as any).Bill_ID,
+        Consumer_ID: (selectedConsumer as any).Consumer_ID,
+        Amount_Paid: parseFloat(amountPaid),
         Payment_Date: currentDate,
         Payment_Method: paymentMethod,
-        Status: 'Recorded',
+        Reference_No: receiptNumber,
       };
 
-      setCurrentReceipt(newPayment);
-      setShowReceiptModal(true);
-      showToast('Collection Record successfully finalized. Synced to Billing Officer for audit.', 'success');
-      
-      // Clear form
-      setSelectedConsumer(null);
-      setSearchTerm('');
-      setAmountPaid('');
-      setReceiptNumber('');
-      
-      loadPaymentHistory();
+      const response = await fetch(`${API_URL}/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        const newPayment: Payment = {
+          Receipt_No: receiptNumber,
+          Account_Number: selectedConsumer.Account_Number,
+          Consumer_Name: selectedConsumer.Consumer_Name,
+          Amount: parseFloat(amountPaid),
+          Payment_Date: currentDate,
+          Payment_Method: paymentMethod,
+          Status: 'Paid',
+        };
+
+        setCurrentReceipt(newPayment);
+        setShowReceiptModal(true);
+        showToast('Collection Record successfully finalized. Synced for audit.', 'success');
+        
+        // Clear form
+        setSelectedConsumer(null);
+        setSearchTerm('');
+        setAmountPaid('');
+        setReceiptNumber('');
+        
+        loadPaymentHistory();
+      } else {
+        showToast(result.message || 'Payment processing failed.', 'error');
+      }
     } catch (error) {
       console.error('Error processing payment:', error);
-      showToast('Failed to process payment', 'error');
+      showToast('Failed to record collection.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -9,6 +9,7 @@ import '../Consumers.css';
 interface Concessionaire {
   Consumer_ID: number;
   First_Name: string;
+  Middle_Name?: string;
   Last_Name: string;
   Address: string;
   Zone_ID: number;
@@ -50,6 +51,7 @@ const ConcessionairesTab: React.FC = () => {
 
   const [formData, setFormData] = useState({
     firstName: '',
+    middleName: '',
     lastName: '',
     address: '',
     zoneId: '',
@@ -145,6 +147,7 @@ const ConcessionairesTab: React.FC = () => {
     setEditingConcessionaire(null);
     setFormData({
       firstName: '',
+      middleName: '',
       lastName: '',
       address: '',
       zoneId: '',
@@ -162,6 +165,7 @@ const ConcessionairesTab: React.FC = () => {
     setEditingConcessionaire(concessionaire);
     setFormData({
       firstName: concessionaire.First_Name,
+      middleName: concessionaire.Middle_Name || '',
       lastName: concessionaire.Last_Name,
       address: concessionaire.Address,
       zoneId: concessionaire.Zone_ID.toString(),
@@ -215,6 +219,7 @@ const ConcessionairesTab: React.FC = () => {
 
       const body = {
         First_Name: formData.firstName,
+        Middle_Name: formData.middleName,
         Last_Name: formData.lastName,
         Address: formData.address,
         Zone_ID: parseInt(formData.zoneId),
@@ -256,7 +261,7 @@ const ConcessionairesTab: React.FC = () => {
       key: 'name',
       label: 'Concessionaire Name',
       sortable: true,
-      render: (_, row: Concessionaire) => `${row.First_Name} ${row.Last_Name}`,
+      render: (_, row: Concessionaire) => `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '.' : ''} ${row.Last_Name}`,
     },
     { key: 'Address', label: 'Address', sortable: true },
     { key: 'Zone_Name', label: 'Zone', sortable: true },
@@ -352,30 +357,64 @@ const ConcessionairesTab: React.FC = () => {
         title="Concessionaire Information"
         size="large"
         footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setIsDetailsModalOpen(false)}>Close</button>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <button className="btn btn-secondary" onClick={() => setIsDetailsModalOpen(false)}>
+              Close
+            </button>
             <button
               className="btn btn-primary"
+              style={{ backgroundColor: '#1B1B63', borderColor: '#1B1B63' }}
               onClick={() => selectedConcessionaire && handleEditConcessionaire(selectedConcessionaire)}
             >
               <i className="fas fa-edit"></i> Edit Records
             </button>
-          </>
+          </div>
         }
       >
         {selectedConcessionaire && (
-          <div className="details-grid">
-            <div className="detail-section">
-              <h3><i className="fas fa-user-circle"></i> Personal Data</h3>
-              <div className="detail-row"><span className="detail-label">Account No:</span><span className="detail-value">{selectedConcessionaire.Account_Number}</span></div>
-              <div className="detail-row"><span className="detail-label">Name:</span><span className="detail-value">{selectedConcessionaire.First_Name} {selectedConcessionaire.Last_Name}</span></div>
-              <div className="detail-row"><span className="detail-label">Address:</span><span className="detail-value">{selectedConcessionaire.Address}</span></div>
-            </div>
-            <div className="detail-section">
-              <h3><i className="fas fa-id-card"></i> Account Info</h3>
-              <div className="detail-row"><span className="detail-label">Map Zone:</span><span className="detail-value">{selectedConcessionaire.Zone_Name}</span></div>
-              <div className="detail-row"><span className="detail-label">Classification:</span><span className="detail-value">{selectedConcessionaire.Classification_Name}</span></div>
-              <div className="detail-row"><span className="detail-label">Status:</span><span className={`status-badge status-${(selectedConcessionaire.Status || 'active').toLowerCase()}`}>{selectedConcessionaire.Status}</span></div>
+          <div className="details-container" style={{ padding: '20px' }}>
+            <div className="details-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+              {/* Personal Data Column */}
+              <div className="detail-col">
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                  <i className="fas fa-user-circle"></i> Personal Data
+                </h3>
+                <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                  <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Account No:</span>
+                  <span className="view-value" style={{ fontWeight: 600, color: '#333' }}>{selectedConcessionaire.Account_Number}</span>
+                </div>
+                <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                  <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Name:</span>
+                  <span className="view-value" style={{ fontWeight: 800, color: '#1B1B63', fontSize: '1.1em' }}>
+                    {selectedConcessionaire.First_Name} {selectedConcessionaire.Middle_Name ? selectedConcessionaire.Middle_Name + ' ' : ''}{selectedConcessionaire.Last_Name}
+                  </span>
+                </div>
+                <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                  <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Address:</span>
+                  <span className="view-value" style={{ fontWeight: 600, color: '#333', textAlign: 'right', maxWidth: '60%' }}>{selectedConcessionaire.Address}</span>
+                </div>
+              </div>
+
+              {/* Account Info Column */}
+              <div className="detail-col">
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                  <i className="fas fa-id-card"></i> Account Info
+                </h3>
+                <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                  <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Map Zone:</span>
+                  <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConcessionaire.Zone_Name}</span>
+                </div>
+                <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                  <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Classification:</span>
+                  <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConcessionaire.Classification_Name}</span>
+                </div>
+                <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                  <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Status:</span>
+                  <span className={`status-badge status-${(selectedConcessionaire.Status || 'active').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
+                    {selectedConcessionaire.Status}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -396,6 +435,7 @@ const ConcessionairesTab: React.FC = () => {
       >
         <div className="form-grid">
           <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
+          <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
           <FormInput label="Last Name" value={formData.lastName} onChange={(v) => setFormData({ ...formData, lastName: v })} required />
           <FormInput label="Account Number" value={formData.accountNumber} onChange={(v) => setFormData({ ...formData, accountNumber: v })} required />
           <FormInput label="Meter Number" value={formData.meterNumber} onChange={(v) => setFormData({ ...formData, meterNumber: v })} />

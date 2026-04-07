@@ -321,3 +321,39 @@
 [2026-04-06T11:19:19.143Z] [supabase.sync.payment] Could not find the 'reference_number' column of 'payment' in the schema cache
 [2026-04-06T11:36:00.767Z] [server.start] AggregateError
 [2026-04-06T14:35:10.399Z] [server.start] AggregateError
+[2026-04-07T02:30:08.426Z] [server.start] AggregateError
+[2026-04-07T02:30:38.268Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:30:38.409Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:36:45.241Z] [server.start] AggregateError
+[2026-04-07T02:37:00.903Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:01.099Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:05.910Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:06.018Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:10.303Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:10.428Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:15.046Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:15.174Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:29.541Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:37:29.644Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:40:35.134Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:40:35.244Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:40:37.644Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:40:37.774Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:40:58.311Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:40:58.446Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:50:26.745Z] [server.start] AggregateError
+[2026-04-07T02:50:48.480Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:50:48.615Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T02:57:58.766Z] [server.start] AggregateError
+[2026-04-07T03:10:10.787Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:10:10.920Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:10:12.690Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:26:00.646Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:27:22.684Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:27:23.197Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:27:35.049Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:27:35.248Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:27:39.791Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:27:39.889Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:27:50.880Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
+[2026-04-07T03:27:50.999Z] [waterRates.fetchLatest]  | GET /api/water-rates/latest | params={} | query={} | body={}
