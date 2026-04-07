@@ -98,6 +98,10 @@ CREATE TABLE water_billing.consumer (
     middle_name character varying(100),
     last_name character varying(100) NOT NULL,
     address text NOT NULL,
+    purok character varying(100),
+    barangay character varying(100),
+    municipality character varying(100) DEFAULT 'San Lorenzo Ruiz'::character varying,
+    zip_code character varying(10) DEFAULT '4610'::character varying,
     zone_id integer,
     classification_id integer,
     login_id integer NOT NULL,
@@ -1553,4 +1557,3 @@ ALTER TABLE ONLY water_billing.registration_tickets
 --
 
 \unrestrict XtgyUPorphTjgpyMyD2gpc78kXhHeefWGVu9NxseOaAKwhtcD9KYPGfudhPtowp
-
