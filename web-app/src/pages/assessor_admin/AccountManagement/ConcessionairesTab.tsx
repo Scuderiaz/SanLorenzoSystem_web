@@ -264,7 +264,12 @@ const ConcessionairesTab: React.FC = () => {
       render: (_, row: Concessionaire) => `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '.' : ''} ${row.Last_Name}`,
     },
     { key: 'Address', label: 'Address', sortable: true },
-    { key: 'Zone_Name', label: 'Zone', sortable: true },
+    {
+      key: 'Zone_Name',
+      label: 'Zone',
+      sortable: true,
+      render: (_: string, row: Concessionaire) => `Zone ${row.Zone_ID}`,
+    },
     { key: 'Classification_Name', label: 'Type', sortable: true },
     {
       key: 'Status',
@@ -402,7 +407,7 @@ const ConcessionairesTab: React.FC = () => {
                 </h3>
                 <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                   <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Map Zone:</span>
-                  <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConcessionaire.Zone_Name}</span>
+                  <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{`Zone ${selectedConcessionaire.Zone_ID}`}</span>
                 </div>
                 <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                   <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Classification:</span>

@@ -86,8 +86,8 @@ const syncTableConfigs = [
   { tableName: 'connection_ticket', primaryKey: 'ticket_id' },
   { tableName: 'password_reset', primaryKey: 'reset_id' },
   { tableName: 'account_approval', primaryKey: 'approval_id' },
-  { tableName: 'error_logs', primaryKey: 'error_id' },
-  { tableName: 'system_logs', primaryKey: 'log_id' },
+  { tableName: 'error_logs', primaryKey: 'error_id', syncWithSupabase: false },
+  { tableName: 'system_logs', primaryKey: 'log_id', syncWithSupabase: false },
   { tableName: 'backuplogs', primaryKey: 'backup_id' },
   { tableName: 'waterrates', primaryKey: 'rate_id' },
 ];
@@ -280,6 +280,8 @@ async function upsertRowsToPostgres(tableName, primaryKey, rows) {
       await client.query(query, values);
     }
 
+    await synchronizePostgresSequence(client, tableName, primaryKey);
+
     await client.query('COMMIT');
     return normalizedRows.length;
   } catch (error) {
@@ -288,6 +290,31 @@ async function upsertRowsToPostgres(tableName, primaryKey, rows) {
   } finally {
     client.release();
   }
+}
+
+async function synchronizePostgresSequence(client, tableName, primaryKey) {
+  const qualifiedTableName = `${supabaseSchema}.${tableName}`;
+  const { rows } = await client.query(
+    'SELECT pg_get_serial_sequence($1, $2) AS sequence_name',
+    [qualifiedTableName, primaryKey]
+  );
+  const sequenceName = rows[0]?.sequence_name;
+
+  if (!sequenceName) {
+    return;
+  }
+
+  const maxResult = await client.query(
+    `SELECT MAX(${quoteIdentifier(primaryKey)}) AS max_id FROM ${quoteIdentifier(tableName)}`
+  );
+  const maxId = Number(maxResult.rows[0]?.max_id || 0);
+
+  if (maxId > 0) {
+    await client.query('SELECT setval($1, $2, true)', [sequenceName, maxId]);
+    return;
+  }
+
+  await client.query('SELECT setval($1, $2, false)', [sequenceName, 1]);
 }
 
 function safeSerialize(value) {
@@ -349,21 +376,12 @@ async function writeSystemLog(action, options = {}) {
     await withPostgresPrimary(
       'logs.system.write',
       async () => {
-        const { rows } = await pool.query(
+        await insertWithSequenceRetry(
+          'system_logs',
+          'log_id',
           'INSERT INTO system_logs (account_id, role, action) VALUES ($1, $2, $3) RETURNING *',
           [accountId, role, truncateLogValue(action)]
         );
-
-        if (supabase && rows[0]) {
-          const { error } = await supabase.from('system_logs').upsert(rows, {
-            onConflict: 'log_id',
-            ignoreDuplicates: false,
-          });
-
-          if (error) {
-            console.error('Supabase system log mirror failed:', error.message);
-          }
-        }
       },
       async () => {
         if (!supabase) {
@@ -397,21 +415,12 @@ async function writeErrorLog(details) {
     await withPostgresPrimary(
       'logs.error.write',
       async () => {
-        const { rows } = await pool.query(
+        await insertWithSequenceRetry(
+          'error_logs',
+          'error_id',
           'INSERT INTO error_logs (severity, module, error_message, user_id, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
           [severity, moduleName, errorMessage, userId, status]
         );
-
-        if (supabase && rows[0]) {
-          const { error } = await supabase.from('error_logs').upsert(rows, {
-            onConflict: 'error_id',
-            ignoreDuplicates: false,
-          });
-
-          if (error) {
-            console.error('Supabase error log mirror failed:', error.message);
-          }
-        }
       },
       async () => {
         if (!supabase) {
@@ -433,6 +442,33 @@ async function writeErrorLog(details) {
     );
   } catch (error) {
     console.error('Database error log write failed:', error.message);
+  }
+}
+
+function isPrimaryKeyViolation(error, tableName) {
+  return (
+    error?.code === '23505' &&
+    (error?.constraint === `${tableName}_pkey` ||
+      String(error?.message || '').includes(`"${tableName}_pkey"`))
+  );
+}
+
+async function insertWithSequenceRetry(tableName, primaryKey, query, values) {
+  try {
+    return await pool.query(query, values);
+  } catch (error) {
+    if (!isPrimaryKeyViolation(error, tableName)) {
+      throw error;
+    }
+
+    const client = await pool.connect();
+    try {
+      await synchronizePostgresSequence(client, tableName, primaryKey);
+    } finally {
+      client.release();
+    }
+
+    return pool.query(query, values);
   }
 }
 

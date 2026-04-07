@@ -4367,3 +4367,766 @@
 [2026-04-07T08:22:01.225Z] Table backuplogs: no rows to sync.
 [2026-04-07T08:22:01.704Z] Table waterrates: synced 3 row(s).
 [2026-04-07T08:22:01.866Z] Sync cycle complete for 18 table(s).
+[2026-04-07T12:27:17.611Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:27:18.140Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:27:18.622Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:27:19.126Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:27:19.616Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:27:20.114Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:27:20.609Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:27:21.095Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:27:21.583Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:27:22.083Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:27:22.576Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:27:23.854Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:27:24.345Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:27:24.897Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:27:25.432Z] Preparing PostgreSQL pull for table error_logs.
+[2026-04-07T12:27:26.477Z] Preparing PostgreSQL pull for table system_logs.
+[2026-04-07T12:27:27.440Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:27:27.955Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:27:28.777Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:27:29.260Z] Table roles: synced 5 row(s).
+[2026-04-07T12:27:29.754Z] Table zone: synced 5 row(s).
+[2026-04-07T12:27:30.238Z] Table classification: synced 3 row(s).
+[2026-04-07T12:27:30.741Z] Table accounts: synced 7 row(s).
+[2026-04-07T12:27:31.236Z] Table consumer: synced 3 row(s).
+[2026-04-07T12:27:31.751Z] Table meter: synced 1 row(s).
+[2026-04-07T12:27:32.244Z] Table route: synced 2 row(s).
+[2026-04-07T12:27:32.739Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:27:33.288Z] Table bills: synced 1 row(s).
+[2026-04-07T12:27:33.770Z] Table payment: synced 1 row(s).
+[2026-04-07T12:27:34.109Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:27:34.428Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:27:34.768Z] Table password_reset: no rows to sync.
+[2026-04-07T12:27:44.483Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:27:45.044Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:27:45.583Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:27:46.122Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:27:46.691Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:27:47.234Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:27:47.764Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:27:48.341Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:27:48.892Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:27:49.404Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:27:49.945Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:27:50.778Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:27:51.292Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:27:51.852Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:27:52.372Z] Preparing PostgreSQL pull for table error_logs.
+[2026-04-07T12:27:53.335Z] Preparing PostgreSQL pull for table system_logs.
+[2026-04-07T12:27:54.203Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:27:54.697Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:27:55.607Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:27:56.145Z] Table roles: synced 5 row(s).
+[2026-04-07T12:27:56.639Z] Table zone: synced 5 row(s).
+[2026-04-07T12:27:57.151Z] Table classification: synced 3 row(s).
+[2026-04-07T12:27:57.659Z] Table accounts: synced 7 row(s).
+[2026-04-07T12:27:58.180Z] Table consumer: synced 3 row(s).
+[2026-04-07T12:27:58.692Z] Table meter: synced 1 row(s).
+[2026-04-07T12:27:59.195Z] Table route: synced 2 row(s).
+[2026-04-07T12:27:59.699Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:28:00.199Z] Table bills: synced 1 row(s).
+[2026-04-07T12:28:00.705Z] Table payment: synced 1 row(s).
+[2026-04-07T12:28:01.036Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:28:01.401Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:28:01.788Z] Table password_reset: no rows to sync.
+[2026-04-07T12:28:02.144Z] Table account_approval: no rows to sync.
+[2026-04-07T12:28:04.048Z] Table error_logs: synced 4531 row(s).
+[2026-04-07T12:28:11.829Z] Table system_logs: synced 24502 row(s).
+[2026-04-07T12:28:12.540Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:28:13.140Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:28:13.310Z] Sync cycle complete for 18 table(s).
+[2026-04-07T12:28:13.505Z] Initial PostgreSQL to Supabase sync complete for 18 table(s).
+[2026-04-07T12:28:13.712Z] Supabase sync scheduler started with interval 60000ms.
+[2026-04-07T12:28:13.719Z] Server started on port 3001 in Hybrid Mode.
+[2026-04-07T12:29:14.486Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:29:15.064Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:29:15.580Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:29:16.085Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:29:16.619Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:29:17.117Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:29:17.618Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:29:18.115Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:29:18.614Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:29:19.164Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:29:19.665Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:29:20.437Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:29:20.919Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:29:21.428Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:29:21.918Z] Preparing PostgreSQL pull for table error_logs.
+[2026-04-07T12:29:22.891Z] Preparing PostgreSQL pull for table system_logs.
+[2026-04-07T12:29:23.731Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:29:24.224Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:29:24.927Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:29:25.431Z] Table roles: synced 5 row(s).
+[2026-04-07T12:29:25.914Z] Table zone: synced 5 row(s).
+[2026-04-07T12:29:26.417Z] Table classification: synced 3 row(s).
+[2026-04-07T12:29:26.913Z] Table accounts: synced 7 row(s).
+[2026-04-07T12:29:27.410Z] Table consumer: synced 3 row(s).
+[2026-04-07T12:29:27.896Z] Table meter: synced 1 row(s).
+[2026-04-07T12:29:28.378Z] Table route: synced 2 row(s).
+[2026-04-07T12:29:28.863Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:29:29.349Z] Table bills: synced 1 row(s).
+[2026-04-07T12:29:29.838Z] Table payment: synced 1 row(s).
+[2026-04-07T12:29:30.164Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:29:30.518Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:29:30.847Z] Table password_reset: no rows to sync.
+[2026-04-07T12:29:31.180Z] Table account_approval: no rows to sync.
+[2026-04-07T12:29:32.704Z] Table error_logs: synced 4531 row(s).
+[2026-04-07T12:30:30.085Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:30:30.629Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:30:31.178Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:30:31.727Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:40:12.727Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:40:13.217Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:40:13.687Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:41:58.015Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:41:58.555Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:41:59.083Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:41:59.646Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:42:00.171Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:42:00.696Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:42:01.231Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:42:01.804Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:42:02.361Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:42:02.901Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:42:03.438Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:42:03.944Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:42:04.464Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:42:04.990Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:42:05.544Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:42:06.108Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:42:07.423Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:42:07.956Z] Table roles: synced 5 row(s).
+[2026-04-07T12:42:08.510Z] Table zone: synced 5 row(s).
+[2026-04-07T12:42:09.038Z] Table classification: synced 3 row(s).
+[2026-04-07T12:50:48.549Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:50:49.080Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:50:49.585Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:50:50.079Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:50:50.634Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:50:51.173Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:50:51.668Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:50:52.176Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:50:52.680Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:50:53.184Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:50:53.673Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:50:54.145Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:50:54.635Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:50:55.121Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:50:55.624Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:50:56.106Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:50:56.946Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:50:57.450Z] Table roles: synced 5 row(s).
+[2026-04-07T12:50:57.932Z] Table zone: synced 5 row(s).
+[2026-04-07T12:50:58.412Z] Table classification: synced 3 row(s).
+[2026-04-07T12:50:58.908Z] Table accounts: synced 8 row(s).
+[2026-04-07T12:50:59.413Z] Table consumer: synced 4 row(s).
+[2026-04-07T12:50:59.899Z] Table meter: synced 1 row(s).
+[2026-04-07T12:51:00.387Z] Table route: synced 2 row(s).
+[2026-04-07T12:51:00.881Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:51:01.388Z] Table bills: synced 1 row(s).
+[2026-04-07T12:51:02.175Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:51:02.511Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:51:02.843Z] Table password_reset: no rows to sync.
+[2026-04-07T12:51:03.164Z] Table account_approval: no rows to sync.
+[2026-04-07T12:51:03.495Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:51:03.998Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:51:04.153Z] Sync cycle complete for 16 table(s).
+[2026-04-07T12:51:04.322Z] Initial PostgreSQL to Supabase sync complete for 16 table(s).
+[2026-04-07T12:51:04.487Z] Supabase sync scheduler started with interval 60000ms.
+[2026-04-07T12:51:04.496Z] Server started on port 3001 in Hybrid Mode.
+[2026-04-07T12:52:05.335Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:52:05.949Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:52:06.463Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:52:06.980Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:52:07.828Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:52:08.364Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:52:08.878Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:52:09.401Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:52:09.900Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:52:10.399Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:52:10.896Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:52:11.404Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:52:11.915Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:52:12.419Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:52:12.924Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:52:56.506Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:52:57.063Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:52:57.592Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:52:58.113Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:52:58.627Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:52:59.161Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:52:59.682Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:53:00.200Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:53:00.732Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:53:01.247Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:53:01.776Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:53:02.329Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:53:02.841Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:53:03.425Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:53:03.942Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:53:04.463Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:53:05.377Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:53:05.904Z] Table roles: synced 5 row(s).
+[2026-04-07T12:53:06.478Z] Table zone: synced 5 row(s).
+[2026-04-07T12:53:07.001Z] Table classification: synced 3 row(s).
+[2026-04-07T12:53:07.593Z] Table accounts: synced 8 row(s).
+[2026-04-07T12:53:08.131Z] Table consumer: synced 4 row(s).
+[2026-04-07T12:53:08.658Z] Table meter: synced 1 row(s).
+[2026-04-07T12:53:09.175Z] Table route: synced 2 row(s).
+[2026-04-07T12:53:09.670Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:53:10.159Z] Table bills: synced 1 row(s).
+[2026-04-07T12:53:10.679Z] Table payment: synced 1 row(s).
+[2026-04-07T12:53:11.018Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:53:11.372Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:53:11.718Z] Table password_reset: no rows to sync.
+[2026-04-07T12:53:12.117Z] Table account_approval: no rows to sync.
+[2026-04-07T12:53:12.471Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:53:12.971Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:53:13.150Z] Sync cycle complete for 16 table(s).
+[2026-04-07T12:53:13.314Z] Initial PostgreSQL to Supabase sync complete for 16 table(s).
+[2026-04-07T12:53:13.503Z] Supabase sync scheduler started with interval 60000ms.
+[2026-04-07T12:53:13.511Z] Server started on port 3001 in Hybrid Mode.
+[2026-04-07T12:54:14.035Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:54:14.621Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:54:15.281Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:54:15.831Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:54:16.388Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:54:16.928Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:54:17.598Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:54:18.175Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:54:18.754Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:54:19.343Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:54:19.893Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:54:20.420Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:54:21.003Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:54:21.517Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:54:22.051Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:54:22.561Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:54:23.252Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:54:23.813Z] Table roles: synced 5 row(s).
+[2026-04-07T12:54:24.337Z] Table zone: synced 5 row(s).
+[2026-04-07T12:54:24.887Z] Table classification: synced 3 row(s).
+[2026-04-07T12:54:25.410Z] Table accounts: synced 8 row(s).
+[2026-04-07T12:54:25.999Z] Table consumer: synced 4 row(s).
+[2026-04-07T12:54:26.513Z] Table meter: synced 1 row(s).
+[2026-04-07T12:54:27.072Z] Table route: synced 2 row(s).
+[2026-04-07T12:54:27.608Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:54:28.171Z] Table bills: synced 1 row(s).
+[2026-04-07T12:54:28.715Z] Table payment: synced 1 row(s).
+[2026-04-07T12:54:29.082Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:54:29.451Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:54:29.808Z] Table password_reset: no rows to sync.
+[2026-04-07T12:54:30.150Z] Table account_approval: no rows to sync.
+[2026-04-07T12:54:30.508Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:54:31.060Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:54:31.229Z] Sync cycle complete for 16 table(s).
+[2026-04-07T12:55:14.091Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:55:14.686Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:55:15.482Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:55:16.012Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:55:16.542Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:55:17.086Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:55:17.615Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:55:18.174Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:55:18.710Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:55:19.237Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:55:19.779Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:55:20.290Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:55:20.810Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:55:21.308Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:55:21.814Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:55:22.305Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:55:22.981Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:55:23.489Z] Table roles: synced 5 row(s).
+[2026-04-07T12:55:23.980Z] Table zone: synced 5 row(s).
+[2026-04-07T12:55:24.503Z] Table classification: synced 3 row(s).
+[2026-04-07T12:55:25.010Z] Table accounts: synced 8 row(s).
+[2026-04-07T12:55:25.567Z] Table consumer: synced 4 row(s).
+[2026-04-07T12:55:26.084Z] Table meter: synced 1 row(s).
+[2026-04-07T12:55:26.588Z] Table route: synced 2 row(s).
+[2026-04-07T12:55:27.125Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:55:27.652Z] Table bills: synced 1 row(s).
+[2026-04-07T12:55:28.167Z] Table payment: synced 1 row(s).
+[2026-04-07T12:55:28.511Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:55:28.845Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:55:29.183Z] Table password_reset: no rows to sync.
+[2026-04-07T12:55:29.514Z] Table account_approval: no rows to sync.
+[2026-04-07T12:55:29.844Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:55:30.341Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:55:30.510Z] Sync cycle complete for 16 table(s).
+[2026-04-07T12:56:14.069Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:56:14.810Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:56:15.329Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:56:15.921Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:56:16.458Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:56:16.978Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:56:17.506Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:56:18.042Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:56:18.569Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:56:19.092Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:56:19.626Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:56:20.155Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:56:20.676Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:56:21.215Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:56:21.732Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:56:22.313Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:56:23.242Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:56:23.808Z] Table roles: synced 5 row(s).
+[2026-04-07T12:56:24.363Z] Table zone: synced 5 row(s).
+[2026-04-07T12:56:24.935Z] Table classification: synced 3 row(s).
+[2026-04-07T12:56:25.456Z] Table accounts: synced 8 row(s).
+[2026-04-07T12:56:25.971Z] Table consumer: synced 4 row(s).
+[2026-04-07T12:56:26.514Z] Table meter: synced 1 row(s).
+[2026-04-07T12:56:27.112Z] Table route: synced 2 row(s).
+[2026-04-07T12:56:27.710Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:56:28.211Z] Table bills: synced 1 row(s).
+[2026-04-07T12:56:28.756Z] Table payment: synced 1 row(s).
+[2026-04-07T12:56:29.132Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:56:29.549Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:56:30.093Z] Table password_reset: no rows to sync.
+[2026-04-07T12:56:30.481Z] Table account_approval: no rows to sync.
+[2026-04-07T12:56:30.903Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:56:31.443Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:56:31.620Z] Sync cycle complete for 16 table(s).
+[2026-04-07T12:57:14.092Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:57:14.789Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:57:15.312Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:57:15.824Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:57:16.614Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:57:17.154Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:57:17.728Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:57:18.290Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:57:18.816Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:57:19.360Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:57:19.909Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:57:20.451Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:57:21.012Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:57:21.563Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:57:22.100Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:57:22.665Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:57:23.379Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:57:23.919Z] Table roles: synced 5 row(s).
+[2026-04-07T12:57:24.461Z] Table zone: synced 5 row(s).
+[2026-04-07T12:57:24.995Z] Table classification: synced 3 row(s).
+[2026-04-07T12:57:25.581Z] Table accounts: synced 8 row(s).
+[2026-04-07T12:57:26.101Z] Table consumer: synced 4 row(s).
+[2026-04-07T12:57:26.641Z] Table meter: synced 1 row(s).
+[2026-04-07T12:57:27.166Z] Table route: synced 2 row(s).
+[2026-04-07T12:57:27.716Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:57:28.242Z] Table bills: synced 1 row(s).
+[2026-04-07T12:57:28.777Z] Table payment: synced 1 row(s).
+[2026-04-07T12:57:29.151Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:57:29.512Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:57:29.879Z] Table password_reset: no rows to sync.
+[2026-04-07T12:57:30.242Z] Table account_approval: no rows to sync.
+[2026-04-07T12:57:30.603Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:57:31.140Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:57:31.345Z] Sync cycle complete for 16 table(s).
+[2026-04-07T12:58:14.210Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:58:14.877Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:58:15.461Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:58:16.030Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:58:16.569Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:58:17.104Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:58:17.638Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:58:18.194Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:58:18.789Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:58:19.327Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:58:19.878Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:58:20.434Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:58:21.039Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:58:21.722Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:58:22.276Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:58:22.826Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:58:23.598Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:58:24.129Z] Table roles: synced 5 row(s).
+[2026-04-07T12:58:24.659Z] Table zone: synced 5 row(s).
+[2026-04-07T12:58:25.237Z] Table classification: synced 3 row(s).
+[2026-04-07T12:58:25.757Z] Table accounts: synced 8 row(s).
+[2026-04-07T12:58:26.279Z] Table consumer: synced 4 row(s).
+[2026-04-07T12:58:26.812Z] Table meter: synced 1 row(s).
+[2026-04-07T12:58:27.339Z] Table route: synced 2 row(s).
+[2026-04-07T12:58:27.874Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:58:28.385Z] Table bills: synced 1 row(s).
+[2026-04-07T12:58:28.933Z] Table payment: synced 1 row(s).
+[2026-04-07T12:58:29.295Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:58:29.666Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:58:30.031Z] Table password_reset: no rows to sync.
+[2026-04-07T12:58:30.422Z] Table account_approval: no rows to sync.
+[2026-04-07T12:58:30.784Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:58:31.336Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:58:31.498Z] Sync cycle complete for 16 table(s).
+[2026-04-07T12:59:14.135Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T12:59:14.740Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T12:59:15.254Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T12:59:15.775Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T12:59:16.288Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T12:59:16.843Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T12:59:17.371Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T12:59:17.968Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T12:59:18.504Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T12:59:19.026Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T12:59:19.548Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T12:59:20.083Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T12:59:20.614Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T12:59:21.164Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T12:59:21.671Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T12:59:22.207Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T12:59:22.920Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T12:59:23.442Z] Table roles: synced 5 row(s).
+[2026-04-07T12:59:23.995Z] Table zone: synced 5 row(s).
+[2026-04-07T12:59:24.513Z] Table classification: synced 3 row(s).
+[2026-04-07T12:59:25.042Z] Table accounts: synced 8 row(s).
+[2026-04-07T12:59:25.563Z] Table consumer: synced 4 row(s).
+[2026-04-07T12:59:26.120Z] Table meter: synced 1 row(s).
+[2026-04-07T12:59:26.660Z] Table route: synced 2 row(s).
+[2026-04-07T12:59:27.173Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T12:59:27.720Z] Table bills: synced 1 row(s).
+[2026-04-07T12:59:28.241Z] Table payment: synced 1 row(s).
+[2026-04-07T12:59:28.627Z] Table ledger_entry: no rows to sync.
+[2026-04-07T12:59:29.002Z] Table connection_ticket: no rows to sync.
+[2026-04-07T12:59:29.375Z] Table password_reset: no rows to sync.
+[2026-04-07T12:59:29.717Z] Table account_approval: no rows to sync.
+[2026-04-07T12:59:30.063Z] Table backuplogs: no rows to sync.
+[2026-04-07T12:59:30.577Z] Table waterrates: synced 3 row(s).
+[2026-04-07T12:59:30.761Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:00:14.539Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:00:15.126Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:00:15.635Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:00:16.115Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:00:16.632Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:00:17.137Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:00:17.664Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:00:18.173Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:00:18.688Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:00:19.196Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:00:19.679Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:00:20.197Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:00:20.725Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:00:21.236Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:00:21.748Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:00:22.277Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:00:22.982Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:00:23.489Z] Table roles: synced 5 row(s).
+[2026-04-07T13:00:24.008Z] Table zone: synced 5 row(s).
+[2026-04-07T13:00:24.501Z] Table classification: synced 3 row(s).
+[2026-04-07T13:00:25.014Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:00:25.523Z] Table consumer: synced 4 row(s).
+[2026-04-07T13:00:26.022Z] Table meter: synced 1 row(s).
+[2026-04-07T13:00:26.518Z] Table route: synced 2 row(s).
+[2026-04-07T13:00:27.039Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:00:27.521Z] Table bills: synced 1 row(s).
+[2026-04-07T13:00:28.021Z] Table payment: synced 1 row(s).
+[2026-04-07T13:00:28.341Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:00:28.709Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:00:29.047Z] Table password_reset: no rows to sync.
+[2026-04-07T13:00:29.411Z] Table account_approval: no rows to sync.
+[2026-04-07T13:00:29.739Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:00:30.261Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:00:30.436Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:01:14.251Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:01:14.855Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:01:15.426Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:01:16.009Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:01:16.581Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:01:17.194Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:01:17.750Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:01:18.323Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:01:18.926Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:01:19.504Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:01:20.101Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:01:20.637Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:01:21.229Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:01:21.797Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:01:22.345Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:01:22.908Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:01:23.686Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:01:24.238Z] Table roles: synced 5 row(s).
+[2026-04-07T13:01:24.755Z] Table zone: synced 5 row(s).
+[2026-04-07T13:01:25.314Z] Table classification: synced 3 row(s).
+[2026-04-07T13:01:25.846Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:01:26.414Z] Table consumer: synced 4 row(s).
+[2026-04-07T13:01:26.982Z] Table meter: synced 1 row(s).
+[2026-04-07T13:01:27.551Z] Table route: synced 2 row(s).
+[2026-04-07T13:01:28.128Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:01:28.695Z] Table bills: synced 1 row(s).
+[2026-04-07T13:01:29.269Z] Table payment: synced 1 row(s).
+[2026-04-07T13:01:29.637Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:01:30.029Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:01:30.386Z] Table password_reset: no rows to sync.
+[2026-04-07T13:01:30.743Z] Table account_approval: no rows to sync.
+[2026-04-07T13:01:31.108Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:01:31.679Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:01:31.860Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:02:14.113Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:02:14.677Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:02:15.181Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:02:15.687Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:02:16.369Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:02:16.869Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:02:17.357Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:02:17.860Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:02:18.387Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:02:18.883Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:02:19.372Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:02:19.853Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:02:20.355Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:02:20.833Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:02:21.317Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:02:21.798Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:02:22.442Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:02:22.977Z] Table roles: synced 5 row(s).
+[2026-04-07T13:02:23.456Z] Table zone: synced 5 row(s).
+[2026-04-07T13:02:23.965Z] Table classification: synced 3 row(s).
+[2026-04-07T13:02:24.457Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:02:24.953Z] Table consumer: synced 4 row(s).
+[2026-04-07T13:02:25.437Z] Table meter: synced 1 row(s).
+[2026-04-07T13:02:25.941Z] Table route: synced 2 row(s).
+[2026-04-07T13:02:26.462Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:02:26.957Z] Table bills: synced 1 row(s).
+[2026-04-07T13:02:27.468Z] Table payment: synced 1 row(s).
+[2026-04-07T13:02:27.795Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:02:28.169Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:02:28.510Z] Table password_reset: no rows to sync.
+[2026-04-07T13:02:28.826Z] Table account_approval: no rows to sync.
+[2026-04-07T13:02:29.157Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:02:29.655Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:02:29.812Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:03:14.424Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:03:15.022Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:03:15.584Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:03:16.144Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:03:16.720Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:03:17.273Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:03:17.802Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:03:18.338Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:03:18.945Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:03:19.490Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:03:20.033Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:03:20.557Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:03:21.131Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:03:21.675Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:03:22.250Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:03:22.758Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:03:23.492Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:03:24.071Z] Table roles: synced 5 row(s).
+[2026-04-07T13:03:24.739Z] Table zone: synced 5 row(s).
+[2026-04-07T13:03:25.380Z] Table classification: synced 3 row(s).
+[2026-04-07T13:03:25.962Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:03:26.589Z] Table consumer: synced 4 row(s).
+[2026-04-07T13:03:27.165Z] Table meter: synced 1 row(s).
+[2026-04-07T13:03:27.721Z] Table route: synced 2 row(s).
+[2026-04-07T13:03:28.300Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:03:28.833Z] Table bills: synced 1 row(s).
+[2026-04-07T13:03:29.403Z] Table payment: synced 1 row(s).
+[2026-04-07T13:03:29.769Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:03:30.114Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:03:30.496Z] Table password_reset: no rows to sync.
+[2026-04-07T13:03:30.862Z] Table account_approval: no rows to sync.
+[2026-04-07T13:03:31.231Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:03:31.793Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:03:31.987Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:04:14.345Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:04:15.249Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:04:15.823Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:04:16.480Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:04:17.039Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:04:17.600Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:04:18.272Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:04:18.802Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:04:19.410Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:04:20.015Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:04:20.581Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:04:21.130Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:04:21.671Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:04:22.213Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:04:22.738Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:04:23.257Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:04:23.980Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:04:24.490Z] Table roles: synced 5 row(s).
+[2026-04-07T13:04:24.991Z] Table zone: synced 5 row(s).
+[2026-04-07T13:04:25.483Z] Table classification: synced 3 row(s).
+[2026-04-07T13:04:26.028Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:04:26.548Z] Table consumer: synced 4 row(s).
+[2026-04-07T13:04:27.060Z] Table meter: synced 1 row(s).
+[2026-04-07T13:04:27.673Z] Table route: synced 2 row(s).
+[2026-04-07T13:04:28.190Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:04:28.715Z] Table bills: synced 1 row(s).
+[2026-04-07T13:04:29.258Z] Table payment: synced 1 row(s).
+[2026-04-07T13:04:29.635Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:04:29.993Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:04:30.351Z] Table password_reset: no rows to sync.
+[2026-04-07T13:04:30.718Z] Table account_approval: no rows to sync.
+[2026-04-07T13:04:31.090Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:04:31.618Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:04:31.821Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:05:14.210Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:05:14.849Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:05:15.414Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:05:15.979Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:05:16.587Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:05:17.155Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:05:17.736Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:05:18.319Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:05:18.900Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:05:19.471Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:05:20.048Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:05:20.644Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:05:21.211Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:05:21.856Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:05:22.486Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:05:23.094Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:05:23.830Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:05:24.386Z] Table roles: synced 5 row(s).
+[2026-04-07T13:05:24.944Z] Table zone: synced 5 row(s).
+[2026-04-07T13:05:25.512Z] Table classification: synced 3 row(s).
+[2026-04-07T13:05:26.068Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:05:26.656Z] Table consumer: synced 4 row(s).
+[2026-04-07T13:05:27.261Z] Table meter: synced 1 row(s).
+[2026-04-07T13:05:27.819Z] Table route: synced 2 row(s).
+[2026-04-07T13:05:28.435Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:05:29.013Z] Table bills: synced 1 row(s).
+[2026-04-07T13:05:29.566Z] Table payment: synced 1 row(s).
+[2026-04-07T13:05:30.013Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:05:30.412Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:05:30.788Z] Table password_reset: no rows to sync.
+[2026-04-07T13:05:31.175Z] Table account_approval: no rows to sync.
+[2026-04-07T13:05:31.544Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:05:32.119Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:05:32.339Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:06:14.571Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:06:15.326Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:06:15.889Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:06:16.501Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:06:17.165Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:06:17.773Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:06:18.478Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:06:19.035Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:06:19.595Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:06:20.233Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:06:20.791Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:06:21.328Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:06:21.883Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:06:22.456Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:06:23.062Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:06:23.647Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:06:24.408Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:06:24.976Z] Table roles: synced 5 row(s).
+[2026-04-07T13:06:25.553Z] Table zone: synced 5 row(s).
+[2026-04-07T13:06:26.101Z] Table classification: synced 3 row(s).
+[2026-04-07T13:06:26.641Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:06:27.227Z] Table consumer: synced 4 row(s).
+[2026-04-07T13:06:27.773Z] Table meter: synced 1 row(s).
+[2026-04-07T13:06:28.314Z] Table route: synced 2 row(s).
+[2026-04-07T13:06:28.866Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:06:29.425Z] Table bills: synced 1 row(s).
+[2026-04-07T13:06:29.979Z] Table payment: synced 1 row(s).
+[2026-04-07T13:06:30.337Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:06:30.715Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:06:31.071Z] Table password_reset: no rows to sync.
+[2026-04-07T13:06:31.456Z] Table account_approval: no rows to sync.
+[2026-04-07T13:06:31.868Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:06:32.410Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:06:32.600Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:07:14.160Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:07:14.798Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:07:15.355Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:07:15.882Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:07:16.457Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:07:16.905Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:07:17.444Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:07:17.967Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:07:18.481Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:07:19.007Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:07:19.507Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:07:20.023Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:07:20.548Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:07:21.050Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:07:21.562Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:07:22.073Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:07:22.769Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:07:23.282Z] Table roles: synced 5 row(s).
+[2026-04-07T13:07:23.799Z] Table zone: synced 5 row(s).
+[2026-04-07T13:07:24.328Z] Table classification: synced 3 row(s).
+[2026-04-07T13:07:24.863Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:07:25.955Z] Table meter: synced 1 row(s).
+[2026-04-07T13:07:26.476Z] Table route: synced 2 row(s).
+[2026-04-07T13:07:27.011Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:07:27.535Z] Table bills: synced 1 row(s).
+[2026-04-07T13:07:28.050Z] Table payment: synced 1 row(s).
+[2026-04-07T13:07:28.393Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:07:28.750Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:07:29.098Z] Table password_reset: no rows to sync.
+[2026-04-07T13:07:29.462Z] Table account_approval: no rows to sync.
+[2026-04-07T13:07:29.831Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:07:30.343Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:07:30.525Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:08:14.183Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:08:14.786Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:08:15.304Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:08:15.849Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:08:16.534Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:08:16.887Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:08:17.406Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:08:17.939Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:08:18.479Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:08:18.993Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:08:19.731Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:08:20.227Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:08:20.773Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:08:21.281Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:08:21.803Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:08:22.341Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:08:23.043Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:08:23.601Z] Table roles: synced 5 row(s).
+[2026-04-07T13:08:24.117Z] Table zone: synced 5 row(s).
+[2026-04-07T13:08:24.675Z] Table classification: synced 3 row(s).
+[2026-04-07T13:08:25.203Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:08:26.274Z] Table meter: synced 1 row(s).
+[2026-04-07T13:08:26.798Z] Table route: synced 2 row(s).
+[2026-04-07T13:08:27.309Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:08:27.845Z] Table bills: synced 1 row(s).
+[2026-04-07T13:08:28.372Z] Table payment: synced 1 row(s).
+[2026-04-07T13:08:28.731Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:08:29.082Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:08:29.418Z] Table password_reset: no rows to sync.
+[2026-04-07T13:08:29.767Z] Table account_approval: no rows to sync.
+[2026-04-07T13:08:30.115Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:08:30.625Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:08:30.784Z] Sync cycle complete for 16 table(s).
+[2026-04-07T13:09:14.281Z] Preparing PostgreSQL pull for table roles.
+[2026-04-07T13:09:14.886Z] Preparing PostgreSQL pull for table zone.
+[2026-04-07T13:09:15.424Z] Preparing PostgreSQL pull for table classification.
+[2026-04-07T13:09:15.918Z] Preparing PostgreSQL pull for table accounts.
+[2026-04-07T13:09:16.409Z] Preparing PostgreSQL pull for table consumer.
+[2026-04-07T13:09:16.738Z] Preparing PostgreSQL pull for table meter.
+[2026-04-07T13:09:17.295Z] Preparing PostgreSQL pull for table route.
+[2026-04-07T13:09:17.812Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-04-07T13:09:18.322Z] Preparing PostgreSQL pull for table bills.
+[2026-04-07T13:09:18.808Z] Preparing PostgreSQL pull for table payment.
+[2026-04-07T13:09:19.313Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-04-07T13:09:19.835Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-04-07T13:09:20.341Z] Preparing PostgreSQL pull for table password_reset.
+[2026-04-07T13:09:20.868Z] Preparing PostgreSQL pull for table account_approval.
+[2026-04-07T13:09:21.410Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-04-07T13:09:21.937Z] Preparing PostgreSQL pull for table waterrates.
+[2026-04-07T13:09:22.637Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-04-07T13:09:23.186Z] Table roles: synced 5 row(s).
+[2026-04-07T13:09:24.116Z] Table zone: synced 5 row(s).
+[2026-04-07T13:09:24.643Z] Table classification: synced 3 row(s).
+[2026-04-07T13:09:25.177Z] Table accounts: synced 8 row(s).
+[2026-04-07T13:09:26.200Z] Table meter: synced 1 row(s).
+[2026-04-07T13:09:26.715Z] Table route: synced 2 row(s).
+[2026-04-07T13:09:27.213Z] Table meterreadings: synced 1 row(s).
+[2026-04-07T13:09:27.746Z] Table bills: synced 1 row(s).
+[2026-04-07T13:09:28.294Z] Table payment: synced 1 row(s).
+[2026-04-07T13:09:28.646Z] Table ledger_entry: no rows to sync.
+[2026-04-07T13:09:28.986Z] Table connection_ticket: no rows to sync.
+[2026-04-07T13:09:29.317Z] Table password_reset: no rows to sync.
+[2026-04-07T13:09:29.670Z] Table account_approval: no rows to sync.
+[2026-04-07T13:09:30.049Z] Table backuplogs: no rows to sync.
+[2026-04-07T13:09:30.567Z] Table waterrates: synced 3 row(s).
+[2026-04-07T13:09:30.746Z] Sync cycle complete for 16 table(s).

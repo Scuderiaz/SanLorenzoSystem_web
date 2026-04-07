@@ -76,6 +76,11 @@ const SignUp: React.FC = () => {
   };
 
   const renderStep = () => {
+    const classificationOptions = classifications.map((classification) => ({
+      id: classification.Classification_ID ?? classification.classification_id,
+      name: classification.Classification_Name ?? classification.classification_name,
+    }));
+
     switch (step) {
       case 0:
         return (
@@ -154,7 +159,11 @@ const SignUp: React.FC = () => {
               <label>Classification</label>
               <select name="classificationId" value={formData.classificationId} onChange={handleChange} required>
                 <option value="">Select Classification</option>
-                {classifications.map(c => <option key={c.Classification_ID} value={c.Classification_ID}>{c.Classification_Name}</option>)}
+                {classificationOptions.map((classification) => (
+                  <option key={classification.id} value={classification.id}>
+                    {classification.name}
+                  </option>
+                ))}
               </select>
             </div>
             
