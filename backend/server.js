@@ -103,6 +103,10 @@ const syncTableColumns = {
     'middle_name',
     'last_name',
     'address',
+    'purok',
+    'barangay',
+    'municipality',
+    'zip_code',
     'zone_id',
     'classification_id',
     'login_id',
@@ -2221,7 +2225,10 @@ app.post('/api/forgot-password/reset', async (req, res) => {
 // --- CONSUMER SIGN-UP ---
 
 app.post('/api/register', async (req, res) => {
-  const { username, password, phone, firstName, middleName, lastName, address } = req.body;
+  const { 
+    username, password, phone, firstName, middleName, lastName, 
+    address, purok, barangay, municipality, zipCode 
+  } = req.body;
   const zoneId = req.body.zoneId || 1;
   const classificationId = req.body.classificationId ? parseInt(req.body.classificationId) : 1;
 
@@ -2244,9 +2251,9 @@ app.post('/api/register', async (req, res) => {
           const accountId = rows[0].account_id;
 
           await client.query(`
-            INSERT INTO consumer (first_name, middle_name, last_name, address, zone_id, classification_id, login_id, status, contact_number, account_number)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-          `, [firstName, middleName, lastName, address, zoneId, classificationId, accountId, 'Pending', phone, `ACC-${Date.now()}`]);
+            INSERT INTO consumer (first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code, zone_id, classification_id, login_id, status, contact_number, account_number)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          `, [firstName, middleName, lastName, address, purok, barangay, municipality, zipCode, zoneId, classificationId, accountId, 'Pending', phone, `ACC-${Date.now()}`]);
 
           await client.query('COMMIT');
           scheduleImmediateSync('register');
@@ -2277,6 +2284,10 @@ app.post('/api/register', async (req, res) => {
             middle_name: middleName,
             last_name: lastName,
             address,
+            purok,
+            barangay,
+            municipality,
+            zip_code: zipCode,
             zone_id: zoneId,
             classification_id: classificationId,
             login_id: accountId,
