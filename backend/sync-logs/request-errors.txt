@@ -1090,3 +1090,24 @@
 [2026-04-07T17:15:53.876Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-04-07T17:16:53.884Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-04-07T17:18:30.197Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T01:35:25.379Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:35:44.367Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:36:26.364Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:36:44.379Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:37:27.377Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:37:44.363Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:38:28.371Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:38:44.366Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:39:29.375Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:39:44.373Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:40:30.374Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:40:44.374Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:41:31.373Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:41:44.377Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:42:32.373Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:42:44.369Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:43:33.373Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:43:44.366Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:44:34.377Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:44:44.369Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T01:45:35.377Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}

@@ -1,5 +1,92 @@
 import axios from 'axios';
 import { initOfflineDB, saveOfflineDB, addToSyncQueue } from '../config/database';
+import { supabase, isSupabaseConfigured } from '../config/supabase';
+
+const isNetworkError = (error: any) => {
+  return error.code === 'ERR_NETWORK' || !error.response || error.response.status >= 500;
+};
+
+const generateRegistrationTicketNumber = () => {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, '')
+    .slice(0, 14);
+  const suffix = Math.floor(Math.random() * 9000) + 1000;
+  return `REG-${timestamp}-${suffix}`;
+};
+
+const generatePendingAccountNumber = (zoneId: string | number) => {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, '')
+    .slice(2, 14);
+  const normalizedZoneId = String(Number(zoneId) || 0).padStart(2, '0');
+  const suffix = Math.floor(Math.random() * 900) + 100;
+  return `PENDING-${normalizedZoneId}-${timestamp}-${suffix}`;
+};
+
+const registerDirectWithSupabase = async (userData: any) => {
+  if (!supabase) throw new Error('Supabase not configured');
+  
+  const ticketNumber = generateRegistrationTicketNumber();
+  const pendingAccountNumber = generatePendingAccountNumber(userData.zoneId || 1);
+
+  const { data: accountData, error: accountError } = await supabase
+    .from('accounts')
+    .insert([{
+      username: userData.username,
+      password: userData.password,
+      role_id: 4,
+      account_status: 'Pending'
+    }])
+    .select();
+  
+  if (accountError) throw new Error(accountError.message);
+  
+  const accountId = accountData[0].account_id;
+
+  const { data: consumerRow, error: consumerError } = await supabase
+    .from('consumer')
+    .insert([{
+      first_name: userData.firstName,
+      middle_name: userData.middleName,
+      last_name: userData.lastName,
+      address: userData.address,
+      purok: userData.purok,
+      barangay: userData.barangay,
+      municipality: userData.municipality,
+      zip_code: userData.zipCode,
+      zone_id: userData.zoneId || 1,
+      classification_id: userData.classificationId || 1,
+      login_id: accountId,
+      status: 'Pending',
+      contact_number: userData.phone,
+      account_number: pendingAccountNumber
+    }])
+    .select();
+
+  if (consumerError) throw new Error(consumerError.message);
+
+  const { error: ticketError } = await supabase
+    .from('connection_ticket')
+    .insert([{
+      consumer_id: consumerRow[0].consumer_id,
+      account_id: accountId,
+      ticket_number: ticketNumber,
+      connection_type: 'New Connection',
+      requirements_submitted: 'Sedula',
+      status: 'Pending'
+    }]);
+
+  if (ticketError) throw new Error(ticketError.message);
+
+  return { 
+    success: true, 
+    message: 'Registered via offline fallback.', 
+    ticketNumber,
+    consumerId: consumerRow[0].consumer_id
+  };
+};
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -59,6 +146,14 @@ export const authService = {
       const response = await api.post('/register', userData);
       return response.data;
     } catch (error: any) {
+      if (isNetworkError(error) && isSupabaseConfigured && supabase) {
+        console.warn('Network error, attempting Supabase fallback for registration');
+        try {
+          return await registerDirectWithSupabase(userData);
+        } catch (supabaseError: any) {
+          return { success: false, message: supabaseError.message || 'Supabase fallback failed' };
+        }
+      }
       return error.response?.data || { success: false, message: error.message };
     }
   },
@@ -95,8 +190,37 @@ export const consumerService = {
   getAll: async () => {
     try {
       if (navigator.onLine) {
-        const response = await api.get('/consumers');
-        return response.data?.data || response.data || [];
+        try {
+          const response = await api.get('/consumers');
+          return response.data?.data || response.data || [];
+        } catch (apiError: any) {
+          if (isNetworkError(apiError) && isSupabaseConfigured && supabase) {
+            console.warn('Network error, attempting Supabase fallback for consumers.getAll');
+            const { data, error: sbError } = await supabase
+              .from('consumer')
+              .select('*, zone(zone_name), classification(classification_name)')
+              .order('consumer_id', { ascending: false });
+            
+            if (sbError) throw sbError;
+            
+            return (data || []).map((c: any) => ({
+              Consumer_ID: c.consumer_id,
+              First_Name: c.first_name,
+              Middle_Name: c.middle_name,
+              Last_Name: c.last_name,
+              Address: c.address,
+              Zone_ID: c.zone_id,
+              Classification_ID: c.classification_id,
+              Account_Number: c.account_number,
+              Status: c.status,
+              Contact_Number: c.contact_number,
+              Connection_Date: c.connection_date,
+              Zone_Name: c.zone?.zone_name,
+              Classification_Name: c.classification?.classification_name
+            }));
+          }
+          throw apiError;
+        }
       } else {
         const db = await initOfflineDB();
         const result = db.exec('SELECT * FROM consumer');
@@ -191,8 +315,21 @@ export const meterReadingService = {
   getAll: async () => {
     try {
       if (navigator.onLine) {
-        const response = await api.get('/meter-readings');
-        return response.data || [];
+        try {
+          const response = await api.get('/meter-readings');
+          return response.data || [];
+        } catch (apiError: any) {
+          if (isNetworkError(apiError) && isSupabaseConfigured && supabase) {
+            console.warn('Network error, attempting Supabase fallback for meterreadings.getAll');
+            const { data, error: sbError } = await supabase
+              .from('meterreadings')
+              .select('*')
+              .order('reading_id', { ascending: false });
+            if (sbError) throw sbError;
+            return data || [];
+          }
+          throw apiError;
+        }
       } else {
         const db = await initOfflineDB();
         const result = db.exec('SELECT * FROM meterreadings');
@@ -249,8 +386,21 @@ export const billService = {
   getAll: async () => {
     try {
       if (navigator.onLine) {
-        const response = await api.get('/bills');
-        return response.data || [];
+        try {
+          const response = await api.get('/bills');
+          return response.data || [];
+        } catch (apiError: any) {
+          if (isNetworkError(apiError) && isSupabaseConfigured && supabase) {
+            console.warn('Network error, attempting Supabase fallback for bills.getAll');
+            const { data, error: sbError } = await supabase
+              .from('bills')
+              .select('*')
+              .order('bill_id', { ascending: false });
+            if (sbError) throw sbError;
+            return data || [];
+          }
+          throw apiError;
+        }
       } else {
         const db = await initOfflineDB();
         const result = db.exec('SELECT * FROM bills');
