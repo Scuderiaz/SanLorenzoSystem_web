@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import FormInput from '../../components/Common/FormInput';
@@ -13,6 +13,10 @@ interface Consumer {
   Middle_Name?: string;
   Last_Name: string;
   Address: string;
+  Purok?: string;
+  Barangay?: string;
+  Municipality?: string;
+  Zip_Code?: string;
   Zone_ID: number;
   Zone_Name?: string;
   Classification_ID: number;
@@ -35,6 +39,30 @@ interface Classification {
   Classification_Name: string;
 }
 
+const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
+const ACCOUNT_NUMBER_PATTERN = /^\d{2}-\d{2}-\d{3}$/;
+const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
+const BARANGAYS = [
+  'Daculang Bolo', 'Dagotdotan', 'Langga', 'Laniton',
+  'Maisog', 'Mampurog', 'Manlimonsito', 'Matacong (Pob.)',
+  'Salvacion', 'San Antonio', 'San Isidro', 'San Ramon',
+].sort();
+const PUROK_OPTIONS = ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5'];
+const toOptionalNumber = (value: string) => {
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const normalizePhoneInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const hasLeadingPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '');
+  return hasLeadingPlus ? `+${digits}` : digits;
+};
+
 const Consumers: React.FC = () => {
   const { showToast } = useToast();
   const [consumers, setConsumers] = useState<Consumer[]>([]);
@@ -46,6 +74,7 @@ const Consumers: React.FC = () => {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [selectedConsumer, setSelectedConsumer] = useState<Consumer | null>(null);
   const [editingConsumer, setEditingConsumer] = useState<Consumer | null>(null);
+  const [consumerToDelete, setConsumerToDelete] = useState<Consumer | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
@@ -58,6 +87,10 @@ const Consumers: React.FC = () => {
     middleName: '',
     lastName: '',
     address: '',
+    purok: '',
+    barangay: '',
+    municipality: 'San Lorenzo Ruiz',
+    zipCode: '4610',
     zoneId: '',
     classificationId: '',
     accountNumber: '',
@@ -65,22 +98,12 @@ const Consumers: React.FC = () => {
     meterStatus: 'Active',
     contactNumber: '',
     connectionDate: '',
-    status: 'Active',
+    status: 'Pending',
   });
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadConsumers();
-    loadZones();
-    loadClassifications();
-  }, []);
-
-  useEffect(() => {
-    filterConsumers();
-  }, [consumers, searchTerm, zoneFilter, statusFilter]);
-
-  const loadConsumers = async () => {
+  const loadConsumers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/consumers`);
@@ -92,9 +115,9 @@ const Consumers: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, showToast]);
 
-  const loadZones = async () => {
+  const loadZones = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
@@ -107,21 +130,24 @@ const Consumers: React.FC = () => {
     } catch (error) {
       console.error('Error loading zones:', error);
     }
-  };
+  }, [API_URL]);
 
-  const loadClassifications = async () => {
+  const loadClassifications = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/classifications`);
       const result = await response.json();
       if (result.success) {
-        setClassifications(result.data);
+        setClassifications((result.data || []).map((classification: any) => ({
+          Classification_ID: classification.Classification_ID ?? classification.classification_id,
+          Classification_Name: classification.Classification_Name ?? classification.classification_name,
+        })));
       }
     } catch (error) {
       console.error('Error loading classifications:', error);
     }
-  };
+  }, [API_URL]);
 
-  const filterConsumers = () => {
+  const filterConsumers = useCallback(() => {
     let filtered = [...consumers];
 
     if (searchTerm) {
@@ -144,7 +170,27 @@ const Consumers: React.FC = () => {
     }
 
     setFilteredConsumers(filtered);
-  };
+  }, [consumers, searchTerm, statusFilter, zoneFilter]);
+
+  useEffect(() => {
+    loadConsumers();
+    loadZones();
+    loadClassifications();
+  }, [loadClassifications, loadConsumers, loadZones]);
+
+  useEffect(() => {
+    filterConsumers();
+  }, [filterConsumers]);
+
+  useEffect(() => {
+    const composedAddress = [formData.purok, formData.barangay, formData.municipality, formData.zipCode]
+      .filter(Boolean)
+      .join(', ');
+
+    if (formData.address !== composedAddress) {
+      setFormData((current) => ({ ...current, address: composedAddress }));
+    }
+  }, [formData.purok, formData.barangay, formData.municipality, formData.zipCode, formData.address]);
 
   const handleViewDetails = (consumer: Consumer) => {
     setSelectedConsumer(consumer);
@@ -160,6 +206,10 @@ const Consumers: React.FC = () => {
       middleName: '',
       lastName: '',
       address: '',
+      purok: '',
+      barangay: '',
+      municipality: 'San Lorenzo Ruiz',
+      zipCode: '4610',
       zoneId: '',
       classificationId: '',
       accountNumber: '',
@@ -167,7 +217,7 @@ const Consumers: React.FC = () => {
       meterStatus: 'Active',
       contactNumber: '',
       connectionDate: new Date().toISOString().split('T')[0],
-      status: 'Active',
+      status: 'Pending',
     });
     setIsFormModalOpen(true);
   };
@@ -181,6 +231,10 @@ const Consumers: React.FC = () => {
       middleName: consumer.Middle_Name || '',
       lastName: consumer.Last_Name,
       address: consumer.Address,
+      purok: consumer.Purok || '',
+      barangay: consumer.Barangay || '',
+      municipality: consumer.Municipality || 'San Lorenzo Ruiz',
+      zipCode: consumer.Zip_Code || '4610',
       zoneId: consumer.Zone_ID.toString(),
       classificationId: consumer.Classification_ID.toString(),
       accountNumber: consumer.Account_Number,
@@ -194,13 +248,10 @@ const Consumers: React.FC = () => {
     setIsDetailsModalOpen(false);
   };
 
-  const handleDeleteConsumer = async (consumer: Consumer) => {
-    if (!window.confirm(`Are you sure you want to delete consumer "${consumer.First_Name} ${consumer.Last_Name}"?`)) {
-      return;
-    }
-
+  const handleDeleteConsumer = async () => {
+    if (!consumerToDelete) return;
     try {
-      const response = await fetch(`${API_URL}/consumers/${consumer.Consumer_ID}`, {
+      const response = await fetch(`${API_URL}/consumers/${consumerToDelete.Consumer_ID}`, {
         method: 'DELETE',
       });
       const result = await response.json();
@@ -209,6 +260,7 @@ const Consumers: React.FC = () => {
         showToast('Consumer deleted successfully', 'success');
         loadConsumers();
         setIsDetailsModalOpen(false);
+        setConsumerToDelete(null);
       } else {
         showToast(result.message || 'Failed to delete consumer', 'error');
       }
@@ -219,8 +271,13 @@ const Consumers: React.FC = () => {
   };
 
   const handleSaveConsumer = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.accountNumber || !formData.zoneId || !formData.classificationId) {
-      showToast('Please fill in all required fields', 'error');
+    if (formData.accountNumber.trim() && !ACCOUNT_NUMBER_PATTERN.test(formData.accountNumber.trim())) {
+      showToast('Account number must follow the format xx-xx-xxx.', 'error');
+      return;
+    }
+
+    if (formData.contactNumber.trim() && !PHONE_PATTERN.test(formData.contactNumber.trim())) {
+      showToast('Contact number must be a valid Philippine mobile number.', 'error');
       return;
     }
 
@@ -243,9 +300,13 @@ const Consumers: React.FC = () => {
         Middle_Name: formData.middleName,
         Last_Name: formData.lastName,
         Address: formData.address,
-        Zone_ID: parseInt(formData.zoneId),
-        Classification_ID: parseInt(formData.classificationId),
-        Account_Number: formData.accountNumber,
+        Purok: formData.purok,
+        Barangay: formData.barangay,
+        Municipality: formData.municipality,
+        Zip_Code: formData.zipCode,
+        Zone_ID: toOptionalNumber(formData.zoneId),
+        Classification_ID: toOptionalNumber(formData.classificationId),
+        Account_Number: formData.accountNumber.trim(),
         Meter_Number: formData.meterNumber,
         Meter_Status: formData.meterStatus,
         Contact_Number: formData.contactNumber,
@@ -290,7 +351,7 @@ const Consumers: React.FC = () => {
       key: 'Zone_Name',
       label: 'Zone',
       sortable: true,
-      render: (_: string, row: Consumer) => `Zone ${row.Zone_ID}`,
+      render: (_: string, row: Consumer) => formatZoneLabel(row.Zone_Name, row.Zone_ID),
     },
     { key: 'Classification_Name', label: 'Type', sortable: true },
     {
@@ -319,7 +380,7 @@ const Consumers: React.FC = () => {
           <button className="btn-icon" title="Edit" onClick={() => handleEditConsumer(row)}>
             <i className="fas fa-edit"></i>
           </button>
-          <button className="btn-icon btn-danger" title="Delete" onClick={() => handleDeleteConsumer(row)}>
+          <button className="btn-icon btn-danger" title="Delete" onClick={() => setConsumerToDelete(row)}>
             <i className="fas fa-trash"></i>
           </button>
         </div>
@@ -327,7 +388,7 @@ const Consumers: React.FC = () => {
     },
   ];
 
-  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: `Zone ${z.Zone_ID}` }));
+  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: formatZoneLabel(z.Zone_Name, z.Zone_ID) }));
   const classificationOptions = classifications.map((c) => ({
     value: c.Classification_ID,
     label: c.Classification_Name,
@@ -393,6 +454,7 @@ const Consumers: React.FC = () => {
           onClose={() => setIsDetailsModalOpen(false)}
           title="Consumer Information"
           size="large"
+          closeOnOverlayClick={true}
           footer={
             <div style={{ display: 'flex', gap: '15px' }}>
               <button className="btn btn-secondary" onClick={() => setIsDetailsModalOpen(false)}>
@@ -439,7 +501,7 @@ const Consumers: React.FC = () => {
                   </h3>
                   <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                     <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Map Zone:</span>
-                    <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{`Zone ${selectedConsumer.Zone_ID}`}</span>
+                    <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{formatZoneLabel(selectedConsumer.Zone_Name, selectedConsumer.Zone_ID)}</span>
                   </div>
                   <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                     <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Classification:</span>
@@ -479,14 +541,22 @@ const Consumers: React.FC = () => {
           <div className="form-grid">
             {!editingConsumer && (
               <>
+                <div className="form-section-title">Account Access</div>
                 <FormInput label="Username" value={formData.username} onChange={(v) => setFormData({ ...formData, username: v })} required />
                 <FormInput label="Password" type="password" value={formData.password} onChange={(v) => setFormData({ ...formData, password: v })} required />
               </>
             )}
+            <div className="form-section-title">Personal Information</div>
             <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
             <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
             <FormInput label="Last Name" value={formData.lastName} onChange={(v) => setFormData({ ...formData, lastName: v })} required />
-            <FormInput label="Account Number" value={formData.accountNumber} onChange={(v) => setFormData({ ...formData, accountNumber: v })} required />
+            <FormInput
+              label="Account Number"
+              value={formData.accountNumber}
+              onChange={(v) => setFormData({ ...formData, accountNumber: v })}
+              required
+              placeholder="xx-xx-xxx"
+            />
             <FormInput label="Meter Number" value={formData.meterNumber} onChange={(v) => setFormData({ ...formData, meterNumber: v })} />
             <FormSelect
               label="Meter Status"
@@ -499,8 +569,14 @@ const Consumers: React.FC = () => {
                 { value: 'Disconnected', label: 'Disconnected' },
               ]}
             />
-            <FormInput label="Address" value={formData.address} onChange={(v) => setFormData({ ...formData, address: v })} />
-            <FormInput label="Contact #" value={formData.contactNumber} onChange={(v) => setFormData({ ...formData, contactNumber: v })} />
+            <div className="form-section-title">Address Details</div>
+            <FormSelect label="Purok" value={formData.purok} onChange={(v) => setFormData({ ...formData, purok: v })} options={PUROK_OPTIONS.map((item) => ({ value: item, label: item }))} />
+            <FormSelect label="Barangay" value={formData.barangay} onChange={(v) => setFormData({ ...formData, barangay: v })} options={BARANGAYS.map((item) => ({ value: item, label: item }))} />
+            <FormInput label="Municipality" value={formData.municipality} onChange={(v) => setFormData({ ...formData, municipality: v })} />
+            <FormInput label="Zip Code" value={formData.zipCode} onChange={(v) => setFormData({ ...formData, zipCode: v })} />
+            <FormInput label="Address" value={formData.address} onChange={() => {}} />
+            <div className="form-section-title">Service Details</div>
+            <FormInput label="Contact #" value={formData.contactNumber} onChange={(v) => setFormData({ ...formData, contactNumber: normalizePhoneInput(v) })} />
             <FormSelect label="Zone" value={formData.zoneId} onChange={(v) => setFormData({ ...formData, zoneId: v })} options={zoneOptions} required />
             <FormSelect label="Type" value={formData.classificationId} onChange={(v) => setFormData({ ...formData, classificationId: v })} options={classificationOptions} required />
             <FormSelect
@@ -508,12 +584,34 @@ const Consumers: React.FC = () => {
               value={formData.status}
               onChange={(v) => setFormData({ ...formData, status: v })}
               options={[
+                { value: 'Pending', label: 'Pending' },
                 { value: 'Active', label: 'Active' },
                 { value: 'Inactive', label: 'Inactive' },
               ]}
             />
             <FormInput label="Date Joined" type="date" value={formData.connectionDate} onChange={(v) => setFormData({ ...formData, connectionDate: v })} />
           </div>
+        </Modal>
+
+        <Modal
+          isOpen={!!consumerToDelete}
+          onClose={() => setConsumerToDelete(null)}
+          title="Delete Consumer"
+          size="small"
+          footer={
+            <>
+              <button className="btn btn-secondary" onClick={() => setConsumerToDelete(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleDeleteConsumer}>
+                <i className="fas fa-trash"></i> Confirm Delete
+              </button>
+            </>
+          }
+        >
+          {consumerToDelete && (
+            <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
+              Delete consumer <strong>{consumerToDelete.First_Name} {consumerToDelete.Last_Name}</strong>? This action cannot be undone.
+            </p>
+          )}
         </Modal>
       </div>
     </MainLayout>

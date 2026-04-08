@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import FormInput from '../../components/Common/FormInput';
-import FormSelect from '../../components/Common/FormSelect';
-import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
+import { useAuth } from '../../context/AuthContext';
 import './Settings.css';
 
 const toAmount = (value: unknown): number => {
@@ -22,6 +21,7 @@ interface WaterRate {
 }
 
 const Settings: React.FC = () => {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [waterRates, setWaterRates] = useState({
     minimum_cubic: '10',
@@ -30,7 +30,6 @@ const Settings: React.FC = () => {
   });
 
   const [systemSettings, setSystemSettings] = useState({
-    systemName: 'San Lorenzo Ruiz Water Billing System',
     currency: 'PHP',
     dueDateDays: '15',
     lateFee: '5.0',
@@ -41,41 +40,36 @@ const Settings: React.FC = () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const loadSavedSettings = useCallback(async () => {
-    // 1. Load system settings from localStorage (UI only for now)
-    const savedSystem = localStorage.getItem('system_settings');
-    if (savedSystem) {
-      setSystemSettings(JSON.parse(savedSystem));
-    }
-
-    // 2. Load water rates from API
     try {
-      const response = await fetch(`${API_URL}/water-rates/latest`);
+      const response = await fetch(`${API_URL}/admin/settings`);
       const result = await response.json();
-      if (result.success && result.data) {
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to load settings.');
+      }
+
+      const system = result.data?.systemSettings || {};
+      setSystemSettings({
+        currency: system.currency || 'PHP',
+        dueDateDays: String(system.dueDateDays || '15'),
+        lateFee: String(system.lateFee || '5.0'),
+      });
+
+      if (result.data?.waterRates) {
+        const liveRate = result.data.waterRates;
+        setCurrentRates([liveRate]);
         setWaterRates({
-          minimum_cubic: result.data.minimum_cubic.toString(),
-          minimum_rate: result.data.minimum_rate.toString(),
-          excess_rate_per_cubic: result.data.excess_rate_per_cubic.toString(),
+          minimum_cubic: String(liveRate.minimum_cubic),
+          minimum_rate: String(liveRate.minimum_rate),
+          excess_rate_per_cubic: String(liveRate.excess_rate_per_cubic),
         });
-        localStorage.setItem('water_rates', JSON.stringify({
-            minimumRate: result.data.minimum_rate,
-            minimumCubic: result.data.minimum_cubic,
-            excessRate: result.data.excess_rate_per_cubic
-        }));
+      } else {
+        setCurrentRates([]);
       }
     } catch (error) {
-      console.error('Error loading rates:', error);
-      const savedRates = localStorage.getItem('water_rates');
-      if (savedRates) {
-        const parsed = JSON.parse(savedRates);
-        setWaterRates({
-            minimum_cubic: (parsed.minimumCubic || '10').toString(),
-            minimum_rate: (parsed.minimumRate || '75.00').toString(),
-            excess_rate_per_cubic: (parsed.excessRate || '7.50').toString(),
-        });
-      }
+      console.error('Error loading settings:', error);
+      showToast('Failed to load saved settings', 'error');
     }
-  }, [API_URL]);
+  }, [API_URL, showToast]);
 
   useEffect(() => {
     loadSavedSettings();
@@ -84,7 +78,6 @@ const Settings: React.FC = () => {
   const handleSaveAllChanges = async () => {
     setLoading(true);
     try {
-      // 1. Save Water Rates to Backend
       const rateResponse = await fetch(`${API_URL}/water-rates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,23 +85,29 @@ const Settings: React.FC = () => {
           minimum_cubic: waterRates.minimum_cubic,
           minimum_rate: waterRates.minimum_rate,
           excess_rate_per_cubic: waterRates.excess_rate_per_cubic,
-          modified_by: 1 // Mock admin ID
+          modified_by: Number(user?.id || 1),
         }),
       });
 
       const rateResult = await rateResponse.json();
-      if (!rateResult.success) throw new Error(rateResult.message || 'Failed to sync water rates');
+      if (!rateResult.success) {
+        throw new Error(rateResult.message || 'Failed to sync water rates');
+      }
 
-      // 2. Sync to localStorage for fallback
-      localStorage.setItem('water_rates', JSON.stringify({
-          minimumRate: waterRates.minimum_rate,
-          minimumCubic: waterRates.minimum_cubic,
-          excessRate: waterRates.excess_rate_per_cubic
-      }));
+      const settingsResponse = await fetch(`${API_URL}/admin/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...systemSettings,
+          modifiedBy: Number(user?.id || 1),
+        }),
+      });
 
-      // 3. Save Global System settings to localStorage
-      localStorage.setItem('system_settings', JSON.stringify(systemSettings));
-      
+      const settingsResult = await settingsResponse.json();
+      if (!settingsResult.success) {
+        throw new Error(settingsResult.message || 'Failed to save system settings');
+      }
+
       showToast('All system configurations updated and synchronized', 'success');
       loadSavedSettings();
     } catch (error: any) {
@@ -122,19 +121,17 @@ const Settings: React.FC = () => {
   return (
     <MainLayout title="System Configuration">
       <div className="settings-page">
-        {/* Unified Control Bar */}
         <div className="settings-actions-bar">
           <div className="action-info">
             <p>Update system-wide rules, billing logic, and water rate hierarchies.</p>
           </div>
           <button className="btn btn-primary btn-lg" onClick={handleSaveAllChanges} disabled={loading}>
-            <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i> 
+            <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
             {loading ? 'Saving Changes...' : 'Save All Configuration'}
           </button>
         </div>
 
         <div className="settings-grid single-column">
-          {/* Combined System Configuration Card */}
           <div className="settings-card premium-card">
             <div className="settings-card-header">
               <div className="header-icon">
@@ -145,12 +142,10 @@ const Settings: React.FC = () => {
                 <p className="settings-card-subtitle">Manage water pricing and billing offsets</p>
               </div>
             </div>
-            
+
             <div className="settings-form-optimized">
               <div className="settings-subsection">
-                <h3 className="subsection-title">
-                   WATER RATE TABLE
-                </h3>
+                <h3 className="subsection-title">WATER RATE TABLE</h3>
                 <div className="form-row-grid">
                   <FormInput
                     label="MINIMUM CONSUMPTION (CU.M)"
@@ -160,14 +155,14 @@ const Settings: React.FC = () => {
                     icon="fa-faucet"
                   />
                   <FormInput
-                    label="MINIMUM CHARGE (₱)"
+                    label="MINIMUM CHARGE (PHP)"
                     type="number"
                     value={waterRates.minimum_rate}
                     onChange={(value) => setWaterRates({ ...waterRates, minimum_rate: value })}
                     icon="fa-money-bill-wave"
                   />
                   <FormInput
-                    label="EXCESS RATE PER CU.M (₱)"
+                    label="EXCESS RATE PER CU.M (PHP)"
                     type="number"
                     value={waterRates.excess_rate_per_cubic}
                     onChange={(value) => setWaterRates({ ...waterRates, excess_rate_per_cubic: value })}
@@ -179,10 +174,14 @@ const Settings: React.FC = () => {
               <div className="settings-divider"></div>
 
               <div className="settings-subsection">
-                <h3 className="subsection-title">
-                  BILLING & SYSTEM LOGIC
-                </h3>
+                <h3 className="subsection-title">BILLING & SYSTEM LOGIC</h3>
                 <div className="form-row-grid">
+                  <FormInput
+                    label="CURRENCY"
+                    value={systemSettings.currency}
+                    onChange={(value) => setSystemSettings({ ...systemSettings, currency: value })}
+                    icon="fa-coins"
+                  />
                   <FormInput
                     label="DUE DATE OFFSET (DAYS)"
                     type="number"
@@ -199,6 +198,18 @@ const Settings: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {currentRates.length > 0 && (
+                <>
+                  <div className="settings-divider"></div>
+                  <div className="settings-subsection">
+                    <h3 className="subsection-title">CURRENT LIVE RATE SNAPSHOT</h3>
+                    <p style={{ margin: 0, color: '#64748b', fontWeight: 600 }}>
+                      Effective {new Date(currentRates[0].effective_date).toLocaleDateString()} with minimum charge of PHP {toAmount(currentRates[0].minimum_rate).toFixed(2)}.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -208,4 +219,3 @@ const Settings: React.FC = () => {
 };
 
 export default Settings;
-

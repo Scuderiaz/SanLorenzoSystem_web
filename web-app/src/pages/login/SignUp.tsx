@@ -3,6 +3,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import api, { authService } from '../../services/api';
 import './ForgotPassword.css'; // Reusing some styles
 
+const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
+
+const normalizePhoneInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const hasLeadingPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '');
+  return hasLeadingPlus ? `+${digits}` : digits;
+};
+
 const SignUp: React.FC = () => {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -64,7 +74,11 @@ const SignUp: React.FC = () => {
   }, [formData.purok, formData.barangay, formData.municipality, formData.zipCode, formData.address]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: name === 'phone' ? normalizePhoneInput(value) : value,
+    });
   };
 
   const handleNext = () => {
@@ -171,7 +185,7 @@ const SignUp: React.FC = () => {
 
             <div className="form-group">
               <label>Phone Number</label>
-              <input name="phone" value={formData.phone} onChange={handleChange} required placeholder="09xxxxxxxxx" />
+              <input name="phone" value={formData.phone} onChange={handleChange} required placeholder="09xxxxxxxxx" inputMode="numeric" />
             </div>
             
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
@@ -179,6 +193,10 @@ const SignUp: React.FC = () => {
               <button type="button" className="login-btn" onClick={() => {
                 if (!formData.firstName || !formData.lastName || !formData.phone) {
                   setError('Please fill in required fields.');
+                  return;
+                }
+                if (!PHONE_PATTERN.test(formData.phone.trim())) {
+                  setError('Phone number must be a valid Philippine mobile number.');
                   return;
                 }
                 setError('');

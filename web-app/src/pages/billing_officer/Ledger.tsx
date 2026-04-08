@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
@@ -12,6 +12,7 @@ interface ConsumerRow {
   Last_Name: string;
   Address: string;
   Zone_ID: number;
+  Zone_Name?: string;
   Classification_Name?: string;
   Account_Number: string;
   Status: string;
@@ -73,6 +74,9 @@ const formatDate = (value?: string) => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-PH');
 };
 
+const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
 const BillingLedger: React.FC = () => {
   const { showToast } = useToast();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
@@ -84,7 +88,7 @@ const BillingLedger: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConsumer, setSelectedConsumer] = useState<LedgerEntry | null>(null);
 
-  const loadLedgerData = async () => {
+  const loadLedgerData = useCallback(async () => {
     setLoading(true);
     try {
       const [consumersResponse, billsResponse, paymentsResponse] = await Promise.all([
@@ -108,11 +112,11 @@ const BillingLedger: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, showToast]);
 
   useEffect(() => {
     loadLedgerData();
-  }, []);
+  }, [loadLedgerData]);
 
   const ledgerData = useMemo<LedgerEntry[]>(() => {
     const paymentMap = new Map<number, PaymentRow[]>();
@@ -138,7 +142,7 @@ const BillingLedger: React.FC = () => {
         Account_Number: consumer.Account_Number,
         Consumer_Name: [consumer.First_Name, consumer.Middle_Name, consumer.Last_Name].filter(Boolean).join(' '),
         Address: consumer.Address,
-        Zone: `Zone ${consumer.Zone_ID}`,
+        Zone: formatZoneLabel(consumer.Zone_Name, consumer.Zone_ID),
         Classification: consumer.Classification_Name || 'Unclassified',
         Current_Balance: currentBalance,
         Last_Payment: lastPayment,
@@ -286,7 +290,7 @@ const BillingLedger: React.FC = () => {
         </div>
 
         {selectedConsumer && (
-          <Modal isOpen={Boolean(selectedConsumer)} onClose={() => setSelectedConsumer(null)} title="Account Ledger Details" size="large">
+          <Modal isOpen={Boolean(selectedConsumer)} onClose={() => setSelectedConsumer(null)} title="Account Ledger Details" size="large" closeOnOverlayClick={true}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
               <div><strong>Account No.:</strong> {selectedConsumer.Account_Number}</div>
               <div><strong>Consumer:</strong> {selectedConsumer.Consumer_Name}</div>

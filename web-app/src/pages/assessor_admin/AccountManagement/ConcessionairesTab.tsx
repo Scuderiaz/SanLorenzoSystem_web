@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DataTable, { Column } from '../../../components/Common/DataTable';
 import Modal from '../../../components/Common/Modal';
 import FormInput from '../../../components/Common/FormInput';
@@ -12,6 +12,10 @@ interface Concessionaire {
   Middle_Name?: string;
   Last_Name: string;
   Address: string;
+  Purok?: string;
+  Barangay?: string;
+  Municipality?: string;
+  Zip_Code?: string;
   Zone_ID: number;
   Zone_Name?: string;
   Classification_ID: number;
@@ -34,6 +38,30 @@ interface Classification {
   Classification_Name: string;
 }
 
+const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
+const ACCOUNT_NUMBER_PATTERN = /^\d{2}-\d{2}-\d{3}$/;
+const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
+const BARANGAYS = [
+  'Daculang Bolo', 'Dagotdotan', 'Langga', 'Laniton',
+  'Maisog', 'Mampurog', 'Manlimonsito', 'Matacong (Pob.)',
+  'Salvacion', 'San Antonio', 'San Isidro', 'San Ramon',
+].sort();
+const PUROK_OPTIONS = ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5'];
+const toOptionalNumber = (value: string) => {
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const normalizePhoneInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const hasLeadingPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '');
+  return hasLeadingPlus ? `+${digits}` : digits;
+};
+
 const ConcessionairesTab: React.FC = () => {
   const { showToast } = useToast();
   const [concessionaires, setConcessionaires] = useState<Concessionaire[]>([]);
@@ -45,6 +73,7 @@ const ConcessionairesTab: React.FC = () => {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [selectedConcessionaire, setSelectedConcessionaire] = useState<Concessionaire | null>(null);
   const [editingConcessionaire, setEditingConcessionaire] = useState<Concessionaire | null>(null);
+  const [consumerToDelete, setConsumerToDelete] = useState<Concessionaire | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
@@ -57,6 +86,10 @@ const ConcessionairesTab: React.FC = () => {
     middleName: '',
     lastName: '',
     address: '',
+    purok: '',
+    barangay: '',
+    municipality: 'San Lorenzo Ruiz',
+    zipCode: '4610',
     zoneId: '',
     classificationId: '',
     accountNumber: '',
@@ -64,22 +97,12 @@ const ConcessionairesTab: React.FC = () => {
     meterStatus: 'Active',
     contactNumber: '',
     connectionDate: '',
-    status: 'Active',
+    status: 'Pending',
   });
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadConcessionaires();
-    loadZones();
-    loadClassifications();
-  }, []);
-
-  useEffect(() => {
-    filterConcessionaires();
-  }, [concessionaires, searchTerm, zoneFilter, statusFilter]);
-
-  const loadConcessionaires = async () => {
+  const loadConcessionaires = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/consumers`);
@@ -91,9 +114,9 @@ const ConcessionairesTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, showToast]);
 
-  const loadZones = async () => {
+  const loadZones = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
@@ -106,21 +129,24 @@ const ConcessionairesTab: React.FC = () => {
     } catch (error) {
       console.error('Error loading zones:', error);
     }
-  };
+  }, [API_URL]);
 
-  const loadClassifications = async () => {
+  const loadClassifications = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/classifications`);
       const result = await response.json();
       if (result.success) {
-        setClassifications(result.data);
+        setClassifications((result.data || []).map((classification: any) => ({
+          Classification_ID: classification.Classification_ID ?? classification.classification_id,
+          Classification_Name: classification.Classification_Name ?? classification.classification_name,
+        })));
       }
     } catch (error) {
       console.error('Error loading classifications:', error);
     }
-  };
+  }, [API_URL]);
 
-  const filterConcessionaires = () => {
+  const filterConcessionaires = useCallback(() => {
     let filtered = [...concessionaires];
 
     if (searchTerm) {
@@ -143,7 +169,27 @@ const ConcessionairesTab: React.FC = () => {
     }
 
     setFilteredConcessionaires(filtered);
-  };
+  }, [concessionaires, searchTerm, statusFilter, zoneFilter]);
+
+  useEffect(() => {
+    loadConcessionaires();
+    loadZones();
+    loadClassifications();
+  }, [loadClassifications, loadConcessionaires, loadZones]);
+
+  useEffect(() => {
+    filterConcessionaires();
+  }, [filterConcessionaires]);
+
+  useEffect(() => {
+    const composedAddress = [formData.purok, formData.barangay, formData.municipality, formData.zipCode]
+      .filter(Boolean)
+      .join(', ');
+
+    if (formData.address !== composedAddress) {
+      setFormData((current) => ({ ...current, address: composedAddress }));
+    }
+  }, [formData.purok, formData.barangay, formData.municipality, formData.zipCode, formData.address]);
 
   const handleViewDetails = (concessionaire: Concessionaire) => {
     setSelectedConcessionaire(concessionaire);
@@ -159,6 +205,10 @@ const ConcessionairesTab: React.FC = () => {
       middleName: '',
       lastName: '',
       address: '',
+      purok: '',
+      barangay: '',
+      municipality: 'San Lorenzo Ruiz',
+      zipCode: '4610',
       zoneId: '',
       classificationId: '',
       accountNumber: '',
@@ -166,7 +216,7 @@ const ConcessionairesTab: React.FC = () => {
       meterStatus: 'Active',
       contactNumber: '',
       connectionDate: new Date().toISOString().split('T')[0],
-      status: 'Active',
+      status: 'Pending',
     });
     setIsFormModalOpen(true);
   };
@@ -180,6 +230,10 @@ const ConcessionairesTab: React.FC = () => {
       middleName: concessionaire.Middle_Name || '',
       lastName: concessionaire.Last_Name,
       address: concessionaire.Address,
+      purok: concessionaire.Purok || '',
+      barangay: concessionaire.Barangay || '',
+      municipality: concessionaire.Municipality || 'San Lorenzo Ruiz',
+      zipCode: concessionaire.Zip_Code || '4610',
       zoneId: concessionaire.Zone_ID.toString(),
       classificationId: concessionaire.Classification_ID.toString(),
       accountNumber: concessionaire.Account_Number,
@@ -193,33 +247,36 @@ const ConcessionairesTab: React.FC = () => {
     setIsDetailsModalOpen(false);
   };
 
-  const handleDeleteConcessionaire = async (concessionaire: Concessionaire) => {
-    if (!window.confirm(`Are you sure you want to delete concessionaire "${concessionaire.First_Name} ${concessionaire.Last_Name}"?`)) {
-      return;
-    }
-
+  const handleDeleteConcessionaire = async () => {
+    if (!consumerToDelete) return;
     try {
-      const response = await fetch(`${API_URL}/consumers/${concessionaire.Consumer_ID}`, {
+      const response = await fetch(`${API_URL}/consumers/${consumerToDelete.Consumer_ID}`, {
         method: 'DELETE',
       });
       const result = await response.json();
 
       if (result.success) {
-        showToast('Concessionaire deleted successfully', 'success');
+        showToast('Consumer deleted successfully', 'success');
         loadConcessionaires();
         setIsDetailsModalOpen(false);
+        setConsumerToDelete(null);
       } else {
-        showToast(result.message || 'Failed to delete concessionaire', 'error');
+        showToast(result.message || 'Failed to delete consumer', 'error');
       }
     } catch (error) {
-      console.error('Error deleting concessionaire:', error);
-      showToast('Failed to delete concessionaire', 'error');
+      console.error('Error deleting consumer:', error);
+      showToast('Failed to delete consumer', 'error');
     }
   };
 
   const handleSaveConcessionaire = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.accountNumber || !formData.zoneId || !formData.classificationId) {
-      showToast('Please fill in all required fields', 'error');
+    if (formData.accountNumber.trim() && !ACCOUNT_NUMBER_PATTERN.test(formData.accountNumber.trim())) {
+      showToast('Account number must follow the format xx-xx-xxx.', 'error');
+      return;
+    }
+
+    if (formData.contactNumber.trim() && !PHONE_PATTERN.test(formData.contactNumber.trim())) {
+      showToast('Contact number must be a valid Philippine mobile number.', 'error');
       return;
     }
 
@@ -242,9 +299,13 @@ const ConcessionairesTab: React.FC = () => {
         Middle_Name: formData.middleName,
         Last_Name: formData.lastName,
         Address: formData.address,
-        Zone_ID: parseInt(formData.zoneId),
-        Classification_ID: parseInt(formData.classificationId),
-        Account_Number: formData.accountNumber,
+        Purok: formData.purok,
+        Barangay: formData.barangay,
+        Municipality: formData.municipality,
+        Zip_Code: formData.zipCode,
+        Zone_ID: toOptionalNumber(formData.zoneId),
+        Classification_ID: toOptionalNumber(formData.classificationId),
+        Account_Number: formData.accountNumber.trim(),
         Meter_Number: formData.meterNumber,
         Meter_Status: formData.meterStatus,
         Contact_Number: formData.contactNumber,
@@ -262,7 +323,7 @@ const ConcessionairesTab: React.FC = () => {
 
       if (result.success || response.ok) {
         showToast(
-          editingConcessionaire ? 'Concessionaire updated successfully' : 'Concessionaire created successfully',
+          editingConcessionaire ? 'Consumer updated successfully' : 'Consumer created successfully',
           'success'
         );
         setIsFormModalOpen(false);
@@ -280,7 +341,7 @@ const ConcessionairesTab: React.FC = () => {
     { key: 'Account_Number', label: 'Account #', sortable: true },
     {
       key: 'name',
-      label: 'Concessionaire Name',
+      label: 'Consumer Name',
       sortable: true,
       render: (_, row: Concessionaire) => `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '.' : ''} ${row.Last_Name}`,
     },
@@ -289,7 +350,7 @@ const ConcessionairesTab: React.FC = () => {
       key: 'Zone_Name',
       label: 'Zone',
       sortable: true,
-      render: (_: string, row: Concessionaire) => `Zone ${row.Zone_ID}`,
+      render: (_: string, row: Concessionaire) => formatZoneLabel(row.Zone_Name, row.Zone_ID),
     },
     { key: 'Classification_Name', label: 'Type', sortable: true },
     {
@@ -318,7 +379,7 @@ const ConcessionairesTab: React.FC = () => {
           <button className="btn-icon" title="Edit" onClick={() => handleEditConcessionaire(row)}>
             <i className="fas fa-edit"></i>
           </button>
-          <button className="btn-icon btn-danger" title="Delete" onClick={() => handleDeleteConcessionaire(row)}>
+          <button className="btn-icon btn-danger" title="Delete" onClick={() => setConsumerToDelete(row)}>
             <i className="fas fa-trash"></i>
           </button>
         </div>
@@ -326,7 +387,7 @@ const ConcessionairesTab: React.FC = () => {
     },
   ];
 
-  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: `Zone ${z.Zone_ID}` }));
+  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: formatZoneLabel(z.Zone_Name, z.Zone_ID) }));
   const classificationOptions = classifications.map((c) => ({
     value: c.Classification_ID,
     label: c.Classification_Name,
@@ -366,7 +427,7 @@ const ConcessionairesTab: React.FC = () => {
         </div>
         <div className="main-actions">
           <button className="btn btn-primary" onClick={handleAddConcessionaire}>
-            <i className="fas fa-plus"></i> New Concessionaire
+            <i className="fas fa-plus"></i> New Consumer
           </button>
           <button className="btn btn-secondary" onClick={loadConcessionaires} title="Refresh Records">
             <i className="fas fa-sync-alt"></i>
@@ -387,8 +448,9 @@ const ConcessionairesTab: React.FC = () => {
       <Modal
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
-        title="Concessionaire Information"
+        title="Consumer Information"
         size="large"
+        closeOnOverlayClick={true}
         footer={
           <div style={{ display: 'flex', gap: '15px' }}>
             <button className="btn btn-secondary" onClick={() => setIsDetailsModalOpen(false)}>
@@ -435,7 +497,7 @@ const ConcessionairesTab: React.FC = () => {
                 </h3>
                 <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                   <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Map Zone:</span>
-                  <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{`Zone ${selectedConcessionaire.Zone_ID}`}</span>
+                  <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{formatZoneLabel(selectedConcessionaire.Zone_Name, selectedConcessionaire.Zone_ID)}</span>
                 </div>
                 <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                   <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Classification:</span>
@@ -463,7 +525,7 @@ const ConcessionairesTab: React.FC = () => {
       <Modal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
-        title={editingConcessionaire ? 'Update Concessionaire' : 'Add New Concessionaire'}
+        title={editingConcessionaire ? 'Update Consumer' : 'Add New Consumer'}
         size="large"
         footer={
           <>
@@ -475,14 +537,16 @@ const ConcessionairesTab: React.FC = () => {
         <div className="form-grid">
           {!editingConcessionaire && (
             <>
+              <div className="form-section-title">Account Access</div>
               <FormInput label="Username" value={formData.username} onChange={(v) => setFormData({ ...formData, username: v })} required />
               <FormInput label="Password" type="password" value={formData.password} onChange={(v) => setFormData({ ...formData, password: v })} required />
             </>
           )}
+          <div className="form-section-title">Personal Information</div>
           <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
           <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
           <FormInput label="Last Name" value={formData.lastName} onChange={(v) => setFormData({ ...formData, lastName: v })} required />
-          <FormInput label="Account Number" value={formData.accountNumber} onChange={(v) => setFormData({ ...formData, accountNumber: v })} required />
+          <FormInput label="Account Number" value={formData.accountNumber} onChange={(v) => setFormData({ ...formData, accountNumber: v })} required placeholder="xx-xx-xxx" />
           <FormInput label="Meter Number" value={formData.meterNumber} onChange={(v) => setFormData({ ...formData, meterNumber: v })} />
           <FormSelect
             label="Meter Status"
@@ -495,8 +559,14 @@ const ConcessionairesTab: React.FC = () => {
               { value: 'Disconnected', label: 'Disconnected' },
             ]}
           />
-          <FormInput label="Address" value={formData.address} onChange={(v) => setFormData({ ...formData, address: v })} />
-          <FormInput label="Contact #" value={formData.contactNumber} onChange={(v) => setFormData({ ...formData, contactNumber: v })} />
+          <div className="form-section-title">Address Details</div>
+          <FormSelect label="Purok" value={formData.purok} onChange={(v) => setFormData({ ...formData, purok: v })} options={PUROK_OPTIONS.map((item) => ({ value: item, label: item }))} />
+          <FormSelect label="Barangay" value={formData.barangay} onChange={(v) => setFormData({ ...formData, barangay: v })} options={BARANGAYS.map((item) => ({ value: item, label: item }))} />
+          <FormInput label="Municipality" value={formData.municipality} onChange={(v) => setFormData({ ...formData, municipality: v })} />
+          <FormInput label="Zip Code" value={formData.zipCode} onChange={(v) => setFormData({ ...formData, zipCode: v })} />
+          <FormInput label="Address" value={formData.address} onChange={() => {}} />
+          <div className="form-section-title">Service Details</div>
+          <FormInput label="Contact #" value={formData.contactNumber} onChange={(v) => setFormData({ ...formData, contactNumber: normalizePhoneInput(v) })} />
           <FormSelect label="Zone" value={formData.zoneId} onChange={(v) => setFormData({ ...formData, zoneId: v })} options={zoneOptions} required />
           <FormSelect label="Type" value={formData.classificationId} onChange={(v) => setFormData({ ...formData, classificationId: v })} options={classificationOptions} required />
           <FormSelect
@@ -504,12 +574,32 @@ const ConcessionairesTab: React.FC = () => {
             value={formData.status}
             onChange={(v) => setFormData({ ...formData, status: v })}
             options={[
+              { value: 'Pending', label: 'Pending' },
               { value: 'Active', label: 'Active' },
               { value: 'Inactive', label: 'Inactive' },
             ]}
           />
           <FormInput label="Date Joined" type="date" value={formData.connectionDate} onChange={(v) => setFormData({ ...formData, connectionDate: v })} />
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!consumerToDelete}
+        onClose={() => setConsumerToDelete(null)}
+        title="Delete Consumer"
+        size="small"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setConsumerToDelete(null)}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleDeleteConcessionaire}><i className="fas fa-trash"></i> Confirm Delete</button>
+          </>
+        }
+      >
+        {consumerToDelete && (
+          <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
+            Delete consumer <strong>{consumerToDelete.First_Name} {consumerToDelete.Last_Name}</strong>? This action cannot be undone.
+          </p>
+        )}
       </Modal>
     </div>
   );

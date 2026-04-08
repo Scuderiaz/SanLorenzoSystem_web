@@ -13,6 +13,10 @@ interface Consumer {
   Middle_Name?: string;
   Last_Name: string;
   Address: string;
+  Purok?: string;
+  Barangay?: string;
+  Municipality?: string;
+  Zip_Code?: string;
   Zone_ID: number;
   Zone_Name?: string;
   Classification_ID: number;
@@ -34,6 +38,27 @@ interface Classification {
   Classification_Name: string;
 }
 
+const ACCOUNT_NUMBER_PATTERN = /^\d{2}-\d{2}-\d{3}$/;
+const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
+const BARANGAYS = [
+  'Daculang Bolo', 'Dagotdotan', 'Langga', 'Laniton',
+  'Maisog', 'Mampurog', 'Manlimonsito', 'Matacong (Pob.)',
+  'Salvacion', 'San Antonio', 'San Isidro', 'San Ramon',
+].sort();
+const PUROK_OPTIONS = ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5'];
+const toOptionalNumber = (value: string) => {
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const normalizePhoneInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const hasLeadingPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '');
+  return hasLeadingPlus ? `+${digits}` : digits;
+};
+
 const Consumers: React.FC = () => {
   const { showToast } = useToast();
   const [consumers, setConsumers] = useState<Consumer[]>([]);
@@ -45,6 +70,7 @@ const Consumers: React.FC = () => {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [selectedConsumer, setSelectedConsumer] = useState<Consumer | null>(null);
   const [editingConsumer, setEditingConsumer] = useState<Consumer | null>(null);
+  const [consumerToDelete, setConsumerToDelete] = useState<Consumer | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
@@ -55,13 +81,17 @@ const Consumers: React.FC = () => {
     middleName: '',
     lastName: '',
     address: '',
+    purok: '',
+    barangay: '',
+    municipality: 'San Lorenzo Ruiz',
+    zipCode: '4610',
     zoneId: '',
     classificationId: '',
     accountNumber: '',
     meterNumber: '',
     contactNumber: '',
     connectionDate: '',
-    status: 'Active',
+    status: 'Pending',
   });
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
@@ -75,6 +105,16 @@ const Consumers: React.FC = () => {
   useEffect(() => {
     filterConsumers();
   }, [consumers, searchTerm, zoneFilter, statusFilter]);
+
+  useEffect(() => {
+    const composedAddress = [formData.purok, formData.barangay, formData.municipality, formData.zipCode]
+      .filter(Boolean)
+      .join(', ');
+
+    if (formData.address !== composedAddress) {
+      setFormData((current) => ({ ...current, address: composedAddress }));
+    }
+  }, [formData.purok, formData.barangay, formData.municipality, formData.zipCode, formData.address]);
 
   const loadConsumers = async () => {
     setLoading(true);
@@ -95,7 +135,10 @@ const Consumers: React.FC = () => {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
       if (result.success) {
-        setZones(result.data);
+        setZones((result.data || []).map((zone: any) => ({
+          Zone_ID: zone.Zone_ID ?? zone.zone_id,
+          Zone_Name: zone.Zone_Name ?? zone.zone_name,
+        })));
       }
     } catch (error) {
       console.error('Error loading zones:', error);
@@ -107,7 +150,10 @@ const Consumers: React.FC = () => {
       const response = await fetch(`${API_URL}/classifications`);
       const result = await response.json();
       if (result.success) {
-        setClassifications(result.data);
+        setClassifications((result.data || []).map((classification: any) => ({
+          Classification_ID: classification.Classification_ID ?? classification.classification_id,
+          Classification_Name: classification.Classification_Name ?? classification.classification_name,
+        })));
       }
     } catch (error) {
       console.error('Error loading classifications:', error);
@@ -151,13 +197,17 @@ const Consumers: React.FC = () => {
       middleName: '',
       lastName: '',
       address: '',
+      purok: '',
+      barangay: '',
+      municipality: 'San Lorenzo Ruiz',
+      zipCode: '4610',
       zoneId: '',
       classificationId: '',
       accountNumber: '',
       meterNumber: '',
       contactNumber: '',
       connectionDate: new Date().toISOString().split('T')[0],
-      status: 'Active',
+      status: 'Pending',
     });
     setIsFormModalOpen(true);
   };
@@ -169,6 +219,10 @@ const Consumers: React.FC = () => {
       middleName: consumer.Middle_Name || '',
       lastName: consumer.Last_Name,
       address: consumer.Address,
+      purok: consumer.Purok || '',
+      barangay: consumer.Barangay || '',
+      municipality: consumer.Municipality || 'San Lorenzo Ruiz',
+      zipCode: consumer.Zip_Code || '4610',
       zoneId: consumer.Zone_ID.toString(),
       classificationId: consumer.Classification_ID.toString(),
       accountNumber: consumer.Account_Number,
@@ -181,13 +235,10 @@ const Consumers: React.FC = () => {
     setIsDetailsModalOpen(false);
   };
 
-  const handleDeleteConsumer = async (consumer: Consumer) => {
-    if (!window.confirm(`Are you sure you want to delete consumer "${consumer.First_Name} ${consumer.Last_Name}"?`)) {
-      return;
-    }
-
+  const handleDeleteConsumer = async () => {
+    if (!consumerToDelete) return;
     try {
-      const response = await fetch(`${API_URL}/consumers/${consumer.Consumer_ID}`, {
+      const response = await fetch(`${API_URL}/consumers/${consumerToDelete.Consumer_ID}`, {
         method: 'DELETE',
       });
       const result = await response.json();
@@ -196,6 +247,7 @@ const Consumers: React.FC = () => {
         showToast('Consumer deleted successfully', 'success');
         loadConsumers();
         setIsDetailsModalOpen(false);
+        setConsumerToDelete(null);
       } else {
         showToast(result.message || 'Failed to delete consumer', 'error');
       }
@@ -206,8 +258,13 @@ const Consumers: React.FC = () => {
   };
 
   const handleSaveConsumer = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.accountNumber) {
-      showToast('Please fill in all required fields', 'error');
+    if (formData.accountNumber.trim() && !ACCOUNT_NUMBER_PATTERN.test(formData.accountNumber.trim())) {
+      showToast('Account number must follow the format xx-xx-xxx.', 'error');
+      return;
+    }
+
+    if (formData.contactNumber.trim() && !PHONE_PATTERN.test(formData.contactNumber.trim())) {
+      showToast('Contact number must be a valid Philippine mobile number.', 'error');
       return;
     }
 
@@ -223,9 +280,13 @@ const Consumers: React.FC = () => {
         Middle_Name: formData.middleName,
         Last_Name: formData.lastName,
         Address: formData.address,
-        Zone_ID: parseInt(formData.zoneId),
-        Classification_ID: parseInt(formData.classificationId),
-        Account_Number: formData.accountNumber,
+        Purok: formData.purok,
+        Barangay: formData.barangay,
+        Municipality: formData.municipality,
+        Zip_Code: formData.zipCode,
+        Zone_ID: toOptionalNumber(formData.zoneId),
+        Classification_ID: toOptionalNumber(formData.classificationId),
+        Account_Number: formData.accountNumber.trim(),
         Meter_Number: formData.meterNumber,
         Contact_Number: formData.contactNumber,
         Connection_Date: formData.connectionDate,
@@ -296,7 +357,7 @@ const Consumers: React.FC = () => {
           <button
             className="btn-icon btn-danger"
             title="Delete Consumer"
-            onClick={() => handleDeleteConsumer(row)}
+            onClick={() => setConsumerToDelete(row)}
           >
             <i className="fas fa-trash"></i>
           </button>
@@ -375,8 +436,9 @@ const Consumers: React.FC = () => {
         <Modal
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
-          title="Concessionaire Information"
+          title="Consumer Information"
           size="large"
+          closeOnOverlayClick={true}
           footer={
             <div style={{ display: 'flex', gap: '15px' }}>
               <button className="btn btn-secondary" onClick={() => setIsDetailsModalOpen(false)}>
@@ -459,6 +521,7 @@ const Consumers: React.FC = () => {
           }
         >
           <div className="form-grid">
+            <div className="form-section-title">Personal Information</div>
             <FormInput
               label="First Name"
               value={formData.firstName}
@@ -484,6 +547,7 @@ const Consumers: React.FC = () => {
               value={formData.accountNumber}
               onChange={(value) => setFormData({ ...formData, accountNumber: value })}
               required
+              placeholder="xx-xx-xxx"
               icon="fa-hashtag"
             />
             <FormInput
@@ -492,16 +556,44 @@ const Consumers: React.FC = () => {
               onChange={(value) => setFormData({ ...formData, meterNumber: value })}
               icon="fa-tachometer-alt"
             />
+            <div className="form-section-title">Address Details</div>
+            <FormSelect
+              label="Purok"
+              value={formData.purok}
+              onChange={(value) => setFormData({ ...formData, purok: value })}
+              options={PUROK_OPTIONS.map((item) => ({ value: item, label: item }))}
+              icon="fa-map-pin"
+            />
+            <FormSelect
+              label="Barangay"
+              value={formData.barangay}
+              onChange={(value) => setFormData({ ...formData, barangay: value })}
+              options={BARANGAYS.map((item) => ({ value: item, label: item }))}
+              icon="fa-map-marked-alt"
+            />
+            <FormInput
+              label="Municipality"
+              value={formData.municipality}
+              onChange={(value) => setFormData({ ...formData, municipality: value })}
+              icon="fa-city"
+            />
+            <FormInput
+              label="Zip Code"
+              value={formData.zipCode}
+              onChange={(value) => setFormData({ ...formData, zipCode: value })}
+              icon="fa-mail-bulk"
+            />
             <FormInput
               label="Address"
               value={formData.address}
-              onChange={(value) => setFormData({ ...formData, address: value })}
+              onChange={() => {}}
               icon="fa-map-marker-alt"
             />
+            <div className="form-section-title">Service Details</div>
             <FormInput
               label="Contact Number"
               value={formData.contactNumber}
-              onChange={(value) => setFormData({ ...formData, contactNumber: value })}
+              onChange={(value) => setFormData({ ...formData, contactNumber: normalizePhoneInput(value) })}
               icon="fa-phone"
             />
             <FormSelect
@@ -532,6 +624,7 @@ const Consumers: React.FC = () => {
               value={formData.status}
               onChange={(value) => setFormData({ ...formData, status: value })}
               options={[
+                { value: 'Pending', label: 'Pending' },
                 { value: 'Active', label: 'Active' },
                 { value: 'Inactive', label: 'Inactive' },
                 { value: 'Disconnected', label: 'Disconnected' },
@@ -540,6 +633,29 @@ const Consumers: React.FC = () => {
               icon="fa-info-circle"
             />
           </div>
+        </Modal>
+
+        <Modal
+          isOpen={!!consumerToDelete}
+          onClose={() => setConsumerToDelete(null)}
+          title="Delete Consumer"
+          size="small"
+          footer={
+            <>
+              <button className="btn btn-secondary" onClick={() => setConsumerToDelete(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleDeleteConsumer}>
+                <i className="fas fa-trash"></i> Confirm Delete
+              </button>
+            </>
+          }
+        >
+          {consumerToDelete && (
+            <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
+              Delete consumer <strong>{consumerToDelete.First_Name} {consumerToDelete.Last_Name}</strong>? This action cannot be undone.
+            </p>
+          )}
         </Modal>
       </div>
     </MainLayout>

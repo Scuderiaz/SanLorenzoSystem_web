@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import Tabs, { Tab } from '../../components/Common/Tabs';
 import FormInput from '../../components/Common/FormInput';
@@ -34,6 +34,9 @@ interface ZoneRow {
   Zone_Name?: string;
 }
 
+const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
 const formatCurrency = (value: number) =>
   `P${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -57,7 +60,7 @@ const BillingReports: React.FC = () => {
   const [zones, setZones] = useState<ZoneRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
     try {
       const [consumersResponse, billsResponse, paymentsResponse, zonesResponse] = await Promise.all([
@@ -87,11 +90,11 @@ const BillingReports: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, showToast]);
 
   useEffect(() => {
     loadReports();
-  }, []);
+  }, [loadReports]);
 
   const consumerMap = useMemo(() => new Map(consumers.map((consumer) => [consumer.Consumer_ID, consumer])), [consumers]);
 
@@ -137,14 +140,15 @@ const BillingReports: React.FC = () => {
         const active = zoneConsumers.filter((consumer) => String(consumer.Status || '').toLowerCase() === 'active').length;
         const inactive = zoneConsumers.filter((consumer) => String(consumer.Status || '').toLowerCase() === 'inactive').length;
         return {
-          zone: `Zone ${zone.Zone_ID}`,
+          zoneId: zone.Zone_ID,
+          zone: formatZoneLabel(zone.Zone_Name, zone.Zone_ID),
           totalConsumers: total,
           active,
           inactive,
           percentage: total ? `${((active / total) * 100).toFixed(1)}%` : '0.0%',
         };
       })
-      .filter((row) => !zoneFilter || row.zone === `Zone ${zoneFilter}`);
+      .filter((row) => !zoneFilter || String(row.zoneId) === zoneFilter);
   }, [consumers, zoneFilter, zones]);
 
   const monthlyReports = useMemo(() => {
@@ -178,7 +182,7 @@ const BillingReports: React.FC = () => {
     }));
   }, [filteredBills, filteredPayments]);
 
-  const zoneOptions = zones.map((zone) => ({ value: zone.Zone_ID, label: `Zone ${zone.Zone_ID}` }));
+  const zoneOptions = zones.map((zone) => ({ value: zone.Zone_ID, label: formatZoneLabel(zone.Zone_Name, zone.Zone_ID) }));
 
   const tabs: Tab[] = [
     {
@@ -268,17 +272,16 @@ const BillingReports: React.FC = () => {
   return (
     <MainLayout title="Billing Reports">
       <div className="reports-page">
-        <div className="action-buttons">
-          <button className="btn btn-primary" onClick={loadReports}>
-            <i className="fas fa-sync-alt"></i> Refresh Reports
-          </button>
-        </div>
-
         <div className="report-controls">
           <div className="control-group">
             <FormInput label="Start Period" type="date" value={fromDate} onChange={setFromDate} icon="fa-calendar-alt" />
             <FormInput label="End Period" type="date" value={toDate} onChange={setToDate} icon="fa-calendar-check" />
             <FormSelect label="Coverage Area" value={zoneFilter} onChange={setZoneFilter} options={zoneOptions} placeholder="All Service Zones" icon="fa-map-marked-alt" />
+          </div>
+          <div className="report-actions">
+            <button className="btn btn-primary" onClick={loadReports}>
+              <i className="fas fa-sync-alt"></i> Refresh Reports
+            </button>
           </div>
         </div>
 

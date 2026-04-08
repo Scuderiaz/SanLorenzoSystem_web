@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable, { Column } from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
@@ -44,6 +44,19 @@ interface ConfirmActionState {
   application: PendingApplication;
 }
 
+const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
+
+const normalizePhoneInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const hasLeadingPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '');
+  return hasLeadingPlus ? `+${digits}` : digits;
+};
+
+const formatZoneLabel = (zoneName?: string | null, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
 const PendingApplications: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -52,7 +65,7 @@ const PendingApplications: React.FC = () => {
   const [applications, setApplications] = useState<PendingApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [selectedApplication, setSelectedApplication] = useState<PendingApplication | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [returnToDetailsAfterEdit, setReturnToDetailsAfterEdit] = useState(false);
@@ -77,7 +90,7 @@ const PendingApplications: React.FC = () => {
     requirementsSubmitted: '',
   });
 
-  const loadApplications = async () => {
+  const loadApplications = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/applications`);
@@ -93,14 +106,9 @@ const PendingApplications: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, showToast]);
 
-  useEffect(() => {
-    loadApplications();
-    loadLookups();
-  }, []);
-
-  const loadLookups = async () => {
+  const loadLookups = useCallback(async () => {
     try {
       const [zonesResponse, classificationsResponse] = await Promise.all([
         fetch(`${API_URL}/zones`),
@@ -112,7 +120,7 @@ const PendingApplications: React.FC = () => {
       if (Array.isArray(zonesResult?.data)) {
         setZones(zonesResult.data.map((zone: any) => ({
           id: zone.Zone_ID ?? zone.zone_id,
-          name: `Zone ${zone.Zone_ID ?? zone.zone_id}`,
+          name: formatZoneLabel(zone.Zone_Name ?? zone.zone_name, zone.Zone_ID ?? zone.zone_id),
         })));
       }
 
@@ -125,7 +133,12 @@ const PendingApplications: React.FC = () => {
     } catch (error) {
       console.error('Error loading lookup data:', error);
     }
-  };
+  }, [API_URL]);
+
+  useEffect(() => {
+    loadApplications();
+    loadLookups();
+  }, [loadApplications, loadLookups]);
 
   const openEdit = (application: PendingApplication, options?: { returnToDetails?: boolean }) => {
     const [firstName = '', middleName = '', ...remainingName] = String(application.Consumer_Name || '').split(' ');
@@ -177,6 +190,11 @@ const PendingApplications: React.FC = () => {
       return;
     }
 
+    if (formData.contactNumber.trim() && !PHONE_PATTERN.test(formData.contactNumber.trim())) {
+      showToast('Contact number must be a valid Philippine mobile number.', 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       const response = await fetch(`${API_URL}/update-application/${selectedApplication.Account_ID}`, {
@@ -210,7 +228,7 @@ const PendingApplications: React.FC = () => {
       });
       const result = await response.json();
       if (result.success) {
-        showToast('Application rejected successfully', 'success');
+        showToast('Application rejected and deleted successfully', 'success');
         setSelectedApplication(null);
         loadApplications();
       } else {
@@ -224,7 +242,9 @@ const PendingApplications: React.FC = () => {
   const filteredApplications = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return applications.filter((application) => {
-      const matchesStatus = statusFilter === 'all' || application.Application_Status === statusFilter;
+      const matchesStatus = statusFilter === 'active'
+        ? application.Application_Status !== 'Rejected'
+        : statusFilter === 'all' || application.Application_Status === statusFilter;
       const matchesSearch = !query || [
         application.Ticket_Number,
         application.Consumer_Name,
@@ -253,7 +273,7 @@ const PendingApplications: React.FC = () => {
     {
       key: 'Zone_Name',
       label: 'Zone',
-      render: (_, row: PendingApplication) => row.Zone_ID ? `Zone ${row.Zone_ID}` : row.Zone_Name || 'Not Assigned',
+      render: (_, row: PendingApplication) => formatZoneLabel(row.Zone_Name, row.Zone_ID),
     },
     { key: 'Application_Date', label: 'Applied On', sortable: true, render: (value: string) => value ? new Date(value).toLocaleString() : 'N/A' },
     {
@@ -290,10 +310,22 @@ const PendingApplications: React.FC = () => {
     ? 'Approve this consumer application and move it forward for activation?'
     : 'Reject this application and keep it marked as rejected in the record history?';
 
+  const accountNumberDisplay = (application: PendingApplication | null) => {
+    if (!application) {
+      return 'To be updated upon approval';
+    }
+
+    if (application.Application_Status !== 'Approved' && application.Account_Status !== 'Active') {
+      return 'To be updated upon approval';
+    }
+
+    return application.Account_Number || 'To be updated upon approval';
+  };
+
   return (
     <MainLayout title="Applications">
       <div className="users-page">
-        <div className="filter-bar">
+        <div className="filter-bar applications-toolbar">
           <div className="search-box">
             <i className="fas fa-search"></i>
             <input
@@ -303,18 +335,21 @@ const PendingApplications: React.FC = () => {
               onChange={(event) => setSearchQuery(event.target.value)}
             />
           </div>
+          <div className="applications-toolbar-actions">
           <div className="filters">
             <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="active">Working Applications</option>
               <option value="all">All Application Status</option>
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
               <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          <div className="main-actions">
-            <button className="btn btn-secondary" onClick={loadApplications} title="Refresh Applications">
-              <i className="fas fa-sync-alt"></i>
-            </button>
+              </select>
+            </div>
+            <div className="main-actions">
+              <button className="btn btn-secondary" onClick={loadApplications} title="Refresh Applications">
+                <i className="fas fa-sync-alt"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -338,6 +373,7 @@ const PendingApplications: React.FC = () => {
           onClose={() => setSelectedApplication(null)}
           title="Application Details"
           size="medium"
+          closeOnOverlayClick={true}
           footer={
             selectedApplication ? (
               <>
@@ -366,11 +402,11 @@ const PendingApplications: React.FC = () => {
               <p><strong>Applicant:</strong> {selectedApplication.Consumer_Name || 'N/A'}</p>
               {canViewUsername && <p><strong>Username:</strong> {selectedApplication.Username || 'N/A'}</p>}
               <p><strong>Classification:</strong> {selectedApplication.Classification_Name || 'N/A'}</p>
-              <p><strong>Zone:</strong> {selectedApplication.Zone_ID ? `Zone ${selectedApplication.Zone_ID}` : selectedApplication.Zone_Name || 'Not Assigned'}</p>
+              <p><strong>Zone:</strong> {formatZoneLabel(selectedApplication.Zone_Name, selectedApplication.Zone_ID)}</p>
               <p><strong>Contact Number:</strong> {selectedApplication.Contact_Number || 'N/A'}</p>
               <p><strong>Connection Type:</strong> {selectedApplication.Connection_Type || 'N/A'}</p>
               <p><strong>Requirements:</strong> {selectedApplication.Requirements_Submitted || 'N/A'}</p>
-              <p><strong>Official Account No.:</strong> {selectedApplication.Account_Number || 'Pending assignment'}</p>
+              <p><strong>Official Account No.:</strong> {accountNumberDisplay(selectedApplication)}</p>
               <p><strong>Applied On:</strong> {selectedApplication.Application_Date ? new Date(selectedApplication.Application_Date).toLocaleString() : 'N/A'}</p>
               <p><strong>Address:</strong> {selectedApplication.Address || 'N/A'}</p>
             </div>
@@ -415,7 +451,7 @@ const PendingApplications: React.FC = () => {
             <FormInput label="First Name" value={formData.firstName} onChange={(value) => setFormData({ ...formData, firstName: value })} required />
             <FormInput label="Middle Name" value={formData.middleName} onChange={(value) => setFormData({ ...formData, middleName: value })} />
             <FormInput label="Last Name" value={formData.lastName} onChange={(value) => setFormData({ ...formData, lastName: value })} required />
-            <FormInput label="Contact Number" value={formData.contactNumber} onChange={(value) => setFormData({ ...formData, contactNumber: value })} />
+            <FormInput label="Contact Number" value={formData.contactNumber} onChange={(value) => setFormData({ ...formData, contactNumber: normalizePhoneInput(value) })} />
             <FormInput label="Purok" value={formData.purok} onChange={(value) => setFormData({ ...formData, purok: value })} />
             <FormInput label="Barangay" value={formData.barangay} onChange={(value) => setFormData({ ...formData, barangay: value })} />
             <FormInput label="Municipality" value={formData.municipality} onChange={(value) => setFormData({ ...formData, municipality: value })} />
@@ -434,7 +470,12 @@ const PendingApplications: React.FC = () => {
               options={classifications.map((classification) => ({ value: classification.id, label: classification.name }))}
               required
             />
-            <FormInput label="Account Number" value={formData.accountNumber} onChange={(value) => setFormData({ ...formData, accountNumber: value })} />
+            <FormInput
+              label="Account Number"
+              value={formData.accountNumber}
+              onChange={(value) => setFormData({ ...formData, accountNumber: value })}
+              placeholder="This stays hidden until the application is approved"
+            />
             <FormInput label="Connection Type" value={formData.connectionType} onChange={(value) => setFormData({ ...formData, connectionType: value })} />
           </div>
           <div className="application-notes-block">

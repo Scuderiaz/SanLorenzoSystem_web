@@ -8,6 +8,7 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   size?: 'small' | 'medium' | 'large' | 'xlarge' | 'portrait';
+  closeOnOverlayClick?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -17,6 +18,7 @@ const Modal: React.FC<ModalProps> = ({
   children,
   footer,
   size = 'medium',
+  closeOnOverlayClick = false,
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -44,7 +46,7 @@ const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={closeOnOverlayClick ? onClose : undefined}>
       <div
         className={`modal-content modal-${size}`}
         onClick={(e) => e.stopPropagation()}

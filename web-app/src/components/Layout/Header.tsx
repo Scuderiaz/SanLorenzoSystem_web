@@ -7,7 +7,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
-  const { user, logout, isOnline } = useAuth();
+  const { user } = useAuth();
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -36,7 +36,6 @@ const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
             <span className="user-name">{user?.fullName || user?.username || 'User'}</span>
             <span className="user-role">{roleLabels[user?.role_id!] || 'Staff'}</span>
           </div>
-          <i className="fas fa-chevron-down" style={{ fontSize: '10px', color: '#94a3b8' }}></i>
         </div>
       </div>
     </div>

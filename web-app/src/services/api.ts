@@ -15,21 +15,25 @@ const generateRegistrationTicketNumber = () => {
   return `REG-${timestamp}-${suffix}`;
 };
 
-const generatePendingAccountNumber = (zoneId: string | number) => {
+const generatePendingAccountNumber = () => {
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:TZ.]/g, '')
-    .slice(2, 14);
-  const normalizedZoneId = String(Number(zoneId) || 0).padStart(2, '0');
+    .slice(0, 14);
   const suffix = Math.floor(Math.random() * 900) + 100;
-  return `PENDING-${normalizedZoneId}-${timestamp}-${suffix}`;
+  return `PENDING-${timestamp}-${suffix}`;
 };
+
+const ensurePendingRegistrationAccountNumber = (userData: any) => ({
+  ...userData,
+  accountNumber: String(userData?.accountNumber || '').trim() || generatePendingAccountNumber(),
+});
 
 const registerDirectWithSupabase = async (userData: any) => {
   if (!supabase) throw new Error('Supabase not configured');
   
   const ticketNumber = generateRegistrationTicketNumber();
-  const pendingAccountNumber = generatePendingAccountNumber(userData.zoneId || 1);
+  const normalizedAccountNumber = String(userData.accountNumber || '').trim() || generatePendingAccountNumber();
 
   const { data: accountData, error: accountError } = await supabase
     .from('accounts')
@@ -61,7 +65,7 @@ const registerDirectWithSupabase = async (userData: any) => {
       login_id: accountId,
       status: 'Pending',
       contact_number: userData.phone,
-      account_number: pendingAccountNumber
+      account_number: normalizedAccountNumber
     }])
     .select();
 
@@ -142,14 +146,16 @@ export const authService = {
   },
 
   register: async (userData: any) => {
+    const payload = ensurePendingRegistrationAccountNumber(userData);
+
     try {
-      const response = await api.post('/register', userData);
+      const response = await api.post('/register', payload);
       return response.data;
     } catch (error: any) {
       if (isNetworkError(error) && isSupabaseConfigured && supabase) {
         console.warn('Network error, attempting Supabase fallback for registration');
         try {
-          return await registerDirectWithSupabase(userData);
+          return await registerDirectWithSupabase(payload);
         } catch (supabaseError: any) {
           return { success: false, message: supabaseError.message || 'Supabase fallback failed' };
         }

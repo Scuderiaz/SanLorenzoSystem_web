@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
@@ -14,6 +14,9 @@ interface Schedule {
   Status?: string;
 }
 
+const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
 const MeterReading: React.FC = () => {
   const { showToast } = useToast();
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -28,20 +31,13 @@ const MeterReading: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  useEffect(() => {
-    loadSchedules();
-    loadZones();
-    loadMeterReaders();
-  }, []);
-
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async () => {
     try {
       const mockSchedules: Schedule[] = [
         {
           Schedule_ID: 1,
           Schedule_Date: '2026-03-20',
           Zone_ID: 1,
-          Zone_Name: 'Zone 1',
           Meter_Reader_ID: 1,
           Meter_Reader_Name: 'John Doe',
           Status: 'Scheduled',
@@ -51,9 +47,9 @@ const MeterReading: React.FC = () => {
     } catch (error) {
       console.error('Error loading schedules:', error);
     }
-  };
+  }, []);
 
-  const loadZones = async () => {
+  const loadZones = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
@@ -63,9 +59,9 @@ const MeterReading: React.FC = () => {
     } catch (error) {
       console.error('Error loading zones:', error);
     }
-  };
+  }, [API_URL]);
 
-  const loadMeterReaders = async () => {
+  const loadMeterReaders = useCallback(async () => {
     try {
       const mockReaders = [
         { AccountID: 1, Full_Name: 'John Doe', Username: 'john' },
@@ -75,7 +71,13 @@ const MeterReading: React.FC = () => {
     } catch (error) {
       console.error('Error loading meter readers:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadSchedules();
+    loadZones();
+    loadMeterReaders();
+  }, [loadMeterReaders, loadSchedules, loadZones]);
 
   const formatDateKey = (year: number, month: number, day: number) => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -193,7 +195,7 @@ const MeterReading: React.FC = () => {
           <span className="day-number">{day}</span>
           {isScheduled && (
             <div className="day-info">
-              <span className="day-zone">{schedule.Zone_Name?.replace('Zone ', 'Z')}</span>
+              <span className="day-zone">{formatZoneLabel(schedule.Zone_Name, schedule.Zone_ID)}</span>
               <span className="day-reader">
                 {schedule.Meter_Reader_Name?.split(' ')[0] || 'Unassigned'}
               </span>
@@ -279,7 +281,7 @@ const MeterReading: React.FC = () => {
                     <div className="schedule-info">
                       <div className="info-row">
                         <span className="label">Zone:</span>
-                        <span className="value">{currentSchedule.Zone_Name || 'Unknown'}</span>
+                        <span className="value">{formatZoneLabel(currentSchedule.Zone_Name, currentSchedule.Zone_ID)}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Meter Reader:</span>

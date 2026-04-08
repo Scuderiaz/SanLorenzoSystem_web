@@ -1111,3 +1111,306 @@
 [2026-04-08T01:44:34.377Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
 [2026-04-08T01:44:44.369Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
 [2026-04-08T01:45:35.377Z] [applications.pending.fetch] TypeError: fetch failed | GET /api/applications/pending | params={} | query={} | body={}
+[2026-04-08T12:51:10.242Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T12:52:10.253Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T12:53:10.262Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T12:54:10.271Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T12:55:10.286Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T12:56:10.288Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T12:57:10.295Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T12:58:10.310Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T12:59:10.322Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:00:10.333Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:01:10.333Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:02:10.345Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:03:10.358Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:04:10.372Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:05:10.376Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:06:10.377Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:07:10.384Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:08:10.391Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:09:10.395Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:10:10.408Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:11:10.411Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:12:10.417Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:13:10.428Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:14:30.984Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:15:30.990Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:18:05.833Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:19:05.836Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:20:05.853Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:21:05.860Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:22:05.874Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:23:05.882Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:24:05.896Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:25:05.909Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:26:05.913Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:27:05.928Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:28:05.943Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:29:05.946Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:29:25.958Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-reject-user.
+[2026-04-08T13:29:29.419Z] [users.delete] update or delete on table "accounts" violates RESTRICT setting of foreign key constraint "fk_consumer_login" on table "consumer" | DELETE /api/users/16 | params={"id":"16"} | query={} | body={}
+[2026-04-08T13:30:05.957Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:30:23.389Z] [sync.cycle] Hybrid sync cycle started via immediate:applications-update.
+[2026-04-08T13:31:05.967Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:31:49.610Z] [users.delete] update or delete on table "accounts" violates RESTRICT setting of foreign key constraint "fk_consumer_login" on table "consumer" | DELETE /api/users/16 | params={"id":"16"} | query={} | body={}
+[2026-04-08T13:33:28.945Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:33:35.113Z] [users.delete] update or delete on table "accounts" violates RESTRICT setting of foreign key constraint "fk_consumer_login" on table "consumer" | DELETE /api/users/16 | params={"id":"16"} | query={} | body={}
+[2026-04-08T13:34:28.947Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:35:28.960Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:36:28.972Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:37:28.972Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:38:28.980Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:39:28.982Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:40:28.994Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:40:41.724Z] [sync.cycle] Hybrid sync cycle started via immediate:register.
+[2026-04-08T13:41:29.005Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:42:29.014Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:43:29.023Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:44:29.034Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:45:29.048Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:46:29.052Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:47:29.063Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:48:29.076Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:49:29.084Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:50:29.095Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:51:29.096Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:52:29.098Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:53:29.099Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:54:29.113Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:55:29.127Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:56:29.140Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:57:29.145Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:58:29.145Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T13:59:29.154Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:01:56.799Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:02:56.809Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:03:56.811Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:04:56.815Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:05:56.817Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:06:56.820Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:07:56.832Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:08:56.830Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:09:56.842Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:10:01.638Z] [supabase.sync.meter] <!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js ie7 oldie" lang="en-US"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js ie8 oldie" lang="en-US"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en-US"> <!--<![endif]-->
+<head>
+
+<title> | 502: Bad gateway</title>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" id="cf_styles-css" href="/cdn-cgi/styles/main.css" />
+</head>
+<body>
+<div id="cf-wrapper">
+    <div id="cf-error-details" class="p-0">
+        <header class="mx-auto pt-10 lg:pt-6 lg:px-8 w-240 lg:w-full mb-8">
+            <h1 class="inline-block sm:block sm:mb-2 font-light text-60 lg:text-4xl text-black-dark leading-tight mr-2">
+                <span class="inline-block">Bad gateway</span>
+                <span class="code-label">Error code 502</span>
+            </h1>
+            <div>
+                Visit <a href="https://www.cloudflare.com/5xx-error-landing?utm_source=errorcode_502&utm_campaign=pqnzzivfahgagitbywhg.supabase.co" target="_blank" rel="noopener noreferrer">cloudflare.com</a> for more information.
+            </div>
+            <div class="mt-3">2026-04-08 14:10:01 UTC</div>
+        </header>
+        <div class="my-8 bg-gradient-gray">
+            <div class="w-240 lg:w-full mx-auto">
+                <div class="clearfix md:px-8">
+                    <div id="cf-browser-status" class=" relative w-1/3 md:w-full py-15 md:p-0 md:py-8 md:text-left md:border-solid md:border-0 md:border-b md:border-gray-400 overflow-hidden float-left md:float-none text-center">
+  <div class="relative mb-10 md:m-0">
+    
+    <span class="cf-icon-browser block md:hidden h-20 bg-center bg-no-repeat"></span>
+    <span class="cf-icon-ok w-12 h-12 absolute left-1/2 md:left-auto md:right-0 md:top-0 -ml-6 -bottom-4"></span>
+    
+  </div>
+  <span class="md:block w-full truncate">You</span>
+  <h3 class="md:inline-block mt-3 md:mt-0 text-2xl text-gray-600 font-light leading-1.3">
+  
+    Browser
+  
+  </h3>
+  
+  <span class="leading-1.3 text-2xl text-green-success">Working</span>
+  
+</div>
+                    <div id="cf-cloudflare-status" class=" relative w-1/3 md:w-full py-15 md:p-0 md:py-8 md:text-left md:border-solid md:border-0 md:border-b md:border-gray-400 overflow-hidden float-left md:float-none text-center">
+  <div class="relative mb-10 md:m-0">
+    <a href="https://www.cloudflare.com/5xx-error-landing?utm_source=errorcode_502&#38;utm_campaign=pqnzzivfahgagitbywhg.supabase.co" target="_blank" rel="noopener noreferrer">
+    <span class="cf-icon-cloud block md:hidden h-20 bg-center bg-no-repeat"></span>
+    <span class="cf-icon-ok w-12 h-12 absolute left-1/2 md:left-auto md:right-0 md:top-0 -ml-6 -bottom-4"></span>
+    </a>
+  </div>
+  <span class="md:block w-full truncate">Hong Kong</span>
+  <h3 class="md:inline-block mt-3 md:mt-0 text-2xl text-gray-600 font-light leading-1.3">
+  <a href="https://www.cloudflare.com/5xx-error-landing?utm_source=errorcode_502&utm_campaign=pqnzzivfahgagitbywhg.supabase.co" target="_blank" rel="noopener noreferrer">
+    Cloudflare
+  </a>
+  </h3>
+  
+  <span class="leading-1.3 text-2xl text-green-success">Working</span>
+  
+</div>
+                    <div id="cf-host-status" class="cf-error-source relative w-1/3 md:w-full py-15 md:p-0 md:py-8 md:text-left md:border-solid md:border-0 md:border-b md:border-gray-400 overflow-hidden float-left md:float-none text-center">
+  <div class="relative mb-10 md:m-0">
+    
+    <span class="cf-icon-server block md:hidden h-20 bg-center bg-no-repeat"></span>
+    <span class="cf-icon-error w-12 h-12 absolute left-1/2 md:left-auto md:right-0 md:top-0 -ml-6 -bottom-4"></span>
+    
+  </div>
+  <span class="md:block w-full truncate">pqnzzivfahgagitbywhg.supabase.co</span>
+  <h3 class="md:inline-block mt-3 md:mt-0 text-2xl text-gray-600 font-light leading-1.3">
+  
+    Host
+  
+  </h3>
+  
+  <span class="leading-1.3 text-2xl text-red-error">Error</span>
+  
+</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-240 lg:w-full mx-auto mb-8 lg:px-8">
+            <div class="clearfix">
+                <div class="w-1/2 md:w-full float-left pr-6 md:pb-10 md:pr-0 leading-relaxed">
+                    <h2 class="text-3xl font-normal leading-1.3 mb-4">What happened?</h2>
+                    <p>The web server reported a bad gateway error.</p>
+                </div>
+                <div class="w-1/2 md:w-full float-left leading-relaxed">
+                    <h2 class="text-3xl font-normal leading-1.3 mb-4">What can I do?</h2>
+                    <p class="mb-6">Please try again in a few minutes.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="cf-error-footer cf-wrapper w-240 lg:w-full py-10 sm:py-4 sm:px-8 mx-auto text-center sm:text-left border-solid border-0 border-t border-gray-300">
+    <p class="text-13">
+      <span class="cf-footer-item sm:block sm:mb-1">Cloudflare Ray ID: <strong class="font-semibold">9e91da6848b5850b</strong></span>
+      <span class="cf-footer-separator sm:hidden">&bull;</span>
+      <span id="cf-footer-item-ip" class="cf-footer-item hidden sm:block sm:mb-1">
+        Your IP:
+        <button type="button" id="cf-footer-ip-reveal" class="cf-footer-ip-reveal-btn">Click to reveal</button>
+        <span class="hidden" id="cf-footer-ip">112.202.123.239</span>
+        <span class="cf-footer-separator sm:hidden">&bull;</span>
+      </span>
+      <span class="cf-footer-item sm:block sm:mb-1"><span>Performance &amp; security by</span> <a rel="noopener noreferrer" href="https://www.cloudflare.com/5xx-error-landing?utm_source=errorcode_502&#38;utm_campaign=pqnzzivfahgagitbywhg.supabase.co" id="brand_link" target="_blank">Cloudflare</a></span>
+      
+    </p>
+    <script>(function(){function d(){var b=a.getElementById("cf-footer-item-ip"),c=a.getElementById("cf-footer-ip-reveal");b&&"classList"in b&&(b.classList.remove("hidden"),c.addEventListener("click",function(){c.classList.add("hidden");a.getElementById("cf-footer-ip").classList.remove("hidden")}))}var a=document;document.addEventListener&&a.addEventListener("DOMContentLoaded",d)})();</script>
+  </div><!-- /.error-footer -->
+
+    </div>
+</div>
+</body>
+</html>
+[2026-04-08T14:10:56.857Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:11:56.862Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:12:56.864Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:13:56.865Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:14:56.869Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:15:56.870Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:16:56.881Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:17:56.888Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:18:56.921Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:19:08.533Z] [sync.cycle] Hybrid sync cycle started via immediate:consumers-create.
+[2026-04-08T14:19:56.928Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:20:42.144Z] [sync.cycle] Hybrid sync cycle started via immediate:consumers-update.
+[2026-04-08T14:20:56.930Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:21:56.944Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:22:56.952Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:23:56.966Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:24:56.967Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:25:56.979Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:26:56.988Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:27:56.997Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:28:57.002Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:29:57.004Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:30:57.012Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:31:57.016Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:32:57.028Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:33:01.611Z] [consumers.create] duplicate key value violates unique constraint "accounts_username_key" | POST /api/consumers | params={} | query={} | body={"Username":"g","Password":"g","First_Name":"g","Middle_Name":"g","Last_Name":"g","Address":"Purok 1, San Lorenzo Ruiz, 4610","Purok":"Purok 1","Barangay":"","Municipality":"San Lorenzo Ruiz","Zip_Code":"4610","Zone_ID":null,"Classification_ID":null,"Account_Number":"","Meter_Number":"g","Meter_Status":"Active","Contact_Number":"","Connection_Date":"2026-04-08","Status":"Pending"}
+[2026-04-08T14:33:57.033Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:34:57.041Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:35:57.058Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:36:57.073Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:37:57.081Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:38:57.088Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:40:56.346Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:41:56.348Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:43:04.709Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:44:43.579Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:45:43.586Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:46:43.599Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:49:24.230Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:50:24.236Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:50:28.858Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:50:30.007Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:51:24.241Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:51:28.079Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:51:29.111Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:52:24.249Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:52:29.339Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:52:30.407Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:53:24.258Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:53:28.432Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:53:29.530Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:53:42.381Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-reject-user.
+[2026-04-08T14:53:47.556Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:54:09.048Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:54:24.260Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:54:26.036Z] [consumers.create] duplicate key value violates unique constraint "accounts_username_key" | POST /api/consumers | params={} | query={} | body={"Username":"r","Password":"r","First_Name":"qwr","Middle_Name":"qwr","Last_Name":"qr","Address":"Purok 2, Dagotdotan, San Lorenzo Ruiz, 4610","Purok":"Purok 2","Barangay":"Dagotdotan","Municipality":"San Lorenzo Ruiz","Zip_Code":"4610","Zone_ID":null,"Classification_ID":1,"Account_Number":"","Meter_Number":"","Meter_Status":"Active","Contact_Number":"qwrqwrq","Connection_Date":"2026-04-08","Status":"Pending"}
+[2026-04-08T14:54:33.976Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:54:35.125Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:55:24.275Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:55:28.561Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:55:29.753Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:56:07.686Z] [consumers.create] duplicate key value violates unique constraint "accounts_username_key" | POST /api/consumers | params={} | query={} | body={"Username":"r","Password":"r","First_Name":"","Middle_Name":"","Last_Name":"","Address":"San Lorenzo Ruiz, 4610","Purok":"","Barangay":"","Municipality":"San Lorenzo Ruiz","Zip_Code":"4610","Zone_ID":null,"Classification_ID":null,"Account_Number":"","Meter_Number":"","Meter_Status":"Active","Contact_Number":"","Connection_Date":"2026-04-08","Status":"Pending"}
+[2026-04-08T14:56:24.283Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:56:29.157Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:56:30.233Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:56:35.304Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-reject-user.
+[2026-04-08T14:56:39.215Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:56:40.252Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:57:24.297Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:57:29.175Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:57:30.358Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:58:24.311Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:58:28.593Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:58:29.675Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T14:59:24.321Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T14:59:28.588Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T14:59:29.750Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T15:00:24.333Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:00:29.713Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T15:00:30.921Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T15:01:24.338Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:01:28.859Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T15:01:30.024Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T15:02:24.348Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:02:29.678Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T15:02:30.822Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T15:02:59.208Z] [supabase.sync.consumer] null value in column "account_number" of relation "consumer" violates not-null constraint
+[2026-04-08T15:03:00.434Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T15:04:00.908Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:05:00.908Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:06:00.910Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:07:00.914Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:07:54.555Z] [sync.cycle] Hybrid sync cycle started via immediate:consumers-create.
+[2026-04-08T15:07:59.084Z] [supabase.sync.consumer] null value in column "classification_id" of relation "consumer" violates not-null constraint
+[2026-04-08T15:08:00.148Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T15:08:00.924Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:08:04.886Z] [supabase.sync.consumer] null value in column "classification_id" of relation "consumer" violates not-null constraint
+[2026-04-08T15:08:05.936Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T15:09:00.935Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-08T15:09:05.609Z] [supabase.sync.consumer] null value in column "classification_id" of relation "consumer" violates not-null constraint
+[2026-04-08T15:09:06.685Z] [supabase.sync.connection_ticket] insert or update on table "connection_ticket" violates foreign key constraint "fk_connection_ticket_consumer"
+[2026-04-08T15:09:52.666Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-reject-user.
+[2026-04-08T15:10:00.936Z] [sync.cycle] Hybrid sync cycle started via scheduler.

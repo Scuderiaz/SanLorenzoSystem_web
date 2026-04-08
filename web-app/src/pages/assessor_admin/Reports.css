@@ -25,13 +25,25 @@
 
 .control-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   flex: 1;
+  align-items: flex-end;
+}
+
+.control-group .form-input-group,
+.control-group .form-select-group {
+  min-width: 180px;
+  flex: 1 1 180px;
+  margin-bottom: 0;
 }
 
 .report-actions {
   display: flex;
   gap: 12px;
+  justify-content: flex-end;
+  align-items: flex-end;
+  flex-shrink: 0;
 }
 
 .btn {
@@ -116,5 +128,26 @@
   .report-controls {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .report-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .report-controls {
+    padding: 20px;
+  }
+
+  .control-group {
+    gap: 12px;
+  }
+
+  .control-group .form-input-group,
+  .control-group .form-select-group,
+  .report-actions .btn {
+    width: 100%;
   }
 }

@@ -109,7 +109,7 @@ const UsersTab: React.FC = () => {
       });
       const result = await res.json();
       if (result.success) {
-        showToast('Application rejected successfully', 'success');
+        showToast('Application rejected and deleted successfully', 'success');
         loadUsers();
       } else {
         showToast(result.message || 'Failed to reject account', 'error');

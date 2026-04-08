@@ -106,3 +106,22 @@
     align-items: stretch;
   }
 }
+
+.form-section-title {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  margin-bottom: -4px;
+  padding-top: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1b1b63;
+  border-top: 1px solid #e2e8f0;
+}
+
+.form-grid > .form-section-title:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}

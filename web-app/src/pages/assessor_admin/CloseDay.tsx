@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
+import FormInput from '../../components/Common/FormInput';
 import { useToast } from '../../components/Common/ToastContainer';
+import { useAuth } from '../../context/AuthContext';
 import './CloseDay.css';
 
 interface Transaction {
@@ -15,11 +17,12 @@ interface Transaction {
 }
 
 const CloseDay: React.FC = () => {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [currentDate, setCurrentDate] = useState('');
-  const [systemTotal, setSystemTotal] = useState(38560.0);
-  const [cashOnHand, setCashOnHand] = useState(38560.0);
-  const [discrepancy, setDiscrepancy] = useState(0.0);
+  const [systemTotal, setSystemTotal] = useState(0);
+  const [cashOnHand, setCashOnHand] = useState(0);
+  const [discrepancy, setDiscrepancy] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -28,59 +31,40 @@ const CloseDay: React.FC = () => {
   const loadTransactions = useCallback(async () => {
     setLoading(true);
     try {
-      const mockTransactions: Transaction[] = [
-        {
-          orNumber: 'OR-2026-001',
-          time: '09:15 AM',
-          cashier: 'Cashier 1',
-          accountNumber: 'ACC-001',
-          consumer: 'Juan Dela Cruz',
-          amount: 850.0,
-          notes: 'March 2026 billing',
-        },
-        {
-          orNumber: 'OR-2026-002',
-          time: '10:30 AM',
-          cashier: 'Cashier 1',
-          accountNumber: 'ACC-002',
-          consumer: 'Maria Santos',
-          amount: 920.0,
-          notes: 'March 2026 billing',
-        },
-      ];
-      setTransactions(mockTransactions);
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const response = await fetch(`${API_URL}/admin/close-day-summary?date=${todayIso}`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to load close-day summary.');
+      }
+
+      setCurrentDate(new Date(result.data?.date || todayIso).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }));
+      setSystemTotal(Number(result.data?.systemTotal || 0));
+      setCashOnHand(Number(result.data?.cashOnHand || 0));
+      setTransactions(result.data?.transactions || []);
     } catch (error) {
       console.error('Error loading transactions:', error);
       showToast('Failed to load transactions', 'error');
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [API_URL, showToast]);
 
   useEffect(() => {
-    const today = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    setCurrentDate(today);
     loadTransactions();
   }, [loadTransactions]);
 
   useEffect(() => {
-    const diff = systemTotal - cashOnHand;
-    setDiscrepancy(diff);
+    setDiscrepancy(Number((systemTotal - cashOnHand).toFixed(2)));
   }, [systemTotal, cashOnHand]);
 
   const handleLockDay = async () => {
     if (discrepancy !== 0) {
-      if (
-        !window.confirm(
-          `There is a discrepancy of ₱${Math.abs(discrepancy || 0).toFixed(
-            2
-          )}. Are you sure you want to lock the day?`
-        )
-      ) {
+      if (!window.confirm(`There is a discrepancy of PHP ${Math.abs(discrepancy || 0).toFixed(2)}. Are you sure you want to lock the day?`)) {
         return;
       }
     }
@@ -91,9 +75,22 @@ const CloseDay: React.FC = () => {
 
     try {
       showToast('Locking day...', 'info');
-      setTimeout(() => {
-        showToast('Day locked successfully', 'success');
-      }, 1500);
+      const response = await fetch(`${API_URL}/admin/close-day`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: new Date().toISOString().slice(0, 10),
+          cashOnHand,
+          systemTotal,
+          userId: Number(user?.id || 1),
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to lock day.');
+      }
+      showToast('Day locked successfully', 'success');
+      loadTransactions();
     } catch (error) {
       console.error('Error locking day:', error);
       showToast('Failed to lock day', 'error');
@@ -120,34 +117,44 @@ const CloseDay: React.FC = () => {
           </div>
           <h2 className="closeday-title">Finalize Daily Collections</h2>
           <p className="closeday-desc">
-            You are about to close the financial records for <strong>{currentDate}</strong>. 
-            Ensure all physical cash on hand matches the system totals before locking. 
-            Once locked, transactions for this period can no longer be modified.
+            You are about to close the financial records for <strong>{currentDate}</strong>.
+            Ensure all physical cash on hand matches the system totals before locking.
+            Once locked, a closing audit entry will be recorded.
           </p>
 
           <div className="summary-stats">
             <div className="stat-box">
               <span className="stat-label">System Ledger</span>
-              <span className="stat-value">₱{systemTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              <span className="stat-value">PHP {systemTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="stat-box">
               <span className="stat-label">Reported Cash</span>
-              <span className="stat-value">₱{cashOnHand.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              <span className="stat-value">PHP {cashOnHand.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="stat-box" style={{ borderLeft: `4px solid ${getDiscrepancyColor()}` }}>
               <span className="stat-label">Variance {getDiscrepancyStatus()}</span>
               <span className="stat-value" style={{ color: getDiscrepancyColor() }}>
-                ₱{Math.abs(discrepancy).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                PHP {Math.abs(discrepancy).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
+          </div>
+
+          <div style={{ maxWidth: '320px', margin: '0 auto 24px' }}>
+            <FormInput
+              label="Reported Cash on Hand"
+              type="number"
+              value={String(cashOnHand)}
+              onChange={(value) => setCashOnHand(Number(value || 0))}
+              icon="fa-money-bill-wave"
+            />
           </div>
 
           <div className="closeday-actions">
             <button className="btn btn-secondary" onClick={loadTransactions}>
               <i className="fas fa-list-ul"></i> Review Audit Trail
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleLockDay}
               disabled={loading}
             >
@@ -156,7 +163,6 @@ const CloseDay: React.FC = () => {
           </div>
         </div>
 
-        {/* Audit Trail Table Section */}
         <div className="card" style={{ marginTop: '20px' }}>
           <div className="card-header">
             <h2 className="card-title">Detailed Transaction Audit Trail</h2>
@@ -168,7 +174,7 @@ const CloseDay: React.FC = () => {
                 { key: 'time', label: 'Timestamp' },
                 { key: 'accountNumber', label: 'Account' },
                 { key: 'consumer', label: 'Consumer' },
-                { key: 'amount', label: 'Amount (₱)', render: (v: number) => `₱${v.toFixed(2)}` },
+                { key: 'amount', label: 'Amount (PHP)', render: (v: number) => `PHP ${v.toFixed(2)}` },
                 { key: 'notes', label: 'Reference' }
               ]}
               data={transactions}

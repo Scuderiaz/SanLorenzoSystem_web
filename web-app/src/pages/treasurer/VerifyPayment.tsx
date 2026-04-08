@@ -11,6 +11,7 @@ const toAmount = (value: unknown): number => {
 };
 
 interface PendingPayment {
+  Payment_ID: number;
   OR_No: string;
   Account_Number: string;
   Consumer_Name: string;
@@ -41,6 +42,7 @@ const VerifyPayment: React.FC = () => {
       
       // Mapping for VerifyPayment interface
       const mapped = allPayments.map((p: any) => ({
+        Payment_ID: p.Payment_ID,
         OR_No: p.Reference_No || p.Payment_ID.toString(),
         Account_Number: p.Account_Number || 'N/A',
         Consumer_Name: p.Consumer_Name,
@@ -69,11 +71,20 @@ const VerifyPayment: React.FC = () => {
     if (!window.confirm(`Verify payment ${payment.OR_No}?`)) return;
 
     try {
+      const response = await fetch(`${API_URL}/payments/${payment.Payment_ID}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Validated' }),
+      });
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to verify payment.');
+      }
       showToast('Payment verified successfully', 'success');
       loadPayments();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error verifying payment:', error);
-      showToast('Failed to verify payment', 'error');
+      showToast(error.message || 'Failed to verify payment', 'error');
     }
   };
 
@@ -81,11 +92,20 @@ const VerifyPayment: React.FC = () => {
     if (!window.confirm(`Reject payment ${payment.OR_No}?`)) return;
 
     try {
+      const response = await fetch(`${API_URL}/payments/${payment.Payment_ID}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Rejected' }),
+      });
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to reject payment.');
+      }
       showToast('Payment rejected', 'info');
       loadPayments();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error rejecting payment:', error);
-      showToast('Failed to reject payment', 'error');
+      showToast(error.message || 'Failed to reject payment', 'error');
     }
   };
 

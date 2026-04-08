@@ -16,6 +16,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 20px;
   background: #ffffff;
   padding: 20px 24px;
@@ -26,8 +27,9 @@
 
 .search-box {
   position: relative;
-  flex: 1;
-  max-width: 400px;
+  flex: 1 1 420px;
+  max-width: none;
+  min-width: 260px;
 }
 
 .search-box i {
@@ -59,6 +61,8 @@
 .filters {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .filters select {
@@ -70,6 +74,7 @@
   color: #475569;
   background-color: #f8fafc;
   cursor: pointer;
+  min-width: 190px;
 }
 
 .filters select:focus {
@@ -81,6 +86,33 @@
 .main-actions {
   display: flex;
   gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.applications-toolbar {
+  justify-content: flex-start;
+}
+
+.applications-toolbar .search-box {
+  flex: 1 1 360px;
+  max-width: 520px;
+}
+
+.applications-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.applications-toolbar .filters select {
+  min-width: 170px;
+}
+
+.applications-toolbar .main-actions {
+  margin-left: 0;
 }
 
 .btn {
@@ -238,6 +270,31 @@
     flex-direction: column;
     align-items: stretch;
   }
+
+  .applications-toolbar .search-box {
+    max-width: none;
+  }
+
+  .applications-toolbar-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .filters,
+  .main-actions {
+    width: 100%;
+  }
+
+  .main-actions {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  .filters select {
+    width: 100%;
+  }
+
   .search-box {
     max-width: none;
   }

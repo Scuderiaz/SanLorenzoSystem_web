@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
@@ -10,7 +10,76 @@ const toAmount = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-interface RecordEntry {
+const formatDate = (value?: string | null) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-PH');
+};
+
+const formatZoneLabel = (zoneName?: string | null, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
+interface ConsumerRecord {
+  Consumer_ID: number;
+  First_Name: string;
+  Middle_Name?: string;
+  Last_Name: string;
+  Address: string;
+  Account_Number: string;
+  Meter_Number?: string | null;
+  Connection_Date?: string | null;
+  Zone_ID?: number | null;
+  Zone_Name?: string | null;
+  Classification_Name?: string | null;
+  Status?: string;
+}
+
+interface BillRecord {
+  Bill_ID: number;
+  Consumer_ID: number;
+  Billing_Month?: string | null;
+  Bill_Date?: string | null;
+  Due_Date?: string | null;
+  Total_Amount?: number;
+  Water_Charge?: number;
+  Basic_Charge?: number;
+  Penalty?: number;
+  Penalties?: number;
+  Meter_Fee?: number;
+  Environmental_Fee?: number;
+  Current_Reading?: number;
+  Consumption?: number;
+  Status?: string;
+}
+
+interface PaymentRecord {
+  Payment_ID: number;
+  Consumer_ID: number;
+  Bill_ID?: number | null;
+  Amount_Paid?: number;
+  Payment_Date?: string | null;
+  Payment_Method?: string | null;
+  OR_Number?: string | null;
+  Reference_No?: string | null;
+  Status?: string;
+}
+
+interface RegistryRow {
+  Consumer_ID: number;
+  Consumer_Name: string;
+  Account_Number: string;
+  Address: string;
+  Zone: string;
+  Classification: string;
+  Last_Bill: number;
+  Outstanding_Balance: number;
+  Last_Payment: string;
+  Status: string;
+  Meter_Number: string | null;
+  Connection_Date: string | null;
+}
+
+interface LedgerRecord {
   Month_Year: string;
   Reading: number;
   Consumption: number;
@@ -23,106 +92,198 @@ interface RecordEntry {
   Balance: number;
 }
 
-interface ConsumerProfile {
-  Name: string;
-  Address: string;
-  Account_No: string;
-  Meter_No: string;
-  Connection_Date: string;
-  Zone_Name?: string;
-}
-
 const TreasurerLedger: React.FC = () => {
   const { showToast } = useToast();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showLedgerModal, setShowLedgerModal] = useState(false);
-  const [consumer, setConsumer] = useState<ConsumerProfile | null>(null);
-  const [records, setRecords] = useState<RecordEntry[]>([]);
+  const [consumers, setConsumers] = useState<ConsumerRecord[]>([]);
+  const [bills, setBills] = useState<BillRecord[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [selectedConsumer, setSelectedConsumer] = useState<RegistryRow | null>(null);
 
-  const handleSearch = async (termToSearch = searchTerm) => {
-    if (!termToSearch.trim()) {
-      setRecords([]);
-      setConsumer(null);
-      return;
-    }
+  const loadRegistry = useCallback(async () => {
     try {
       setLoading(true);
-      // We search for a single consumer first, then get their dashboard
-      const dashboardRes = await fetch(`${API_URL}/consumer-dashboard/${termToSearch}`);
-      const result = await dashboardRes.json();
-      
-      if (result.success) {
-        const { consumer: c, bills, payments } = result;
-        
-        setConsumer({
-          Name: `${c.first_name} ${c.last_name}`,
-          Address: c.address,
-          Account_No: c.account_number,
-          Meter_No: c.meter_number || 'N/A',
-          Connection_Date: c.connection_date ? new Date(c.connection_date).toLocaleDateString() : 'N/A',
-          Zone_Name: c.zone_id?.toString()
-        });
+      const [consumersResponse, billsResponse, paymentsResponse] = await Promise.all([
+        fetch(`${API_URL}/consumers`),
+        fetch(`${API_URL}/bills`),
+        fetch(`${API_URL}/payments`),
+      ]);
 
-        // Combine bills and payments for the ledger
-        const combinedRecords: RecordEntry[] = bills.map((b: any) => {
-          const payment = payments.find((p: any) => p.bill_id === b.Bill_ID);
-          return {
-            Month_Year: b.Billing_Month || new Date(b.Bill_Date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase(),
-            Reading: 0, // Placeholder
-            Consumption: 0, // Placeholder
-            Water_Bill: b.Total_Amount,
-            Penalty: 0,
-            Meter_Fee: 0,
-            Amount_Paid: payment ? payment.Amount_Paid : 0,
-            Date_Paid: payment ? new Date(payment.Payment_Date).toLocaleDateString() : 'N/A',
-            OR_No: payment ? (payment.Reference_No || payment.Payment_ID.toString()) : '-',
-            Balance: b.Status === 'Paid' ? 0 : b.Total_Amount
-          };
-        });
+      const [consumersResult, billsResult, paymentsResult] = await Promise.all([
+        consumersResponse.json(),
+        billsResponse.json(),
+        paymentsResponse.json(),
+      ]);
 
-        setRecords(combinedRecords);
-      } else {
-        showToast('Account record not found in registry.', 'warning');
-      }
+      setConsumers(Array.isArray(consumersResult) ? consumersResult : []);
+      setBills(Array.isArray(billsResult) ? billsResult : (billsResult.data || []));
+      setPayments(Array.isArray(paymentsResult) ? paymentsResult : (paymentsResult.data || []));
     } catch (error) {
-      console.error('Error loading ledger:', error);
-      showToast('Failed to retrieve financial history.', 'error');
+      console.error('Error loading treasurer registry:', error);
+      showToast('Failed to load treasurer registry.', 'error');
     } finally {
       setLoading(false);
     }
-  };
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  }, [API_URL, showToast]);
 
   useEffect(() => {
-    if (searchTerm.length >= 2) {
-      const mockMatches = ['02-11-149-5 - NATURA VERDE FARM', 'JUAN DELA CRUZ'].filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
-      setSuggestions(mockMatches);
-      setShowSuggestions(true);
-    } else {
-      setShowSuggestions(false);
-    }
-  }, [searchTerm]);
+    loadRegistry();
+  }, [loadRegistry]);
 
-  const columns = [
-    { key: 'Month_Year', label: 'MONTH & YEAR' },
-    { key: 'Reading', label: 'READING' },
-    { key: 'Consumption', label: 'USAGE (m³)' },
-    { key: 'Water_Bill', label: 'BILL', render: (v: number) => `₱${toAmount(v).toFixed(2)}` },
-    { key: 'Penalty', label: 'PENALTY', render: (v: number) => `₱${toAmount(v).toFixed(2)}` },
-    { key: 'OR_No', label: 'OR NO.', render: (v: string) => <span className="or-badge">{v}</span> },
-    { key: 'Date_Paid', label: 'DATE PAID' },
-    { key: 'Amount_Paid', label: 'PAID', render: (v: number) => <strong style={{ color: '#10b981' }}>₱${toAmount(v).toFixed(2)}</strong> },
-    { key: 'Balance', label: 'BALANCE', render: (v: number) => <span className="balance-due">₱${toAmount(v).toLocaleString()}</span> }
-  ];
+  const registryRows = useMemo<RegistryRow[]>(() => {
+    const billsByConsumer = new Map<number, BillRecord[]>();
+    const paymentsByConsumer = new Map<number, PaymentRecord[]>();
+
+    bills.forEach((bill) => {
+      const current = billsByConsumer.get(bill.Consumer_ID) || [];
+      current.push(bill);
+      billsByConsumer.set(bill.Consumer_ID, current);
+    });
+
+    payments.forEach((payment) => {
+      const current = paymentsByConsumer.get(payment.Consumer_ID) || [];
+      current.push(payment);
+      paymentsByConsumer.set(payment.Consumer_ID, current);
+    });
+
+    return consumers.map((consumer) => {
+      const consumerBills = (billsByConsumer.get(consumer.Consumer_ID) || []).slice().sort((a, b) => {
+        const aTime = new Date(a.Bill_Date || a.Due_Date || 0).getTime();
+        const bTime = new Date(b.Bill_Date || b.Due_Date || 0).getTime();
+        return bTime - aTime;
+      });
+      const consumerPayments = (paymentsByConsumer.get(consumer.Consumer_ID) || []).slice().sort((a, b) => {
+        const aTime = new Date(a.Payment_Date || 0).getTime();
+        const bTime = new Date(b.Payment_Date || 0).getTime();
+        return bTime - aTime;
+      });
+
+      const lastBill = consumerBills[0];
+      const lastPayment = consumerPayments[0];
+      const outstandingBalance = consumerBills
+        .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
+        .reduce((sum, bill) => sum + toAmount(bill.Total_Amount), 0);
+
+      return {
+        Consumer_ID: consumer.Consumer_ID,
+        Consumer_Name: [consumer.First_Name, consumer.Middle_Name, consumer.Last_Name].filter(Boolean).join(' '),
+        Account_Number: consumer.Account_Number,
+        Address: consumer.Address,
+        Zone: formatZoneLabel(consumer.Zone_Name, consumer.Zone_ID),
+        Classification: consumer.Classification_Name || 'Unclassified',
+        Last_Bill: toAmount(lastBill?.Total_Amount),
+        Outstanding_Balance: outstandingBalance,
+        Last_Payment: lastPayment?.Payment_Date || '',
+        Status: consumer.Status || 'Unknown',
+        Meter_Number: consumer.Meter_Number || null,
+        Connection_Date: consumer.Connection_Date || null,
+      };
+    });
+  }, [bills, consumers, payments]);
+
+  const filteredRegistryRows = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return registryRows;
+
+    return registryRows.filter((row) =>
+      [row.Account_Number, row.Consumer_Name, row.Address, row.Zone, row.Classification]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [registryRows, searchTerm]);
+
+  const selectedLedgerRecords = useMemo<LedgerRecord[]>(() => {
+    if (!selectedConsumer) return [];
+
+    const paymentsByBillId = new Map<number, PaymentRecord[]>();
+    payments
+      .filter((payment) => payment.Consumer_ID === selectedConsumer.Consumer_ID)
+      .forEach((payment) => {
+        const billId = Number(payment.Bill_ID || 0);
+        if (!paymentsByBillId.has(billId)) {
+          paymentsByBillId.set(billId, []);
+        }
+        paymentsByBillId.get(billId)?.push(payment);
+      });
+
+    return bills
+      .filter((bill) => bill.Consumer_ID === selectedConsumer.Consumer_ID)
+      .slice()
+      .sort((a, b) => new Date(b.Bill_Date || b.Due_Date || 0).getTime() - new Date(a.Bill_Date || a.Due_Date || 0).getTime())
+      .map((bill) => {
+        const billPayments = (paymentsByBillId.get(bill.Bill_ID) || []).slice().sort((a, b) =>
+          new Date(b.Payment_Date || 0).getTime() - new Date(a.Payment_Date || 0).getTime()
+        );
+        const totalPaid = billPayments.reduce((sum, payment) => sum + toAmount(payment.Amount_Paid), 0);
+        const latestPayment = billPayments[0];
+        const totalBill = toAmount(bill.Total_Amount);
+
+        return {
+          Month_Year: bill.Billing_Month || formatDate(bill.Bill_Date),
+          Reading: toAmount(bill.Current_Reading),
+          Consumption: toAmount(bill.Consumption),
+          Water_Bill: toAmount(bill.Water_Charge ?? bill.Basic_Charge ?? bill.Total_Amount),
+          Penalty: toAmount(bill.Penalty ?? bill.Penalties),
+          Meter_Fee: toAmount(bill.Meter_Fee ?? bill.Environmental_Fee),
+          Amount_Paid: totalPaid,
+          Date_Paid: latestPayment?.Payment_Date ? formatDate(latestPayment.Payment_Date) : 'N/A',
+          OR_No: latestPayment?.OR_Number || latestPayment?.Reference_No || '-',
+          Balance: Math.max(0, totalBill - totalPaid),
+        };
+      });
+  }, [bills, payments, selectedConsumer]);
+
+  const columns = useMemo(() => [
+    { key: 'Account_Number', label: 'ACCOUNT NO.', sortable: true },
+    { key: 'Consumer_Name', label: 'CONSUMER NAME', sortable: true },
+    { key: 'Zone', label: 'ZONE', sortable: true },
+    { key: 'Classification', label: 'TYPE', sortable: true },
+    {
+      key: 'Last_Bill',
+      label: 'LATEST BILL',
+      sortable: true,
+      render: (value: number) => `P${toAmount(value).toFixed(2)}`,
+    },
+    {
+      key: 'Outstanding_Balance',
+      label: 'OUTSTANDING',
+      sortable: true,
+      render: (value: number) => (
+        <span className={toAmount(value) > 0 ? 'balance-due' : 'balance-paid'}>
+          P{toAmount(value).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      key: 'Last_Payment',
+      label: 'LAST PAYMENT',
+      sortable: true,
+      render: (value: string) => formatDate(value),
+    },
+    {
+      key: 'actions',
+      label: 'LEDGER',
+      render: (_: unknown, row: RegistryRow) => (
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => {
+            setSelectedConsumer(row);
+            setShowLedgerModal(true);
+          }}
+        >
+          <i className="fas fa-book"></i> View Record
+        </button>
+      ),
+    },
+  ], []);
 
   return (
     <MainLayout title="Financial Registry: Records of Payment">
       <div className="treasurer-ledger-page">
-        {/* Registry Search & Control Hub */}
         <div className="registry-control-hub card shadow-sm border-0 mb-4" style={{ borderRadius: '24px' }}>
           <div className="card-body p-4">
             <div className="hub-layout">
@@ -134,115 +295,81 @@ const TreasurerLedger: React.FC = () => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Search registry by Account No, Consumer Name, or Meter Serial..."
+                    placeholder="Filter registry by Account No., Consumer Name, Zone, or Type..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    onFocus={() => searchTerm.length >= 2 && setShowSuggestions(true)}
                   />
-                  
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div className="search-suggestions no-print">
-                      {suggestions.map((suggestion, index) => (
-                        <div 
-                          key={index}
-                          className="suggestion-item"
-                          onClick={() => {
-                            setSearchTerm(suggestion.split(' - ')[0]);
-                            handleSearch(suggestion.split(' - ')[0]);
-                          }}
-                        >
-                          <i className="fas fa-user-circle"></i>
-                          {suggestion}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <button className="btn btn-primary" onClick={() => handleSearch()} style={{ minWidth: '150px', borderRadius: '0 12px 12px 0' }}>
-                    SEARCH
+                  <button className="btn btn-primary registry-submit-btn" style={{ minWidth: '150px' }}>
+                    REGISTRY
                   </button>
                 </div>
               </div>
 
               <div className="hub-filters">
-                <button className="btn-sync-registry" onClick={() => handleSearch()} title="Sync Records">
+                <button className="btn-sync-registry" onClick={loadRegistry} title="Refresh Records">
                   <i className="fas fa-sync-alt"></i>
                 </button>
               </div>
             </div>
 
-            {consumer && (
-              <div className="profile-dashboard mt-4">
-                <div className="profile-header-actions mb-4 d-flex justify-content-between align-items-center">
-                  <div className="profile-item">
-                    <span className="label">CONSUMER NAME</span>
-                    <span className="name">{consumer.Name}</span>
-                  </div>
-                  <button className="btn btn-primary" onClick={() => setShowLedgerModal(true)} style={{ borderRadius: '12px', padding: '12px 24px' }}>
-                    <i className="fas fa-file-contract mr-2"></i> View Official Ledger Record
-                  </button>
+            <div className="profile-dashboard mt-4">
+              <div className="registry-stats-grid">
+                <div className="registry-stat-card">
+                  <span className="label">Registry Coverage</span>
+                  <span className="name">{filteredRegistryRows.length}</span>
+                  <span className="value">Consumers in current view</span>
                 </div>
-                
-                <div className="profile-grid">
-                  <div className="profile-item small">
-                    <span className="label">ADDRESS</span>
-                    <span className="value">{consumer.Address}</span>
-                  </div>
-                  <div className="profile-item small">
-                    <span className="label">ACCT NO</span>
-                    <span className="value">{consumer.Account_No}</span>
-                  </div>
-                  <div className="profile-item small">
-                    <span className="label">METER NO</span>
-                    <span className="value">{consumer.Meter_No}</span>
-                  </div>
-                  <div className="profile-item small">
-                    <span className="label">CONNECTION DATE</span>
-                    <span className="value">{consumer.Connection_Date}</span>
-                  </div>
+                <div className="registry-stat-card">
+                  <span className="label">Total Outstanding</span>
+                  <span className="name">P{filteredRegistryRows.reduce((sum, row) => sum + toAmount(row.Outstanding_Balance), 0).toFixed(2)}</span>
+                  <span className="value">Running unpaid balance</span>
+                </div>
+                <div className="registry-stat-card">
+                  <span className="label">With Recorded Bill</span>
+                  <span className="name">{filteredRegistryRows.filter((row) => toAmount(row.Last_Bill) > 0).length}</span>
+                  <span className="value">Accounts with bill history</span>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Historical Archive Table */}
         <div className="card shadow-sm border-0" style={{ borderRadius: '24px' }}>
           <div className="card-header bg-white py-3">
-            <h2 className="card-title m-0 h5 font-weight-bold" style={{ color: '#1B1B63' }}>Historical Records of Payment Archive</h2>
+            <h2 className="card-title m-0 h5 font-weight-bold" style={{ color: '#1B1B63' }}>Financial Registry Overview</h2>
           </div>
           <div className="card-body p-0">
-            <DataTable columns={columns} data={records} loading={loading} emptyMessage="Execute a search to view payment history." />
+            <DataTable
+              columns={columns}
+              data={filteredRegistryRows}
+              loading={loading}
+              emptyMessage="No consumer financial records found."
+            />
           </div>
         </div>
 
-        {/* Official Portrait Ledger Modal */}
-        {showLedgerModal && consumer && (
-          <Modal isOpen={showLedgerModal} onClose={() => setShowLedgerModal(false)} title="Official Water Service Record" size="portrait">
+        {showLedgerModal && selectedConsumer && (
+          <Modal isOpen={showLedgerModal} onClose={() => setShowLedgerModal(false)} title="Official Water Service Record" size="portrait" closeOnOverlayClick={true}>
             <div className="paper-ledger-container">
               <div className="ledger-official-header">
                 <p>REPUBLIC OF THE PHILIPPINES</p>
                 <h3>SAN LORENZO WATER SYSTEM</h3>
-                <p>Guiguinto, Bulacan</p>
+                <p>San Lorenzo Ruiz, Camarines Norte</p>
                 <div style={{ marginTop: '10px', fontSize: '14px', fontWeight: 900, textDecoration: 'underline' }}>WATER SERVICE RECORD</div>
               </div>
 
               <div className="ledger-consumer-info">
                 <div className="info-row-layout">
-                  <div className="form-field"><span className="form-label">Acc. No.</span><div className="form-data underline">{consumer.Account_No}</div></div>
-                  <div className="form-field flex-narrow"><span className="form-label">Zone</span><div className="form-data underline">{consumer.Zone_Name || '02'}</div></div>
-                  <div className="form-field"><span className="form-label">Meter Serial No.</span><div className="form-data underline">{consumer.Meter_No}</div></div>
+                  <div className="form-field"><span className="form-label">Acc. No.</span><div className="form-data underline">{selectedConsumer.Account_Number}</div></div>
+                  <div className="form-field flex-narrow"><span className="form-label">Zone</span><div className="form-data underline">{selectedConsumer.Zone}</div></div>
+                  <div className="form-field"><span className="form-label">Meter Serial No.</span><div className="form-data underline">{selectedConsumer.Meter_Number || 'N/A'}</div></div>
                 </div>
                 <div className="info-row-layout">
-                  <div className="form-field flex-wide"><span className="form-label">Name</span><div className="form-data underline">{consumer.Name}</div></div>
-                  <div className="form-field flex-narrow"><span className="form-label">Size</span><div className="form-data underline">1/2"</div></div>
-                  <div className="form-field"><span className="form-label">Brand</span><div className="form-data underline">ELSTER</div></div>
+                  <div className="form-field flex-wide"><span className="form-label">Name</span><div className="form-data underline">{selectedConsumer.Consumer_Name}</div></div>
+                  <div className="form-field"><span className="form-label">Date Con.</span><div className="form-data underline">{formatDate(selectedConsumer.Connection_Date)}</div></div>
                 </div>
                 <div className="info-row-layout">
-                  <div className="form-field flex-wide"><span className="form-label">Address</span><div className="form-data underline">{consumer.Address}</div></div>
-                  <div className="form-field flex-narrow"><span className="form-label">Class</span><div className="form-data underline">RES</div></div>
-                  <div className="form-field"><span className="form-label">Date Con.</span><div className="form-data underline">{consumer.Connection_Date}</div></div>
+                  <div className="form-field flex-wide"><span className="form-label">Address</span><div className="form-data underline">{selectedConsumer.Address}</div></div>
                 </div>
               </div>
 
@@ -263,21 +390,26 @@ const TreasurerLedger: React.FC = () => {
                     <tr><th className="sub-th">PHP</th><th className="sub-th">cts.</th></tr>
                   </thead>
                   <tbody>
-                    <tr className="year-header-row"><td colSpan={10}>2024</td></tr>
-                    {records.map((t, idx) => (
-                      <tr key={idx}>
-                        <td className="text-right">{t.Reading}</td>
-                        <td className="text-center">{t.Consumption}</td>
-                        <td className="text-right">{t.Water_Bill.toFixed(2)}</td>
-                        <td className="text-right">{t.Penalty.toFixed(2)}</td>
-                        <td className="text-right">{t.Meter_Fee.toFixed(2)}</td>
-                        <td className="text-right font-bold">{t.Amount_Paid.toFixed(2)}</td>
-                        <td className="text-center">{t.Date_Paid}</td>
-                        <td className="text-center font-bold">{t.OR_No}</td>
-                        <td className="text-right">{Math.floor(t.Balance)}</td>
-                        <td className="text-right">{(t.Balance % 1).toFixed(2).split('.')[1]}</td>
+                    {selectedLedgerRecords.length === 0 ? (
+                      <tr>
+                        <td colSpan={10} className="text-center">No ledger entries available.</td>
                       </tr>
-                    ))}
+                    ) : (
+                      selectedLedgerRecords.map((record, idx) => (
+                        <tr key={`${record.Month_Year}-${idx}`}>
+                          <td className="text-right">{record.Reading}</td>
+                          <td className="text-center">{record.Consumption}</td>
+                          <td className="text-right">{record.Water_Bill.toFixed(2)}</td>
+                          <td className="text-right">{record.Penalty.toFixed(2)}</td>
+                          <td className="text-right">{record.Meter_Fee.toFixed(2)}</td>
+                          <td className="text-right font-bold">{record.Amount_Paid.toFixed(2)}</td>
+                          <td className="text-center">{record.Date_Paid}</td>
+                          <td className="text-center font-bold">{record.OR_No}</td>
+                          <td className="text-right">{Math.floor(record.Balance)}</td>
+                          <td className="text-right">{(record.Balance % 1).toFixed(2).split('.')[1]}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -295,5 +427,3 @@ const TreasurerLedger: React.FC = () => {
 };
 
 export default TreasurerLedger;
-
-

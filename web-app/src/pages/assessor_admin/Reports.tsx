@@ -23,17 +23,20 @@ interface MonthlyUnifiedReport {
   unpaidBalance: number;
 }
 
+const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
 const Reports: React.FC = () => {
   const { showToast } = useToast();
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
   const [zones, setZones] = useState<any[]>([]);
-  
+
   const [totalConsumers, setTotalConsumers] = useState('Loading...');
   const [totalBills, setTotalBills] = useState('Loading...');
   const [totalRevenue, setTotalRevenue] = useState('Loading...');
-  
+
   const [consumerReports, setConsumerReports] = useState<ConsumerReport[]>([]);
   const [monthlyReports, setMonthlyReports] = useState<MonthlyUnifiedReport[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +48,7 @@ const Reports: React.FC = () => {
       const response = await fetch(`${API_URL}/zones`);
       const result = await response.json();
       if (result.success) {
-        setZones(result.data);
+        setZones(result.data || []);
       }
     } catch (error) {
       console.error('Error loading zones:', error);
@@ -54,83 +57,96 @@ const Reports: React.FC = () => {
 
   const loadReportOverview = useCallback(async () => {
     try {
-      // In a real app, these would come from an API
-      // For now, aligning with March 2026 mock data
-      setTotalConsumers('150');
-      setTotalBills('145');
-      setTotalRevenue('₱125,000.00');
+      const params = new URLSearchParams();
+      if (fromDate) params.set('fromDate', fromDate);
+      if (toDate) params.set('toDate', toDate);
+      if (zoneFilter) params.set('zoneId', zoneFilter);
+
+      const response = await fetch(`${API_URL}/admin/reports/overview?${params.toString()}`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to load report overview.');
+      }
+
+      setTotalConsumers(String(result.data?.totalConsumers ?? 0));
+      setTotalBills(String(result.data?.totalBills ?? 0));
+      setTotalRevenue(`PHP ${Number(result.data?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
     } catch (error) {
       console.error('Error loading report overview:', error);
+      showToast('Failed to load report overview', 'error');
     }
-  }, []);
+  }, [API_URL, fromDate, toDate, zoneFilter, showToast]);
 
-  useEffect(() => {
-    loadZones();
-    loadReportOverview();
-    loadConsumerReport();
-    loadMonthlyReport();
-  }, [loadZones, loadReportOverview]);
-
-  const loadConsumerReport = async () => {
+  const loadConsumerReport = useCallback(async () => {
     setLoading(true);
     try {
-      const mockData: ConsumerReport[] = [
-        { zone: 'Zone 1', totalConsumers: 45, active: 42, inactive: 3, percentage: '93.3%' },
-        { zone: 'Zone 2', totalConsumers: 38, active: 35, inactive: 3, percentage: '92.1%' },
-        { zone: 'Zone 3', totalConsumers: 35, active: 33, inactive: 2, percentage: '94.3%' },
-        { zone: 'Zone 4', totalConsumers: 32, active: 30, inactive: 2, percentage: '93.8%' },
-      ];
-      setConsumerReports(mockData);
+      const params = new URLSearchParams();
+      if (zoneFilter) params.set('zoneId', zoneFilter);
+
+      const response = await fetch(`${API_URL}/admin/reports/consumers?${params.toString()}`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to load consumer report.');
+      }
+
+      setConsumerReports(result.data || []);
     } catch (error) {
       console.error('Error loading consumer report:', error);
       showToast('Failed to load consumer report', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, showToast, zoneFilter]);
 
-  const loadMonthlyReport = async () => {
+  const loadMonthlyReport = useCallback(async () => {
     try {
-      const mockData: MonthlyUnifiedReport[] = [
-        {
-          period: 'March 2026',
-          billsGenerated: 145,
-          totalInvoiced: 125000,
-          totalCollected: 103500,
-          collectionRate: '82.8%',
-          unpaidBalance: 21500,
-        },
-        {
-          period: 'February 2026',
-          billsGenerated: 142,
-          totalInvoiced: 118000,
-          totalCollected: 112218,
-          collectionRate: '95.1%',
-          unpaidBalance: 5782,
-        },
-      ];
-      setMonthlyReports(mockData);
+      const params = new URLSearchParams();
+      if (fromDate) params.set('fromDate', fromDate);
+      if (toDate) params.set('toDate', toDate);
+      if (zoneFilter) params.set('zoneId', zoneFilter);
+
+      const response = await fetch(`${API_URL}/admin/reports/monthly?${params.toString()}`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to load monthly report.');
+      }
+
+      setMonthlyReports(result.data || []);
     } catch (error) {
       console.error('Error loading monthly report:', error);
       showToast('Failed to load monthly report', 'error');
     }
-  };
+  }, [API_URL, fromDate, toDate, zoneFilter, showToast]);
+
+  useEffect(() => {
+    loadZones();
+  }, [loadZones]);
+
+  useEffect(() => {
+    loadReportOverview();
+    loadConsumerReport();
+    loadMonthlyReport();
+  }, [loadConsumerReport, loadMonthlyReport, loadReportOverview]);
 
   const handleGenerateReports = () => {
+    loadReportOverview();
     loadConsumerReport();
     loadMonthlyReport();
     showToast('Reports generated successfully', 'success');
   };
 
   const handleExportConsumerReport = () => {
-    showToast('Exporting consumer report...', 'info');
+    showToast('Consumer report export is not available yet.', 'info');
   };
 
   const handleExportMonthlyReport = () => {
-    showToast('Exporting monthly billing & collection report...', 'info');
+    showToast('Monthly report export is not available yet.', 'info');
   };
 
-  const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: z.Zone_Name }));
+  const zoneOptions = zones.map((z) => ({
+    value: z.Zone_ID ?? z.zone_id,
+    label: formatZoneLabel(z.Zone_Name ?? z.zone_name, z.Zone_ID ?? z.zone_id),
+  }));
 
   const tabs: Tab[] = [
     {
@@ -214,16 +230,16 @@ const Reports: React.FC = () => {
                     <tr key={index}>
                       <td>{report.period}</td>
                       <td>{report.billsGenerated}</td>
-                      <td>₱{report.totalInvoiced.toLocaleString()}</td>
-                      <td>₱{report.totalCollected.toLocaleString()}</td>
-                      <td style={{ 
+                      <td>PHP {report.totalInvoiced.toLocaleString()}</td>
+                      <td>PHP {report.totalCollected.toLocaleString()}</td>
+                      <td style={{
                         color: parseFloat(report.collectionRate) >= 90 ? '#10b981' : '#f59e0b',
                         fontWeight: 'bold'
                       }}>
                         {report.collectionRate}
                       </td>
                       <td style={{ color: report.unpaidBalance > 0 ? '#ef4444' : 'inherit' }}>
-                        ₱{report.unpaidBalance.toLocaleString()}
+                        PHP {report.unpaidBalance.toLocaleString()}
                       </td>
                     </tr>
                   ))
@@ -239,7 +255,6 @@ const Reports: React.FC = () => {
   return (
     <MainLayout title="Strategic Analytics">
       <div className="reports-page">
-        {/* Top Actions */}
         <div className="action-buttons">
           <button className="btn btn-primary" onClick={handleGenerateReports}>
             <i className="fas fa-sync-alt"></i> Run All Reports
@@ -252,7 +267,6 @@ const Reports: React.FC = () => {
           </button>
         </div>
 
-        {/* Global Filters */}
         <div className="report-controls">
           <div className="control-group">
             <FormInput
@@ -280,7 +294,6 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        {/* Real-time Summary Metrics */}
         <div className="dashboard-cards">
           <div className="card card-highlight-blue">
             <div className="card-header">

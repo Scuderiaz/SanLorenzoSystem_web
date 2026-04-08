@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable, { Column } from '../../components/Common/DataTable';
@@ -89,35 +89,51 @@ const Dashboard: React.FC = () => {
   const [bills, setBills] = useState<BillRow[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const [applicationsResponse, billsResponse, paymentsResponse] = await Promise.all([
+      const [applicationsResponse, billsResponse, paymentsResponse] = await Promise.allSettled([
         fetch(`${API_URL}/applications/pending`),
         fetch(`${API_URL}/bills`),
         fetch(`${API_URL}/payments`),
       ]);
 
+      const parseSettledJson = async (result: PromiseSettledResult<Response>) => {
+        if (result.status !== 'fulfilled') {
+          return null;
+        }
+
+        try {
+          return await result.value.json();
+        } catch (error) {
+          return null;
+        }
+      };
+
       const [applicationsResult, billsResult, paymentsResult] = await Promise.all([
-        applicationsResponse.json(),
-        billsResponse.json(),
-        paymentsResponse.json(),
+        parseSettledJson(applicationsResponse),
+        parseSettledJson(billsResponse),
+        parseSettledJson(paymentsResponse),
       ]);
 
-      setApplications(applicationsResult.success ? (applicationsResult.data || []) : []);
-      setBills(Array.isArray(billsResult) ? billsResult : (billsResult.data || []));
-      setPayments(Array.isArray(paymentsResult) ? paymentsResult : (paymentsResult.data || []));
+      setApplications(applicationsResult?.success ? (applicationsResult.data || []) : []);
+      setBills(Array.isArray(billsResult) ? billsResult : (billsResult?.data || []));
+      setPayments(Array.isArray(paymentsResult) ? paymentsResult : (paymentsResult?.data || []));
+
+      if (!applicationsResult || !billsResult || !paymentsResult) {
+        showToast('Dashboard loaded with partial data. Some Supabase requests failed.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading billing dashboard:', error);
       showToast('Failed to load billing dashboard data', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, showToast]);
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [loadDashboard]);
 
   const pendingPaymentValidation = useMemo(
     () => payments.filter((payment) => String(payment.Status || '').toLowerCase() === 'pending'),
