@@ -6,15 +6,6 @@ const isNetworkError = (error: any) => {
   return error.code === 'ERR_NETWORK' || !error.response || error.response.status >= 500;
 };
 
-const generateRegistrationTicketNumber = () => {
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[-:TZ.]/g, '')
-    .slice(0, 14);
-  const suffix = Math.floor(Math.random() * 9000) + 1000;
-  return `REG-${timestamp}-${suffix}`;
-};
-
 const generatePendingAccountNumber = () => {
   const timestamp = new Date()
     .toISOString()
@@ -28,69 +19,6 @@ const ensurePendingRegistrationAccountNumber = (userData: any) => ({
   ...userData,
   accountNumber: String(userData?.accountNumber || '').trim() || generatePendingAccountNumber(),
 });
-
-const registerDirectWithSupabase = async (userData: any) => {
-  if (!supabase) throw new Error('Supabase not configured');
-  
-  const ticketNumber = generateRegistrationTicketNumber();
-  const normalizedAccountNumber = String(userData.accountNumber || '').trim() || generatePendingAccountNumber();
-
-  const { data: accountData, error: accountError } = await supabase
-    .from('accounts')
-    .insert([{
-      username: userData.username,
-      password: userData.password,
-      role_id: 4,
-      account_status: 'Pending'
-    }])
-    .select();
-  
-  if (accountError) throw new Error(accountError.message);
-  
-  const accountId = accountData[0].account_id;
-
-  const { data: consumerRow, error: consumerError } = await supabase
-    .from('consumer')
-    .insert([{
-      first_name: userData.firstName,
-      middle_name: userData.middleName,
-      last_name: userData.lastName,
-      address: userData.address,
-      purok: userData.purok,
-      barangay: userData.barangay,
-      municipality: userData.municipality,
-      zip_code: userData.zipCode,
-      zone_id: userData.zoneId || 1,
-      classification_id: userData.classificationId || 1,
-      login_id: accountId,
-      status: 'Pending',
-      contact_number: userData.phone,
-      account_number: normalizedAccountNumber
-    }])
-    .select();
-
-  if (consumerError) throw new Error(consumerError.message);
-
-  const { error: ticketError } = await supabase
-    .from('connection_ticket')
-    .insert([{
-      consumer_id: consumerRow[0].consumer_id,
-      account_id: accountId,
-      ticket_number: ticketNumber,
-      connection_type: 'New Connection',
-      requirements_submitted: 'Sedula',
-      status: 'Pending'
-    }]);
-
-  if (ticketError) throw new Error(ticketError.message);
-
-  return { 
-    success: true, 
-    message: 'Registered via offline fallback.', 
-    ticketNumber,
-    consumerId: consumerRow[0].consumer_id
-  };
-};
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -152,13 +80,11 @@ export const authService = {
       const response = await api.post('/register', payload);
       return response.data;
     } catch (error: any) {
-      if (isNetworkError(error) && isSupabaseConfigured && supabase) {
-        console.warn('Network error, attempting Supabase fallback for registration');
-        try {
-          return await registerDirectWithSupabase(payload);
-        } catch (supabaseError: any) {
-          return { success: false, message: supabaseError.message || 'Supabase fallback failed' };
-        }
+      if (isNetworkError(error)) {
+        return {
+          success: false,
+          message: 'Registration requires the backend service. Please try again when the server connection is available.',
+        };
       }
       return error.response?.data || { success: false, message: error.message };
     }

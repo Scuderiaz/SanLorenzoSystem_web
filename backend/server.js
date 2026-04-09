@@ -465,6 +465,12 @@ async function synchronizePostgresSequence(client, tableName, primaryKey) {
   await client.query('SELECT setval($1, $2, false)', [sequenceName, 1]);
 }
 
+async function synchronizePostgresSequences(client, sequenceTargets = []) {
+  for (const target of sequenceTargets) {
+    await synchronizePostgresSequence(client, target.tableName, target.primaryKey);
+  }
+}
+
 function safeSerialize(value) {
   try {
     return JSON.stringify(value ?? null);
@@ -732,6 +738,17 @@ function getRegisterErrorMessage(error) {
     return 'Username is already taken.';
   }
 
+  if (
+    constraint === 'accounts_pkey' ||
+    constraint === 'consumer_pkey' ||
+    constraint === 'connection_ticket_pkey' ||
+    loweredMessage.includes('accounts_pkey') ||
+    loweredMessage.includes('consumer_pkey') ||
+    loweredMessage.includes('connection_ticket_pkey')
+  ) {
+    return 'Registration temporarily hit an ID sync conflict. Please try again.';
+  }
+
   if (error?.code === '23503') {
     return 'One of the selected registration values is invalid.';
   }
@@ -741,6 +758,78 @@ function getRegisterErrorMessage(error) {
   }
 
   return message || 'Registration failed.';
+}
+
+function isPrimaryKeyCollisionError(error, primaryKeys = []) {
+  const constraint = String(error?.constraint || '').toLowerCase();
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  const normalizedKeys = primaryKeys.map((key) => String(key || '').toLowerCase());
+
+  if (String(error?.code || '') !== '23505') {
+    return false;
+  }
+
+  if (constraint.endsWith('_pkey')) {
+    return normalizedKeys.length === 0 || normalizedKeys.includes(constraint);
+  }
+
+  return normalizedKeys.some((key) => message.includes(key) || details.includes(key));
+}
+
+async function getSupabaseNextPrimaryKeyValue(tableName, primaryKey) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const { data, error } = await supabase
+    .from(tableName)
+    .select(primaryKey)
+    .order(primaryKey, { ascending: false })
+    .limit(1);
+
+  if (error) {
+    throw error;
+  }
+
+  const currentMax = Number(data?.[0]?.[primaryKey] || 0);
+  return currentMax + 1;
+}
+
+async function insertSupabaseRowWithPrimaryKeyRetry(tableName, primaryKey, row, selectClause = '*') {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const runInsert = async (payload) => {
+    const query = supabase.from(tableName).insert([payload]).select(selectClause);
+    return selectClause.includes(',') || selectClause !== '*'
+      ? query.single()
+      : query.single();
+  };
+
+  const { data, error } = await runInsert(row);
+  if (!error) {
+    return data;
+  }
+
+  const primaryKeyConstraint = `${tableName}_pkey`;
+  if (!isPrimaryKeyCollisionError(error, [primaryKeyConstraint])) {
+    throw error;
+  }
+
+  const nextPrimaryKey = await getSupabaseNextPrimaryKeyValue(tableName, primaryKey);
+  const retryPayload = {
+    ...row,
+    [primaryKey]: nextPrimaryKey,
+  };
+
+  const { data: retryData, error: retryError } = await runInsert(retryPayload);
+  if (retryError) {
+    throw retryError;
+  }
+
+  return retryData;
 }
 
 function getConsumerSaveErrorMessage(error) {
@@ -2512,6 +2601,11 @@ app.post('/api/users', async (req, res) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
+          await synchronizePostgresSequences(client, [
+            { tableName: 'accounts', primaryKey: 'account_id' },
+            { tableName: 'consumer', primaryKey: 'consumer_id' },
+            { tableName: 'connection_ticket', primaryKey: 'ticket_id' },
+          ]);
 
           const { rows } = await client.query(
             'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING *',
@@ -3219,6 +3313,12 @@ app.post('/api/consumers', async (req, res) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
+          await synchronizePostgresSequences(client, [
+            { tableName: 'accounts', primaryKey: 'account_id' },
+            { tableName: 'consumer', primaryKey: 'consumer_id' },
+            { tableName: 'meter', primaryKey: 'meter_id' },
+            { tableName: 'connection_ticket', primaryKey: 'ticket_id' },
+          ]);
 
           let loginId = providedLoginId;
           if (!loginId) {
@@ -4634,30 +4734,45 @@ app.post('/api/register', async (req, res) => {
       async () => {
         const client = await pool.connect();
         try {
-          await client.query('BEGIN');
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            await client.query('BEGIN');
+            await synchronizePostgresSequences(client, [
+              { tableName: 'accounts', primaryKey: 'account_id' },
+              { tableName: 'consumer', primaryKey: 'consumer_id' },
+              { tableName: 'connection_ticket', primaryKey: 'ticket_id' },
+            ]);
 
-          const { rows } = await client.query(
-            'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING account_id',
-            [username, password, 4, 'Pending']
-          );
-          const accountId = rows[0].account_id;
-          createdAccountId = accountId;
+            try {
+              const { rows } = await client.query(
+                'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING account_id',
+                [username, password, 4, 'Pending']
+              );
+              const accountId = rows[0].account_id;
+              createdAccountId = accountId;
 
-          const { rows: consumerRows } = await client.query(`
-            INSERT INTO consumer (first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code, zone_id, classification_id, login_id, status, contact_number, account_number)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-            RETURNING consumer_id
-          `, [firstName, middleName, lastName, address, purok, barangay, municipality, zipCode, zoneId, classificationId, accountId, 'Pending', normalizedPhoneNumber, normalizedAccountNumber]);
+              const { rows: consumerRows } = await client.query(`
+                INSERT INTO consumer (first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code, zone_id, classification_id, login_id, status, contact_number, account_number)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                RETURNING consumer_id
+              `, [firstName, middleName, lastName, address, purok, barangay, municipality, zipCode, zoneId, classificationId, accountId, 'Pending', normalizedPhoneNumber, normalizedAccountNumber]);
 
-          await client.query(`
-            INSERT INTO connection_ticket (consumer_id, account_id, ticket_number, connection_type, requirements_submitted, status)
-            VALUES ($1, $2, $3, $4, $5, $6)
-          `, [consumerRows[0].consumer_id, accountId, ticketNumber, 'New Connection', 'Sedula', 'Pending']);
+              await client.query(`
+                INSERT INTO connection_ticket (consumer_id, account_id, ticket_number, connection_type, requirements_submitted, status)
+                VALUES ($1, $2, $3, $4, $5, $6)
+              `, [consumerRows[0].consumer_id, accountId, ticketNumber, 'New Connection', 'Sedula', 'Pending']);
 
-          await client.query('COMMIT');
-          scheduleImmediateSync('register');
+              await client.query('COMMIT');
+              scheduleImmediateSync('register');
+              return;
+            } catch (error) {
+              await client.query('ROLLBACK');
+              if (attempt === 0 && isPrimaryKeyCollisionError(error, ['accounts_pkey', 'consumer_pkey', 'connection_ticket_pkey'])) {
+                continue;
+              }
+              throw error;
+            }
+          }
         } catch (error) {
-          await client.query('ROLLBACK');
           throw error;
         } finally {
           client.release();
@@ -4667,22 +4782,24 @@ app.post('/api/register', async (req, res) => {
         let accountId = null;
         let consumerId = null;
 
-        const { data: accountRows, error: accountError } = await supabase
-          .from('accounts')
-          .insert([{
+        const accountRow = await insertSupabaseRowWithPrimaryKeyRetry(
+          'accounts',
+          'account_id',
+          {
             username,
             password,
             role_id: 4,
-            account_status: 'Pending'
-          }])
-          .select();
-        if (accountError) throw accountError;
-        accountId = accountRows[0].account_id;
+            account_status: 'Pending',
+          },
+          'account_id'
+        );
+        accountId = accountRow.account_id;
         createdAccountId = accountId;
 
-        const { data: consumerRow, error: consumerError } = await supabase
-          .from('consumer')
-          .insert([{
+        const consumerRow = await insertSupabaseRowWithPrimaryKeyRetry(
+          'consumer',
+          'consumer_id',
+          {
             first_name: firstName,
             middle_name: middleName,
             last_name: lastName,
@@ -4696,26 +4813,31 @@ app.post('/api/register', async (req, res) => {
             login_id: accountId,
             status: 'Pending',
             contact_number: normalizedPhoneNumber,
-            account_number: normalizedAccountNumber
-          }])
-          .select('consumer_id')
-          .single();
-        if (consumerError) throw consumerError;
+            account_number: normalizedAccountNumber,
+          },
+          'consumer_id'
+        );
         consumerId = consumerRow?.consumer_id ?? null;
 
-        const { data: ticketRow, error: ticketError } = await supabase
-          .from('connection_ticket')
-          .insert([{
-            consumer_id: consumerId,
-            account_id: accountId,
-            ticket_number: ticketNumber,
-            connection_type: 'New Connection',
-            requirements_submitted: 'Sedula',
-            status: 'Pending',
-          }])
-          .select('ticket_id, ticket_number')
-          .single();
-        if (ticketError) {
+        try {
+          const ticketRow = await insertSupabaseRowWithPrimaryKeyRetry(
+            'connection_ticket',
+            'ticket_id',
+            {
+              consumer_id: consumerId,
+              account_id: accountId,
+              ticket_number: ticketNumber,
+              connection_type: 'New Connection',
+              requirements_submitted: 'Sedula',
+              status: 'Pending',
+            },
+            'ticket_id, ticket_number'
+          );
+
+          if (!ticketRow?.ticket_id) {
+            throw new Error('Supabase registration ticket was not created.');
+          }
+        } catch (ticketError) {
           if (consumerId) {
             await supabase.from('consumer').delete().eq('consumer_id', consumerId).catch(() => {});
           }
@@ -4723,10 +4845,6 @@ app.post('/api/register', async (req, res) => {
             await supabase.from('accounts').delete().eq('account_id', accountId).catch(() => {});
           }
           throw ticketError;
-        }
-
-        if (!ticketRow?.ticket_id) {
-          throw new Error('Supabase registration ticket was not created.');
         }
       }
     );

@@ -1762,3 +1762,274 @@
 [2026-04-09T07:52:13.593Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
 [2026-04-09T07:52:13.794Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
 [2026-04-09T07:52:13.991Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T07:53:07.370Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T07:53:12.496Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T07:53:12.681Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T07:53:12.843Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T07:54:07.374Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T07:54:13.153Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T07:54:13.366Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T07:54:13.557Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T07:55:07.380Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T07:55:12.201Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T07:55:12.375Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T07:55:12.547Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T07:56:07.392Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T07:56:12.651Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T07:56:12.843Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T07:56:13.025Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T07:57:07.404Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T07:57:13.060Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T07:57:13.248Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T07:57:13.434Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T07:58:07.407Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T07:58:13.228Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T07:58:13.488Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T07:58:13.728Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T07:59:07.408Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T07:59:12.636Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T07:59:12.861Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T07:59:13.053Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:00:07.411Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:00:12.926Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:00:13.151Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:00:13.358Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:01:07.423Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:01:12.631Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:01:12.800Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:01:12.959Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:02:07.436Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:02:13.924Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:02:14.173Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:02:14.503Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:03:07.443Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:03:12.765Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:03:12.969Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:03:13.162Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:04:07.455Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:04:13.546Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:04:13.759Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:04:13.951Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:05:07.467Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:05:13.298Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:05:13.504Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:05:13.687Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:06:07.467Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:06:13.514Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:06:13.751Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:06:13.964Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:07:07.477Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:07:12.959Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:07:13.175Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:07:13.364Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:08:07.485Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:08:12.998Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:08:13.184Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:08:13.361Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:09:07.496Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:09:13.457Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:09:13.657Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:09:13.850Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:10:07.508Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:10:12.764Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:10:12.952Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:10:13.129Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:11:07.509Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:11:12.436Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:11:12.614Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:11:12.782Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:12:07.511Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:12:13.096Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:12:13.273Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:12:13.447Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:13:07.511Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:13:13.539Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:13:13.741Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:13:13.924Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:14:07.514Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:14:13.464Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:14:13.667Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:14:13.852Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:15:07.523Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:15:12.688Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:15:12.877Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:15:13.043Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:16:07.536Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:16:12.236Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:16:12.410Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:16:12.583Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:17:07.546Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:17:13.650Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:17:13.859Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:17:14.053Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:18:07.561Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:18:13.139Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T08:18:13.372Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T08:18:13.575Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T08:21:11.208Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:21:11.570Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-09T08:21:11.578Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-09T08:21:11.586Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-09T08:21:11.595Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-09T08:21:11.604Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-09T08:21:11.611Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-09T08:21:11.619Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-09T08:21:11.629Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-09T08:21:11.637Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-09T08:21:11.661Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-09T08:21:11.672Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-09T08:21:11.695Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-09T08:21:11.731Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-09T08:21:11.739Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-09T08:21:11.748Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-09T08:21:11.765Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-09T08:21:11.792Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-09T08:21:11.802Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-09T08:21:11.813Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-09T08:21:11.821Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-09T08:21:11.844Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-09T08:21:11.855Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-09T08:21:11.884Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-09T08:21:11.901Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-09T08:21:11.925Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-09T08:21:11.942Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-09T08:21:11.961Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-09T08:21:11.977Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-09T08:46:50.274Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T08:46:50.630Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-09T08:46:50.637Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-09T08:46:50.640Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-09T08:46:50.644Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-09T08:46:50.661Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-09T08:46:50.665Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-09T08:46:50.678Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-09T08:46:50.685Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-09T08:46:50.689Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-09T08:46:50.695Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-09T08:46:50.701Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-09T08:46:50.718Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-09T08:46:50.722Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-09T08:46:50.726Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-09T08:46:50.729Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-09T08:46:50.737Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-09T08:46:50.745Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-09T08:46:50.750Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-09T08:46:50.757Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-09T08:46:50.761Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-09T08:46:50.783Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-09T08:46:50.793Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-09T08:46:50.801Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-09T08:46:50.809Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-09T08:46:50.816Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-09T08:46:50.829Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-09T08:46:50.840Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-09T08:46:50.853Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-09T22:50:59.133Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:50:59.363Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-09T22:50:59.377Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-09T22:50:59.387Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-09T22:50:59.393Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-09T22:50:59.402Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-09T22:50:59.411Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-09T22:50:59.415Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-09T22:50:59.422Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-09T22:50:59.432Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-09T22:50:59.441Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-09T22:50:59.450Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-09T22:50:59.458Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-09T22:50:59.467Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-09T22:50:59.474Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-09T22:50:59.540Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-09T22:50:59.570Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-09T22:50:59.581Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-09T22:50:59.622Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-09T22:50:59.651Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-09T22:50:59.663Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-09T22:50:59.695Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-09T22:50:59.711Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-09T22:50:59.735Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-09T22:50:59.750Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-09T22:50:59.763Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-09T22:50:59.781Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-09T22:50:59.836Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-09T22:50:59.862Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-09T22:51:56.820Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:52:06.095Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:52:06.286Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:52:06.475Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:52:56.834Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:53:03.093Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:53:03.408Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:53:03.611Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:53:56.845Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:54:03.243Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:03.431Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:03.601Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:05.923Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:06.260Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:06.328Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:06.459Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:06.459Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:06.593Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:06.593Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:06.777Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:06.777Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:06.780Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:06.971Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:06.978Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:13.901Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:14.082Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:14.195Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:14.201Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:14.308Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:54:14.351Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:14.377Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:14.385Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:14.580Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:14.584Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:54:14.621Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:14.809Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:54:56.850Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:55:03.263Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:55:03.497Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:55:03.763Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:55:56.855Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:56:02.898Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:56:03.225Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:56:03.520Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:56:52.911Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:56:53.104Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:56:53.293Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:56:53.338Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:56:53.337Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:56:53.546Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:56:53.552Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:56:53.636Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:56:53.744Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:56:53.750Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:56:53.846Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:56:54.027Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:56:56.861Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:57:01.904Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:57:02.110Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:57:02.302Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:57:20.433Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:57:20.631Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:57:20.704Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:57:20.774Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:57:20.817Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:57:20.885Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:57:20.981Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:57:21.034Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:57:21.118Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:57:21.194Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:57:21.233Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:57:21.421Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:57:56.863Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:58:02.655Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:58:02.955Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:58:03.133Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-09T22:58:56.863Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-09T22:59:02.035Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-09T22:59:02.272Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-09T22:59:02.460Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
