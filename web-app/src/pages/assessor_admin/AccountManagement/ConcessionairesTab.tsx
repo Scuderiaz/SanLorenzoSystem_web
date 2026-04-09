@@ -271,7 +271,7 @@ const ConcessionairesTab: React.FC = () => {
 
   const handleSaveConcessionaire = async () => {
     if (formData.accountNumber.trim() && !ACCOUNT_NUMBER_PATTERN.test(formData.accountNumber.trim())) {
-      showToast('Account number must follow the format xx-xx-xxx.', 'error');
+      showToast('Account number must follow the format xx-xx-xxx or xx-xx-xxx-x.', 'error');
       return;
     }
 
@@ -546,7 +546,7 @@ const ConcessionairesTab: React.FC = () => {
           <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
           <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
           <FormInput label="Last Name" value={formData.lastName} onChange={(v) => setFormData({ ...formData, lastName: v })} required />
-          <FormInput label="Account Number" value={formData.accountNumber} onChange={(v) => setFormData({ ...formData, accountNumber: v })} required placeholder="xx-xx-xxx" />
+          <FormInput label="Account Number" value={formData.accountNumber} onChange={(v) => setFormData({ ...formData, accountNumber: v })} required placeholder="xx-xx-xxx or xx-xx-xxx-x" />
           <FormInput label="Meter Number" value={formData.meterNumber} onChange={(v) => setFormData({ ...formData, meterNumber: v })} />
           <FormSelect
             label="Meter Status"

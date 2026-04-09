@@ -131,6 +131,11 @@
   font-size: 14px;
 }
 
+.manual-bill-warning {
+  color: #b45309;
+  font-weight: 700;
+}
+
 /* ─── Bill Preview (Modal) ────────────────────────────────────────── */
 .bill-preview {
   padding: 20px;

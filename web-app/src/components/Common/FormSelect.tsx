@@ -31,10 +31,12 @@ const FormSelect: React.FC<FormSelectProps> = ({
 }) => {
   return (
     <div className="form-select-group">
-      <label className="form-label">
-        {icon && <i className={`fas ${icon}`}></i>} {label}
-        {required && <span className="required">*</span>}
-      </label>
+      {label && (
+        <label className="form-label">
+          {icon && <i className={`fas ${icon}`}></i>} {label}
+          {required && <span className="required">*</span>}
+        </label>
+      )}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}

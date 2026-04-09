@@ -32,7 +32,7 @@ const Settings: React.FC = () => {
   const [systemSettings, setSystemSettings] = useState({
     currency: 'PHP',
     dueDateDays: '15',
-    lateFee: '5.0',
+    lateFee: '10.0',
   });
 
   const [currentRates, setCurrentRates] = useState<WaterRate[]>([]);
@@ -51,7 +51,7 @@ const Settings: React.FC = () => {
       setSystemSettings({
         currency: system.currency || 'PHP',
         dueDateDays: String(system.dueDateDays || '15'),
-        lateFee: String(system.lateFee || '5.0'),
+        lateFee: String(system.lateFee || '10.0'),
       });
 
       if (result.data?.waterRates) {

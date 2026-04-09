@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
@@ -34,11 +35,15 @@ interface BillInfo {
   Current_Bill: number;
   Previous_Balance: number;
   Penalties: number;
+  Overdue_Penalty: number;
+  Late_Fee_Percentage: number;
+  Is_Overdue: boolean;
   Total_Amount_Due: number;
   Status: string;
 }
 
 interface PaymentHistoryRow {
+  Payment_ID: number;
   Receipt_No: string;
   Account_Number: string;
   Consumer_Name: string;
@@ -48,21 +53,36 @@ interface PaymentHistoryRow {
   Status: string;
 }
 
+interface QuickLookupAccount {
+  Consumer_ID: number;
+  Account_Number: string;
+  First_Name?: string;
+  Middle_Name?: string;
+  Last_Name?: string;
+  Address?: string;
+}
+
 const ProcessPayment: React.FC = () => {
   const { showToast } = useToast();
+  const location = useLocation();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConsumer, setSelectedConsumer] = useState<BillInfo | null>(null);
   const [consumerProfile, setConsumerProfile] = useState<ConsumerLookup | null>(null);
+  const [quickLookupAccounts, setQuickLookupAccounts] = useState<QuickLookupAccount[]>([]);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [amountPaid, setAmountPaid] = useState('');
-  const [receiptNumber, setReceiptNumber] = useState('');
   const [payments, setPayments] = useState<PaymentHistoryRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showFullBillModal, setShowFullBillModal] = useState(false);
+  const [showQuickSummaryModal, setShowQuickSummaryModal] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<PaymentHistoryRow | null>(null);
+  const [editingPayment, setEditingPayment] = useState<PaymentHistoryRow | null>(null);
+  const [editedReceiptNumber, setEditedReceiptNumber] = useState('');
+  const searchLookupRef = useRef<HTMLDivElement | null>(null);
 
   const loadPaymentHistory = useCallback(async () => {
     setLoading(true);
@@ -71,6 +91,7 @@ const ProcessPayment: React.FC = () => {
       const data = await response.json();
       const list = Array.isArray(data) ? data : (data.data || []);
       setPayments((list || []).map((payment: any) => ({
+        Payment_ID: payment.Payment_ID,
         Receipt_No: payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID}`,
         Account_Number: payment.Account_Number || 'N/A',
         Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
@@ -91,15 +112,46 @@ const ProcessPayment: React.FC = () => {
     loadPaymentHistory();
   }, [loadPaymentHistory]);
 
-  const handleSearchConsumer = useCallback(async () => {
-    if (!searchTerm.trim()) {
+  const loadQuickLookupAccounts = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/consumers`);
+      const data = await response.json();
+      setQuickLookupAccounts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading account suggestions:', error);
+    }
+  }, [API_URL]);
+
+  useEffect(() => {
+    loadQuickLookupAccounts();
+  }, [loadQuickLookupAccounts]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchLookupRef.current && !searchLookupRef.current.contains(event.target as Node)) {
+        setShowSearchSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const prefilledAccountQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('account')?.trim() || '';
+  }, [location.search]);
+
+  const performConsumerSearch = useCallback(async (rawQuery: string) => {
+    const query = rawQuery.trim();
+    if (!query) {
       showToast('Please enter account number or consumer name', 'error');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/treasurer/account-lookup?q=${encodeURIComponent(searchTerm.trim())}`);
+      const response = await fetch(`${API_URL}/treasurer/account-lookup?q=${encodeURIComponent(query)}`);
       const result = await response.json();
 
       if (!result.success) {
@@ -131,14 +183,19 @@ const ProcessPayment: React.FC = () => {
         Environmental_Fee: toAmount(currentBill.Environmental_Fee),
         Current_Bill: toAmount(summary.currentBillAmount || currentBill.Total_Amount),
         Previous_Balance: toAmount(summary.previousBalance),
-        Penalties: toAmount(currentBill.Penalty || currentBill.Penalties),
+        Penalties: toAmount(summary.overduePenalty ?? currentBill.Penalty ?? currentBill.Penalties),
+        Overdue_Penalty: toAmount(summary.overduePenalty ?? currentBill.Penalty ?? currentBill.Penalties),
+        Late_Fee_Percentage: toAmount(summary.lateFeePercentage),
+        Is_Overdue: Boolean(summary.isOverdue),
         Total_Amount_Due: toAmount(summary.totalDue || currentBill.Total_Amount),
         Status: currentBill.Status || 'Unpaid',
       };
 
       setConsumerProfile(consumer);
       setSelectedConsumer(mappedConsumer);
-      setAmountPaid(String(mappedConsumer.Total_Amount_Due));
+      setSearchTerm(query);
+      setShowSearchSuggestions(false);
+      setAmountPaid(mappedConsumer.Status?.toLowerCase() === 'paid' ? '0' : String(mappedConsumer.Total_Amount_Due));
       showToast('Valid statement for settlement identified.', 'success');
     } catch (error: any) {
       console.error('Error searching consumer:', error);
@@ -148,19 +205,28 @@ const ProcessPayment: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, searchTerm, showToast]);
+  }, [API_URL, showToast]);
+
+  const handleSearchConsumer = useCallback(async () => {
+    await performConsumerSearch(searchTerm);
+  }, [performConsumerSearch, searchTerm]);
+
+  useEffect(() => {
+    if (!prefilledAccountQuery) {
+      return;
+    }
+
+    setSearchTerm(prefilledAccountQuery);
+    performConsumerSearch(prefilledAccountQuery);
+  }, [performConsumerSearch, prefilledAccountQuery]);
 
   const handleProcessPayment = useCallback(async () => {
     if (!selectedConsumer) {
       showToast('Please search and select a consumer first', 'error');
       return;
     }
-    if (!receiptNumber.trim()) {
-      showToast('Please enter receipt number', 'error');
-      return;
-    }
     if (!amountPaid || parseFloat(amountPaid) <= 0) {
-      showToast('Please enter valid amount paid', 'error');
+      showToast('There is no payable balance for this account.', 'error');
       return;
     }
 
@@ -173,9 +239,7 @@ const ProcessPayment: React.FC = () => {
         Amount_Paid: parseFloat(amountPaid),
         Payment_Date: currentDate,
         Payment_Method: paymentMethod,
-        Reference_No: receiptNumber,
-        OR_Number: receiptNumber,
-        Status: 'Pending',
+        Status: 'Validated',
       };
 
       const response = await fetch(`${API_URL}/payments`, {
@@ -190,23 +254,22 @@ const ProcessPayment: React.FC = () => {
       }
 
       const newPayment: PaymentHistoryRow = {
-        Receipt_No: receiptNumber,
+        Receipt_No: result.OR_Number || result.or_number || result.Reference_No || result.reference_number || `PAY-${result.Payment_ID || Date.now()}`,
         Account_Number: selectedConsumer.Account_Number,
         Consumer_Name: selectedConsumer.Consumer_Name,
         Amount: parseFloat(amountPaid),
         Payment_Date: currentDate,
         Payment_Method: paymentMethod,
-        Status: 'Pending',
+        Status: 'Validated',
       };
 
       setCurrentReceipt(newPayment);
       setShowReceiptModal(true);
-      showToast('Collection record saved and queued for validation.', 'success');
+      showToast('Collection recorded successfully.', 'success');
       setSelectedConsumer(null);
       setConsumerProfile(null);
       setSearchTerm('');
       setAmountPaid('');
-      setReceiptNumber('');
       loadPaymentHistory();
     } catch (error: any) {
       console.error('Error processing payment:', error);
@@ -214,7 +277,55 @@ const ProcessPayment: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, amountPaid, loadPaymentHistory, paymentMethod, receiptNumber, selectedConsumer, showToast]);
+  }, [API_URL, amountPaid, loadPaymentHistory, paymentMethod, selectedConsumer, showToast]);
+
+  const handleViewPayment = useCallback((payment: PaymentHistoryRow) => {
+    setCurrentReceipt(payment);
+    setShowReceiptModal(true);
+  }, []);
+
+  const handleSaveReceiptCorrection = useCallback(async () => {
+    if (!editingPayment) {
+      return;
+    }
+
+    const nextReceiptNumber = editedReceiptNumber.trim();
+    if (!nextReceiptNumber) {
+      showToast('Please enter the corrected official receipt number.', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/payments/${editingPayment.Payment_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          OR_Number: nextReceiptNumber,
+          Reference_No: nextReceiptNumber,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || result.error || 'Failed to update receipt number.');
+      }
+
+      showToast('Receipt number updated successfully.', 'success');
+      setPayments((current) => current.map((payment) => (
+        payment.Payment_ID === editingPayment.Payment_ID
+          ? { ...payment, Receipt_No: nextReceiptNumber }
+          : payment
+      )));
+      setEditingPayment(null);
+      setEditedReceiptNumber('');
+      loadPaymentHistory();
+    } catch (error: any) {
+      console.error('Error updating receipt number:', error);
+      showToast(error.message || 'Failed to update receipt number.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [API_URL, editedReceiptNumber, editingPayment, loadPaymentHistory, showToast]);
 
   const paymentColumns = useMemo(() => [
     { key: 'Receipt_No', label: 'Receipt No.', sortable: true },
@@ -241,22 +352,71 @@ const ProcessPayment: React.FC = () => {
         <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>{val || 'Unknown'}</span>
       ),
     },
-  ], []);
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_: unknown, payment: PaymentHistoryRow) => (
+        <button className="btn btn-secondary btn-sm" onClick={() => handleViewPayment(payment)}>
+          <i className="fas fa-eye"></i> View
+        </button>
+      ),
+    },
+  ], [handleViewPayment]);
+
+  const selectedAccountPayments = useMemo(() => {
+    if (!selectedConsumer) {
+      return [];
+    }
+
+    return payments
+      .filter((payment) => payment.Account_Number === selectedConsumer.Account_Number)
+      .sort((a, b) => new Date(b.Payment_Date).getTime() - new Date(a.Payment_Date).getTime());
+  }, [payments, selectedConsumer]);
+
+  const selectedAccountPaymentSummary = useMemo(() => {
+    const totalPaid = selectedAccountPayments.reduce((sum, payment) => sum + toAmount(payment.Amount), 0);
+    const latestPayment = selectedAccountPayments[0] || null;
+
+    return {
+      totalPaid,
+      latestPayment,
+      count: selectedAccountPayments.length,
+    };
+  }, [selectedAccountPayments]);
+
+  const searchSuggestions = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    const mapped = quickLookupAccounts.map((account) => ({
+      ...account,
+      Consumer_Name: [account.First_Name, account.Middle_Name, account.Last_Name].filter(Boolean).join(' ').trim(),
+    }));
+
+    const filtered = query
+      ? mapped.filter((account) =>
+          account.Account_Number?.toLowerCase().includes(query) ||
+          account.Consumer_Name.toLowerCase().includes(query) ||
+          account.Address?.toLowerCase().includes(query)
+        )
+      : mapped;
+
+    return filtered.slice(0, 6);
+  }, [quickLookupAccounts, searchTerm]);
 
   const handleClear = () => {
     setSearchTerm('');
     setSelectedConsumer(null);
     setConsumerProfile(null);
     setAmountPaid('');
-    setReceiptNumber('');
+    setShowSearchSuggestions(false);
   };
 
   return (
-    <MainLayout title="Collections Point (Manual OR Entry)">
+    <MainLayout title="Collections Point">
       <div className="process-payment-page">
         <div className="card">
           <div className="card-header" style={{ marginBottom: '30px' }}>
-            <h2 className="card-title">Manual Official Receipt (OR) Processor</h2>
+            <h2 className="card-title">Official Receipt Payment Processor</h2>
           </div>
           <div className="card-body">
             {selectedConsumer && (
@@ -283,8 +443,16 @@ const ProcessPayment: React.FC = () => {
                     <span className="value">P{selectedConsumer.Environmental_Fee.toFixed(2)}</span>
                   </div>
                   <div className="breakdown-item highlight">
-                    <span className="label">Arrears/Penalty</span>
+                    <span className="label">Arrears / Penalty</span>
                     <span className="value">P{(selectedConsumer.Previous_Balance + selectedConsumer.Penalties).toFixed(2)}</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span className="label">Late Charge Status</span>
+                    <span className="value">
+                      {selectedConsumer.Is_Overdue
+                        ? `Overdue (${selectedConsumer.Late_Fee_Percentage}% applied)`
+                        : `Not yet overdue (${selectedConsumer.Late_Fee_Percentage}% if past due)`}
+                    </span>
                   </div>
                   <div className="breakdown-item highlight-total">
                     <span className="label">TOTAL DUE</span>
@@ -295,12 +463,12 @@ const ProcessPayment: React.FC = () => {
                   <span className={`status-badge status-${selectedConsumer.Status.toLowerCase()}`}>
                     Status: {selectedConsumer.Status}
                   </span>
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className="breakdown-actions">
+                    <button className="btn btn-secondary btn-sm" onClick={() => setShowQuickSummaryModal(true)}>
+                      <i className="fas fa-print"></i> Print Quick Summary
+                    </button>
                     <button className="btn btn-secondary btn-sm" onClick={() => setShowFullBillModal(true)}>
                       <i className="fas fa-file-invoice"></i> View Full Statement
-                    </button>
-                    <button className="btn btn-secondary btn-sm" onClick={() => window.print()}>
-                      <i className="fas fa-print"></i> Print Quick Summary
                     </button>
                   </div>
                 </div>
@@ -311,19 +479,43 @@ const ProcessPayment: React.FC = () => {
               <div className="form-column">
                 <div className="form-group">
                   <label>Primary Account Identifier</label>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Account No. or Name"
-                      style={{ flex: 1 }}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearchConsumer()}
-                    />
-                    <button className="btn btn-secondary" onClick={handleSearchConsumer}>
-                      <i className="fas fa-search"></i>
-                    </button>
+                  <div className="account-search-wrap" ref={searchLookupRef}>
+                    <div className="account-search-row">
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Account No. or Name"
+                        style={{ flex: 1 }}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onFocus={() => setShowSearchSuggestions(true)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearchConsumer()}
+                      />
+                      <button className="btn btn-secondary" onClick={handleSearchConsumer}>
+                        <i className="fas fa-search"></i>
+                      </button>
+                    </div>
+                    {showSearchSuggestions && searchSuggestions.length > 0 && (
+                      <div className="account-search-suggestions">
+                        {searchSuggestions.map((account) => {
+                          const consumerName = [account.First_Name, account.Middle_Name, account.Last_Name].filter(Boolean).join(' ').trim();
+                          return (
+                            <button
+                              key={account.Consumer_ID}
+                              type="button"
+                              className="account-search-suggestion"
+                              onClick={() => performConsumerSearch(account.Account_Number || consumerName)}
+                            >
+                              <div className="account-search-suggestion-main">
+                                <strong>{account.Account_Number || 'No account number'}</strong>
+                                <span>{consumerName || 'Unnamed consumer'}</span>
+                              </div>
+                              <span className="account-search-suggestion-address">{account.Address || 'No saved address'}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -337,14 +529,15 @@ const ProcessPayment: React.FC = () => {
                   />
                 </div>
 
-                <div className="form-group" style={{ marginTop: '20px' }}>
+                <div className="form-group amount-highlight-group" style={{ marginTop: '20px' }}>
                   <label>Actual Collection Value (PHP)</label>
                   <input
                     type="number"
-                    className="form-control"
-                    placeholder="Enter cash amount"
+                    className="form-control amount-highlight-input"
+                    placeholder={selectedConsumer?.Status?.toLowerCase() === 'paid' ? 'Already paid' : 'Enter cash amount'}
                     value={amountPaid}
                     onChange={(e) => setAmountPaid(e.target.value)}
+                    disabled={selectedConsumer?.Status?.toLowerCase() === 'paid'}
                   />
                 </div>
               </div>
@@ -372,13 +565,13 @@ const ProcessPayment: React.FC = () => {
                 </div>
 
                 <div className="form-group" style={{ marginTop: '20px' }}>
-                  <label>Official Booklet Receipt No. (OR)</label>
+                  <label>Official Receipt Number (Auto-Generated)</label>
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Input OR sequence number"
-                    value={receiptNumber}
-                    onChange={(e) => setReceiptNumber(e.target.value)}
+                    placeholder="Generated automatically when payment is saved"
+                    value={selectedConsumer ? 'Generated on save' : ''}
+                    readOnly
                   />
                 </div>
               </div>
@@ -388,7 +581,13 @@ const ProcessPayment: React.FC = () => {
               <button type="button" className="btn btn-secondary" style={{ padding: '12px 24px', borderRadius: '12px', fontWeight: '700' }} onClick={handleClear}>
                 Clear Entry
               </button>
-              <button type="button" className="btn btn-primary" style={{ padding: '12px 36px', borderRadius: '12px', fontWeight: '800' }} onClick={handleProcessPayment}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ padding: '12px 36px', borderRadius: '12px', fontWeight: '800' }}
+                onClick={handleProcessPayment}
+                disabled={selectedConsumer?.Status?.toLowerCase() === 'paid'}
+              >
                 <i className="fas fa-check-double"></i> Authorize Collection & Record
               </button>
             </div>
@@ -519,20 +718,167 @@ const ProcessPayment: React.FC = () => {
                   <span>Penalty:</span>
                   <span>P{selectedConsumer.Penalties.toFixed(2)}</span>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span>Penalty Rule:</span>
+                  <span>{selectedConsumer.Is_Overdue ? `${selectedConsumer.Late_Fee_Percentage}% applied` : `${selectedConsumer.Late_Fee_Percentage}% if overdue`}</span>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #1B1B63', paddingTop: '10px', marginTop: '10px', fontWeight: '900', color: '#1B1B63' }}>
                   <span>TOTAL:</span>
                   <span>P{selectedConsumer.Total_Amount_Due.toFixed(2)}</span>
                 </div>
               </div>
 
-              <div style={{ marginTop: '40px', display: 'flex', gap: '15px' }}>
-                <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => window.print()}>
-                  <i className="fas fa-print"></i> Authorize & Print Statement
-                </button>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowFullBillModal(false)}>
+              <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="btn btn-secondary" style={{ minWidth: '160px' }} onClick={() => setShowFullBillModal(false)}>
                   Close
                 </button>
               </div>
+            </div>
+          </Modal>
+        )}
+
+        {showQuickSummaryModal && selectedConsumer && consumerProfile && (
+          <Modal
+            isOpen={showQuickSummaryModal}
+            title="Quick Summary"
+            onClose={() => setShowQuickSummaryModal(false)}
+            size="large"
+            closeOnOverlayClick={true}
+          >
+            <div className="quick-summary-print">
+              <div className="quick-summary-header">
+                <div>
+                  <p className="quick-summary-kicker">Municipal Treasury Snapshot</p>
+                  <h2>San Lorenzo Ruiz Waterworks Office</h2>
+                  <p>Overall bill and payment summary for cashier reference</p>
+                </div>
+                <div className="quick-summary-meta">
+                  <span><strong>Generated:</strong> {new Date().toLocaleString()}</span>
+                  <span><strong>Billing Month:</strong> {selectedConsumer.Billing_Month || 'Current'}</span>
+                  <span><strong>Due Date:</strong> {selectedConsumer.Due_Date ? new Date(selectedConsumer.Due_Date).toLocaleDateString() : 'N/A'}</span>
+                </div>
+              </div>
+
+              <div className="quick-summary-sections">
+                <section className="quick-summary-panel">
+                  <h3>Consumer Profile</h3>
+                  <div className="quick-summary-list">
+                    <div><span>Account</span><strong>{consumerProfile.Account_Number}</strong></div>
+                    <div><span>Name</span><strong>{consumerProfile.Consumer_Name}</strong></div>
+                    <div><span>Address</span><strong>{consumerProfile.Address}</strong></div>
+                    <div><span>Classification</span><strong>{selectedConsumer.Classification || 'N/A'}</strong></div>
+                    <div><span>Status</span><strong>{selectedConsumer.Status}</strong></div>
+                  </div>
+                </section>
+
+                <section className="quick-summary-panel">
+                  <h3>Current Bill Snapshot</h3>
+                  <div className="quick-summary-list">
+                    <div><span>Basic Charge</span><strong>P{selectedConsumer.Basic_Charge.toFixed(2)}</strong></div>
+                    <div><span>Fees</span><strong>P{selectedConsumer.Environmental_Fee.toFixed(2)}</strong></div>
+                    <div><span>Previous Balance</span><strong>P{selectedConsumer.Previous_Balance.toFixed(2)}</strong></div>
+                    <div><span>Penalty</span><strong>P{selectedConsumer.Penalties.toFixed(2)}</strong></div>
+                    <div><span>Penalty Rule</span><strong>{selectedConsumer.Is_Overdue ? `${selectedConsumer.Late_Fee_Percentage}% applied` : `${selectedConsumer.Late_Fee_Percentage}% if overdue`}</strong></div>
+                    <div className="quick-summary-total"><span>Total Due</span><strong>P{selectedConsumer.Total_Amount_Due.toFixed(2)}</strong></div>
+                  </div>
+                </section>
+              </div>
+
+              <div className="quick-summary-totals">
+                <div className="quick-summary-stat">
+                  <span>Recorded Payments</span>
+                  <strong>{selectedAccountPaymentSummary.count}</strong>
+                </div>
+                <div className="quick-summary-stat">
+                  <span>Total Paid to Date</span>
+                  <strong>P{selectedAccountPaymentSummary.totalPaid.toFixed(2)}</strong>
+                </div>
+                <div className="quick-summary-stat">
+                  <span>Latest Receipt</span>
+                  <strong>{selectedAccountPaymentSummary.latestPayment?.Receipt_No || 'No payment yet'}</strong>
+                </div>
+              </div>
+
+              <div className="quick-summary-history">
+                <h3>Recent Payment Records</h3>
+                {selectedAccountPayments.length > 0 ? (
+                  <table className="quick-summary-table">
+                    <thead>
+                      <tr>
+                        <th>Receipt No.</th>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedAccountPayments.slice(0, 5).map((payment) => (
+                        <tr key={payment.Payment_ID}>
+                          <td>{payment.Receipt_No}</td>
+                          <td>{payment.Payment_Date ? new Date(payment.Payment_Date).toLocaleString() : 'N/A'}</td>
+                          <td>{payment.Payment_Method}</td>
+                          <td>{payment.Status}</td>
+                          <td>P{toAmount(payment.Amount).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="quick-summary-empty">
+                    No recorded payments yet for this account.
+                  </div>
+                )}
+              </div>
+
+              <div className="quick-summary-actions no-print">
+                <button className="btn btn-primary" onClick={() => window.print()}>
+                  <i className="fas fa-print"></i> Print Quick Summary
+                </button>
+                <button className="btn btn-secondary" onClick={() => setShowQuickSummaryModal(false)}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {editingPayment && (
+          <Modal
+            isOpen={Boolean(editingPayment)}
+            title="Correct Official Receipt Number"
+            onClose={() => {
+              setEditingPayment(null);
+              setEditedReceiptNumber('');
+            }}
+            size="medium"
+            footer={(
+              <>
+                <button className="btn btn-secondary" onClick={() => {
+                  setEditingPayment(null);
+                  setEditedReceiptNumber('');
+                }}>
+                  Cancel
+                </button>
+                <button className="btn btn-primary" onClick={handleSaveReceiptCorrection} disabled={loading}>
+                  <i className="fas fa-save"></i> Save Correction
+                </button>
+              </>
+            )}
+          >
+            <div className="form-group">
+              <label>Correct Official Receipt Number</label>
+              <input
+                type="text"
+                className="form-control amount-highlight-input"
+                value={editedReceiptNumber}
+                onChange={(e) => setEditedReceiptNumber(e.target.value)}
+                placeholder="Enter corrected OR number"
+              />
+            </div>
+            <div className="info-box" style={{ marginTop: '20px', marginBottom: 0 }}>
+              <i className="fas fa-info-circle"></i>
+              This updates the receipt number only. The payment amount and bill status stay unchanged.
             </div>
           </Modal>
         )}

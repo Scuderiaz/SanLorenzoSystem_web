@@ -16,6 +16,8 @@ interface BillRow {
   Bill_ID: number;
   Consumer_ID: number;
   Total_Amount: number;
+  Total_After_Due_Date?: number;
+  Amount_Due?: number;
   Status: string;
   Bill_Date?: string;
   Billing_Month?: string;
@@ -23,6 +25,7 @@ interface BillRow {
 
 interface PaymentRow {
   Payment_ID: number;
+  Bill_ID?: number;
   Consumer_ID: number;
   Amount_Paid: number;
   Payment_Date?: string;
@@ -124,13 +127,36 @@ const BillingReports: React.FC = () => {
     return consumers.filter((consumer) => !zoneFilter || String(consumer.Zone_ID) === zoneFilter);
   }, [consumers, zoneFilter]);
 
+  const paymentTotalsByBill = useMemo(() => {
+    return filteredPayments.reduce((totals, payment) => {
+      const normalizedStatus = String(payment.Status || '').toLowerCase();
+      if (!['validated', 'paid'].includes(normalizedStatus)) {
+        return totals;
+      }
+
+      if (!payment.Bill_ID) {
+        return totals;
+      }
+
+      totals.set(payment.Bill_ID, (totals.get(payment.Bill_ID) || 0) + Number(payment.Amount_Paid || 0));
+      return totals;
+    }, new Map<number, number>());
+  }, [filteredPayments]);
+
+  const finalizedPayments = useMemo(
+    () => filteredPayments.filter((payment) => ['validated', 'paid'].includes(String(payment.Status || '').toLowerCase())),
+    [filteredPayments]
+  );
+
   const totalConsumers = filteredConsumers.length;
   const activeConsumers = filteredConsumers.filter((consumer) => String(consumer.Status || '').toLowerCase() === 'active').length;
   const totalBilled = filteredBills.reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
-  const totalCollected = filteredPayments.reduce((sum, payment) => sum + Number(payment.Amount_Paid || 0), 0);
-  const totalOutstanding = filteredBills
-    .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
-    .reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
+  const totalCollected = finalizedPayments.reduce((sum, payment) => sum + Number(payment.Amount_Paid || 0), 0);
+  const totalOutstanding = filteredBills.reduce((sum, bill) => {
+    const billTotal = Number((bill.Total_After_Due_Date ?? bill.Amount_Due ?? bill.Total_Amount) || 0);
+    const paidAmount = paymentTotalsByBill.get(bill.Bill_ID) || 0;
+    return sum + Math.max(0, billTotal - paidAmount);
+  }, 0);
 
   const consumerReports = useMemo(() => {
     return zones
@@ -157,15 +183,19 @@ const BillingReports: React.FC = () => {
     filteredBills.forEach((bill) => {
       const key = monthKey(bill.Bill_Date || bill.Billing_Month);
       const entry = monthMap.get(key) || { billsGenerated: 0, totalInvoiced: 0, totalCollected: 0, unpaidBalance: 0 };
+      const billTotal = Number((bill.Total_After_Due_Date ?? bill.Amount_Due ?? bill.Total_Amount) || 0);
+      const paidAmount = paymentTotalsByBill.get(bill.Bill_ID) || 0;
       entry.billsGenerated += 1;
       entry.totalInvoiced += Number(bill.Total_Amount || 0);
-      if (String(bill.Status || '').toLowerCase() !== 'paid') {
-        entry.unpaidBalance += Number(bill.Total_Amount || 0);
-      }
+      entry.unpaidBalance += Math.max(0, billTotal - paidAmount);
       monthMap.set(key, entry);
     });
 
     filteredPayments.forEach((payment) => {
+      const normalizedStatus = String(payment.Status || '').toLowerCase();
+      if (!['validated', 'paid'].includes(normalizedStatus)) {
+        return;
+      }
       const key = monthKey(payment.Payment_Date);
       const entry = monthMap.get(key) || { billsGenerated: 0, totalInvoiced: 0, totalCollected: 0, unpaidBalance: 0 };
       entry.totalCollected += Number(payment.Amount_Paid || 0);
@@ -180,7 +210,7 @@ const BillingReports: React.FC = () => {
       collectionRate: entry.totalInvoiced > 0 ? `${((entry.totalCollected / entry.totalInvoiced) * 100).toFixed(1)}%` : '0.0%',
       unpaidBalance: entry.unpaidBalance,
     }));
-  }, [filteredBills, filteredPayments]);
+  }, [filteredBills, filteredPayments, paymentTotalsByBill]);
 
   const zoneOptions = zones.map((zone) => ({ value: zone.Zone_ID, label: formatZoneLabel(zone.Zone_Name, zone.Zone_ID) }));
 
@@ -313,7 +343,7 @@ const BillingReports: React.FC = () => {
             </div>
             <div className="card-body">
               <div className="card-value">{formatCurrency(totalCollected)}</div>
-              <div className="card-label">{filteredPayments.length} payment records</div>
+              <div className="card-label">{finalizedPayments.length} finalized payment records</div>
             </div>
           </div>
           <div className="card card-highlight-red">

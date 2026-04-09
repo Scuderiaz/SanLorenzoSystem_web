@@ -61,7 +61,7 @@ const defaultAdminSettings = {
   systemName: 'San Lorenzo Ruiz Water Billing System',
   currency: 'PHP',
   dueDateDays: '15',
-  lateFee: '5.0',
+  lateFee: '10.0',
 };
 let isSupabaseSyncRunning = false;
 let immediateSyncTimer = null;
@@ -853,6 +853,80 @@ function addOneDay(dateString) {
   return baseDate.toISOString().slice(0, 10);
 }
 
+function roundCurrency(value) {
+  return Math.round(Number(value || 0) * 100) / 100;
+}
+
+function isBillPastDue(dueDate, referenceDate = new Date()) {
+  if (!dueDate) return false;
+  const parsedDueDate = new Date(dueDate);
+  if (Number.isNaN(parsedDueDate.getTime())) return false;
+
+  const due = new Date(parsedDueDate);
+  due.setHours(0, 0, 0, 0);
+
+  const ref = new Date(referenceDate);
+  ref.setHours(0, 0, 0, 0);
+
+  return due < ref;
+}
+
+function applyBillPenaltySnapshot(bill, settings = readAdminSettings(), referenceDate = new Date()) {
+  if (!bill) return null;
+
+  const amountDue = roundCurrency(Number(bill.Amount_Due ?? bill.amount_due ?? bill.Total_Amount ?? bill.total_amount ?? 0));
+  const storedPenalty = roundCurrency(Number(bill.Penalty ?? bill.Penalties ?? bill.penalty ?? 0));
+  const lateFeePercent = Number(settings?.lateFee || defaultAdminSettings.lateFee || 0);
+  const dueDate = bill.Due_Date || bill.due_date || null;
+  const overdue = String(bill.Status || bill.status || '').toLowerCase() !== 'paid' && isBillPastDue(dueDate, referenceDate);
+  const computedPenalty = overdue ? roundCurrency(amountDue * (lateFeePercent / 100)) : 0;
+  const appliedPenalty = overdue ? Math.max(storedPenalty, computedPenalty) : storedPenalty;
+  const totalDueWithPenalty = roundCurrency(amountDue + appliedPenalty);
+
+  return {
+    ...bill,
+    Penalty: appliedPenalty,
+    Penalties: appliedPenalty,
+    Total_After_Due_Date: totalDueWithPenalty,
+    Overdue_Penalty: computedPenalty,
+    Late_Fee_Percentage: lateFeePercent,
+    Is_Overdue: overdue,
+    Status: overdue && String(bill.Status || bill.status || '').toLowerCase() !== 'paid'
+      ? 'Overdue'
+      : (bill.Status || bill.status),
+  };
+}
+
+async function generateOfficialReceiptNumber(executor = null, paymentDate = new Date()) {
+  const parsedDate = new Date(paymentDate);
+  const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+  const year = safeDate.getFullYear();
+  const month = String(safeDate.getMonth() + 1).padStart(2, '0');
+  const day = String(safeDate.getDate()).padStart(2, '0');
+  const datePrefix = `${year}${month}${day}`;
+  const likePattern = `OR-${datePrefix}-%`;
+
+  const fetchCount = async () => {
+    if (executor) {
+      const countResult = await executor.query(
+        'SELECT COUNT(*)::int AS count FROM payment WHERE or_number LIKE $1',
+        [likePattern]
+      );
+      return Number(countResult.rows[0]?.count || 0);
+    }
+
+    const { count, error } = await supabase
+      .from('payment')
+      .select('payment_id', { count: 'exact', head: true })
+      .like('or_number', likePattern);
+    if (error) throw error;
+    return Number(count || 0);
+  };
+
+  const sequence = String((await fetchCount()) + 1).padStart(4, '0');
+  return `OR-${datePrefix}-${sequence}`;
+}
+
 function formatCurrencyAmount(value) {
   return Number(value || 0).toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -865,7 +939,7 @@ function formatZoneDisplay(zoneName, zoneId) {
 }
 
 function isValidConsumerAccountNumber(accountNumber) {
-  return /^\d{2}-\d{2}-\d{3}$/.test(String(accountNumber || '').trim());
+  return /^(\d{2}-\d{2}-\d{3}|\d{2}-\d{2}-\d{3}-\d{1})$/.test(String(accountNumber || '').trim());
 }
 
 function normalizePhilippinePhoneNumber(phoneNumber) {
@@ -1437,6 +1511,8 @@ function mapBillRecord(bill, consumerMap = new Map(), classificationMap = new Ma
     Reading_ID: bill.reading_id,
     Bill_Date: bill.bill_date,
     Due_Date: bill.due_date,
+    Date_Covered_From: bill.date_covered_from ?? null,
+    Date_Covered_To: bill.date_covered_to ?? null,
     Total_Amount: bill.total_amount,
     Amount_Due: bill.amount_due ?? bill.total_amount ?? 0,
     Water_Charge: bill.water_charge ?? bill.class_cost ?? bill.total_amount ?? 0,
@@ -3126,7 +3202,7 @@ app.post('/api/consumers', async (req, res) => {
     if (normalizedAccountNumber && !isValidConsumerAccountNumber(normalizedAccountNumber)) {
       return res.status(400).json({
         success: false,
-        message: 'Account number must follow the format xx-xx-xxx.',
+        message: 'Account number must follow the format xx-xx-xxx or xx-xx-xxx-x.',
       });
     }
 
@@ -3336,7 +3412,7 @@ app.put('/api/consumers/:id', async (req, res) => {
   if (normalizedAccountNumber && !isValidConsumerAccountNumber(normalizedAccountNumber)) {
     return res.status(400).json({
       success: false,
-      message: 'Account number must follow the format xx-xx-xxx.',
+      message: 'Account number must follow the format xx-xx-xxx or xx-xx-xxx-x.',
     });
   }
 
@@ -3593,6 +3669,8 @@ app.get('/api/bills', async (req, res) => {
             b.bill_date AS "Bill_Date", b.due_date AS "Due_Date", b.total_amount AS "Total_Amount",
             b.amount_due AS "Amount_Due", b.water_charge AS "Water_Charge", b.class_cost AS "Basic_Charge",
             b.meter_maintenance_fee AS "Environmental_Fee", b.meter_maintenance_fee AS "Meter_Fee",
+            b.connection_fee AS "Connection_Fee",
+            b.date_covered_from AS "Date_Covered_From", b.date_covered_to AS "Date_Covered_To",
             b.previous_balance AS "Previous_Balance", b.previous_penalty AS "Previous_Penalty",
             b.penalty AS "Penalties", b.penalty AS "Penalty", b.total_after_due_date AS "Total_After_Due_Date",
             b.status AS "Status", b.billing_month AS "Billing_Month",
@@ -3649,12 +3727,17 @@ app.post('/api/bills', async (req, res) => {
     const bill = req.body;
     const billDate = bill.Bill_Date || new Date().toISOString();
     const dueDate = bill.Due_Date || billDate;
+    const readingDate = bill.Reading_Date || billDate;
     const totalAmount = Number(bill.Total_Amount ?? bill.Amount_Due ?? 0);
     const penalty = Number(bill.Penalty ?? bill.Penalties ?? 0);
     const previousBalance = Number(bill.Previous_Balance ?? 0);
     const previousPenalty = Number(bill.Previous_Penalty ?? 0);
     const currentCharge = Number(bill.Water_Charge ?? bill.Basic_Charge ?? totalAmount);
     const maintenanceFee = Number(bill.Environmental_Fee ?? bill.Meter_Fee ?? 0);
+    const connectionFee = Number(bill.Connection_Fee ?? 0);
+    const previousReading = Number(bill.Previous_Reading ?? 0);
+    const currentReading = Number(bill.Current_Reading ?? previousReading);
+    const consumption = Number(bill.Consumption ?? Math.max(0, currentReading - previousReading));
     const totalAfterDueDate = Number(
       bill.Total_After_Due_Date ??
       (totalAmount + penalty)
@@ -3673,6 +3756,7 @@ app.post('/api/bills', async (req, res) => {
       class_cost: Number(bill.Basic_Charge ?? currentCharge),
       water_charge: currentCharge,
       meter_maintenance_fee: maintenanceFee,
+      connection_fee: connectionFee,
       amount_due: Number(bill.Amount_Due ?? totalAmount),
       previous_balance: previousBalance,
       previous_penalty: previousPenalty,
@@ -3682,14 +3766,46 @@ app.post('/api/bills', async (req, res) => {
     const row = await withPostgresPrimary(
       'bills.create',
       async () => {
+        if (!payload.reading_id) {
+          const meterResult = await pool.query(`
+            SELECT meter_id
+            FROM meter
+            WHERE consumer_id = $1
+            ORDER BY meter_id DESC
+            LIMIT 1
+          `, [payload.consumer_id]);
+          const meterId = meterResult.rows[0]?.meter_id || null;
+
+          const readingInsert = await pool.query(`
+            INSERT INTO meterreadings (
+              consumer_id, meter_id, previous_reading, current_reading, consumption,
+              reading_status, notes, reading_date, route_id, meter_reader_id
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING reading_id
+          `, [
+            payload.consumer_id,
+            meterId,
+            previousReading,
+            currentReading,
+            consumption,
+            'Recorded',
+            bill.Notes || (bill.Water_Charge !== undefined ? 'Auto-created from manual bill entry.' : 'Auto-created for bill record.'),
+            readingDate,
+            1,
+            1,
+          ]);
+          payload.reading_id = readingInsert.rows[0]?.reading_id || null;
+        }
+
         const { rows } = await pool.query(`
           INSERT INTO bills (
             consumer_id, reading_id, bill_date, due_date, total_amount, status, billing_officer_id,
             billing_month, date_covered_from, date_covered_to, class_cost, water_charge,
-            meter_maintenance_fee, amount_due, previous_balance, previous_penalty, penalty,
-            total_after_due_date
+            meter_maintenance_fee, connection_fee, amount_due, previous_balance, previous_penalty,
+            penalty, total_after_due_date
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
           RETURNING *, bill_id AS "Bill_ID"
         `, [
           payload.consumer_id,
@@ -3705,6 +3821,7 @@ app.post('/api/bills', async (req, res) => {
           payload.class_cost,
           payload.water_charge,
           payload.meter_maintenance_fee,
+          payload.connection_fee,
           payload.amount_due,
           payload.previous_balance,
           payload.previous_penalty,
@@ -3714,6 +3831,35 @@ app.post('/api/bills', async (req, res) => {
         return rows[0];
       },
       async () => {
+        if (!payload.reading_id) {
+          const { data: meterRows, error: meterError } = await supabase
+            .from('meter')
+            .select('meter_id')
+            .eq('consumer_id', payload.consumer_id)
+            .order('meter_id', { ascending: false })
+            .limit(1);
+          if (meterError) throw meterError;
+
+          const { data: readingRow, error: readingError } = await supabase
+            .from('meterreadings')
+            .insert([{
+              consumer_id: payload.consumer_id,
+              meter_id: meterRows?.[0]?.meter_id || null,
+              previous_reading: previousReading,
+              current_reading: currentReading,
+              consumption,
+              reading_status: 'Recorded',
+              notes: bill.Notes || (bill.Water_Charge !== undefined ? 'Auto-created from manual bill entry.' : 'Auto-created for bill record.'),
+              reading_date: readingDate,
+              route_id: 1,
+              meter_reader_id: 1,
+            }])
+            .select('reading_id')
+            .single();
+          if (readingError) throw readingError;
+          payload.reading_id = readingRow?.reading_id || null;
+        }
+
         const { data, error } = await supabase.from('bills').insert([payload]).select().single();
         if (error) throw error;
         return { ...data, Bill_ID: data.bill_id };
@@ -3725,6 +3871,259 @@ app.post('/api/bills', async (req, res) => {
     await logRequestError(req, 'bills.create', error);
     console.error('Error creating bill:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/bills/:id', async (req, res) => {
+  try {
+    const billId = Number(req.params.id);
+    const bill = req.body;
+
+    if (!Number.isFinite(billId)) {
+      return res.status(400).json({ error: 'Invalid bill ID.' });
+    }
+
+    const billDate = bill.Bill_Date || new Date().toISOString();
+    const dueDate = bill.Due_Date || billDate;
+    const readingDate = bill.Reading_Date || billDate;
+    const totalAmount = Number(bill.Total_Amount ?? bill.Amount_Due ?? 0);
+    const penalty = Number(bill.Penalty ?? bill.Penalties ?? 0);
+    const previousBalance = Number(bill.Previous_Balance ?? 0);
+    const previousPenalty = Number(bill.Previous_Penalty ?? 0);
+    const currentCharge = Number(bill.Water_Charge ?? bill.Basic_Charge ?? totalAmount);
+    const maintenanceFee = Number(bill.Environmental_Fee ?? bill.Meter_Fee ?? 0);
+    const connectionFee = Number(bill.Connection_Fee ?? 0);
+    const previousReading = Number(bill.Previous_Reading ?? 0);
+    const currentReading = Number(bill.Current_Reading ?? previousReading);
+    const consumption = Number(bill.Consumption ?? Math.max(0, currentReading - previousReading));
+    const totalAfterDueDate = Number(
+      bill.Total_After_Due_Date ??
+      (totalAmount + penalty)
+    );
+    const payload = {
+      consumer_id: bill.Consumer_ID,
+      reading_id: bill.Reading_ID || null,
+      bill_date: billDate,
+      due_date: dueDate,
+      total_amount: totalAmount,
+      status: bill.Status || 'Unpaid',
+      billing_officer_id: Number(bill.Billing_Officer_ID || 1),
+      billing_month: bill.Billing_Month || new Date(billDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      date_covered_from: bill.Date_Covered_From || billDate,
+      date_covered_to: bill.Date_Covered_To || dueDate,
+      class_cost: Number(bill.Basic_Charge ?? currentCharge),
+      water_charge: currentCharge,
+      meter_maintenance_fee: maintenanceFee,
+      connection_fee: connectionFee,
+      amount_due: Number(bill.Amount_Due ?? totalAmount),
+      previous_balance: previousBalance,
+      previous_penalty: previousPenalty,
+      penalty,
+      total_after_due_date: totalAfterDueDate,
+    };
+
+    const row = await withPostgresPrimary(
+      'bills.update',
+      async () => {
+        const existingBillResult = await pool.query(`
+          SELECT bill_id, consumer_id, reading_id, status
+          FROM bills
+          WHERE bill_id = $1
+          LIMIT 1
+        `, [billId]);
+        const existingBill = existingBillResult.rows[0];
+
+        if (!existingBill) {
+          throw new Error('Bill not found.');
+        }
+
+        if (String(existingBill.status || '').toLowerCase() === 'paid') {
+          const paidError = new Error('Paid bills can no longer be edited.');
+          paidError.statusCode = 400;
+          throw paidError;
+        }
+
+        if (!payload.reading_id) {
+          payload.reading_id = existingBill.reading_id || null;
+        }
+
+        if (!payload.reading_id) {
+          const meterResult = await pool.query(`
+            SELECT meter_id
+            FROM meter
+            WHERE consumer_id = $1
+            ORDER BY meter_id DESC
+            LIMIT 1
+          `, [payload.consumer_id]);
+          const meterId = meterResult.rows[0]?.meter_id || null;
+
+          const readingInsert = await pool.query(`
+            INSERT INTO meterreadings (
+              consumer_id, meter_id, previous_reading, current_reading, consumption,
+              reading_status, notes, reading_date, route_id, meter_reader_id
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING reading_id
+          `, [
+            payload.consumer_id,
+            meterId,
+            previousReading,
+            currentReading,
+            consumption,
+            'Recorded',
+            bill.Notes || 'Updated from bill registry.',
+            readingDate,
+            1,
+            1,
+          ]);
+          payload.reading_id = readingInsert.rows[0]?.reading_id || null;
+        } else {
+          await pool.query(`
+            UPDATE meterreadings
+            SET consumer_id = $1,
+                previous_reading = $2,
+                current_reading = $3,
+                consumption = $4,
+                reading_date = $5,
+                notes = $6
+            WHERE reading_id = $7
+          `, [
+            payload.consumer_id,
+            previousReading,
+            currentReading,
+            consumption,
+            readingDate,
+            bill.Notes || 'Updated from bill registry.',
+            payload.reading_id,
+          ]);
+        }
+
+        const { rows } = await pool.query(`
+          UPDATE bills
+          SET consumer_id = $1,
+              reading_id = $2,
+              bill_date = $3,
+              due_date = $4,
+              total_amount = $5,
+              status = $6,
+              billing_officer_id = $7,
+              billing_month = $8,
+              date_covered_from = $9,
+              date_covered_to = $10,
+              class_cost = $11,
+              water_charge = $12,
+              meter_maintenance_fee = $13,
+              connection_fee = $14,
+              amount_due = $15,
+              previous_balance = $16,
+              previous_penalty = $17,
+              penalty = $18,
+              total_after_due_date = $19
+          WHERE bill_id = $20
+          RETURNING *, bill_id AS "Bill_ID"
+        `, [
+          payload.consumer_id,
+          payload.reading_id,
+          payload.bill_date,
+          payload.due_date,
+          payload.total_amount,
+          payload.status,
+          payload.billing_officer_id,
+          payload.billing_month,
+          payload.date_covered_from,
+          payload.date_covered_to,
+          payload.class_cost,
+          payload.water_charge,
+          payload.meter_maintenance_fee,
+          payload.connection_fee,
+          payload.amount_due,
+          payload.previous_balance,
+          payload.previous_penalty,
+          payload.penalty,
+          payload.total_after_due_date,
+          billId,
+        ]);
+        return rows[0];
+      },
+      async () => {
+        const { data: existingBill, error: existingBillError } = await supabase
+          .from('bills')
+          .select('bill_id, consumer_id, reading_id, status')
+          .eq('bill_id', billId)
+          .single();
+        if (existingBillError) throw existingBillError;
+        if (!existingBill) {
+          throw new Error('Bill not found.');
+        }
+        if (String(existingBill.status || '').toLowerCase() === 'paid') {
+          const paidError = new Error('Paid bills can no longer be edited.');
+          paidError.statusCode = 400;
+          throw paidError;
+        }
+
+        if (!payload.reading_id) {
+          payload.reading_id = existingBill.reading_id || null;
+        }
+
+        if (!payload.reading_id) {
+          const { data: meterRows, error: meterError } = await supabase
+            .from('meter')
+            .select('meter_id')
+            .eq('consumer_id', payload.consumer_id)
+            .order('meter_id', { ascending: false })
+            .limit(1);
+          if (meterError) throw meterError;
+
+          const { data: readingRow, error: readingError } = await supabase
+            .from('meterreadings')
+            .insert([{
+              consumer_id: payload.consumer_id,
+              meter_id: meterRows?.[0]?.meter_id || null,
+              previous_reading: previousReading,
+              current_reading: currentReading,
+              consumption,
+              reading_status: 'Recorded',
+              notes: bill.Notes || 'Updated from bill registry.',
+              reading_date: readingDate,
+              route_id: 1,
+              meter_reader_id: 1,
+            }])
+            .select('reading_id')
+            .single();
+          if (readingError) throw readingError;
+          payload.reading_id = readingRow?.reading_id || null;
+        } else {
+          const { error: readingUpdateError } = await supabase
+            .from('meterreadings')
+            .update({
+              consumer_id: payload.consumer_id,
+              previous_reading: previousReading,
+              current_reading: currentReading,
+              consumption,
+              reading_date: readingDate,
+              notes: bill.Notes || 'Updated from bill registry.',
+            })
+            .eq('reading_id', payload.reading_id);
+          if (readingUpdateError) throw readingUpdateError;
+        }
+
+        const { data, error } = await supabase
+          .from('bills')
+          .update(payload)
+          .eq('bill_id', billId)
+          .select()
+          .single();
+        if (error) throw error;
+        return { ...data, Bill_ID: data.bill_id };
+      }
+    );
+
+    scheduleImmediateSync('bills-update');
+    return res.json({ success: true, data: row });
+  } catch (error) {
+    await logRequestError(req, 'bills.update', error);
+    console.error('Error updating bill:', error);
+    return res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -3887,19 +4286,44 @@ app.get('/api/payments', async (req, res) => {
 app.post('/api/payments', async (req, res) => {
   try {
     const payment = req.body;
+    const adminSettings = readAdminSettings();
     const payload = {
       bill_id: payment.Bill_ID,
       consumer_id: payment.Consumer_ID,
-      amount_paid: payment.Amount_Paid,
+      amount_paid: Number(payment.Amount_Paid || 0),
       payment_date: payment.Payment_Date,
       payment_method: payment.Payment_Method,
       reference_number: payment.Reference_No || payment.Reference_Number || null,
       or_number: payment.OR_Number || null,
-      status: payment.Status || 'Pending',
+      status: payment.Status || 'Validated',
     };
     const row = await withPostgresPrimary(
       'payments.create',
       async () => {
+        if (!payload.or_number) {
+          payload.or_number = await generateOfficialReceiptNumber(pool, payload.payment_date);
+        }
+        if (!payload.reference_number) {
+          payload.reference_number = payload.or_number;
+        }
+
+        const billLookup = await pool.query('SELECT * FROM bills WHERE bill_id = $1 LIMIT 1', [payload.bill_id]);
+        const existingBill = billLookup.rows[0];
+        const adjustedBill = applyBillPenaltySnapshot(existingBill, adminSettings, payload.payment_date || new Date());
+        if (adjustedBill && existingBill) {
+          await pool.query(
+            `UPDATE bills
+             SET penalty = $1, total_after_due_date = $2, status = $3
+             WHERE bill_id = $4`,
+            [
+              adjustedBill.Penalty || 0,
+              adjustedBill.Total_After_Due_Date || adjustedBill.Total_Amount || 0,
+              adjustedBill.Status || existingBill.status,
+              payload.bill_id,
+            ]
+          );
+        }
+
         const { rows } = await pool.query(`
           INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number, or_number, status)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -3916,15 +4340,67 @@ app.post('/api/payments', async (req, res) => {
         ]);
 
         if (['validated', 'paid'].includes(String(payload.status || '').toLowerCase())) {
-          await pool.query('UPDATE bills SET status = $1 WHERE bill_id = $2', ['Paid', payment.Bill_ID]);
+          const paymentTotals = await pool.query(
+            `SELECT COALESCE(SUM(amount_paid), 0)::numeric AS total_paid
+             FROM payment
+             WHERE bill_id = $1
+               AND LOWER(COALESCE(status, 'validated')) IN ('validated', 'paid')`,
+            [payment.Bill_ID]
+          );
+          const totalPaid = Number(paymentTotals.rows[0]?.total_paid || 0);
+          const amountDue = Number(adjustedBill?.Total_After_Due_Date || adjustedBill?.Total_Amount || existingBill?.total_after_due_date || existingBill?.total_amount || 0);
+          const nextBillStatus = totalPaid >= amountDue && amountDue > 0 ? 'Paid' : 'Partially Paid';
+          await pool.query(
+            'UPDATE bills SET status = $1 WHERE bill_id = $2',
+            [nextBillStatus, payment.Bill_ID]
+          );
         }
         return rows[0];
       },
       async () => {
+        if (!payload.or_number) {
+          payload.or_number = await generateOfficialReceiptNumber(null, payload.payment_date);
+        }
+        if (!payload.reference_number) {
+          payload.reference_number = payload.or_number;
+        }
+
+        const { data: existingBill, error: billLookupError } = await supabase
+          .from('bills')
+          .select('*')
+          .eq('bill_id', payload.bill_id)
+          .limit(1)
+          .maybeSingle();
+        if (billLookupError) throw billLookupError;
+
+        const adjustedBill = applyBillPenaltySnapshot(existingBill, adminSettings, payload.payment_date || new Date());
+        if (adjustedBill && existingBill) {
+          const { error: billUpdateError } = await supabase
+            .from('bills')
+            .update({
+              penalty: adjustedBill.Penalty || 0,
+              total_after_due_date: adjustedBill.Total_After_Due_Date || adjustedBill.Total_Amount || 0,
+              status: adjustedBill.Status || existingBill.status,
+            })
+            .eq('bill_id', payload.bill_id);
+          if (billUpdateError) throw billUpdateError;
+        }
+
         const { data, error } = await supabase.from('payment').insert([payload]).select().single();
         if (error) throw error;
         if (['validated', 'paid'].includes(String(payload.status || '').toLowerCase())) {
-          const { error: billError } = await supabase.from('bills').update({ status: 'Paid' }).eq('bill_id', payment.Bill_ID);
+          const { data: billPayments, error: billPaymentsError } = await supabase
+            .from('payment')
+            .select('amount_paid, status')
+            .eq('bill_id', payment.Bill_ID);
+          if (billPaymentsError) throw billPaymentsError;
+
+          const totalPaid = (billPayments || [])
+            .filter((entry) => ['validated', 'paid'].includes(String(entry.status || 'validated').toLowerCase()))
+            .reduce((sum, entry) => sum + Number(entry.amount_paid || 0), 0);
+          const amountDue = Number(adjustedBill?.Total_After_Due_Date || adjustedBill?.Total_Amount || existingBill?.total_after_due_date || existingBill?.total_amount || 0);
+          const nextBillStatus = totalPaid >= amountDue && amountDue > 0 ? 'Paid' : 'Partially Paid';
+          const { error: billError } = await supabase.from('bills').update({ status: nextBillStatus }).eq('bill_id', payment.Bill_ID);
           if (billError) throw billError;
         }
         return { ...data, Payment_ID: data.payment_id };
@@ -3936,6 +4412,57 @@ app.post('/api/payments', async (req, res) => {
     await logRequestError(req, 'payments.create', error);
     console.error('Error creating payment:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/payments/:id', async (req, res) => {
+  const { id } = req.params;
+  const orNumber = String(req.body?.OR_Number || req.body?.or_number || '').trim();
+  const referenceNumber = String(req.body?.Reference_No || req.body?.Reference_Number || req.body?.reference_number || orNumber).trim();
+
+  if (!orNumber) {
+    return res.status(400).json({ success: false, message: 'Official receipt number is required.' });
+  }
+
+  try {
+    const updatedPayment = await withPostgresPrimary(
+      'payments.update',
+      async () => {
+        const { rows } = await pool.query(
+          `UPDATE payment
+           SET or_number = $1,
+               reference_number = $2
+           WHERE payment_id = $3
+           RETURNING payment_id AS "Payment_ID", or_number AS "OR_Number", reference_number AS "Reference_No"`,
+          [orNumber, referenceNumber, id]
+        );
+        if (!rows[0]) {
+          throw new Error('Payment not found.');
+        }
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('payment')
+          .update({ or_number: orNumber, reference_number: referenceNumber })
+          .eq('payment_id', id)
+          .select('payment_id, or_number, reference_number')
+          .single();
+        if (error) throw error;
+        return {
+          Payment_ID: data.payment_id,
+          OR_Number: data.or_number,
+          Reference_No: data.reference_number,
+        };
+      }
+    );
+
+    scheduleImmediateSync('payments-update');
+    return res.json({ success: true, data: updatedPayment });
+  } catch (error) {
+    await logRequestError(req, 'payments.update', error);
+    console.error('Error updating payment:', error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -4313,6 +4840,7 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
   }
 
   try {
+    const adminSettings = readAdminSettings();
     const result = await withPostgresPrimary(
       'treasurer.accountLookup',
       async () => {
@@ -4348,11 +4876,13 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
 
         const mappedBills = billRows.rows.map((bill) => mapBillRecord(bill, new Map([[consumer.consumer_id, consumer]]), new Map([[consumer.classification_id, consumer.classification_name]])));
         const mappedPayments = paymentRows.rows.map((payment) => mapPaymentRecord(payment, new Map([[consumer.consumer_id, consumer]]), new Map(mappedBills.map((bill) => [bill.Bill_ID, { total_amount: bill.Total_Amount, billing_month: bill.Billing_Month }]))));
-        const currentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || mappedBills[0] || null;
+        const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || mappedBills[0] || null;
+        const currentBill = applyBillPenaltySnapshot(rawCurrentBill, adminSettings);
         const previousBalance = mappedBills
           .filter((bill) => currentBill ? bill.Bill_ID !== currentBill.Bill_ID : true)
           .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
           .reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
+        const totalDue = roundCurrency(Number(currentBill?.Amount_Due || currentBill?.Total_Amount || 0) + previousBalance + Number(currentBill?.Penalty || 0));
 
         return {
           success: true,
@@ -4369,11 +4899,14 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
             },
             currentBill,
             summary: {
-              currentBillAmount: Number(currentBill?.Total_Amount || 0),
+              currentBillAmount: Number(currentBill?.Amount_Due || currentBill?.Total_Amount || 0),
               previousBalance,
-              totalDue: Number(currentBill?.Total_Amount || 0) + previousBalance,
+              overduePenalty: Number(currentBill?.Penalty || 0),
+              totalDue,
               dueDate: currentBill?.Due_Date || null,
               billingMonth: currentBill?.Billing_Month || null,
+              lateFeePercentage: Number(currentBill?.Late_Fee_Percentage || adminSettings?.lateFee || 0),
+              isOverdue: Boolean(currentBill?.Is_Overdue),
             },
             bills: mappedBills,
             payments: mappedPayments,
@@ -4420,11 +4953,13 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
         const mappedPayments = (paymentsResult.data || [])
           .filter((payment) => payment.consumer_id === matchedConsumer.consumer_id)
           .map((payment) => mapPaymentRecord(payment, new Map([[matchedConsumer.consumer_id, matchedConsumer]]), new Map(mappedBills.map((bill) => [bill.Bill_ID, { total_amount: bill.Total_Amount, billing_month: bill.Billing_Month }]))));
-        const currentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || mappedBills[0] || null;
+        const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || mappedBills[0] || null;
+        const currentBill = applyBillPenaltySnapshot(rawCurrentBill, adminSettings);
         const previousBalance = mappedBills
           .filter((bill) => currentBill ? bill.Bill_ID !== currentBill.Bill_ID : true)
           .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
           .reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
+        const totalDue = roundCurrency(Number(currentBill?.Amount_Due || currentBill?.Total_Amount || 0) + previousBalance + Number(currentBill?.Penalty || 0));
 
         return {
           success: true,
@@ -4441,11 +4976,14 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
             },
             currentBill,
             summary: {
-              currentBillAmount: Number(currentBill?.Total_Amount || 0),
+              currentBillAmount: Number(currentBill?.Amount_Due || currentBill?.Total_Amount || 0),
               previousBalance,
-              totalDue: Number(currentBill?.Total_Amount || 0) + previousBalance,
+              overduePenalty: Number(currentBill?.Penalty || 0),
+              totalDue,
               dueDate: currentBill?.Due_Date || null,
               billingMonth: currentBill?.Billing_Month || null,
+              lateFeePercentage: Number(currentBill?.Late_Fee_Percentage || adminSettings?.lateFee || 0),
+              isOverdue: Boolean(currentBill?.Is_Overdue),
             },
             bills: mappedBills,
             payments: mappedPayments,

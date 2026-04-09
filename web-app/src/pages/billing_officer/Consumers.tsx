@@ -272,7 +272,7 @@ const Consumers: React.FC = () => {
 
   const handleSaveConsumer = async () => {
     if (formData.accountNumber.trim() && !ACCOUNT_NUMBER_PATTERN.test(formData.accountNumber.trim())) {
-      showToast('Account number must follow the format xx-xx-xxx.', 'error');
+      showToast('Account number must follow the format xx-xx-xxx or xx-xx-xxx-x.', 'error');
       return;
     }
 
@@ -555,7 +555,7 @@ const Consumers: React.FC = () => {
               value={formData.accountNumber}
               onChange={(v) => setFormData({ ...formData, accountNumber: v })}
               required
-              placeholder="xx-xx-xxx"
+              placeholder="xx-xx-xxx or xx-xx-xxx-x"
             />
             <FormInput label="Meter Number" value={formData.meterNumber} onChange={(v) => setFormData({ ...formData, meterNumber: v })} />
             <FormSelect

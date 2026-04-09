@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
@@ -43,6 +43,15 @@ interface PaymentSummaryRow {
   Status?: string;
 }
 
+interface QuickLookupAccount {
+  Consumer_ID: number;
+  Account_Number: string;
+  First_Name?: string;
+  Middle_Name?: string;
+  Last_Name?: string;
+  Address?: string;
+}
+
 const sameDay = (value: string | null | undefined, dateText: string): boolean => {
   if (!value) {
     return false;
@@ -78,6 +87,9 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [quickSearch, setQuickSearch] = useState('');
   const [quickViewBill, setQuickViewBill] = useState<QuickLookupResult | null>(null);
+  const [quickLookupAccounts, setQuickLookupAccounts] = useState<QuickLookupAccount[]>([]);
+  const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
+  const quickLookupRef = useRef<HTMLDivElement | null>(null);
 
   const loadDashboardFromPayments = useCallback(async () => {
     const response = await fetch(`${API_URL}/payments`);
@@ -124,25 +136,50 @@ const Dashboard: React.FC = () => {
     }
   }, [API_URL, loadDashboardFromPayments, showToast]);
 
+  const loadQuickLookupAccounts = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/consumers`);
+      const data = await response.json();
+      setQuickLookupAccounts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading quick lookup accounts:', error);
+    }
+  }, [API_URL]);
+
   useEffect(() => {
     loadRecentPayments();
-  }, [loadRecentPayments]);
+    loadQuickLookupAccounts();
+  }, [loadQuickLookupAccounts, loadRecentPayments]);
 
-  const handleQuickLookup = useCallback(async () => {
-    if (!quickSearch.trim()) {
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (quickLookupRef.current && !quickLookupRef.current.contains(event.target as Node)) {
+        setShowQuickSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const performQuickLookup = useCallback(async (rawQuery: string) => {
+    const query = rawQuery.trim();
+    if (!query) {
       showToast('Enter an account number or consumer name first.', 'error');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/treasurer/account-lookup?q=${encodeURIComponent(quickSearch.trim())}`);
+      const response = await fetch(`${API_URL}/treasurer/account-lookup?q=${encodeURIComponent(query)}`);
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.message || 'Account not found.');
       }
 
       setQuickViewBill(result.data?.summary || null);
+      setQuickSearch(query);
+      setShowQuickSuggestions(false);
     } catch (error: any) {
       console.error('Quick lookup failed:', error);
       setQuickViewBill(null);
@@ -150,7 +187,30 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, quickSearch, showToast]);
+  }, [API_URL, showToast]);
+
+  const handleQuickLookup = useCallback(async () => {
+    await performQuickLookup(quickSearch);
+  }, [performQuickLookup, quickSearch]);
+
+  const quickSuggestions = useMemo(() => {
+    const query = quickSearch.trim().toLowerCase();
+
+    const mapped = quickLookupAccounts.map((account) => ({
+      ...account,
+      Consumer_Name: [account.First_Name, account.Middle_Name, account.Last_Name].filter(Boolean).join(' ').trim(),
+    }));
+
+    const filtered = query
+      ? mapped.filter((account) =>
+          account.Account_Number?.toLowerCase().includes(query) ||
+          account.Consumer_Name.toLowerCase().includes(query) ||
+          account.Address?.toLowerCase().includes(query)
+        )
+      : mapped;
+
+    return filtered.slice(0, 6);
+  }, [quickLookupAccounts, quickSearch]);
 
   const columns = useMemo(() => [
     {
@@ -202,17 +262,43 @@ const Dashboard: React.FC = () => {
       <div className="treasurer-dashboard-page">
         <div className="card quick-view-section">
           <div className="card-header">
-            <h2 className="card-title"><i className="fas fa-search-dollar"></i> Bill Quick Lookup</h2>
-            <div className="header-search">
-              <input
-                type="text"
-                placeholder="Enter Account No. or Consumer Name..."
-                className="quick-search-input"
-                value={quickSearch}
-                onChange={(e) => setQuickSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleQuickLookup()}
-              />
-              <button className="btn btn-primary btn-sm" onClick={handleQuickLookup}>Search</button>
+            <div className="quick-view-toolbar">
+              <div className="quick-view-heading">
+                <h2 className="card-title"><i className="fas fa-search-dollar"></i> Bill Quick Lookup</h2>
+                <p className="quick-view-subtitle">Search an account to preview the latest bill, balance, and payable amount.</p>
+              </div>
+              <div className="quick-view-search-wrap" ref={quickLookupRef}>
+                <div className="header-search quick-view-search">
+                <input
+                  type="text"
+                  placeholder="Enter Account No. or Consumer Name..."
+                  className="quick-search-input"
+                  value={quickSearch}
+                  onChange={(e) => setQuickSearch(e.target.value)}
+                  onFocus={() => setShowQuickSuggestions(true)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleQuickLookup()}
+                />
+                <button className="btn btn-primary btn-sm" onClick={handleQuickLookup}>Search</button>
+                </div>
+                {showQuickSuggestions && quickSuggestions.length > 0 && (
+                  <div className="quick-search-suggestions">
+                    {quickSuggestions.map((account) => (
+                      <button
+                        key={account.Consumer_ID}
+                        type="button"
+                        className="quick-search-suggestion"
+                        onClick={() => performQuickLookup(account.Account_Number || account.Consumer_Name)}
+                      >
+                        <div className="quick-search-suggestion-main">
+                          <strong>{account.Account_Number || 'No account number'}</strong>
+                          <span>{account.Consumer_Name || 'Unnamed consumer'}</span>
+                        </div>
+                        <span className="quick-search-suggestion-address">{account.Address || 'No saved address'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="card-body">
@@ -235,15 +321,23 @@ const Dashboard: React.FC = () => {
                   <span className="value">{quickViewBill.dueDate ? new Date(quickViewBill.dueDate).toLocaleDateString() : 'N/A'}</span>
                 </div>
                 <div className="quick-actions">
-                  <button className="btn btn-primary" onClick={() => navigate('/payments')}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => navigate(`/payments?account=${encodeURIComponent(quickSearch.trim())}`)}
+                  >
                     <i className="fas fa-file-invoice"></i> View Full Bill & Pay
                   </button>
                 </div>
               </div>
             ) : (
               <div className="empty-quick-view">
-                <i className="fas fa-id-card"></i>
-                <p>Search an account number to see a quick bill summary.</p>
+                <div className="empty-quick-view-icon">
+                  <i className="fas fa-id-card"></i>
+                </div>
+                <div className="empty-quick-view-copy">
+                  <h3>No account selected yet</h3>
+                  <p>Search an account number or consumer name to preview the latest quick bill summary.</p>
+                </div>
               </div>
             )}
           </div>

@@ -1,0 +1,7 @@
+{
+  "systemName": "San Lorenzo Ruiz Water Billing System",
+  "currency": "PHP",
+  "dueDateDays": "15",
+  "lateFee": "10.0",
+  "modifiedBy": 1
+}
