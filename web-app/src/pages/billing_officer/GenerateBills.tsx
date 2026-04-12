@@ -5,6 +5,16 @@ import Modal from '../../components/Common/Modal';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
+import {
+  getErrorMessage,
+  loadAdminSettingsWithFallback,
+  loadBillsWithFallback,
+  loadConsumersWithFallback,
+  loadLatestWaterRateWithFallback,
+  loadMeterReadingsWithFallback,
+  loadZonesWithFallback,
+  requestJson,
+} from '../../services/userManagementApi';
 import './GenerateBills.css';
 
 interface BillRow {
@@ -35,6 +45,7 @@ interface BillRow {
 
 interface ConsumerRow {
   Consumer_ID: number;
+  Meter_ID?: number | null;
   First_Name?: string;
   Middle_Name?: string;
   Last_Name?: string;
@@ -64,6 +75,7 @@ interface AdminSettingsRow {
 interface MeterReadingRow {
   Reading_ID: number;
   Consumer_ID: number;
+  Meter_ID?: number | null;
   Previous_Reading?: number;
   Current_Reading?: number;
   Consumption?: number;
@@ -132,7 +144,6 @@ const computeChargeFromRate = (consumption: number, rate?: WaterRateRow | null) 
 
 const GenerateBills: React.FC = () => {
   const { showToast } = useToast();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const [bills, setBills] = useState<BillRow[]>([]);
   const [consumers, setConsumers] = useState<ConsumerRow[]>([]);
@@ -169,43 +180,40 @@ const GenerateBills: React.FC = () => {
   const loadBills = useCallback(async () => {
     setLoading(true);
     try {
-      const [billsResponse, consumersResponse, zonesResponse, settingsResponse, readingsResponse] = await Promise.all([
-        fetch(`${API_URL}/bills`),
-        fetch(`${API_URL}/consumers`),
-        fetch(`${API_URL}/zones`),
-        fetch(`${API_URL}/admin/settings`),
-        fetch(`${API_URL}/meter-readings`),
+      const [billsResult, consumersResult, zonesResult, settingsResult, readingsResult, waterRateResult] = await Promise.all([
+        loadBillsWithFallback(),
+        loadConsumersWithFallback(),
+        loadZonesWithFallback(),
+        loadAdminSettingsWithFallback(),
+        loadMeterReadingsWithFallback(),
+        loadLatestWaterRateWithFallback(),
       ]);
 
-      const [billsResult, consumersResult, zonesResult, settingsResult, readingsResult] = await Promise.all([
-        billsResponse.json(),
-        consumersResponse.json(),
-        zonesResponse.json(),
-        settingsResponse.json(),
-        readingsResponse.json(),
-      ]);
+      setBills(billsResult.data || []);
+      setConsumers(consumersResult.data || []);
+      setZones(zonesResult.data || []);
+      setAdminSettings(settingsResult.data?.systemSettings || { lateFee: 10, dueDateDays: 15 });
+      setMeterReadings(readingsResult.data || []);
+      setWaterRate(waterRateResult.data || settingsResult.data?.waterRates || null);
 
-      setBills(Array.isArray(billsResult) ? billsResult : (billsResult.data || []));
-      setConsumers(Array.isArray(consumersResult) ? consumersResult : []);
-      setZones(Array.isArray(zonesResult.data) ? zonesResult.data.map((zone: any) => ({
-        Zone_ID: zone.Zone_ID ?? zone.zone_id,
-        Zone_Name: zone.Zone_Name ?? zone.zone_name,
-      })) : []);
-      setAdminSettings(settingsResult?.data?.systemSettings || { lateFee: 10, dueDateDays: 15 });
-      setMeterReadings(Array.isArray(readingsResult) ? readingsResult : (readingsResult.data || []));
-
-      const waterRateResponse = await fetch(`${API_URL}/water-rates/latest`);
-      const waterRateResult = await waterRateResponse.json();
-      if (waterRateResult?.success) {
-        setWaterRate(waterRateResult.data || null);
+      const sources = [
+        billsResult.source,
+        consumersResult.source,
+        zonesResult.source,
+        settingsResult.source,
+        readingsResult.source,
+        waterRateResult.source,
+      ];
+      if (sources.includes('supabase')) {
+        showToast('Bills loaded using Supabase fallback for part of the data.', 'warning');
       }
     } catch (error) {
       console.error('Error loading bills:', error);
-      showToast('Failed to load billing records', 'error');
+      showToast(getErrorMessage(error, 'Failed to load billing records.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadBills();
@@ -500,13 +508,20 @@ const GenerateBills: React.FC = () => {
       return;
     }
 
+    if (!editingBill && !selectedConsumerReading?.Reading_ID && !selectedManualConsumer?.Meter_ID) {
+      showToast('The selected consumer has no meter assigned yet. Add or sync the meter before saving a manual bill.', 'error');
+      return;
+    }
+
     try {
       setSavingManualBill(true);
-      const response = await fetch(editingBill ? `${API_URL}/bills/${editingBill.Bill_ID}` : `${API_URL}/bills`, {
-        method: editingBill ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await requestJson(
+        editingBill ? `/bills/${editingBill.Bill_ID}` : '/bills',
+        {
+          method: editingBill ? 'PUT' : 'POST',
+          body: JSON.stringify({
           Consumer_ID: Number(manualForm.consumerId),
+          Meter_ID: selectedManualConsumer?.Meter_ID ?? selectedConsumerReading?.Meter_ID ?? null,
           Reading_ID: editingBill?.Reading_ID || selectedConsumerReading?.Reading_ID || null,
           Reading_Date: manualForm.readingDate,
           Previous_Reading: Number(manualForm.previousReading || 0),
@@ -529,20 +544,18 @@ const GenerateBills: React.FC = () => {
           Total_Amount: manualBillSummary.totalAmount,
           Total_After_Due_Date: manualBillSummary.totalAfterDueDate,
           Status: manualForm.status,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to save manual bill.');
-      }
+          }),
+        },
+        'Failed to save manual bill.'
+      );
 
       showToast(editingBill ? 'Bill updated successfully.' : 'Manual bill created successfully.', 'success');
       setIsManualEntryOpen(false);
       resetManualForm();
       loadBills();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving manual bill:', error);
-      showToast(error.message || 'Failed to save manual bill.', 'error');
+      showToast(getErrorMessage(error, 'Failed to save manual bill.'), 'error');
     } finally {
       setSavingManualBill(false);
     }

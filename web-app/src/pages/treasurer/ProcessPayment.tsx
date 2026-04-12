@@ -4,6 +4,13 @@ import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import {
+  getErrorMessage,
+  loadAccountLookupWithFallback,
+  loadConsumersWithFallback,
+  loadPaymentsWithFallback,
+  requestJson,
+} from '../../services/userManagementApi';
 import './ProcessPayment.css';
 
 const toAmount = (value: unknown): number => {
@@ -62,10 +69,20 @@ interface QuickLookupAccount {
   Address?: string;
 }
 
+const mapPaymentHistoryRow = (payment: any): PaymentHistoryRow => ({
+  Payment_ID: payment.Payment_ID,
+  Receipt_No: payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID}`,
+  Account_Number: payment.Account_Number || 'N/A',
+  Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
+  Amount: toAmount(payment.Amount_Paid),
+  Payment_Date: payment.Payment_Date,
+  Payment_Method: payment.Payment_Method || 'Cash',
+  Status: payment.Status || 'Pending',
+});
+
 const ProcessPayment: React.FC = () => {
   const { showToast } = useToast();
   const location = useLocation();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConsumer, setSelectedConsumer] = useState<BillInfo | null>(null);
@@ -87,26 +104,18 @@ const ProcessPayment: React.FC = () => {
   const loadPaymentHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/payments`);
-      const data = await response.json();
-      const list = Array.isArray(data) ? data : (data.data || []);
-      setPayments((list || []).map((payment: any) => ({
-        Payment_ID: payment.Payment_ID,
-        Receipt_No: payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID}`,
-        Account_Number: payment.Account_Number || 'N/A',
-        Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
-        Amount: toAmount(payment.Amount_Paid),
-        Payment_Date: payment.Payment_Date,
-        Payment_Method: payment.Payment_Method || 'Cash',
-        Status: payment.Status || 'Pending',
-      })));
+      const result = await loadPaymentsWithFallback();
+      setPayments((result.data || []).map(mapPaymentHistoryRow));
+      if (result.source === 'supabase') {
+        showToast('Payment history loaded using Supabase fallback.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading payment history:', error);
-      showToast('Failed to load payment history', 'error');
+      showToast(getErrorMessage(error, 'Failed to load payment history.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadPaymentHistory();
@@ -114,13 +123,16 @@ const ProcessPayment: React.FC = () => {
 
   const loadQuickLookupAccounts = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/consumers`);
-      const data = await response.json();
-      setQuickLookupAccounts(Array.isArray(data) ? data : []);
+      const result = await loadConsumersWithFallback();
+      setQuickLookupAccounts(result.data || []);
+      if (result.source === 'supabase') {
+        showToast('Account suggestions loaded using Supabase fallback.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading account suggestions:', error);
+      showToast(getErrorMessage(error, 'Failed to load account suggestions.'), 'error');
     }
-  }, [API_URL]);
+  }, [showToast]);
 
   useEffect(() => {
     loadQuickLookupAccounts();
@@ -151,13 +163,7 @@ const ProcessPayment: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/treasurer/account-lookup?q=${encodeURIComponent(query)}`);
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.message || 'Account verification failed.');
-      }
-
+      const result = await loadAccountLookupWithFallback(query);
       const lookup = result.data || {};
       const consumer = lookup.consumer || null;
       const summary = lookup.summary || {};
@@ -196,16 +202,19 @@ const ProcessPayment: React.FC = () => {
       setSearchTerm(query);
       setShowSearchSuggestions(false);
       setAmountPaid(mappedConsumer.Status?.toLowerCase() === 'paid' ? '0' : String(mappedConsumer.Total_Amount_Due));
+      if (result.source === 'supabase') {
+        showToast('Account lookup used Supabase fallback.', 'warning');
+      }
       showToast('Valid statement for settlement identified.', 'success');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error searching consumer:', error);
       setSelectedConsumer(null);
       setConsumerProfile(null);
-      showToast(error.message || 'Account verification failed.', 'error');
+      showToast(getErrorMessage(error, 'Account verification failed.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   const handleSearchConsumer = useCallback(async () => {
     await performConsumerSearch(searchTerm);
@@ -242,18 +251,17 @@ const ProcessPayment: React.FC = () => {
         Status: 'Validated',
       };
 
-      const response = await fetch(`${API_URL}/payments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || result.error || 'Payment processing failed.');
-      }
+      const result = await requestJson<any>(
+        '/payments',
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        },
+        'Payment processing failed.'
+      );
 
       const newPayment: PaymentHistoryRow = {
+        Payment_ID: result.Payment_ID || Date.now(),
         Receipt_No: result.OR_Number || result.or_number || result.Reference_No || result.reference_number || `PAY-${result.Payment_ID || Date.now()}`,
         Account_Number: selectedConsumer.Account_Number,
         Consumer_Name: selectedConsumer.Consumer_Name,
@@ -271,13 +279,13 @@ const ProcessPayment: React.FC = () => {
       setSearchTerm('');
       setAmountPaid('');
       loadPaymentHistory();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error processing payment:', error);
-      showToast(error.message || 'Failed to record collection.', 'error');
+      showToast(getErrorMessage(error, 'Failed to record collection.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, amountPaid, loadPaymentHistory, paymentMethod, selectedConsumer, showToast]);
+  }, [amountPaid, loadPaymentHistory, paymentMethod, selectedConsumer, showToast]);
 
   const handleViewPayment = useCallback((payment: PaymentHistoryRow) => {
     setCurrentReceipt(payment);
@@ -297,18 +305,17 @@ const ProcessPayment: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/payments/${editingPayment.Payment_ID}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await requestJson<{ success: boolean }>(
+        `/payments/${editingPayment.Payment_ID}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
           OR_Number: nextReceiptNumber,
           Reference_No: nextReceiptNumber,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || result.error || 'Failed to update receipt number.');
-      }
+          }),
+        },
+        'Failed to update receipt number.'
+      );
 
       showToast('Receipt number updated successfully.', 'success');
       setPayments((current) => current.map((payment) => (
@@ -319,13 +326,13 @@ const ProcessPayment: React.FC = () => {
       setEditingPayment(null);
       setEditedReceiptNumber('');
       loadPaymentHistory();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating receipt number:', error);
-      showToast(error.message || 'Failed to update receipt number.', 'error');
+      showToast(getErrorMessage(error, 'Failed to update receipt number.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, editedReceiptNumber, editingPayment, loadPaymentHistory, showToast]);
+  }, [editedReceiptNumber, editingPayment, loadPaymentHistory, showToast]);
 
   const paymentColumns = useMemo(() => [
     { key: 'Receipt_No', label: 'Receipt No.', sortable: true },

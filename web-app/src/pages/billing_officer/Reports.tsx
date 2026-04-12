@@ -4,6 +4,13 @@ import Tabs, { Tab } from '../../components/Common/Tabs';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
+import {
+  getErrorMessage,
+  loadBillsWithFallback,
+  loadConsumersWithFallback,
+  loadPaymentsWithFallback,
+  loadZonesWithFallback,
+} from '../../services/userManagementApi';
 import '../assessor_admin/Reports.css';
 
 interface ConsumerRow {
@@ -52,7 +59,6 @@ const monthKey = (value?: string) => {
 
 const BillingReports: React.FC = () => {
   const { showToast } = useToast();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -66,34 +72,28 @@ const BillingReports: React.FC = () => {
   const loadReports = useCallback(async () => {
     setLoading(true);
     try {
-      const [consumersResponse, billsResponse, paymentsResponse, zonesResponse] = await Promise.all([
-        fetch(`${API_URL}/consumers`),
-        fetch(`${API_URL}/bills`),
-        fetch(`${API_URL}/payments`),
-        fetch(`${API_URL}/zones`),
-      ]);
-
       const [consumersResult, billsResult, paymentsResult, zonesResult] = await Promise.all([
-        consumersResponse.json(),
-        billsResponse.json(),
-        paymentsResponse.json(),
-        zonesResponse.json(),
+        loadConsumersWithFallback(),
+        loadBillsWithFallback(),
+        loadPaymentsWithFallback(),
+        loadZonesWithFallback(),
       ]);
 
-      setConsumers(Array.isArray(consumersResult) ? consumersResult : []);
-      setBills(Array.isArray(billsResult) ? billsResult : (billsResult.data || []));
-      setPayments(Array.isArray(paymentsResult) ? paymentsResult : (paymentsResult.data || []));
-      setZones(Array.isArray(zonesResult.data) ? zonesResult.data.map((zone: any) => ({
-        Zone_ID: zone.Zone_ID ?? zone.zone_id,
-        Zone_Name: zone.Zone_Name ?? zone.zone_name,
-      })) : []);
+      setConsumers(consumersResult.data || []);
+      setBills(billsResult.data || []);
+      setPayments(paymentsResult.data || []);
+      setZones(zonesResult.data || []);
+
+      if ([consumersResult.source, billsResult.source, paymentsResult.source, zonesResult.source].includes('supabase')) {
+        showToast('Reports loaded using Supabase fallback for part of the data.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading billing reports:', error);
-      showToast('Failed to load billing reports', 'error');
+      showToast(getErrorMessage(error, 'Failed to load billing reports.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadReports();

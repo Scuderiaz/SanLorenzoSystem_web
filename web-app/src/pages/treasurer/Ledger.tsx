@@ -3,6 +3,12 @@ import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import {
+  getErrorMessage,
+  loadBillsWithFallback,
+  loadConsumersWithFallback,
+  loadPaymentsWithFallback,
+} from '../../services/userManagementApi';
 import './Ledger.css';
 
 const toAmount = (value: unknown): number => {
@@ -94,7 +100,6 @@ interface LedgerRecord {
 
 const TreasurerLedger: React.FC = () => {
   const { showToast } = useToast();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -107,28 +112,26 @@ const TreasurerLedger: React.FC = () => {
   const loadRegistry = useCallback(async () => {
     try {
       setLoading(true);
-      const [consumersResponse, billsResponse, paymentsResponse] = await Promise.all([
-        fetch(`${API_URL}/consumers`),
-        fetch(`${API_URL}/bills`),
-        fetch(`${API_URL}/payments`),
-      ]);
-
       const [consumersResult, billsResult, paymentsResult] = await Promise.all([
-        consumersResponse.json(),
-        billsResponse.json(),
-        paymentsResponse.json(),
+        loadConsumersWithFallback(),
+        loadBillsWithFallback(),
+        loadPaymentsWithFallback(),
       ]);
 
-      setConsumers(Array.isArray(consumersResult) ? consumersResult : []);
-      setBills(Array.isArray(billsResult) ? billsResult : (billsResult.data || []));
-      setPayments(Array.isArray(paymentsResult) ? paymentsResult : (paymentsResult.data || []));
+      setConsumers(consumersResult.data || []);
+      setBills(billsResult.data || []);
+      setPayments(paymentsResult.data || []);
+
+      if ([consumersResult.source, billsResult.source, paymentsResult.source].includes('supabase')) {
+        showToast('Treasurer registry loaded using Supabase fallback for part of the data.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading treasurer registry:', error);
-      showToast('Failed to load treasurer registry.', 'error');
+      showToast(getErrorMessage(error, 'Failed to load treasurer registry.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadRegistry();

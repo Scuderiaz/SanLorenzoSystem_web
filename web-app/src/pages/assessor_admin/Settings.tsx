@@ -3,6 +3,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import FormInput from '../../components/Common/FormInput';
 import { useToast } from '../../components/Common/ToastContainer';
 import { useAuth } from '../../context/AuthContext';
+import { getErrorMessage, loadAdminSettingsWithFallback, requestJson } from '../../services/userManagementApi';
 import './Settings.css';
 
 const toAmount = (value: unknown): number => {
@@ -37,25 +38,21 @@ const Settings: React.FC = () => {
 
   const [currentRates, setCurrentRates] = useState<WaterRate[]>([]);
   const [loading, setLoading] = useState(false);
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const loadSavedSettings = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/admin/settings`);
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load settings.');
-      }
+      const result = await loadAdminSettingsWithFallback();
+      const payload = result.data || {};
 
-      const system = result.data?.systemSettings || {};
+      const system = payload.systemSettings || {};
       setSystemSettings({
         currency: system.currency || 'PHP',
         dueDateDays: String(system.dueDateDays || '15'),
         lateFee: String(system.lateFee || '10.0'),
       });
 
-      if (result.data?.waterRates) {
-        const liveRate = result.data.waterRates;
+      if (payload.waterRates) {
+        const liveRate = payload.waterRates;
         setCurrentRates([liveRate]);
         setWaterRates({
           minimum_cubic: String(liveRate.minimum_cubic),
@@ -65,11 +62,15 @@ const Settings: React.FC = () => {
       } else {
         setCurrentRates([]);
       }
+
+      if (result.source === 'supabase') {
+        showToast('Settings loaded with fallback defaults and Supabase water rates.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
-      showToast('Failed to load saved settings', 'error');
+      showToast(getErrorMessage(error, 'Failed to load saved settings.'), 'error');
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadSavedSettings();
@@ -78,41 +79,37 @@ const Settings: React.FC = () => {
   const handleSaveAllChanges = async () => {
     setLoading(true);
     try {
-      const rateResponse = await fetch(`${API_URL}/water-rates`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await requestJson(
+        '/water-rates',
+        {
+          method: 'POST',
+          body: JSON.stringify({
           minimum_cubic: waterRates.minimum_cubic,
           minimum_rate: waterRates.minimum_rate,
           excess_rate_per_cubic: waterRates.excess_rate_per_cubic,
           modified_by: Number(user?.id || 1),
-        }),
-      });
+          }),
+        },
+        'Failed to sync water rates.'
+      );
 
-      const rateResult = await rateResponse.json();
-      if (!rateResult.success) {
-        throw new Error(rateResult.message || 'Failed to sync water rates');
-      }
-
-      const settingsResponse = await fetch(`${API_URL}/admin/settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await requestJson(
+        '/admin/settings',
+        {
+          method: 'POST',
+          body: JSON.stringify({
           ...systemSettings,
           modifiedBy: Number(user?.id || 1),
-        }),
-      });
-
-      const settingsResult = await settingsResponse.json();
-      if (!settingsResult.success) {
-        throw new Error(settingsResult.message || 'Failed to save system settings');
-      }
+          }),
+        },
+        'Failed to save system settings.'
+      );
 
       showToast('All system configurations updated and synchronized', 'success');
       loadSavedSettings();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving configurations:', error);
-      showToast(`Error: ${error.message}`, 'error');
+      showToast(getErrorMessage(error, 'Failed to save settings.'), 'error');
     } finally {
       setLoading(false);
     }

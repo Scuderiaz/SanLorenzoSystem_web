@@ -55,6 +55,7 @@ const logFiles = {
   postgres: path.join(logDirectory, 'postgres-sync.txt'),
   supabase: path.join(logDirectory, 'supabase-sync.txt'),
   requestErrors: path.join(logDirectory, 'request-errors.txt'),
+  failureReport: path.join(logDirectory, 'failure-report.txt'),
 };
 const adminSettingsFile = path.join(__dirname, 'data', 'admin-settings.json');
 const defaultAdminSettings = {
@@ -550,6 +551,10 @@ async function withSupabaseFallback(operationName, supabaseHandler, postgresHand
     }
 
     console.warn(`[fallback:${operationName}] Switching to PostgreSQL: ${error.message}`);
+    appendFailureReport('FALLBACK', operationName, error.message || String(error), {
+      from: 'supabase',
+      to: 'postgres',
+    });
     return postgresHandler();
   }
 }
@@ -562,6 +567,18 @@ function appendTextLog(filePath, message) {
   ensureLogDirectory();
   const line = `[${new Date().toISOString()}] ${message}\n`;
   fs.appendFileSync(filePath, line, 'utf8');
+}
+
+function appendFailureReport(kind, moduleName, message, context = {}) {
+  appendTextLog(
+    logFiles.failureReport,
+    JSON.stringify({
+      kind,
+      module: moduleName,
+      message: truncateLogValue(message),
+      context,
+    })
+  );
 }
 
 async function writeSystemLog(action, options = {}) {
@@ -687,6 +704,11 @@ async function logSyncEvent(target, message, options = {}) {
 
 async function logErrorEvent(moduleName, errorMessage, options = {}) {
   appendTextLog(logFiles.requestErrors, `[${moduleName}] ${errorMessage}`);
+  appendFailureReport('ERROR', moduleName, errorMessage, {
+    severity: options.severity || 'ERROR',
+    userId: options.userId || null,
+    status: options.status || 'Open',
+  });
   await writeErrorLog({
     severity: options.severity || 'ERROR',
     module: moduleName,
@@ -850,6 +872,14 @@ function getConsumerSaveErrorMessage(error) {
     return 'This account is already linked to another consumer.';
   }
 
+  if (loweredMessage.includes('zone_id') && loweredMessage.includes('not-null')) {
+    return 'Zone is required for every consumer.';
+  }
+
+  if (loweredMessage.includes('classification_id') && loweredMessage.includes('not-null')) {
+    return 'Classification is required for every consumer.';
+  }
+
   if (error?.code === '23505') {
     return 'A record with the same unique value already exists.';
   }
@@ -863,6 +893,55 @@ function getConsumerSaveErrorMessage(error) {
   }
 
   return message || 'Failed to save consumer.';
+}
+
+function getRequestFailureStatusCode(error) {
+  if (Number.isInteger(Number(error?.statusCode)) && Number(error.statusCode) > 0) {
+    return Number(error.statusCode);
+  }
+
+  if (['23505', '23503', '23514'].includes(String(error?.code || ''))) {
+    return 400;
+  }
+
+  return 500;
+}
+
+function getUserManagementErrorMessage(error) {
+  const constraint = String(error?.constraint || '');
+  const details = String(error?.details || '');
+  const message = String(error?.message || '');
+  const loweredMessage = message.toLowerCase();
+
+  if (constraint === 'accounts_username_key' || loweredMessage.includes('accounts_username_key') || details.includes('(username)=')) {
+    return 'Username is already taken.';
+  }
+
+  if (constraint === 'fk_accounts_role' || loweredMessage.includes('fk_accounts_role') || loweredMessage.includes('role_id')) {
+    return 'Selected role is invalid.';
+  }
+
+  if (loweredMessage.includes('active consumer accounts cannot be deleted from user management')) {
+    return 'Active consumer accounts cannot be deleted from user management. Remove or deactivate the consumer record first.';
+  }
+
+  if (loweredMessage.includes('approver information is required')) {
+    return 'Approver information is required.';
+  }
+
+  if (error?.code === '23505') {
+    return 'A user with the same unique value already exists.';
+  }
+
+  if (error?.code === '23503') {
+    return 'One of the selected user values is invalid.';
+  }
+
+  if (error?.code === '23514') {
+    return 'User data failed validation.';
+  }
+
+  return message || 'Failed to save user.';
 }
 
 function generateRegistrationTicketNumber() {
@@ -1051,6 +1130,117 @@ function normalizePhilippinePhoneNumber(phoneNumber) {
   }
 
   return null;
+}
+
+function normalizeRequiredForeignKeyId(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function createHttpError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+async function getLatestPostgresMeterIdForConsumer(queryable, consumerId) {
+  const normalizedConsumerId = normalizeRequiredForeignKeyId(consumerId);
+  if (!normalizedConsumerId) {
+    return null;
+  }
+
+  const { rows } = await queryable.query(`
+    SELECT meter_id
+    FROM meter
+    WHERE consumer_id = $1
+    ORDER BY meter_id DESC
+    LIMIT 1
+  `, [normalizedConsumerId]);
+
+  return normalizeRequiredForeignKeyId(rows[0]?.meter_id);
+}
+
+async function getLatestSupabaseMeterIdForConsumer(consumerId) {
+  const normalizedConsumerId = normalizeRequiredForeignKeyId(consumerId);
+  if (!normalizedConsumerId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('meter')
+    .select('meter_id')
+    .eq('consumer_id', normalizedConsumerId)
+    .order('meter_id', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    throw error;
+  }
+
+  return normalizeRequiredForeignKeyId(data?.[0]?.meter_id);
+}
+
+async function resolvePostgresMeterIdForConsumer(queryable, consumerId, explicitMeterId) {
+  const normalizedMeterId = normalizeRequiredForeignKeyId(explicitMeterId);
+  if (normalizedMeterId) {
+    return normalizedMeterId;
+  }
+
+  return getLatestPostgresMeterIdForConsumer(queryable, consumerId);
+}
+
+async function resolveSupabaseMeterIdForConsumer(consumerId, explicitMeterId) {
+  const normalizedMeterId = normalizeRequiredForeignKeyId(explicitMeterId);
+  if (normalizedMeterId) {
+    return normalizedMeterId;
+  }
+
+  return getLatestSupabaseMeterIdForConsumer(consumerId);
+}
+
+async function alignMeterReadingRowsForSupabase(rows) {
+  const consumerIds = Array.from(new Set(
+    rows
+      .filter((row) => !normalizeRequiredForeignKeyId(row?.meter_id))
+      .map((row) => normalizeRequiredForeignKeyId(row?.consumer_id))
+      .filter(Boolean)
+  ));
+
+  if (!consumerIds.length) {
+    return rows;
+  }
+
+  const { rows: meterRows } = await pool.query(`
+    SELECT DISTINCT ON (consumer_id) consumer_id, meter_id
+    FROM meter
+    WHERE consumer_id = ANY($1::int[])
+    ORDER BY consumer_id, meter_id DESC
+  `, [consumerIds]);
+
+  const meterIdByConsumerId = new Map(
+    meterRows.map((row) => [
+      normalizeRequiredForeignKeyId(row.consumer_id),
+      normalizeRequiredForeignKeyId(row.meter_id),
+    ])
+  );
+
+  return rows.map((row) => {
+    const currentMeterId = normalizeRequiredForeignKeyId(row?.meter_id);
+    if (currentMeterId) {
+      return row;
+    }
+
+    const consumerId = normalizeRequiredForeignKeyId(row?.consumer_id);
+    const resolvedMeterId = consumerId ? meterIdByConsumerId.get(consumerId) : null;
+    if (!resolvedMeterId) {
+      return row;
+    }
+
+    return {
+      ...row,
+      meter_id: resolvedMeterId,
+    };
+  });
 }
 
 function formatMonthPeriod(value, fallbackDate) {
@@ -1334,6 +1524,10 @@ async function syncTableToSupabase(tableName, primaryKey) {
     normalizedRows = await alignConsumerRowsForSupabase(normalizedRows);
   }
 
+  if (tableName === 'meterreadings') {
+    normalizedRows = await alignMeterReadingRowsForSupabase(normalizedRows);
+  }
+
   if (normalizedRows.length === 0) {
     await logSupabaseEvent(`Table ${tableName}: no rows to sync.`);
     return { tableName, synced: 0 };
@@ -1395,6 +1589,10 @@ async function syncPostgresToSupabase() {
       try {
         results.push(await syncTableToSupabase(tableName, primaryKey));
       } catch (error) {
+        appendFailureReport('SYNC_TABLE', `postgresToSupabase.${tableName}`, error.message || String(error), {
+          tableName,
+          direction: 'postgres-to-supabase',
+        });
         results.push({ tableName, synced: 0, error: error.message });
       }
     }
@@ -1404,6 +1602,9 @@ async function syncPostgresToSupabase() {
     return results;
   } catch (error) {
     syncState.lastError = error.message;
+    appendFailureReport('SYNC', 'postgresToSupabase', error.message || String(error), {
+      direction: 'postgres-to-supabase',
+    });
     throw error;
   } finally {
     isSupabaseSyncRunning = false;
@@ -1417,6 +1618,11 @@ async function withPostgresPrimary(operationName, postgresHandler, supabaseHandl
     if (!supabase || !supabaseHandler) {
       throw new Error('PostgreSQL is unavailable and no Supabase fallback is configured.');
     }
+    appendFailureReport('FALLBACK', operationName, 'PostgreSQL unavailable before request; using Supabase handler directly.', {
+      from: 'postgres',
+      to: 'supabase',
+      reason: 'postgres-unavailable',
+    });
     return supabaseHandler();
   }
 
@@ -1430,6 +1636,10 @@ async function withPostgresPrimary(operationName, postgresHandler, supabaseHandl
     }
 
     console.warn(`[fallback:${operationName}] Switching to Supabase: ${error.message}`);
+    appendFailureReport('FALLBACK', operationName, error.message || String(error), {
+      from: 'postgres',
+      to: 'supabase',
+    });
     isPostgresAvailable = false;
     return supabaseHandler();
   }
@@ -1457,6 +1667,10 @@ async function syncSupabaseToPostgres() {
       try {
         results.push(await syncTableToPostgres(tableName, primaryKey));
       } catch (error) {
+        appendFailureReport('SYNC_TABLE', `supabaseToPostgres.${tableName}`, error.message || String(error), {
+          tableName,
+          direction: 'supabase-to-postgres',
+        });
         results.push({ tableName, synced: 0, error: error.message });
       }
     }
@@ -1466,6 +1680,9 @@ async function syncSupabaseToPostgres() {
     return results;
   } catch (error) {
     syncState.lastError = error.message;
+    appendFailureReport('SYNC', 'supabaseToPostgres', error.message || String(error), {
+      direction: 'supabase-to-postgres',
+    });
     throw error;
   } finally {
     isSupabaseSyncRunning = false;
@@ -2442,7 +2659,7 @@ const updatePendingApplicationHandler = async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'applications.pending.update', error);
     console.error('Error updating application:', error);
-    return res.status(500).json({ success: false, message: getRegisterErrorMessage(error) });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: getRegisterErrorMessage(error) });
   }
 };
 
@@ -2519,7 +2736,7 @@ app.post('/api/admin/approve-user', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'users.approve', error);
     console.error('Approval error:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: getUserManagementErrorMessage(error) });
   }
 });
 
@@ -2577,7 +2794,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'users.reject', error);
     console.error('Rejection error:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: getUserManagementErrorMessage(error) });
   }
 });
 
@@ -2591,6 +2808,10 @@ app.post('/api/users', async (req, res) => {
   
   try {
     const numericRoleId = Number(roleId);
+    if (!Number.isInteger(numericRoleId) || numericRoleId <= 0) {
+      return res.status(400).json({ success: false, message: 'A valid role is required.' });
+    }
+
     const isConsumerRole = numericRoleId === 5;
     const initialAccountStatus = isConsumerRole ? 'Pending' : 'Active';
     const { firstName, lastName } = splitConsumerName(fullName, username);
@@ -2691,7 +2912,7 @@ app.post('/api/users', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'users.create', error);
     console.error('Error creating user:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: getUserManagementErrorMessage(error) });
   }
 });
 
@@ -2701,7 +2922,16 @@ app.put('/api/users/:id', async (req, res) => {
   const { username, fullName, password, roleId } = req.body;
   
   try {
+    const accountId = Number(id);
+    if (!Number.isInteger(accountId) || accountId <= 0) {
+      return res.status(400).json({ success: false, message: 'A valid user ID is required.' });
+    }
+
     const numericRoleId = Number(roleId);
+    if (!username || !roleId || !Number.isInteger(numericRoleId) || numericRoleId <= 0) {
+      return res.status(400).json({ success: false, message: 'Username and a valid role are required.' });
+    }
+
     const isConsumerRole = numericRoleId === 5;
     const { firstName, lastName } = splitConsumerName(fullName, username);
 
@@ -2726,14 +2956,14 @@ app.put('/api/users/:id', async (req, res) => {
           }
           
           query += ` WHERE account_id = $${params.length + 1}`;
-          params.push(id);
+          params.push(accountId);
           
           await client.query(query, params);
 
           if (isConsumerRole) {
             const { rows: consumerRows } = await client.query(
               'SELECT consumer_id FROM consumer WHERE login_id = $1 LIMIT 1',
-              [id]
+              [accountId]
             );
 
             let consumerId = consumerRows[0]?.consumer_id;
@@ -2742,7 +2972,7 @@ app.put('/api/users/:id', async (req, res) => {
                 INSERT INTO consumer (first_name, last_name, login_id, status)
                 VALUES ($1, $2, $3, $4)
                 RETURNING consumer_id
-              `, [firstName, lastName, id, 'Pending']);
+              `, [firstName, lastName, accountId, 'Pending']);
               consumerId = insertResult.rows[0].consumer_id;
             } else {
               await client.query(
@@ -2753,14 +2983,14 @@ app.put('/api/users/:id', async (req, res) => {
 
             const { rows: ticketRows } = await client.query(
               'SELECT ticket_id FROM connection_ticket WHERE account_id = $1 LIMIT 1',
-              [id]
+              [accountId]
             );
 
             if (!ticketRows.length) {
               await client.query(`
                 INSERT INTO connection_ticket (consumer_id, account_id, ticket_number, application_date, connection_type, requirements_submitted, status)
                 VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5, $6)
-              `, [consumerId, id, getStaffAddedTicketLabel(), 'Added by Staff', null, 'Pending']);
+              `, [consumerId, accountId, getStaffAddedTicketLabel(), 'Added by Staff', null, 'Pending']);
             } else {
               await client.query(
                 'UPDATE connection_ticket SET status = $1 WHERE ticket_id = $2',
@@ -2785,14 +3015,14 @@ app.put('/api/users/:id', async (req, res) => {
         if (isConsumerRole) {
           payload.account_status = 'Pending';
         }
-        const { error } = await supabase.from('accounts').update(payload).eq('account_id', id);
+        const { error } = await supabase.from('accounts').update(payload).eq('account_id', accountId);
         if (error) throw error;
 
         if (isConsumerRole) {
           const { data: existingConsumer, error: consumerFetchError } = await supabase
             .from('consumer')
             .select('consumer_id')
-            .eq('login_id', id)
+            .eq('login_id', accountId)
             .maybeSingle();
           if (consumerFetchError) throw consumerFetchError;
 
@@ -2800,7 +3030,7 @@ app.put('/api/users/:id', async (req, res) => {
           if (!consumerId) {
             const { data: consumerData, error: consumerInsertError } = await supabase
               .from('consumer')
-              .insert([{ first_name: firstName, last_name: lastName, login_id: Number(id), status: 'Pending' }])
+              .insert([{ first_name: firstName, last_name: lastName, login_id: accountId, status: 'Pending' }])
               .select('consumer_id')
               .single();
             if (consumerInsertError) throw consumerInsertError;
@@ -2816,7 +3046,7 @@ app.put('/api/users/:id', async (req, res) => {
           const { data: existingTicket, error: ticketFetchError } = await supabase
             .from('connection_ticket')
             .select('ticket_id')
-            .eq('account_id', id)
+            .eq('account_id', accountId)
             .maybeSingle();
           if (ticketFetchError) throw ticketFetchError;
 
@@ -2825,7 +3055,7 @@ app.put('/api/users/:id', async (req, res) => {
               .from('connection_ticket')
               .insert([{
                 consumer_id: consumerId,
-                account_id: Number(id),
+                account_id: accountId,
                 ticket_number: getStaffAddedTicketLabel(),
                 application_date: new Date().toISOString(),
                 connection_type: 'Added by Staff',
@@ -2848,19 +3078,23 @@ app.put('/api/users/:id', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'users.update', error);
     console.error('Error updating user:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: getUserManagementErrorMessage(error) });
   }
 });
 
 // Delete user
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
+  const accountId = Number(id);
+
+  if (!Number.isInteger(accountId) || accountId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid user ID is required.' });
+  }
   
   try {
     await withPostgresPrimary(
       'users.delete',
       async () => {
-        const accountId = Number(id);
         const consumerResult = await pool.query(
           'SELECT consumer_id, status FROM consumer WHERE login_id = $1',
           [accountId]
@@ -2868,7 +3102,7 @@ app.delete('/api/users/:id', async (req, res) => {
         const linkedConsumer = consumerResult.rows[0];
 
         if (linkedConsumer && String(linkedConsumer.status || '').toLowerCase() === 'active') {
-          throw new Error('Active consumer accounts cannot be deleted from user management. Remove or deactivate the consumer record first.');
+          throw createHttpError('Active consumer accounts cannot be deleted from user management. Remove or deactivate the consumer record first.');
         }
 
         await pool.query('BEGIN');
@@ -2891,11 +3125,10 @@ app.delete('/api/users/:id', async (req, res) => {
             await mirrorDeleteToSupabase('account_approval', 'account_id', accountId);
             await mirrorDeleteToSupabase('consumer', 'login_id', accountId);
           }
-          await mirrorDeleteToSupabase('accounts', 'account_id', id);
+          await mirrorDeleteToSupabase('accounts', 'account_id', accountId);
         }
       },
       async () => {
-        const accountId = Number(id);
         const { data: linkedConsumers, error: consumerLookupError } = await supabase
           .from('consumer')
           .select('consumer_id, status')
@@ -2904,7 +3137,7 @@ app.delete('/api/users/:id', async (req, res) => {
 
         const linkedConsumer = linkedConsumers?.[0] || null;
         if (linkedConsumer && String(linkedConsumer.status || '').toLowerCase() === 'active') {
-          throw new Error('Active consumer accounts cannot be deleted from user management. Remove or deactivate the consumer record first.');
+          throw createHttpError('Active consumer accounts cannot be deleted from user management. Remove or deactivate the consumer record first.');
         }
 
         if (linkedConsumer) {
@@ -2916,7 +3149,7 @@ app.delete('/api/users/:id', async (req, res) => {
           if (consumerDeleteError) throw consumerDeleteError;
         }
 
-        const { error } = await supabase.from('accounts').delete().eq('account_id', id);
+        const { error } = await supabase.from('accounts').delete().eq('account_id', accountId);
         if (error) throw error;
       }
     );
@@ -2924,7 +3157,7 @@ app.delete('/api/users/:id', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'users.delete', error);
     console.error('Error deleting user:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: getUserManagementErrorMessage(error) });
   }
 });
 
@@ -3265,7 +3498,7 @@ app.get('/api/consumers', async (req, res) => {
 app.post('/api/consumers', async (req, res) => {
   try {
     const consumer = req.body;
-    const providedLoginId = Number(consumer.Login_ID || consumer.login_id);
+    const providedLoginId = normalizeRequiredForeignKeyId(consumer.Login_ID || consumer.login_id);
     const accountUsername = String(consumer.Username || consumer.username || '').trim();
     const accountPassword = String(consumer.Password || consumer.password || '').trim();
     const normalizedAccountNumber = String(consumer.Account_Number || consumer.account_number || '').trim();
@@ -3276,6 +3509,8 @@ app.post('/api/consumers', async (req, res) => {
     const municipality = String(consumer.Municipality || consumer.municipality || '').trim() || 'San Lorenzo Ruiz';
     const zipCode = String(consumer.Zip_Code || consumer.zip_code || '').trim() || '4610';
     const composedAddress = [purok, barangay, municipality, zipCode].filter(Boolean).join(', ');
+    const normalizedZoneId = normalizeRequiredForeignKeyId(consumer.Zone_ID || consumer.zone_id);
+    const normalizedClassificationId = normalizeRequiredForeignKeyId(consumer.Classification_ID || consumer.classification_id);
     const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
     const meterStatus = String(consumer.Meter_Status || consumer.meter_status || 'Active').trim() || 'Active';
     const consumerStatus = String(consumer.Status || 'Pending').trim() || 'Pending';
@@ -3304,6 +3539,20 @@ app.post('/api/consumers', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Contact number must be a valid Philippine mobile number.',
+      });
+    }
+
+    if (!normalizedZoneId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Zone is required for every consumer.',
+      });
+    }
+
+    if (!normalizedClassificationId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Classification is required for every consumer.',
       });
     }
 
@@ -3343,8 +3592,8 @@ app.post('/api/consumers', async (req, res) => {
             barangay,
             municipality,
             zipCode,
-            consumer.Zone_ID,
-            consumer.Classification_ID,
+            normalizedZoneId,
+            normalizedClassificationId,
             normalizedAccountNumber || null,
             consumerStatus,
             normalizedContactNumber,
@@ -3408,8 +3657,8 @@ app.post('/api/consumers', async (req, res) => {
               barangay,
               municipality,
               zip_code: zipCode,
-              zone_id: consumer.Zone_ID,
-              classification_id: consumer.Classification_ID,
+              zone_id: normalizedZoneId,
+              classification_id: normalizedClassificationId,
               account_number: normalizedAccountNumber || null,
               status: consumerStatus,
               contact_number: normalizedContactNumber,
@@ -3432,8 +3681,8 @@ app.post('/api/consumers', async (req, res) => {
               barangay,
               municipality,
               zip_code: zipCode,
-              zone_id: consumer.Zone_ID,
-              classification_id: consumer.Classification_ID,
+              zone_id: normalizedZoneId,
+              classification_id: normalizedClassificationId,
               account_number: normalizedAccountNumber || null,
               status: consumerStatus,
               contact_number: normalizedContactNumber,
@@ -3506,6 +3755,8 @@ app.put('/api/consumers/:id', async (req, res) => {
   const municipality = String(consumer.Municipality || consumer.municipality || '').trim() || 'San Lorenzo Ruiz';
   const zipCode = String(consumer.Zip_Code || consumer.zip_code || '').trim() || '4610';
   const composedAddress = [purok, barangay, municipality, zipCode].filter(Boolean).join(', ');
+  const normalizedZoneId = normalizeRequiredForeignKeyId(consumer.Zone_ID || consumer.zone_id);
+  const normalizedClassificationId = normalizeRequiredForeignKeyId(consumer.Classification_ID || consumer.classification_id);
   const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
   const meterStatus = String(consumer.Meter_Status || consumer.meter_status || 'Active').trim() || 'Active';
 
@@ -3520,6 +3771,20 @@ app.put('/api/consumers/:id', async (req, res) => {
     return res.status(400).json({
       success: false,
       message: 'Contact number must be a valid Philippine mobile number.',
+    });
+  }
+
+  if (!normalizedZoneId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Zone is required for every consumer.',
+    });
+  }
+
+  if (!normalizedClassificationId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Classification is required for every consumer.',
     });
   }
   
@@ -3546,8 +3811,8 @@ app.put('/api/consumers/:id', async (req, res) => {
             barangay,
             municipality,
             zipCode,
-            consumer.Zone_ID,
-            consumer.Classification_ID,
+            normalizedZoneId,
+            normalizedClassificationId,
             normalizedAccountNumber || null,
             consumer.Status,
             normalizedContactNumber,
@@ -3599,8 +3864,8 @@ app.put('/api/consumers/:id', async (req, res) => {
             barangay,
             municipality,
             zip_code: zipCode,
-            zone_id: consumer.Zone_ID,
-            classification_id: consumer.Classification_ID,
+            zone_id: normalizedZoneId,
+            classification_id: normalizedClassificationId,
             account_number: normalizedAccountNumber || null,
             status: consumer.Status,
             contact_number: normalizedContactNumber,
@@ -3709,9 +3974,14 @@ app.get('/api/meter-readings', async (req, res) => {
 app.post('/api/meter-readings', async (req, res) => {
   try {
     const reading = req.body;
+    const consumerId = normalizeRequiredForeignKeyId(reading.Consumer_ID || reading.consumer_id);
+    if (!consumerId) {
+      return res.status(400).json({ error: 'A consumer must be selected before saving a meter reading.' });
+    }
+
     const payload = {
-      consumer_id: reading.Consumer_ID,
-      meter_id: reading.Meter_ID,
+      consumer_id: consumerId,
+      meter_id: normalizeRequiredForeignKeyId(reading.Meter_ID || reading.meter_id),
       previous_reading: reading.Previous_Reading,
       current_reading: reading.Current_Reading,
       consumption: reading.Consumption,
@@ -3724,6 +3994,11 @@ app.post('/api/meter-readings', async (req, res) => {
     const row = await withPostgresPrimary(
       'meterReadings.create',
       async () => {
+        payload.meter_id = await resolvePostgresMeterIdForConsumer(pool, payload.consumer_id, payload.meter_id);
+        if (!payload.meter_id) {
+          throw createHttpError('No meter is assigned to this consumer. Add or sync the meter before saving a reading.');
+        }
+
         const { rows } = await pool.query(`
           INSERT INTO meterreadings (consumer_id, meter_id, previous_reading, current_reading, consumption, reading_status, notes, reading_date, route_id, meter_reader_id)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -3743,6 +4018,11 @@ app.post('/api/meter-readings', async (req, res) => {
         return rows[0];
       },
       async () => {
+        payload.meter_id = await resolveSupabaseMeterIdForConsumer(payload.consumer_id, payload.meter_id);
+        if (!payload.meter_id) {
+          throw createHttpError('No meter is assigned to this consumer. Add or sync the meter before saving a reading.');
+        }
+
         const { data, error } = await supabase.from('meterreadings').insert([payload]).select().single();
         if (error) throw error;
         return { ...data, Reading_ID: data.reading_id };
@@ -3753,7 +4033,7 @@ app.post('/api/meter-readings', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'meterReadings.create', error);
     console.error('Error creating meter reading:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -3825,6 +4105,11 @@ app.get('/api/bills', async (req, res) => {
 app.post('/api/bills', async (req, res) => {
   try {
     const bill = req.body;
+    const consumerId = normalizeRequiredForeignKeyId(bill.Consumer_ID || bill.consumer_id);
+    if (!consumerId) {
+      return res.status(400).json({ error: 'A consumer must be selected before saving a bill.' });
+    }
+
     const billDate = bill.Bill_Date || new Date().toISOString();
     const dueDate = bill.Due_Date || billDate;
     const readingDate = bill.Reading_Date || billDate;
@@ -3843,8 +4128,8 @@ app.post('/api/bills', async (req, res) => {
       (totalAmount + penalty)
     );
     const payload = {
-      consumer_id: bill.Consumer_ID,
-      reading_id: bill.Reading_ID || null,
+      consumer_id: consumerId,
+      reading_id: normalizeRequiredForeignKeyId(bill.Reading_ID || bill.reading_id),
       bill_date: billDate,
       due_date: dueDate,
       total_amount: totalAmount,
@@ -3867,14 +4152,10 @@ app.post('/api/bills', async (req, res) => {
       'bills.create',
       async () => {
         if (!payload.reading_id) {
-          const meterResult = await pool.query(`
-            SELECT meter_id
-            FROM meter
-            WHERE consumer_id = $1
-            ORDER BY meter_id DESC
-            LIMIT 1
-          `, [payload.consumer_id]);
-          const meterId = meterResult.rows[0]?.meter_id || null;
+          const meterId = await resolvePostgresMeterIdForConsumer(pool, payload.consumer_id, bill.Meter_ID || bill.meter_id);
+          if (!meterId) {
+            throw createHttpError('No meter is assigned to this consumer. Add or sync the meter before saving a manual bill.');
+          }
 
           const readingInsert = await pool.query(`
             INSERT INTO meterreadings (
@@ -3932,19 +4213,16 @@ app.post('/api/bills', async (req, res) => {
       },
       async () => {
         if (!payload.reading_id) {
-          const { data: meterRows, error: meterError } = await supabase
-            .from('meter')
-            .select('meter_id')
-            .eq('consumer_id', payload.consumer_id)
-            .order('meter_id', { ascending: false })
-            .limit(1);
-          if (meterError) throw meterError;
+          const meterId = await resolveSupabaseMeterIdForConsumer(payload.consumer_id, bill.Meter_ID || bill.meter_id);
+          if (!meterId) {
+            throw createHttpError('No meter is assigned to this consumer. Add or sync the meter before saving a manual bill.');
+          }
 
           const { data: readingRow, error: readingError } = await supabase
             .from('meterreadings')
             .insert([{
               consumer_id: payload.consumer_id,
-              meter_id: meterRows?.[0]?.meter_id || null,
+              meter_id: meterId,
               previous_reading: previousReading,
               current_reading: currentReading,
               consumption,
@@ -3970,7 +4248,7 @@ app.post('/api/bills', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'bills.create', error);
     console.error('Error creating bill:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -3981,6 +4259,11 @@ app.put('/api/bills/:id', async (req, res) => {
 
     if (!Number.isFinite(billId)) {
       return res.status(400).json({ error: 'Invalid bill ID.' });
+    }
+
+    const consumerId = normalizeRequiredForeignKeyId(bill.Consumer_ID || bill.consumer_id);
+    if (!consumerId) {
+      return res.status(400).json({ error: 'A consumer must be selected before saving a bill.' });
     }
 
     const billDate = bill.Bill_Date || new Date().toISOString();
@@ -4001,8 +4284,8 @@ app.put('/api/bills/:id', async (req, res) => {
       (totalAmount + penalty)
     );
     const payload = {
-      consumer_id: bill.Consumer_ID,
-      reading_id: bill.Reading_ID || null,
+      consumer_id: consumerId,
+      reading_id: normalizeRequiredForeignKeyId(bill.Reading_ID || bill.reading_id),
       bill_date: billDate,
       due_date: dueDate,
       total_amount: totalAmount,
@@ -4048,14 +4331,10 @@ app.put('/api/bills/:id', async (req, res) => {
         }
 
         if (!payload.reading_id) {
-          const meterResult = await pool.query(`
-            SELECT meter_id
-            FROM meter
-            WHERE consumer_id = $1
-            ORDER BY meter_id DESC
-            LIMIT 1
-          `, [payload.consumer_id]);
-          const meterId = meterResult.rows[0]?.meter_id || null;
+          const meterId = await resolvePostgresMeterIdForConsumer(pool, payload.consumer_id, bill.Meter_ID || bill.meter_id);
+          if (!meterId) {
+            throw createHttpError('No meter is assigned to this consumer. Add or sync the meter before saving a manual bill.');
+          }
 
           const readingInsert = await pool.query(`
             INSERT INTO meterreadings (
@@ -4166,19 +4445,16 @@ app.put('/api/bills/:id', async (req, res) => {
         }
 
         if (!payload.reading_id) {
-          const { data: meterRows, error: meterError } = await supabase
-            .from('meter')
-            .select('meter_id')
-            .eq('consumer_id', payload.consumer_id)
-            .order('meter_id', { ascending: false })
-            .limit(1);
-          if (meterError) throw meterError;
+          const meterId = await resolveSupabaseMeterIdForConsumer(payload.consumer_id, bill.Meter_ID || bill.meter_id);
+          if (!meterId) {
+            throw createHttpError('No meter is assigned to this consumer. Add or sync the meter before saving a manual bill.');
+          }
 
           const { data: readingRow, error: readingError } = await supabase
             .from('meterreadings')
             .insert([{
               consumer_id: payload.consumer_id,
-              meter_id: meterRows?.[0]?.meter_id || null,
+              meter_id: meterId,
               previous_reading: previousReading,
               current_reading: currentReading,
               consumption,

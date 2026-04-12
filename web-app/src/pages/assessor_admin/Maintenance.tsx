@@ -3,6 +3,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
 import { useAuth } from '../../context/AuthContext';
+import { getErrorMessage, requestJson } from '../../services/userManagementApi';
 import './Maintenance.css';
 
 interface SystemLog {
@@ -33,16 +34,11 @@ const Maintenance: React.FC = () => {
   const [filteredLogs, setFilteredLogs] = useState<SystemLog[]>([]);
   const [logTypeFilter, setLogTypeFilter] = useState('');
   const [loading, setLoading] = useState(false);
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/admin/maintenance`);
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load maintenance data.');
-      }
+      const result = await requestJson<any>('/admin/maintenance', {}, 'Failed to load maintenance data.');
 
       setDbStatus(result.data?.dbStatus || 'CONNECTED');
       setPrimaryEndpoint(result.data?.primaryEndpoint || '');
@@ -50,11 +46,11 @@ const Maintenance: React.FC = () => {
       setBackups(result.data?.backups || []);
     } catch (error) {
       console.error('Error loading maintenance data:', error);
-      showToast('Failed to load system logs', 'error');
+      showToast(getErrorMessage(error, 'Failed to load system logs.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadLogs();
@@ -71,37 +67,34 @@ const Maintenance: React.FC = () => {
   const handleCreateBackup = async () => {
     try {
       showToast('Executing system snapshot...', 'info');
-      const response = await fetch(`${API_URL}/admin/maintenance/backup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ createdBy: Number(user?.id || 1) }),
-      });
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to create backup.');
-      }
+      await requestJson(
+        '/admin/maintenance/backup',
+        {
+          method: 'POST',
+          body: JSON.stringify({ createdBy: Number(user?.id || 1) }),
+        },
+        'Failed to create backup.'
+      );
       showToast('Backup created successfully', 'success');
       loadLogs();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to create backup', 'error');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to create backup.'), 'error');
     }
   };
 
   const handleTestConnection = async () => {
     setDbStatus('TESTING...');
     try {
-      const response = await fetch(`${API_URL}/admin/maintenance/test-connection`, {
-        method: 'POST',
-      });
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Connection test failed.');
-      }
+      const result = await requestJson<any>(
+        '/admin/maintenance/test-connection',
+        { method: 'POST' },
+        'Connection test failed.'
+      );
       setDbStatus(result.status || 'CONNECTED');
       showToast(result.message || 'Database connection verified', 'success');
-    } catch (error: any) {
+    } catch (error) {
       setDbStatus('ERROR');
-      showToast(error.message || 'Database connection test failed', 'error');
+      showToast(getErrorMessage(error, 'Database connection test failed.'), 'error');
     }
   };
 
@@ -111,29 +104,29 @@ const Maintenance: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/admin/maintenance/logs`, { method: 'DELETE' });
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to clear system logs.');
-      }
+      await requestJson<{ success: boolean }>(
+        '/admin/maintenance/logs',
+        { method: 'DELETE' },
+        'Failed to clear system logs.'
+      );
       setLogs([]);
       showToast('System logs purged', 'success');
-    } catch (error: any) {
-      showToast(error.message || 'Failed to purge logs', 'error');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to purge logs.'), 'error');
     }
   };
 
   const handleForceSync = async () => {
     try {
-      const response = await fetch(`${API_URL}/admin/sync/run`, { method: 'POST' });
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Hybrid sync failed.');
-      }
+      await requestJson<{ success: boolean }>(
+        '/admin/sync/run',
+        { method: 'POST' },
+        'Hybrid sync failed.'
+      );
       showToast('Hybrid sync completed successfully', 'success');
       loadLogs();
-    } catch (error: any) {
-      showToast(error.message || 'Failed to trigger sync', 'error');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to trigger sync.'), 'error');
     }
   };
 

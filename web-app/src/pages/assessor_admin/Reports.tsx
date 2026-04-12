@@ -4,6 +4,7 @@ import Tabs, { Tab } from '../../components/Common/Tabs';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
+import { getErrorMessage, loadZonesWithFallback, requestJson } from '../../services/userManagementApi';
 import './Reports.css';
 
 interface ConsumerReport {
@@ -41,19 +42,18 @@ const Reports: React.FC = () => {
   const [monthlyReports, setMonthlyReports] = useState<MonthlyUnifiedReport[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   const loadZones = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/zones`);
-      const result = await response.json();
-      if (result.success) {
-        setZones(result.data || []);
+      const result = await loadZonesWithFallback();
+      setZones(result.data || []);
+      if (result.source === 'supabase') {
+        showToast('Zones loaded using Supabase fallback.', 'warning');
       }
     } catch (error) {
       console.error('Error loading zones:', error);
+      showToast(getErrorMessage(error, 'Failed to load zones.'), 'error');
     }
-  }, [API_URL]);
+  }, [showToast]);
 
   const loadReportOverview = useCallback(async () => {
     try {
@@ -62,20 +62,16 @@ const Reports: React.FC = () => {
       if (toDate) params.set('toDate', toDate);
       if (zoneFilter) params.set('zoneId', zoneFilter);
 
-      const response = await fetch(`${API_URL}/admin/reports/overview?${params.toString()}`);
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load report overview.');
-      }
+      const result = await requestJson<any>(`/admin/reports/overview?${params.toString()}`, {}, 'Failed to load report overview.');
 
       setTotalConsumers(String(result.data?.totalConsumers ?? 0));
       setTotalBills(String(result.data?.totalBills ?? 0));
       setTotalRevenue(`PHP ${Number(result.data?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
     } catch (error) {
       console.error('Error loading report overview:', error);
-      showToast('Failed to load report overview', 'error');
+      showToast(getErrorMessage(error, 'Failed to load report overview.'), 'error');
     }
-  }, [API_URL, fromDate, toDate, zoneFilter, showToast]);
+  }, [fromDate, toDate, zoneFilter, showToast]);
 
   const loadConsumerReport = useCallback(async () => {
     setLoading(true);
@@ -83,20 +79,16 @@ const Reports: React.FC = () => {
       const params = new URLSearchParams();
       if (zoneFilter) params.set('zoneId', zoneFilter);
 
-      const response = await fetch(`${API_URL}/admin/reports/consumers?${params.toString()}`);
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load consumer report.');
-      }
+      const result = await requestJson<any>(`/admin/reports/consumers?${params.toString()}`, {}, 'Failed to load consumer report.');
 
       setConsumerReports(result.data || []);
     } catch (error) {
       console.error('Error loading consumer report:', error);
-      showToast('Failed to load consumer report', 'error');
+      showToast(getErrorMessage(error, 'Failed to load consumer report.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast, zoneFilter]);
+  }, [showToast, zoneFilter]);
 
   const loadMonthlyReport = useCallback(async () => {
     try {
@@ -105,18 +97,14 @@ const Reports: React.FC = () => {
       if (toDate) params.set('toDate', toDate);
       if (zoneFilter) params.set('zoneId', zoneFilter);
 
-      const response = await fetch(`${API_URL}/admin/reports/monthly?${params.toString()}`);
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load monthly report.');
-      }
+      const result = await requestJson<any>(`/admin/reports/monthly?${params.toString()}`, {}, 'Failed to load monthly report.');
 
       setMonthlyReports(result.data || []);
     } catch (error) {
       console.error('Error loading monthly report:', error);
-      showToast('Failed to load monthly report', 'error');
+      showToast(getErrorMessage(error, 'Failed to load monthly report.'), 'error');
     }
-  }, [API_URL, fromDate, toDate, zoneFilter, showToast]);
+  }, [fromDate, toDate, zoneFilter, showToast]);
 
   useEffect(() => {
     loadZones();

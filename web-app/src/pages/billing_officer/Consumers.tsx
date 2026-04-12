@@ -5,6 +5,7 @@ import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import { getErrorMessage, loadClassificationsWithFallback, loadConsumersWithFallback, loadZonesWithFallback, requestJson } from '../../services/userManagementApi';
 import './Consumers.css';
 
 interface Consumer {
@@ -100,52 +101,47 @@ const Consumers: React.FC = () => {
     connectionDate: '',
     status: 'Pending',
   });
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   const loadConsumers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/consumers`);
-      const data = await response.json();
+      const { data, source } = await loadConsumersWithFallback();
       setConsumers(data);
+      if (source === 'supabase') {
+        showToast('Consumers loaded using Supabase fallback.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading consumers:', error);
-      showToast('Failed to load consumers', 'error');
+      showToast(getErrorMessage(error, 'Failed to load consumers.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   const loadZones = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/zones`);
-      const result = await response.json();
-      if (result.success) {
-        setZones((result.data || []).map((zone: any) => ({
-          Zone_ID: zone.Zone_ID ?? zone.zone_id,
-          Zone_Name: zone.Zone_Name ?? zone.zone_name,
-        })));
-      }
+      const { data } = await loadZonesWithFallback();
+      setZones((data || []).map((zone: any) => ({
+        Zone_ID: zone.Zone_ID ?? zone.zone_id,
+        Zone_Name: zone.Zone_Name ?? zone.zone_name,
+      })));
     } catch (error) {
       console.error('Error loading zones:', error);
+      showToast(getErrorMessage(error, 'Failed to load zones.'), 'error');
     }
-  }, [API_URL]);
+  }, [showToast]);
 
   const loadClassifications = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/classifications`);
-      const result = await response.json();
-      if (result.success) {
-        setClassifications((result.data || []).map((classification: any) => ({
-          Classification_ID: classification.Classification_ID ?? classification.classification_id,
-          Classification_Name: classification.Classification_Name ?? classification.classification_name,
-        })));
-      }
+      const { data } = await loadClassificationsWithFallback();
+      setClassifications((data || []).map((classification: any) => ({
+        Classification_ID: classification.Classification_ID ?? classification.classification_id,
+        Classification_Name: classification.Classification_Name ?? classification.classification_name,
+      })));
     } catch (error) {
       console.error('Error loading classifications:', error);
+      showToast(getErrorMessage(error, 'Failed to load classifications.'), 'error');
     }
-  }, [API_URL]);
+  }, [showToast]);
 
   const filterConsumers = useCallback(() => {
     let filtered = [...consumers];
@@ -251,13 +247,12 @@ const Consumers: React.FC = () => {
   const handleDeleteConsumer = async () => {
     if (!consumerToDelete) return;
     try {
-      const response = await fetch(`${API_URL}/consumers/${consumerToDelete.Consumer_ID}`, {
+      const result = await requestJson<{ success: boolean; message?: string }>(`/consumers/${consumerToDelete.Consumer_ID}`, {
         method: 'DELETE',
-      });
-      const result = await response.json();
+      }, 'Failed to delete consumer.');
 
       if (result.success) {
-        showToast('Consumer deleted successfully', 'success');
+        showToast(result.message || 'Consumer deleted successfully', 'success');
         loadConsumers();
         setIsDetailsModalOpen(false);
         setConsumerToDelete(null);
@@ -266,7 +261,7 @@ const Consumers: React.FC = () => {
       }
     } catch (error) {
       console.error('Error deleting consumer:', error);
-      showToast('Failed to delete consumer', 'error');
+      showToast(getErrorMessage(error, 'Failed to delete consumer.'), 'error');
     }
   };
 
@@ -286,13 +281,17 @@ const Consumers: React.FC = () => {
       return;
     }
 
+    if (!formData.zoneId) {
+      showToast('Please select a zone before saving the consumer.', 'error');
+      return;
+    }
+
+    if (!formData.classificationId) {
+      showToast('Please select a classification before saving the consumer.', 'error');
+      return;
+    }
+
     try {
-      const url = editingConsumer
-        ? `${API_URL}/consumers/${editingConsumer.Consumer_ID}`
-        : `${API_URL}/consumers`;
-
-      const method = editingConsumer ? 'PUT' : 'POST';
-
       const body = {
         Username: formData.username,
         Password: formData.password,
@@ -314,17 +313,18 @@ const Consumers: React.FC = () => {
         Status: formData.status,
       };
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
+      const result = await requestJson<{ success?: boolean; message?: string }>(
+        editingConsumer ? `/consumers/${editingConsumer.Consumer_ID}` : '/consumers',
+        {
+        method: editingConsumer ? 'PUT' : 'POST',
         body: JSON.stringify(body),
-      });
+        },
+        'Failed to save consumer.'
+      );
 
-      const result = await response.json();
-
-      if (result.success || response.ok) {
+      if (result.success !== false) {
         showToast(
-          editingConsumer ? 'Consumer updated successfully' : 'Consumer created successfully',
+          result.message || (editingConsumer ? 'Consumer updated successfully' : 'Consumer created successfully'),
           'success'
         );
         setIsFormModalOpen(false);
@@ -334,7 +334,7 @@ const Consumers: React.FC = () => {
       }
     } catch (error) {
       console.error('Error saving consumer:', error);
-      showToast('Failed to save consumer', 'error');
+      showToast(getErrorMessage(error, 'Failed to save consumer.'), 'error');
     }
   };
 

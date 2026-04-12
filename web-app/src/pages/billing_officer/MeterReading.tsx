@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
+import { getErrorMessage, loadZonesWithFallback } from '../../services/userManagementApi';
 import './MeterReading.css';
 
 interface Schedule {
@@ -29,8 +30,6 @@ const MeterReading: React.FC = () => {
   const [selectedReader, setSelectedReader] = useState('');
   const [showPanel, setShowPanel] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   const loadSchedules = useCallback(async () => {
     try {
       const mockSchedules: Schedule[] = [
@@ -51,15 +50,16 @@ const MeterReading: React.FC = () => {
 
   const loadZones = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/zones`);
-      const result = await response.json();
-      if (result.success) {
-        setZones(result.data);
+      const result = await loadZonesWithFallback();
+      setZones(result.data || []);
+      if (result.source === 'supabase') {
+        showToast('Zones loaded using Supabase fallback.', 'warning');
       }
     } catch (error) {
       console.error('Error loading zones:', error);
+      showToast(getErrorMessage(error, 'Failed to load zones.'), 'error');
     }
-  }, [API_URL]);
+  }, [showToast]);
 
   const loadMeterReaders = useCallback(async () => {
     try {

@@ -6,6 +6,7 @@ import { useToast } from '../../components/Common/ToastContainer';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useAuth } from '../../context/AuthContext';
+import { getErrorMessage, loadApplicationsWithFallback, loadClassificationsWithFallback, loadZonesWithFallback, requestJson } from '../../services/userManagementApi';
 import '../assessor_admin/Users.css';
 
 interface PendingApplication {
@@ -60,7 +61,6 @@ const formatZoneLabel = (zoneName?: string | null, zoneId?: number | string | nu
 const PendingApplications: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
   const canViewUsername = user?.role_id === 1;
   const [applications, setApplications] = useState<PendingApplication[]>([]);
   const [loading, setLoading] = useState(false);
@@ -93,47 +93,44 @@ const PendingApplications: React.FC = () => {
   const loadApplications = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/applications`);
-      const result = await response.json();
-      if (result.success) {
-        setApplications(result.data || []);
-      } else {
-        showToast(result.message || 'Failed to load applications', 'error');
+      const { data, source } = await loadApplicationsWithFallback();
+      setApplications(data || []);
+      if (source === 'supabase') {
+        showToast('Applications loaded using Supabase fallback.', 'warning');
       }
     } catch (error) {
       console.error('Error loading applications:', error);
-      showToast('Failed to load applications', 'error');
+      showToast(getErrorMessage(error, 'Failed to load applications.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   const loadLookups = useCallback(async () => {
     try {
-      const [zonesResponse, classificationsResponse] = await Promise.all([
-        fetch(`${API_URL}/zones`),
-        fetch(`${API_URL}/classifications`),
+      const [{ data: zonesData }, { data: classificationsData }] = await Promise.all([
+        loadZonesWithFallback(),
+        loadClassificationsWithFallback(),
       ]);
-      const zonesResult = await zonesResponse.json();
-      const classificationsResult = await classificationsResponse.json();
 
-      if (Array.isArray(zonesResult?.data)) {
-        setZones(zonesResult.data.map((zone: any) => ({
+      if (Array.isArray(zonesData)) {
+        setZones(zonesData.map((zone: any) => ({
           id: zone.Zone_ID ?? zone.zone_id,
           name: formatZoneLabel(zone.Zone_Name ?? zone.zone_name, zone.Zone_ID ?? zone.zone_id),
         })));
       }
 
-      if (Array.isArray(classificationsResult?.data)) {
-        setClassifications(classificationsResult.data.map((classification: any) => ({
+      if (Array.isArray(classificationsData)) {
+        setClassifications(classificationsData.map((classification: any) => ({
           id: classification.Classification_ID ?? classification.classification_id,
           name: classification.Classification_Name ?? classification.classification_name,
         })));
       }
     } catch (error) {
       console.error('Error loading lookup data:', error);
+      showToast(getErrorMessage(error, 'Failed to load application lookups.'), 'error');
     }
-  }, [API_URL]);
+  }, [showToast]);
 
   useEffect(() => {
     loadApplications();
@@ -165,21 +162,19 @@ const PendingApplications: React.FC = () => {
 
   const handleApprove = async (accountId: number) => {
     try {
-      const response = await fetch(`${API_URL}/admin/approve-user`, {
+      const result = await requestJson<{ success: boolean; message?: string }>('/admin/approve-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accountId, approvedBy: user?.id }),
-      });
-      const result = await response.json();
+      }, 'Failed to approve application.');
       if (result.success) {
-        showToast('Application approved successfully', 'success');
+        showToast(result.message || 'Application approved successfully', 'success');
         setSelectedApplication(null);
         loadApplications();
       } else {
         showToast(result.message || 'Failed to approve application', 'error');
       }
     } catch (error) {
-      showToast('Failed to approve application', 'error');
+      showToast(getErrorMessage(error, 'Failed to approve application.'), 'error');
     }
   };
 
@@ -197,14 +192,12 @@ const PendingApplications: React.FC = () => {
 
     setSaving(true);
     try {
-      const response = await fetch(`${API_URL}/update-application/${selectedApplication.Account_ID}`, {
+      const result = await requestJson<{ success: boolean; message?: string }>(`/update-application/${selectedApplication.Account_ID}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
-      });
-      const result = await response.json();
+      }, 'Failed to update application.');
       if (result.success) {
-        showToast('Application updated successfully', 'success');
+        showToast(result.message || 'Application updated successfully', 'success');
         setIsEditOpen(false);
         setReturnToDetailsAfterEdit(false);
         setSelectedApplication(null);
@@ -213,7 +206,7 @@ const PendingApplications: React.FC = () => {
         showToast(result.message || 'Failed to update application', 'error');
       }
     } catch (error) {
-      showToast('Failed to update application', 'error');
+      showToast(getErrorMessage(error, 'Failed to update application.'), 'error');
     } finally {
       setSaving(false);
     }
@@ -221,21 +214,19 @@ const PendingApplications: React.FC = () => {
 
   const handleReject = async (accountId: number) => {
     try {
-      const response = await fetch(`${API_URL}/admin/reject-user`, {
+      const result = await requestJson<{ success: boolean; message?: string }>('/admin/reject-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accountId, approvedBy: user?.id }),
-      });
-      const result = await response.json();
+      }, 'Failed to reject application.');
       if (result.success) {
-        showToast('Application rejected and deleted successfully', 'success');
+        showToast(result.message || 'Application rejected and deleted successfully', 'success');
         setSelectedApplication(null);
         loadApplications();
       } else {
         showToast(result.message || 'Failed to reject application', 'error');
       }
     } catch (error) {
-      showToast('Failed to reject application', 'error');
+      showToast(getErrorMessage(error, 'Failed to reject application.'), 'error');
     }
   };
 

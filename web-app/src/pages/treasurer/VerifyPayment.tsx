@@ -1,13 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import Tabs, { Tab } from '../../components/Common/Tabs';
 import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
+import { getErrorMessage, loadPaymentsWithFallback, requestJson } from '../../services/userManagementApi';
 import './VerifyPayment.css';
 
 const toAmount = (value: unknown): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeStatus = (value: unknown) => String(value || '').trim().toLowerCase();
+
+const formatDate = (value: string) => {
+  if (!value) {
+    return 'N/A';
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-PH');
 };
 
 interface PendingPayment {
@@ -31,37 +43,35 @@ const VerifyPayment: React.FC = () => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   const loadPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/payments`);
-      const data = await response.json();
-      const allPayments = Array.isArray(data) ? data : (data.data || []);
-      
-      // Mapping for VerifyPayment interface
-      const mapped = allPayments.map((p: any) => ({
-        Payment_ID: p.Payment_ID,
-        OR_No: p.Reference_No || p.Payment_ID.toString(),
-        Account_Number: p.Account_Number || 'N/A',
-        Consumer_Name: p.Consumer_Name,
-        Payment_Date: p.Payment_Date,
-        Amount: p.Amount_Paid,
+      const result = await loadPaymentsWithFallback();
+      const mapped = (result.data || []).map((payment: any) => ({
+        Payment_ID: payment.Payment_ID,
+        OR_No: payment.OR_Number || payment.Reference_No || String(payment.Payment_ID),
+        Account_Number: payment.Account_Number || 'N/A',
+        Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
+        Payment_Date: payment.Payment_Date || '',
+        Amount: toAmount(payment.Amount_Paid),
         Entered_By: 'Treasurer',
-        Status: p.Status || 'Verified' // Defaulting to Verified for now
+        Status: payment.Status || 'Pending',
       }));
 
-      setPendingPayments(mapped.filter((p: any) => p.Status === 'Pending'));
-      setVerifiedPayments(mapped.filter((p: any) => p.Status === 'Verified' || p.Status === 'Paid'));
-      setRejectedPayments(mapped.filter((p: any) => p.Status === 'Rejected'));
+      setPendingPayments(mapped.filter((payment) => normalizeStatus(payment.Status) === 'pending'));
+      setVerifiedPayments(mapped.filter((payment) => ['validated', 'verified', 'paid'].includes(normalizeStatus(payment.Status))));
+      setRejectedPayments(mapped.filter((payment) => normalizeStatus(payment.Status) === 'rejected'));
+
+      if (result.source === 'supabase') {
+        showToast('Payments loaded using Supabase fallback.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading payments:', error);
-      showToast('Failed to load payments', 'error');
+      showToast(getErrorMessage(error, 'Failed to load payments.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadPayments();
@@ -71,20 +81,19 @@ const VerifyPayment: React.FC = () => {
     if (!window.confirm(`Verify payment ${payment.OR_No}?`)) return;
 
     try {
-      const response = await fetch(`${API_URL}/payments/${payment.Payment_ID}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Validated' }),
-      });
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to verify payment.');
-      }
+      await requestJson<{ success: boolean }>(
+        `/payments/${payment.Payment_ID}/status`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'Validated' }),
+        },
+        'Failed to verify payment.'
+      );
       showToast('Payment verified successfully', 'success');
       loadPayments();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error verifying payment:', error);
-      showToast(error.message || 'Failed to verify payment', 'error');
+      showToast(getErrorMessage(error, 'Failed to verify payment.'), 'error');
     }
   };
 
@@ -92,70 +101,56 @@ const VerifyPayment: React.FC = () => {
     if (!window.confirm(`Reject payment ${payment.OR_No}?`)) return;
 
     try {
-      const response = await fetch(`${API_URL}/payments/${payment.Payment_ID}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Rejected' }),
-      });
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to reject payment.');
-      }
+      await requestJson<{ success: boolean }>(
+        `/payments/${payment.Payment_ID}/status`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'Rejected' }),
+        },
+        'Failed to reject payment.'
+      );
       showToast('Payment rejected', 'info');
       loadPayments();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error rejecting payment:', error);
-      showToast(error.message || 'Failed to reject payment', 'error');
+      showToast(getErrorMessage(error, 'Failed to reject payment.'), 'error');
     }
   };
 
+  const filterPayments = useCallback((rows: PendingPayment[]) => {
+    const query = searchTerm.trim().toLowerCase();
+    return rows.filter((payment) => {
+      const matchesQuery = !query || [payment.OR_No, payment.Account_Number, payment.Consumer_Name]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+
+      const paymentDate = payment.Payment_Date ? new Date(payment.Payment_Date) : null;
+      const matchesFrom = !fromDate || !paymentDate || paymentDate >= new Date(fromDate);
+      const matchesTo = !toDate || !paymentDate || paymentDate <= new Date(`${toDate}T23:59:59`);
+      return matchesQuery && matchesFrom && matchesTo;
+    });
+  }, [fromDate, searchTerm, toDate]);
+
+  const filteredPendingPayments = useMemo(() => filterPayments(pendingPayments), [filterPayments, pendingPayments]);
+  const filteredVerifiedPayments = useMemo(() => filterPayments(verifiedPayments), [filterPayments, verifiedPayments]);
+  const filteredRejectedPayments = useMemo(() => filterPayments(rejectedPayments), [filterPayments, rejectedPayments]);
+
   const pendingColumns = [
-    {
-      key: 'OR_No',
-      label: 'OR No.',
-      sortable: true,
-    },
-    {
-      key: 'Account_Number',
-      label: 'Account No.',
-      sortable: true,
-    },
-    {
-      key: 'Consumer_Name',
-      label: 'Consumer',
-      sortable: true,
-    },
-    {
-      key: 'Payment_Date',
-      label: 'Date',
-      sortable: true,
-    },
-    {
-      key: 'Amount',
-      label: 'Amount',
-      sortable: true,
-      render: (val: number) => `₱${toAmount(val).toFixed(2)}`,
-    },
-    {
-      key: 'Entered_By',
-      label: 'Entered By',
-      sortable: true,
-    },
+    { key: 'OR_No', label: 'OR No.', sortable: true },
+    { key: 'Account_Number', label: 'Account No.', sortable: true },
+    { key: 'Consumer_Name', label: 'Consumer', sortable: true },
+    { key: 'Payment_Date', label: 'Date', sortable: true, render: (value: string) => formatDate(value) },
+    { key: 'Amount', label: 'Amount', sortable: true, render: (val: number) => `P${toAmount(val).toFixed(2)}` },
+    { key: 'Entered_By', label: 'Entered By', sortable: true },
     {
       key: 'actions',
       label: 'Actions',
       render: (_: any, payment: PendingPayment) => (
         <div className="action-buttons">
-          <button
-            className="btn btn-sm btn-success"
-            onClick={() => handleVerifyPayment(payment)}
-          >
+          <button className="btn btn-sm btn-success" onClick={() => handleVerifyPayment(payment)}>
             <i className="fas fa-check"></i> Verify
           </button>
-          <button
-            className="btn btn-sm btn-danger"
-            onClick={() => handleRejectPayment(payment)}
-          >
+          <button className="btn btn-sm btn-danger" onClick={() => handleRejectPayment(payment)}>
             <i className="fas fa-times"></i> Reject
           </button>
         </div>
@@ -164,37 +159,12 @@ const VerifyPayment: React.FC = () => {
   ];
 
   const verifiedColumns = [
-    {
-      key: 'OR_No',
-      label: 'OR No.',
-      sortable: true,
-    },
-    {
-      key: 'Account_Number',
-      label: 'Account No.',
-      sortable: true,
-    },
-    {
-      key: 'Consumer_Name',
-      label: 'Consumer',
-      sortable: true,
-    },
-    {
-      key: 'Payment_Date',
-      label: 'Date',
-      sortable: true,
-    },
-    {
-      key: 'Amount',
-      label: 'Amount',
-      sortable: true,
-      render: (val: number) => `₱${toAmount(val).toFixed(2)}`,
-    },
-    {
-      key: 'Entered_By',
-      label: 'Entered By',
-      sortable: true,
-    },
+    { key: 'OR_No', label: 'OR No.', sortable: true },
+    { key: 'Account_Number', label: 'Account No.', sortable: true },
+    { key: 'Consumer_Name', label: 'Consumer', sortable: true },
+    { key: 'Payment_Date', label: 'Date', sortable: true, render: (value: string) => formatDate(value) },
+    { key: 'Amount', label: 'Amount', sortable: true, render: (val: number) => `P${toAmount(val).toFixed(2)}` },
+    { key: 'Entered_By', label: 'Entered By', sortable: true },
     {
       key: 'Status',
       label: 'Status',
@@ -226,19 +196,11 @@ const VerifyPayment: React.FC = () => {
             </div>
             <div className="filter-container">
               <label>Audit Range:</label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-              />
-              <span style={{ color: '#94a3b8', fontWeight: '800' }}>→</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-              />
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <span style={{ color: '#94a3b8', fontWeight: '800' }}>-&gt;</span>
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               <button className="btn btn-secondary" style={{ padding: '10px 20px', borderRadius: '12px' }}>
-                  <i className="fas fa-filter"></i> Apply
+                <i className="fas fa-filter"></i> Apply
               </button>
             </div>
           </div>
@@ -246,12 +208,12 @@ const VerifyPayment: React.FC = () => {
           <div className="card">
             <div className="card-header" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
               <h2 className="card-title">Pending Collections Audit Queue</h2>
-              <span className="badge">{pendingPayments.length} Entries pending</span>
+              <span className="badge">{filteredPendingPayments.length} Entries pending</span>
             </div>
             <div className="card-body">
-                <div style={{ padding: '24px' }}>
-                    <DataTable columns={pendingColumns} data={pendingPayments} loading={loading} />
-                </div>
+              <div style={{ padding: '24px' }}>
+                <DataTable columns={pendingColumns} data={filteredPendingPayments} loading={loading} />
+              </div>
             </div>
           </div>
         </div>
@@ -274,9 +236,9 @@ const VerifyPayment: React.FC = () => {
             </div>
           </div>
           <div className="card-body">
-              <div style={{ padding: '24px' }}>
-                  <DataTable columns={verifiedColumns} data={verifiedPayments} loading={loading} />
-              </div>
+            <div style={{ padding: '24px' }}>
+              <DataTable columns={verifiedColumns} data={filteredVerifiedPayments} loading={loading} />
+            </div>
           </div>
         </div>
       ),
@@ -290,9 +252,9 @@ const VerifyPayment: React.FC = () => {
             <h2 className="card-title">Flagged for Correction</h2>
           </div>
           <div className="card-body">
-              <div style={{ padding: '24px' }}>
-                  <DataTable columns={verifiedColumns} data={rejectedPayments} loading={loading} />
-              </div>
+            <div style={{ padding: '24px' }}>
+              <DataTable columns={verifiedColumns} data={filteredRejectedPayments} loading={loading} />
+            </div>
           </div>
         </div>
       ),
@@ -309,5 +271,3 @@ const VerifyPayment: React.FC = () => {
 };
 
 export default VerifyPayment;
-
-

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import { useToast } from '../../components/Common/ToastContainer';
+import { getErrorMessage, requestJson } from '../../services/userManagementApi';
 import './Dashboard.css';
 
 interface DashboardStats {
@@ -28,17 +29,11 @@ const Dashboard: React.FC = () => {
   });
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const fetchDashboardStats = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/admin/dashboard-summary`);
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load dashboard summary.');
-      }
+      const result = await requestJson<any>('/admin/dashboard-summary', {}, 'Failed to load dashboard summary.');
 
       setStats(result.data?.stats || {
         staffMembers: 0,
@@ -47,13 +42,13 @@ const Dashboard: React.FC = () => {
         pendingApplications: 0,
       });
       setLogs(result.data?.recentLogs || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading admin dashboard summary:', error);
-      showToast(error.message || 'Failed to load dashboard data', 'error');
+      showToast(getErrorMessage(error, 'Failed to load dashboard data.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     fetchDashboardStats();

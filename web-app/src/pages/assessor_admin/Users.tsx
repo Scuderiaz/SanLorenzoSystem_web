@@ -6,6 +6,7 @@ import Modal from '../../components/Common/Modal';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
+import { getErrorMessage, loadRolesWithFallback, loadUnifiedUsersWithFallback, requestJson } from '../../services/userManagementApi';
 import './Users.css';
 
 interface User {
@@ -44,9 +45,6 @@ const Users: React.FC = () => {
     password: '',
     roleId: '',
   });
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   useEffect(() => {
     loadRoles();
     loadUsers();
@@ -54,27 +52,25 @@ const Users: React.FC = () => {
 
   const loadRoles = async () => {
     try {
-      const response = await fetch(`${API_URL}/roles`);
-      const result = await response.json();
-      if (result.success) setRoles(result.data);
+      const { data } = await loadRolesWithFallback();
+      setRoles(data);
     } catch (error) {
       console.error('Error loading roles:', error);
+      showToast(getErrorMessage(error, 'Failed to load roles.'), 'error');
     }
   };
 
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/users/unified`);
-      const result = await response.json();
-      if (result.success) {
-        setUsers(result.data);
-      } else {
-        showToast(result.message || 'Failed to load users', 'error');
+      const { data, source } = await loadUnifiedUsersWithFallback();
+      setUsers(data);
+      if (source === 'supabase') {
+        showToast('Users loaded using Supabase fallback.', 'warning');
       }
     } catch (error) {
       console.error('Error loading users:', error);
-      showToast('Failed to load users', 'error');
+      showToast(getErrorMessage(error, 'Failed to load users.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -83,40 +79,36 @@ const Users: React.FC = () => {
   const handleApprove = async (accountId: number) => {
     if (!window.confirm('Are you sure you want to approve this consumer registration?')) return;
     try {
-      const res = await fetch(`${API_URL}/admin/approve-user`, {
+      const result = await requestJson<{ success: boolean; message?: string }>('/admin/approve-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId }),
-      });
-      const result = await res.json();
+        body: JSON.stringify({ accountId, approvedBy: currentUser?.id }),
+      }, 'Failed to approve account.');
       if (result.success) {
-        showToast('Account approved successfully', 'success');
+        showToast(result.message || 'Account approved successfully', 'success');
         loadUsers();
       } else {
         showToast(result.message || 'Failed to approve account', 'error');
       }
     } catch (error) {
-      showToast('Error approving account', 'error');
+      showToast(getErrorMessage(error, 'Failed to approve account.'), 'error');
     }
   };
 
   const handleReject = async (accountId: number) => {
     if (!window.confirm('Are you sure you want to reject this registration? This will delete the account.')) return;
     try {
-      const res = await fetch(`${API_URL}/admin/reject-user`, {
+      const result = await requestJson<{ success: boolean; message?: string }>('/admin/reject-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId }),
-      });
-      const result = await res.json();
+        body: JSON.stringify({ accountId, approvedBy: currentUser?.id }),
+      }, 'Failed to reject account.');
       if (result.success) {
-        showToast('Account rejected and deleted', 'success');
+        showToast(result.message || 'Account rejected and deleted', 'success');
         loadUsers();
       } else {
         showToast(result.message || 'Failed to reject account', 'error');
       }
     } catch (error) {
-      showToast('Error rejecting account', 'error');
+      showToast(getErrorMessage(error, 'Failed to reject account.'), 'error');
     }
   };
 
@@ -128,16 +120,15 @@ const Users: React.FC = () => {
     if (!window.confirm(`Delete user "${user.Username}"?`)) return;
 
     try {
-      const response = await fetch(`${API_URL}/users/${user.AccountID}`, { method: 'DELETE' });
-      const result = await response.json();
+      const result = await requestJson<{ success: boolean; message?: string }>(`/users/${user.AccountID}`, { method: 'DELETE' }, 'Failed to delete user.');
       if (result.success) {
-        showToast('User deleted successfully', 'success');
+        showToast(result.message || 'User deleted successfully', 'success');
         loadUsers();
       } else {
         showToast(result.message || 'Failed to delete user', 'error');
       }
     } catch (error) {
-      showToast('Failed to delete user', 'error');
+      showToast(getErrorMessage(error, 'Failed to delete user.'), 'error');
     }
   };
 
@@ -147,29 +138,29 @@ const Users: React.FC = () => {
       return;
     }
     try {
-      const url = editingUser ? `${API_URL}/users/${editingUser.AccountID}` : `${API_URL}/users`;
-      const method = editingUser ? 'PUT' : 'POST';
       const body = {
         username: formData.username,
         fullName: formData.fullName,
         roleId: parseInt(formData.roleId),
         ...(formData.password && { password: formData.password }),
       };
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
+      const result = await requestJson<{ success: boolean; message?: string }>(
+        editingUser ? `/users/${editingUser.AccountID}` : '/users',
+        {
+        method: editingUser ? 'PUT' : 'POST',
         body: JSON.stringify(body),
-      });
-      const result = await response.json();
+        },
+        'Failed to save user.'
+      );
       if (result.success) {
-        showToast(editingUser ? 'User updated' : 'User created', 'success');
+        showToast(result.message || (editingUser ? 'User updated' : 'User created'), 'success');
         setIsModalOpen(false);
         loadUsers();
       } else {
-        showToast(result.message, 'error');
+        showToast(result.message || 'Failed to save user', 'error');
       }
     } catch (error) {
-      showToast('Failed to save user', 'error');
+      showToast(getErrorMessage(error, 'Failed to save user.'), 'error');
     }
   };
 

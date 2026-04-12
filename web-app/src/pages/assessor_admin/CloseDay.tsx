@@ -4,6 +4,7 @@ import DataTable from '../../components/Common/DataTable';
 import FormInput from '../../components/Common/FormInput';
 import { useToast } from '../../components/Common/ToastContainer';
 import { useAuth } from '../../context/AuthContext';
+import { getErrorMessage, requestJson } from '../../services/userManagementApi';
 import './CloseDay.css';
 
 interface Transaction {
@@ -26,17 +27,11 @@ const CloseDay: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   const loadTransactions = useCallback(async () => {
     setLoading(true);
     try {
       const todayIso = new Date().toISOString().slice(0, 10);
-      const response = await fetch(`${API_URL}/admin/close-day-summary?date=${todayIso}`);
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load close-day summary.');
-      }
+      const result = await requestJson<any>(`/admin/close-day-summary?date=${todayIso}`, {}, 'Failed to load close-day summary.');
 
       setCurrentDate(new Date(result.data?.date || todayIso).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -48,11 +43,11 @@ const CloseDay: React.FC = () => {
       setTransactions(result.data?.transactions || []);
     } catch (error) {
       console.error('Error loading transactions:', error);
-      showToast('Failed to load transactions', 'error');
+      showToast(getErrorMessage(error, 'Failed to load transactions.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadTransactions();
@@ -75,25 +70,24 @@ const CloseDay: React.FC = () => {
 
     try {
       showToast('Locking day...', 'info');
-      const response = await fetch(`${API_URL}/admin/close-day`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await requestJson(
+        '/admin/close-day',
+        {
+          method: 'POST',
+          body: JSON.stringify({
           date: new Date().toISOString().slice(0, 10),
           cashOnHand,
           systemTotal,
           userId: Number(user?.id || 1),
-        }),
-      });
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to lock day.');
-      }
+          }),
+        },
+        'Failed to lock day.'
+      );
       showToast('Day locked successfully', 'success');
       loadTransactions();
     } catch (error) {
       console.error('Error locking day:', error);
-      showToast('Failed to lock day', 'error');
+      showToast(getErrorMessage(error, 'Failed to lock day.'), 'error');
     }
   };
 

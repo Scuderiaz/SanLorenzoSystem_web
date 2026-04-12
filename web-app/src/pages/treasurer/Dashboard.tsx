@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
+import {
+  getErrorMessage,
+  loadAccountLookupWithFallback,
+  loadConsumersWithFallback,
+  loadTreasurerDashboardSummaryWithFallback,
+} from '../../services/userManagementApi';
 import './Dashboard.css';
 
 const toAmount = (value: unknown): number => {
@@ -78,7 +84,6 @@ const mapFallbackRecentPayment = (payment: PaymentSummaryRow): RecentPayment => 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const [todaysCollections, setTodaysCollections] = useState(0);
   const [paymentsToday, setPaymentsToday] = useState(0);
@@ -91,60 +96,38 @@ const Dashboard: React.FC = () => {
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
   const quickLookupRef = useRef<HTMLDivElement | null>(null);
 
-  const loadDashboardFromPayments = useCallback(async () => {
-    const response = await fetch(`${API_URL}/payments`);
-    const result = await response.json();
-    const payments: PaymentSummaryRow[] = Array.isArray(result) ? result : (result.data || []);
-    const todayText = new Date().toISOString().slice(0, 10);
-    const todaysPayments = payments.filter((payment) => sameDay(payment.Payment_Date || payment.Date_Time, todayText));
-    const pendingPayments = payments.filter((payment) => String(payment.Status || '').toLowerCase() === 'pending');
-
-    setTodaysCollections(todaysPayments.reduce((sum, payment) => sum + toAmount(payment.Amount_Paid ?? payment.Amount), 0));
-    setPaymentsToday(todaysPayments.length);
-    setPendingValidation(pendingPayments.length);
-    setRecentPayments(payments.slice(0, 10).map(mapFallbackRecentPayment));
-  }, [API_URL]);
-
   const loadRecentPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/treasurer/dashboard-summary`);
-      if (!response.ok) {
-        throw new Error(`Dashboard summary request failed with status ${response.status}`);
-      }
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to load treasurer dashboard.');
-      }
-
+      const result = await loadTreasurerDashboardSummaryWithFallback();
       const summary = result.data || {};
       setTodaysCollections(toAmount(summary.todaysCollections));
       setPaymentsToday(Number(summary.paymentsToday || 0));
       setPendingValidation(Number(summary.pendingValidation || 0));
       setRecentPayments(summary.recentPayments || []);
+      if (result.source === 'supabase') {
+        showToast('Treasurer dashboard loaded using Supabase fallback.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading treasurer dashboard summary:', error);
-      try {
-        await loadDashboardFromPayments();
-        showToast('Treasurer dashboard loaded using payment history fallback.', 'warning');
-      } catch (fallbackError) {
-        console.error('Error loading treasurer dashboard fallback:', fallbackError);
-        showToast('Failed to load treasurer dashboard data', 'error');
-      }
+      showToast(getErrorMessage(error, 'Failed to load treasurer dashboard data.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, loadDashboardFromPayments, showToast]);
+  }, [showToast]);
 
   const loadQuickLookupAccounts = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/consumers`);
-      const data = await response.json();
-      setQuickLookupAccounts(Array.isArray(data) ? data : []);
+      const result = await loadConsumersWithFallback();
+      setQuickLookupAccounts(result.data || []);
+      if (result.source === 'supabase') {
+        showToast('Quick lookup accounts loaded using Supabase fallback.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading quick lookup accounts:', error);
+      showToast(getErrorMessage(error, 'Failed to load quick lookup accounts.'), 'error');
     }
-  }, [API_URL]);
+  }, [showToast]);
 
   useEffect(() => {
     loadRecentPayments();
@@ -171,23 +154,25 @@ const Dashboard: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/treasurer/account-lookup?q=${encodeURIComponent(query)}`);
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Account not found.');
+      const result = await loadAccountLookupWithFallback(query);
+      if (!result.data?.consumer) {
+        throw new Error('Account not found.');
       }
 
-      setQuickViewBill(result.data?.summary || null);
+      setQuickViewBill(result.data.summary || null);
       setQuickSearch(query);
       setShowQuickSuggestions(false);
+      if (result.source === 'supabase') {
+        showToast('Account lookup used Supabase fallback.', 'warning');
+      }
     } catch (error: any) {
       console.error('Quick lookup failed:', error);
       setQuickViewBill(null);
-      showToast(error.message || 'Account not found', 'error');
+      showToast(getErrorMessage(error, 'Account not found.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   const handleQuickLookup = useCallback(async () => {
     await performQuickLookup(quickSearch);

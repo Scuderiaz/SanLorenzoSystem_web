@@ -3,6 +3,12 @@ import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import {
+  getErrorMessage,
+  loadBillsWithFallback,
+  loadConsumersWithFallback,
+  loadPaymentsWithFallback,
+} from '../../services/userManagementApi';
 import './Ledger.css';
 
 interface ConsumerRow {
@@ -79,7 +85,6 @@ const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
 
 const BillingLedger: React.FC = () => {
   const { showToast } = useToast();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
   const [consumers, setConsumers] = useState<ConsumerRow[]>([]);
   const [bills, setBills] = useState<BillRow[]>([]);
@@ -91,28 +96,26 @@ const BillingLedger: React.FC = () => {
   const loadLedgerData = useCallback(async () => {
     setLoading(true);
     try {
-      const [consumersResponse, billsResponse, paymentsResponse] = await Promise.all([
-        fetch(`${API_URL}/consumers`),
-        fetch(`${API_URL}/bills`),
-        fetch(`${API_URL}/payments`),
-      ]);
-
       const [consumersResult, billsResult, paymentsResult] = await Promise.all([
-        consumersResponse.json(),
-        billsResponse.json(),
-        paymentsResponse.json(),
+        loadConsumersWithFallback(),
+        loadBillsWithFallback(),
+        loadPaymentsWithFallback(),
       ]);
 
-      setConsumers(Array.isArray(consumersResult) ? consumersResult : []);
-      setBills(Array.isArray(billsResult) ? billsResult : (billsResult.data || []));
-      setPayments(Array.isArray(paymentsResult) ? paymentsResult : (paymentsResult.data || []));
+      setConsumers(consumersResult.data || []);
+      setBills(billsResult.data || []);
+      setPayments(paymentsResult.data || []);
+
+      if ([consumersResult.source, billsResult.source, paymentsResult.source].includes('supabase')) {
+        showToast('Ledger loaded using Supabase fallback for part of the data.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading ledger data:', error);
-      showToast('Failed to load ledger data', 'error');
+      showToast(getErrorMessage(error, 'Failed to load ledger data.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     loadLedgerData();

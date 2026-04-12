@@ -1,0 +1,1 @@
+[bootstrap] failure report initialized
