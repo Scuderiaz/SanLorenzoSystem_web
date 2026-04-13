@@ -40,7 +40,7 @@ interface Classification {
   Classification_Name: string;
 }
 
-const ACCOUNT_NUMBER_PATTERN = /^\d{2}-\d{2}-\d{3}$/;
+const ACCOUNT_NUMBER_PATTERN = /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+(-[A-Z0-9]+)?$/i;
 const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
 const BARANGAYS = [
   'Daculang Bolo', 'Dagotdotan', 'Langga', 'Laniton',
