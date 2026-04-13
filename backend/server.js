@@ -4165,6 +4165,16 @@ app.post('/api/bills', async (req, res) => {
     const row = await withPostgresPrimary(
       'bills.create',
       async () => {
+        if (payload.reading_id) {
+          const existingBillForReading = await pool.query(
+            'SELECT bill_id FROM bills WHERE reading_id = $1 LIMIT 1',
+            [payload.reading_id]
+          );
+          if (existingBillForReading.rows.length > 0) {
+            payload.reading_id = null;
+          }
+        }
+
         if (!payload.reading_id) {
           const meterId = await resolvePostgresMeterIdForConsumer(pool, payload.consumer_id, bill.Meter_ID || bill.meter_id);
           if (!meterId) {
@@ -4236,6 +4246,18 @@ app.post('/api/bills', async (req, res) => {
         return rows[0];
       },
       async () => {
+        if (payload.reading_id) {
+          const { data: existingBillsForReading, error: readingBillLookupError } = await supabase
+            .from('bills')
+            .select('bill_id')
+            .eq('reading_id', payload.reading_id)
+            .limit(1);
+          if (readingBillLookupError) throw readingBillLookupError;
+          if ((existingBillsForReading || []).length > 0) {
+            payload.reading_id = null;
+          }
+        }
+
         if (!payload.reading_id) {
           const meterId = await resolveSupabaseMeterIdForConsumer(payload.consumer_id, bill.Meter_ID || bill.meter_id);
           if (!meterId) {
