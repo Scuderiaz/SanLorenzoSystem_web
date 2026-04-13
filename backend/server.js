@@ -2682,7 +2682,7 @@ app.post('/api/admin/approve-user', async (req, res) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
-          await client.query('UPDATE accounts SET account_status = $1 WHERE account_id = $2', ['Active', accountId]);
+          await client.query('UPDATE accounts SET account_status = $1, role_id = $2 WHERE account_id = $3', ['Active', 5, accountId]);
           await client.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
           await client.query('UPDATE connection_ticket SET status = $1 WHERE account_id = $2', ['Approved', accountId]);
           await client.query(`
@@ -2698,7 +2698,7 @@ app.post('/api/admin/approve-user', async (req, res) => {
         }
 
         if (supabase) {
-          const { error: mirroredAccountError } = await supabase.from('accounts').update({ account_status: 'Active' }).eq('account_id', accountId);
+          const { error: mirroredAccountError } = await supabase.from('accounts').update({ account_status: 'Active', role_id: 5 }).eq('account_id', accountId);
           if (mirroredAccountError) throw mirroredAccountError;
           const { error: mirroredConsumerError } = await supabase.from('consumer').update({ status: 'Active' }).eq('login_id', accountId);
           if (mirroredConsumerError) throw mirroredConsumerError;
@@ -2715,7 +2715,7 @@ app.post('/api/admin/approve-user', async (req, res) => {
         }
       },
       async () => {
-        const { error: accountError } = await supabase.from('accounts').update({ account_status: 'Active' }).eq('account_id', accountId);
+        const { error: accountError } = await supabase.from('accounts').update({ account_status: 'Active', role_id: 5 }).eq('account_id', accountId);
         if (accountError) throw accountError;
         const { error: consumerError } = await supabase.from('consumer').update({ status: 'Active' }).eq('login_id', accountId);
         if (consumerError) throw consumerError;
@@ -5021,7 +5021,7 @@ app.post('/api/register', async (req, res) => {
             try {
               const { rows } = await client.query(
                 'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING account_id',
-                [username, password, 4, 'Pending']
+                [username, password, 5, 'Pending']
               );
               const accountId = rows[0].account_id;
               createdAccountId = accountId;
@@ -5064,7 +5064,7 @@ app.post('/api/register', async (req, res) => {
           {
             username,
             password,
-            role_id: 4,
+            role_id: 5,
             account_status: 'Pending',
           },
           'account_id'
