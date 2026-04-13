@@ -6,6 +6,7 @@
 -- Optional: create dedicated schema
 CREATE SCHEMA IF NOT EXISTS water_billing;
 SET search_path TO water_billing;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- =========================================
 -- 1. ROLES
@@ -20,6 +21,7 @@ CREATE TABLE roles (
 -- =========================================
 CREATE TABLE accounts (
     account_id SERIAL PRIMARY KEY,
+    sync_id UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     auth_user_id UUID UNIQUE,
@@ -55,6 +57,7 @@ CREATE TABLE zone (
 -- =========================================
 CREATE TABLE consumer (
     consumer_id SERIAL PRIMARY KEY,
+    sync_id UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     middle_name VARCHAR(100),
     last_name VARCHAR(100) NOT NULL,
@@ -93,6 +96,7 @@ CREATE TABLE consumer (
 -- =========================================
 CREATE TABLE meter (
     meter_id SERIAL PRIMARY KEY,
+    sync_id UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     consumer_id INT NOT NULL,
     meter_serial_number VARCHAR(100) NOT NULL UNIQUE,
     meter_size VARCHAR(50),
@@ -130,6 +134,7 @@ CREATE TABLE route (
 -- =========================================
 CREATE TABLE meterreadings (
     reading_id SERIAL PRIMARY KEY,
+    sync_id UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     route_id INT NOT NULL,
     consumer_id INT NOT NULL,
     meter_id INT NOT NULL,
@@ -179,6 +184,7 @@ CREATE TABLE meterreadings (
 -- =========================================
 CREATE TABLE bills (
     bill_id SERIAL PRIMARY KEY,
+    sync_id UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     consumer_id INT NOT NULL,
     reading_id INT NOT NULL UNIQUE,
     billing_officer_id INT NOT NULL,
@@ -222,6 +228,7 @@ CREATE TABLE bills (
 -- =========================================
 CREATE TABLE payment (
     payment_id SERIAL PRIMARY KEY,
+    sync_id UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     consumer_id INT NOT NULL,
     bill_id INT NOT NULL,
     payment_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -258,6 +265,7 @@ CREATE TABLE payment (
 -- =========================================
 CREATE TABLE ledger_entry (
     ledger_id SERIAL PRIMARY KEY,
+    sync_id UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     consumer_id INT NOT NULL,
     transaction_type VARCHAR(50) NOT NULL,
     reference_id INT,
@@ -295,6 +303,7 @@ CREATE TABLE waterrates (
 -- =========================================
 CREATE TABLE connection_ticket (
     ticket_id SERIAL PRIMARY KEY,
+    sync_id UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     consumer_id INT,
     account_id INT NOT NULL,
     ticket_number VARCHAR(100) NOT NULL UNIQUE,

@@ -1,6 +1,30 @@
 import initSqlJs, { Database } from 'sql.js';
+import { getClientDeviceId, getSourceSiteId } from '../utils/syncIdentity';
 
 let db: Database | null = null;
+
+const hasColumn = (database: Database, tableName: string, columnName: string) => {
+  const result = database.exec(`PRAGMA table_info(${tableName})`);
+  if (!result.length || !result[0].values.length) {
+    return false;
+  }
+
+  return result[0].values.some((row) => String(row[1]) === columnName);
+};
+
+const ensureColumn = (database: Database, tableName: string, columnName: string, definition: string) => {
+  if (!hasColumn(database, tableName, columnName)) {
+    database.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
+};
+
+const generateOperationId = () => {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `op-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+};
 
 export const initOfflineDB = async (): Promise<Database> => {
   try {
@@ -68,6 +92,10 @@ const createOfflineTables = (database: Database) => {
         Status TEXT DEFAULT 'Active',
         Contact_Number TEXT,
         Connection_Date TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        source_site_id TEXT,
+        sync_status TEXT DEFAULT 'synced',
         FOREIGN KEY (Zone_ID) REFERENCES zones(Zone_ID),
         FOREIGN KEY (Classification_ID) REFERENCES classifications(Classification_ID),
         FOREIGN KEY (Login_ID) REFERENCES accounts(AccountID)
@@ -95,6 +123,10 @@ const createOfflineTables = (database: Database) => {
         Notes TEXT,
         Status TEXT DEFAULT 'Pending',
         Reading_Date TEXT DEFAULT CURRENT_DATE,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        source_site_id TEXT,
+        sync_status TEXT DEFAULT 'synced',
         FOREIGN KEY (Consumer_ID) REFERENCES consumer(Consumer_ID),
         FOREIGN KEY (Meter_ID) REFERENCES meters(Meter_ID)
       );
@@ -107,6 +139,10 @@ const createOfflineTables = (database: Database) => {
         Due_Date TEXT,
         Total_Amount REAL DEFAULT 0,
         Status TEXT DEFAULT 'Unpaid',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        source_site_id TEXT,
+        sync_status TEXT DEFAULT 'synced',
         FOREIGN KEY (Consumer_ID) REFERENCES consumer(Consumer_ID),
         FOREIGN KEY (Reading_ID) REFERENCES meterreadings(Reading_ID)
       );
@@ -119,6 +155,10 @@ const createOfflineTables = (database: Database) => {
         Payment_Date TEXT DEFAULT CURRENT_TIMESTAMP,
         Payment_Method TEXT,
         Reference_Number TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        source_site_id TEXT,
+        sync_status TEXT DEFAULT 'synced',
         FOREIGN KEY (Bill_ID) REFERENCES bills(Bill_ID),
         FOREIGN KEY (Consumer_ID) REFERENCES consumer(Consumer_ID)
       );
@@ -129,7 +169,10 @@ const createOfflineTables = (database: Database) => {
         operation TEXT NOT NULL,
         data TEXT NOT NULL,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        synced INTEGER DEFAULT 0
+        synced INTEGER DEFAULT 0,
+        operation_id TEXT UNIQUE,
+        created_by_device TEXT,
+        attempt_count INTEGER DEFAULT 0
       );
 
       CREATE TABLE IF NOT EXISTS app_cache (
@@ -138,6 +181,26 @@ const createOfflineTables = (database: Database) => {
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    ensureColumn(database, 'consumer', 'created_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
+    ensureColumn(database, 'consumer', 'updated_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
+    ensureColumn(database, 'consumer', 'source_site_id', 'TEXT');
+    ensureColumn(database, 'consumer', 'sync_status', "TEXT DEFAULT 'synced'");
+    ensureColumn(database, 'meterreadings', 'created_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
+    ensureColumn(database, 'meterreadings', 'updated_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
+    ensureColumn(database, 'meterreadings', 'source_site_id', 'TEXT');
+    ensureColumn(database, 'meterreadings', 'sync_status', "TEXT DEFAULT 'synced'");
+    ensureColumn(database, 'bills', 'created_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
+    ensureColumn(database, 'bills', 'updated_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
+    ensureColumn(database, 'bills', 'source_site_id', 'TEXT');
+    ensureColumn(database, 'bills', 'sync_status', "TEXT DEFAULT 'synced'");
+    ensureColumn(database, 'payments', 'created_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
+    ensureColumn(database, 'payments', 'updated_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
+    ensureColumn(database, 'payments', 'source_site_id', 'TEXT');
+    ensureColumn(database, 'payments', 'sync_status', "TEXT DEFAULT 'synced'");
+    ensureColumn(database, 'sync_queue', 'operation_id', 'TEXT');
+    ensureColumn(database, 'sync_queue', 'created_by_device', 'TEXT');
+    ensureColumn(database, 'sync_queue', 'attempt_count', 'INTEGER DEFAULT 0');
   } catch (error) {
     console.error('Failed to create offline tables:', error);
     throw error;
@@ -200,11 +263,18 @@ export const addToSyncQueue = async (
 ) => {
   try {
     const database = await initOfflineDB();
+    const operationId = generateOperationId();
+    const createdByDevice = getClientDeviceId();
     database.run(
-      'INSERT INTO sync_queue (table_name, operation, data) VALUES (?, ?, ?)',
-      [tableName, operation, JSON.stringify(data)]
+      'INSERT INTO sync_queue (table_name, operation, data, operation_id, created_by_device, attempt_count) VALUES (?, ?, ?, ?, ?, ?)',
+      [tableName, operation, JSON.stringify(data), operationId, createdByDevice, 0]
     );
     await saveOfflineDB(database);
+    return {
+      operationId,
+      createdByDevice,
+      sourceSiteId: getSourceSiteId(),
+    };
   } catch (error) {
     console.error('Failed to add record to sync queue:', error);
     throw error;

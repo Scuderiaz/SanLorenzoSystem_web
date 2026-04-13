@@ -57,8 +57,10 @@ const logFiles = {
   requestErrors: path.join(logDirectory, 'request-errors.txt'),
   failureReport: path.join(logDirectory, 'failure-report.txt'),
   connectivity: path.join(logDirectory, 'connectivity-errors.txt'),
+  syncConflicts: path.join(logDirectory, 'sync-conflicts.txt'),
 };
 const adminSettingsFile = path.join(__dirname, 'data', 'admin-settings.json');
+const defaultSourceSiteId = process.env.SYNC_SOURCE_SITE_ID || process.env.REACT_APP_SOURCE_SITE_ID || 'postgres-local';
 const defaultAdminSettings = {
   systemName: 'San Lorenzo Ruiz Water Billing System',
   currency: 'PHP',
@@ -68,6 +70,7 @@ const defaultAdminSettings = {
 let isSupabaseSyncRunning = false;
 let immediateSyncTimer = null;
 let isPostgresAvailable = false;
+const loggedSyncConflictKeys = new Set();
 const syncState = {
   enabled: false,
   intervalMs: syncIntervalMs,
@@ -234,6 +237,133 @@ const syncTableColumns = {
   system_logs: ['log_id', 'account_id', 'role', 'action', 'timestamp'],
 };
 
+const syncConflictPolicies = {
+  roles: { mode: 'auto-merge' },
+  zone: { mode: 'auto-merge' },
+  classification: { mode: 'auto-merge' },
+  waterrates: { mode: 'auto-merge' },
+  consumer: {
+    mode: 'strict',
+    compareColumns: [
+      'first_name',
+      'middle_name',
+      'last_name',
+      'address',
+      'purok',
+      'barangay',
+      'municipality',
+      'zip_code',
+      'zone_id',
+      'classification_id',
+      'login_id',
+      'account_number',
+      'status',
+      'contact_number',
+      'connection_date',
+    ],
+    businessKeys: [
+      ['login_id'],
+      ['account_number'],
+    ],
+  },
+  meterreadings: {
+    mode: 'strict',
+    compareColumns: [
+      'route_id',
+      'consumer_id',
+      'meter_id',
+      'meter_reader_id',
+      'created_date',
+      'reading_status',
+      'previous_reading',
+      'current_reading',
+      'consumption',
+      'excess_consumption',
+      'notes',
+      'status',
+      'reading_date',
+    ],
+    businessKeys: [
+      ['consumer_id', 'reading_date'],
+      ['meter_id', 'reading_date'],
+    ],
+  },
+  bills: {
+    mode: 'strict',
+    compareColumns: [
+      'consumer_id',
+      'reading_id',
+      'billing_officer_id',
+      'billing_month',
+      'date_covered_from',
+      'date_covered_to',
+      'bill_date',
+      'due_date',
+      'disconnection_date',
+      'class_cost',
+      'water_charge',
+      'meter_maintenance_fee',
+      'connection_fee',
+      'amount_due',
+      'previous_balance',
+      'previous_penalty',
+      'penalty',
+      'total_amount',
+      'total_after_due_date',
+      'status',
+    ],
+    businessKeys: [
+      ['reading_id'],
+      ['consumer_id', 'billing_month'],
+    ],
+  },
+  payment: {
+    mode: 'strict',
+    compareColumns: [
+      'consumer_id',
+      'bill_id',
+      'payment_date',
+      'amount_paid',
+      'or_number',
+      'payment_method',
+      'reference_number',
+      'status',
+      'validated_by',
+      'validated_date',
+    ],
+    businessKeys: [
+      ['or_number'],
+      ['reference_number'],
+    ],
+  },
+  ledger_entry: {
+    mode: 'strict',
+    compareColumns: [
+      'consumer_id',
+      'transaction_type',
+      'reference_id',
+      'amount',
+      'balance',
+      'transaction_date',
+      'notes',
+    ],
+    businessKeys: [
+      ['consumer_id', 'transaction_type', 'reference_id'],
+    ],
+  },
+};
+
+const durableSyncTables = [
+  'accounts',
+  'consumer',
+  'meter',
+  'meterreadings',
+  'bills',
+  'payment',
+  'ledger_entry',
+  'connection_ticket',
+];
+
 function normalizeSyncRows(tableName, rows) {
   const allowedColumns = syncTableColumns[tableName];
   if (!allowedColumns) {
@@ -258,6 +388,250 @@ function quoteIdentifier(identifier) {
     throw new Error(`Unsafe SQL identifier: ${identifier}`);
   }
   return `"${identifier}"`;
+}
+
+async function ensureTableColumn(tableName, columnName, definition) {
+  await pool.query(
+    `ALTER TABLE ${quoteIdentifier(tableName)} ADD COLUMN IF NOT EXISTS ${quoteIdentifier(columnName)} ${definition}`
+  );
+}
+
+async function ensureUniqueConstraint(tableName, constraintName, columnName) {
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = '${constraintName}'
+      ) THEN
+        ALTER TABLE ${quoteIdentifier(tableName)}
+          ADD CONSTRAINT ${quoteIdentifier(constraintName)} UNIQUE (${quoteIdentifier(columnName)});
+      END IF;
+    END
+    $$;
+  `);
+}
+
+function getSyncConflictPolicy(tableName) {
+  return syncConflictPolicies[tableName] || { mode: 'default' };
+}
+
+function isStrictSyncConflictTable(tableName) {
+  return getSyncConflictPolicy(tableName).mode === 'strict';
+}
+
+function isDateLikeColumn(columnName) {
+  return /(^|_)(date|time)$/.test(columnName) || columnName.endsWith('_at');
+}
+
+function normalizeComparableValue(columnName, value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const numericPattern = /^-?\d+(?:\.\d+)?$/;
+    const numericValue = Number(trimmed);
+    if (!isDateLikeColumn(columnName) && numericPattern.test(trimmed) && !Number.isNaN(numericValue)) {
+      return numericValue;
+    }
+
+    if (isDateLikeColumn(columnName)) {
+      const parsed = new Date(trimmed);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+    }
+
+    return trimmed;
+  }
+
+  return safeSerialize(value);
+}
+
+function areRowsEquivalent(tableName, leftRow, rightRow, primaryKey) {
+  const policy = getSyncConflictPolicy(tableName);
+  const compareColumns = (policy.compareColumns || syncTableColumns[tableName] || [])
+    .filter((column) => column !== primaryKey);
+
+  return compareColumns.every((column) => (
+    normalizeComparableValue(column, leftRow?.[column]) === normalizeComparableValue(column, rightRow?.[column])
+  ));
+}
+
+function buildBusinessKeyValue(row, keyColumns = []) {
+  const normalizedParts = keyColumns.map((column) => normalizeComparableValue(column, row?.[column]));
+  if (normalizedParts.some((value) => value === null)) {
+    return null;
+  }
+
+  return normalizedParts.map((value) => String(value)).join('|');
+}
+
+function findSyncConflict(tableName, primaryKey, sourceRow, destinationRows = []) {
+  const policy = getSyncConflictPolicy(tableName);
+  if (policy.mode !== 'strict') {
+    return null;
+  }
+
+  const sourcePrimaryKey = normalizeComparableValue(primaryKey, sourceRow?.[primaryKey]);
+  const primaryKeyMatch = destinationRows.find((row) => (
+    normalizeComparableValue(primaryKey, row?.[primaryKey]) === sourcePrimaryKey
+  ));
+
+  if (primaryKeyMatch && !areRowsEquivalent(tableName, sourceRow, primaryKeyMatch, primaryKey)) {
+    return {
+      conflictType: 'primary-key-mismatch',
+      reason: `Existing ${tableName} row with ${primaryKey}=${sourcePrimaryKey} has different protected values.`,
+      businessKey: null,
+      existingRow: primaryKeyMatch,
+    };
+  }
+
+  for (const keyColumns of policy.businessKeys || []) {
+    const businessKeyValue = buildBusinessKeyValue(sourceRow, keyColumns);
+    if (!businessKeyValue) {
+      continue;
+    }
+
+    const businessKeyMatch = destinationRows.find((row) => {
+      const rowPrimaryKey = normalizeComparableValue(primaryKey, row?.[primaryKey]);
+      return rowPrimaryKey !== sourcePrimaryKey && buildBusinessKeyValue(row, keyColumns) === businessKeyValue;
+    });
+
+    if (!businessKeyMatch) {
+      continue;
+    }
+
+    const conflictType = areRowsEquivalent(tableName, sourceRow, businessKeyMatch, primaryKey)
+      ? 'duplicate-business-key'
+      : 'business-key-collision';
+
+    return {
+      conflictType,
+      reason: `Detected conflicting ${tableName} row for business key ${keyColumns.join('+')}=${businessKeyValue}.`,
+      businessKey: `${keyColumns.join('+')}=${businessKeyValue}`,
+      existingRow: businessKeyMatch,
+    };
+  }
+
+  return null;
+}
+
+async function recordSyncConflict(tableName, direction, primaryKey, sourceRow, conflict) {
+  const dedupeKey = JSON.stringify({
+    tableName,
+    direction,
+    conflictType: conflict.conflictType,
+    primaryKey,
+    primaryKeyValue: sourceRow?.[primaryKey] ?? null,
+    businessKey: conflict.businessKey || null,
+  });
+
+  if (loggedSyncConflictKeys.has(dedupeKey)) {
+    return;
+  }
+
+  loggedSyncConflictKeys.add(dedupeKey);
+
+  const payload = {
+    tableName,
+    direction,
+    conflictType: conflict.conflictType,
+    primaryKey,
+    primaryKeyValue: sourceRow?.[primaryKey] ?? null,
+    businessKey: conflict.businessKey || null,
+    reason: conflict.reason,
+    sourceRecord: sourceRow,
+    existingRecord: conflict.existingRow || null,
+  };
+
+  appendTextLog(logFiles.syncConflicts, JSON.stringify(payload));
+  appendFailureReport('SYNC_CONFLICT', `${direction}.${tableName}`, conflict.reason, {
+    tableName,
+    direction,
+    conflictType: conflict.conflictType,
+    primaryKey,
+    primaryKeyValue: sourceRow?.[primaryKey] ?? null,
+    businessKey: conflict.businessKey || null,
+  });
+
+  try {
+    await pool.query(
+      `INSERT INTO sync_conflicts (
+         table_name, direction, conflict_type, primary_key_name, primary_key_value,
+         business_key, reason, source_record, existing_record
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb)`,
+      [
+        tableName,
+        direction,
+        conflict.conflictType,
+        primaryKey,
+        sourceRow?.[primaryKey] != null ? String(sourceRow[primaryKey]) : null,
+        conflict.businessKey || null,
+        conflict.reason,
+        safeSerialize(sourceRow),
+        safeSerialize(conflict.existingRow || null),
+      ]
+    );
+  } catch (error) {
+    console.warn(`Failed to persist sync conflict for ${tableName}: ${error.message}`);
+  }
+}
+
+async function filterRowsForSync(tableName, primaryKey, sourceRows, destinationRows, direction) {
+  if (!isStrictSyncConflictTable(tableName) || !sourceRows.length) {
+    return { rows: sourceRows, conflicts: 0 };
+  }
+
+  const workingDestinationRows = Array.isArray(destinationRows) ? [...destinationRows] : [];
+  const acceptedRows = [];
+  let conflicts = 0;
+
+  for (const row of sourceRows) {
+    const conflict = findSyncConflict(tableName, primaryKey, row, workingDestinationRows);
+    if (conflict) {
+      conflicts += 1;
+      await recordSyncConflict(tableName, direction, primaryKey, row, conflict);
+      continue;
+    }
+
+    acceptedRows.push(row);
+    const rowPrimaryKey = normalizeComparableValue(primaryKey, row?.[primaryKey]);
+    const existingIndex = workingDestinationRows.findIndex((candidate) => (
+      normalizeComparableValue(primaryKey, candidate?.[primaryKey]) === rowPrimaryKey
+    ));
+
+    if (existingIndex >= 0) {
+      workingDestinationRows[existingIndex] = {
+        ...workingDestinationRows[existingIndex],
+        ...row,
+      };
+    } else {
+      workingDestinationRows.push(row);
+    }
+  }
+
+  return { rows: acceptedRows, conflicts };
 }
 
 function dedupeRowsByPrimaryKey(rows, primaryKey) {
@@ -400,7 +774,7 @@ async function upsertRowsToPostgres(tableName, primaryKey, rows) {
   }
 
   if (!normalizedRows.length) {
-    return 0;
+    return { synced: 0, conflicts: 0 };
   }
 
   const client = await pool.connect();
@@ -433,7 +807,7 @@ async function upsertRowsToPostgres(tableName, primaryKey, rows) {
     await synchronizePostgresSequence(client, tableName, primaryKey);
 
     await client.query('COMMIT');
-    return normalizedRows.length;
+    return { synced: normalizedRows.length, conflicts: 0 };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -1546,6 +1920,33 @@ function legacyRequestError(req, moduleName, error, userId) {
 }
 
 async function initDb() {
+  await pool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sync_conflicts (
+      conflict_id SERIAL PRIMARY KEY,
+      table_name VARCHAR(100) NOT NULL,
+      direction VARCHAR(50) NOT NULL,
+      conflict_type VARCHAR(50) NOT NULL,
+      primary_key_name VARCHAR(100),
+      primary_key_value TEXT,
+      business_key TEXT,
+      reason TEXT NOT NULL,
+      source_record JSONB,
+      existing_record JSONB,
+      status VARCHAR(20) NOT NULL DEFAULT 'Open',
+      detected_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION set_sync_row_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = CURRENT_TIMESTAMP;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
   await pool.query(`
     ALTER TABLE accounts
       ADD COLUMN IF NOT EXISTS auth_user_id UUID;
@@ -1563,6 +1964,43 @@ async function initDb() {
     END
     $$;
   `);
+
+  for (const tableName of durableSyncTables) {
+    await ensureTableColumn(tableName, 'sync_id', 'UUID DEFAULT gen_random_uuid()');
+    await ensureUniqueConstraint(tableName, `${tableName}_sync_id_key`, 'sync_id');
+    await ensureTableColumn(tableName, 'created_at', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP');
+    await ensureTableColumn(tableName, 'updated_at', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP');
+    await ensureTableColumn(tableName, 'source_site_id', 'VARCHAR(120)');
+    await ensureTableColumn(tableName, 'sync_status', `VARCHAR(20) NOT NULL DEFAULT 'synced'`);
+
+    const createdAtExpression = tableName === 'meterreadings'
+      ? 'COALESCE(created_at, created_date, reading_date, CURRENT_TIMESTAMP)'
+      : 'COALESCE(created_at, CURRENT_TIMESTAMP)';
+
+    await pool.query(`
+      UPDATE ${quoteIdentifier(tableName)}
+      SET sync_id = COALESCE(sync_id, gen_random_uuid()),
+          created_at = ${createdAtExpression},
+          updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP),
+          source_site_id = COALESCE(NULLIF(TRIM(source_site_id), ''), $1),
+          sync_status = COALESCE(NULLIF(TRIM(sync_status), ''), 'synced')
+      WHERE sync_id IS NULL
+         OR created_at IS NULL
+         OR updated_at IS NULL
+         OR source_site_id IS NULL
+         OR TRIM(COALESCE(source_site_id, '')) = ''
+         OR sync_status IS NULL
+         OR TRIM(COALESCE(sync_status, '')) = '';
+    `, [defaultSourceSiteId]);
+
+    await pool.query(`
+      DROP TRIGGER IF EXISTS ${quoteIdentifier(`${tableName}_set_updated_at`)} ON ${quoteIdentifier(tableName)};
+      CREATE TRIGGER ${quoteIdentifier(`${tableName}_set_updated_at`)}
+      BEFORE UPDATE ON ${quoteIdentifier(tableName)}
+      FOR EACH ROW
+      EXECUTE FUNCTION set_sync_row_updated_at();
+    `);
+  }
 
   const seedRes = await pool.query('SELECT COUNT(*)::int AS count FROM roles');
   if (seedRes.rows[0].count === 0) {
@@ -1594,6 +2032,7 @@ async function syncTableToSupabase(tableName, primaryKey) {
   await logPostgresEvent(`Preparing sync for table ${tableName}.`);
   const { rows } = await pool.query(`SELECT * FROM ${tableName}`);
   let normalizedRows = normalizeSyncRows(tableName, rows);
+  let conflictCount = 0;
 
   if (tableName === 'consumer') {
     normalizedRows = await alignConsumerRowsForSupabase(normalizedRows);
@@ -1605,7 +2044,30 @@ async function syncTableToSupabase(tableName, primaryKey) {
 
   if (normalizedRows.length === 0) {
     await logSupabaseEvent(`Table ${tableName}: no rows to sync.`);
-    return { tableName, synced: 0 };
+    return { tableName, synced: 0, conflicts: 0 };
+  }
+
+  if (isStrictSyncConflictTable(tableName)) {
+    const { data: existingSupabaseRows, error: existingRowsError } = await supabase.from(tableName).select('*');
+    if (existingRowsError) {
+      await logDatabaseError(`supabase.conflicts.${tableName}`, existingRowsError);
+      throw new Error(`${tableName}: ${existingRowsError.message}`);
+    }
+
+    const filtered = await filterRowsForSync(
+      tableName,
+      primaryKey,
+      normalizedRows,
+      normalizeSyncRows(tableName, existingSupabaseRows || []),
+      'postgres-to-supabase'
+    );
+    normalizedRows = filtered.rows;
+    conflictCount = filtered.conflicts;
+  }
+
+  if (normalizedRows.length === 0) {
+    await logSupabaseEvent(`Table ${tableName}: sync skipped because ${conflictCount} conflict(s) need review.`);
+    return { tableName, synced: 0, conflicts: conflictCount };
   }
 
   const { error } = await supabase.from(tableName).upsert(normalizedRows, {
@@ -1618,8 +2080,8 @@ async function syncTableToSupabase(tableName, primaryKey) {
     throw new Error(`${tableName}: ${error.message}`);
   }
 
-  await logSupabaseEvent(`Table ${tableName}: synced ${normalizedRows.length} row(s).`);
-  return { tableName, synced: normalizedRows.length };
+  await logSupabaseEvent(`Table ${tableName}: synced ${normalizedRows.length} row(s) with ${conflictCount} conflict(s) held for review.`);
+  return { tableName, synced: normalizedRows.length, conflicts: conflictCount };
 }
 
 async function syncTableToPostgres(tableName, primaryKey) {
@@ -1631,15 +2093,35 @@ async function syncTableToPostgres(tableName, primaryKey) {
     throw new Error(`${tableName}: ${error.message}`);
   }
 
-  const rows = normalizeSyncRows(tableName, data || []);
+  let rows = normalizeSyncRows(tableName, data || []);
+  let conflictCount = 0;
   if (!rows.length) {
     await logPostgresEvent(`Table ${tableName}: no rows pulled from Supabase.`);
-    return { tableName, synced: 0 };
+    return { tableName, synced: 0, conflicts: 0 };
   }
 
-  const synced = await upsertRowsToPostgres(tableName, primaryKey, rows);
-  await logPostgresEvent(`Table ${tableName}: pulled ${synced} row(s) from Supabase.`);
-  return { tableName, synced };
+  if (isStrictSyncConflictTable(tableName)) {
+    const { rows: existingPostgresRows } = await pool.query(`SELECT * FROM ${quoteIdentifier(tableName)}`);
+    const filtered = await filterRowsForSync(
+      tableName,
+      primaryKey,
+      rows,
+      normalizeSyncRows(tableName, existingPostgresRows),
+      'supabase-to-postgres'
+    );
+    rows = filtered.rows;
+    conflictCount = filtered.conflicts;
+  }
+
+  if (!rows.length) {
+    await logPostgresEvent(`Table ${tableName}: pull skipped because ${conflictCount} conflict(s) need review.`);
+    return { tableName, synced: 0, conflicts: conflictCount };
+  }
+
+  const result = await upsertRowsToPostgres(tableName, primaryKey, rows);
+  const totalConflicts = Number(result?.conflicts || 0) + conflictCount;
+  await logPostgresEvent(`Table ${tableName}: pulled ${result.synced} row(s) from Supabase with ${totalConflicts} conflict(s) held for review.`);
+  return { tableName, synced: result.synced, conflicts: totalConflicts };
 }
 
 async function syncPostgresToSupabase() {

@@ -3,6 +3,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
 import {
   getErrorMessage,
   loadBillsWithFallback,
@@ -244,7 +245,12 @@ const TreasurerLedger: React.FC = () => {
   }, [bills, payments, selectedConsumer]);
 
   const columns = useMemo(() => [
-    { key: 'Account_Number', label: 'ACCOUNT NO.', sortable: true },
+    {
+      key: 'Account_Number',
+      label: 'ACCOUNT NO.',
+      sortable: true,
+      render: (value: string) => formatAccountNumberForDisplay(value),
+    },
     { key: 'Consumer_Name', label: 'CONSUMER NAME', sortable: true },
     { key: 'Zone', label: 'ZONE', sortable: true },
     { key: 'Classification', label: 'TYPE', sortable: true },
@@ -366,7 +372,7 @@ const TreasurerLedger: React.FC = () => {
 
               <div className="ledger-consumer-info">
                 <div className="info-row-layout">
-                  <div className="form-field"><span className="form-label">Acc. No.</span><div className="form-data underline">{selectedConsumer.Account_Number}</div></div>
+                  <div className="form-field"><span className="form-label">Acc. No.</span><div className="form-data underline">{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</div></div>
                   <div className="form-field flex-narrow"><span className="form-label">Zone</span><div className="form-data underline">{selectedConsumer.Zone}</div></div>
                   <div className="form-field"><span className="form-label">Meter Serial No.</span><div className="form-data underline">{selectedConsumer.Meter_Number || 'N/A'}</div></div>
                 </div>

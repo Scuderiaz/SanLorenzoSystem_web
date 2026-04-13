@@ -4,6 +4,7 @@ import Tabs, { Tab } from '../../components/Common/Tabs';
 import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
 import { getErrorMessage, loadPaymentsWithFallback, requestJson } from '../../services/userManagementApi';
+import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
 import './VerifyPayment.css';
 
 const toAmount = (value: unknown): number => {
@@ -50,7 +51,7 @@ const VerifyPayment: React.FC = () => {
       const mapped = (result.data || []).map((payment: any) => ({
         Payment_ID: payment.Payment_ID,
         OR_No: payment.OR_Number || payment.Reference_No || String(payment.Payment_ID),
-        Account_Number: payment.Account_Number || 'N/A',
+        Account_Number: formatAccountNumberForDisplay(payment.Account_Number, 'N/A'),
         Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
         Payment_Date: payment.Payment_Date || '',
         Amount: toAmount(payment.Amount_Paid),
@@ -137,7 +138,7 @@ const VerifyPayment: React.FC = () => {
 
   const pendingColumns = [
     { key: 'OR_No', label: 'OR No.', sortable: true },
-    { key: 'Account_Number', label: 'Account No.', sortable: true },
+    { key: 'Account_Number', label: 'Account No.', sortable: true, render: (value: string) => formatAccountNumberForDisplay(value, 'N/A') },
     { key: 'Consumer_Name', label: 'Consumer', sortable: true },
     { key: 'Payment_Date', label: 'Date', sortable: true, render: (value: string) => formatDate(value) },
     { key: 'Amount', label: 'Amount', sortable: true, render: (val: number) => `P${toAmount(val).toFixed(2)}` },
@@ -160,7 +161,7 @@ const VerifyPayment: React.FC = () => {
 
   const verifiedColumns = [
     { key: 'OR_No', label: 'OR No.', sortable: true },
-    { key: 'Account_Number', label: 'Account No.', sortable: true },
+    { key: 'Account_Number', label: 'Account No.', sortable: true, render: (value: string) => formatAccountNumberForDisplay(value, 'N/A') },
     { key: 'Consumer_Name', label: 'Consumer', sortable: true },
     { key: 'Payment_Date', label: 'Date', sortable: true, render: (value: string) => formatDate(value) },
     { key: 'Amount', label: 'Amount', sortable: true, render: (val: number) => `P${toAmount(val).toFixed(2)}` },

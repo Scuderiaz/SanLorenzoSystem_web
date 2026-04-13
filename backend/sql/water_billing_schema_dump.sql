@@ -25,6 +25,12 @@ SET row_security = off;
 
 CREATE SCHEMA water_billing;
 
+--
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
 
 SET default_tablespace = '';
 
@@ -36,6 +42,7 @@ SET default_table_access_method = heap;
 
 CREATE TABLE water_billing.accounts (
     account_id integer NOT NULL,
+    sync_id uuid DEFAULT gen_random_uuid() NOT NULL,
     username character varying(50) NOT NULL,
     password character varying(255) NOT NULL,
     auth_user_id uuid,
@@ -54,6 +61,7 @@ CREATE TABLE water_billing.accounts (
 
 CREATE TABLE water_billing.bills (
     bill_id integer NOT NULL,
+    sync_id uuid DEFAULT gen_random_uuid() NOT NULL,
     consumer_id integer NOT NULL,
     reading_id integer NOT NULL,
     billing_officer_id integer,
@@ -95,6 +103,7 @@ CREATE TABLE water_billing.classification (
 
 CREATE TABLE water_billing.consumer (
     consumer_id integer NOT NULL,
+    sync_id uuid DEFAULT gen_random_uuid() NOT NULL,
     first_name character varying(100) NOT NULL,
     middle_name character varying(100),
     last_name character varying(100) NOT NULL,
@@ -121,6 +130,7 @@ CREATE TABLE water_billing.consumer (
 
 CREATE TABLE water_billing.meterreadings (
     reading_id integer NOT NULL,
+    sync_id uuid DEFAULT gen_random_uuid() NOT NULL,
     route_id integer,
     consumer_id integer NOT NULL,
     meter_id integer,
@@ -146,6 +156,7 @@ CREATE TABLE water_billing.meterreadings (
 
 CREATE TABLE water_billing.meter (
     meter_id integer NOT NULL,
+    sync_id uuid DEFAULT gen_random_uuid() NOT NULL,
     consumer_id integer NOT NULL,
     meter_serial_number character varying(100) NOT NULL,
     meter_size character varying(50),
@@ -175,6 +186,7 @@ CREATE TABLE water_billing.otp_verifications (
 
 CREATE TABLE water_billing.payment (
     payment_id integer NOT NULL,
+    sync_id uuid DEFAULT gen_random_uuid() NOT NULL,
     consumer_id integer NOT NULL,
     bill_id integer NOT NULL,
     payment_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -390,6 +402,7 @@ ALTER SEQUENCE water_billing.classification_classification_id_seq OWNED BY water
 
 CREATE TABLE water_billing.connection_ticket (
     ticket_id integer NOT NULL,
+    sync_id uuid DEFAULT gen_random_uuid() NOT NULL,
     consumer_id integer,
     account_id integer NOT NULL,
     ticket_number character varying(100) NOT NULL,
@@ -488,6 +501,7 @@ ALTER SEQUENCE water_billing.error_logs_error_id_seq OWNED BY water_billing.erro
 
 CREATE TABLE water_billing.ledger_entry (
     ledger_id integer NOT NULL,
+    sync_id uuid DEFAULT gen_random_uuid() NOT NULL,
     consumer_id integer NOT NULL,
     transaction_type character varying(50) NOT NULL,
     reference_id integer,
@@ -982,6 +996,13 @@ ALTER TABLE ONLY water_billing.accounts
 ALTER TABLE ONLY water_billing.accounts
     ADD CONSTRAINT accounts_auth_user_id_key UNIQUE (auth_user_id);
 
+--
+-- Name: accounts accounts_sync_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.accounts
+    ADD CONSTRAINT accounts_sync_id_key UNIQUE (sync_id);
+
 
 --
 -- Name: backuplogs backuplogs_pkey; Type: CONSTRAINT; Schema: water_billing; Owner: -
@@ -1013,6 +1034,13 @@ ALTER TABLE ONLY water_billing.bills
 
 ALTER TABLE ONLY water_billing.bills
     ADD CONSTRAINT bills_reading_id_key UNIQUE (reading_id);
+
+--
+-- Name: bills bills_sync_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.bills
+    ADD CONSTRAINT bills_sync_id_key UNIQUE (sync_id);
 
 
 --
@@ -1046,6 +1074,13 @@ ALTER TABLE ONLY water_billing.connection_ticket
 ALTER TABLE ONLY water_billing.connection_ticket
     ADD CONSTRAINT connection_ticket_ticket_number_key UNIQUE (ticket_number);
 
+--
+-- Name: connection_ticket connection_ticket_sync_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.connection_ticket
+    ADD CONSTRAINT connection_ticket_sync_id_key UNIQUE (sync_id);
+
 
 --
 -- Name: consumer consumer_account_number_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
@@ -1070,6 +1105,13 @@ ALTER TABLE ONLY water_billing.consumer
 ALTER TABLE ONLY water_billing.consumer
     ADD CONSTRAINT consumer_pkey PRIMARY KEY (consumer_id);
 
+--
+-- Name: consumer consumer_sync_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.consumer
+    ADD CONSTRAINT consumer_sync_id_key UNIQUE (sync_id);
+
 
 --
 -- Name: error_logs error_logs_pkey; Type: CONSTRAINT; Schema: water_billing; Owner: -
@@ -1085,6 +1127,13 @@ ALTER TABLE ONLY water_billing.error_logs
 
 ALTER TABLE ONLY water_billing.ledger_entry
     ADD CONSTRAINT ledger_entry_pkey PRIMARY KEY (ledger_id);
+
+--
+-- Name: ledger_entry ledger_entry_sync_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.ledger_entry
+    ADD CONSTRAINT ledger_entry_sync_id_key UNIQUE (sync_id);
 
 
 --
@@ -1102,6 +1151,13 @@ ALTER TABLE ONLY water_billing.meter
 ALTER TABLE ONLY water_billing.meter
     ADD CONSTRAINT meter_pkey PRIMARY KEY (meter_id);
 
+--
+-- Name: meter meter_sync_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.meter
+    ADD CONSTRAINT meter_sync_id_key UNIQUE (sync_id);
+
 
 --
 -- Name: meterreadings meterreadings_pkey; Type: CONSTRAINT; Schema: water_billing; Owner: -
@@ -1109,6 +1165,13 @@ ALTER TABLE ONLY water_billing.meter
 
 ALTER TABLE ONLY water_billing.meterreadings
     ADD CONSTRAINT meterreadings_pkey PRIMARY KEY (reading_id);
+
+--
+-- Name: meterreadings meterreadings_sync_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.meterreadings
+    ADD CONSTRAINT meterreadings_sync_id_key UNIQUE (sync_id);
 
 
 --
@@ -1141,6 +1204,13 @@ ALTER TABLE ONLY water_billing.password_reset
 
 ALTER TABLE ONLY water_billing.payment
     ADD CONSTRAINT payment_pkey PRIMARY KEY (payment_id);
+
+--
+-- Name: payment payment_sync_id_key; Type: CONSTRAINT; Schema: water_billing; Owner: -
+--
+
+ALTER TABLE ONLY water_billing.payment
+    ADD CONSTRAINT payment_sync_id_key UNIQUE (sync_id);
 
 
 --

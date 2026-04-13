@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
-import { loadOfflineDataset, saveOfflineDataset } from '../config/database';
+import { addToSyncQueue, loadOfflineDataset, saveOfflineDataset } from '../config/database';
+import { canReachBackend } from '../utils/backendAvailability';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -13,10 +14,19 @@ type LoadResult<T> = {
   source: 'api' | 'supabase' | 'offline';
 };
 
+export type ConsumerDashboardData = {
+  consumer: Record<string, any> | null;
+  bills: Record<string, any>[];
+  payments: Record<string, any>[];
+  readings: Record<string, any>[];
+};
+
 const defaultSystemSettings = {
   lateFee: 10,
   dueDateDays: 15,
 };
+
+const OFFLINE_REQUEST_QUEUE = '__request__';
 
 const createRequestError = (message: string, status?: number, responseBody?: any): RequestError => {
   const error = new Error(message) as RequestError;
@@ -53,6 +63,41 @@ const parseResponseBody = async (response: Response) => {
     return text;
   }
 };
+
+const normalizeRequestMethod = (options: RequestInit) => String(options.method || 'GET').toUpperCase();
+
+const extractQueueableBody = (body: BodyInit | null | undefined) => {
+  if (typeof body !== 'string') {
+    return body ?? null;
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
+};
+
+const queueOfflineRequest = async (path: string, options: RequestInit) => {
+  const method = normalizeRequestMethod(options);
+  return addToSyncQueue(OFFLINE_REQUEST_QUEUE, method, {
+    path,
+    method,
+    body: extractQueueableBody(options.body),
+  });
+};
+
+const createQueuedWriteResponse = <T>(method: string, path: string, queueMeta?: { operationId?: string; createdByDevice?: string; sourceSiteId?: string }) => ({
+  success: true,
+  queued: true,
+  offline: true,
+  method,
+  path,
+  operation_id: queueMeta?.operationId || null,
+  created_by_device: queueMeta?.createdByDevice || null,
+  source_site_id: queueMeta?.sourceSiteId || null,
+  message: 'Saved offline. This action will sync when the backend becomes available.',
+}) as T;
 
 const shouldAttemptSupabaseFallback = (error: unknown) => {
   const status = Number((error as RequestError)?.status || 0);
@@ -318,6 +363,71 @@ const loadMeterReadingsFromSupabase = async () => {
   return mapMeterReadingsFromSupabase(readings || [], consumers || []);
 };
 
+const loadConsumerDashboardFromSupabase = async (accountId: number | string): Promise<ConsumerDashboardData> => {
+  const { data: consumer, error: consumerError } = await supabase!
+    .from('consumer')
+    .select('*')
+    .eq('login_id', accountId)
+    .maybeSingle();
+
+  if (consumerError) throw consumerError;
+  if (!consumer) {
+    throw createRequestError('Consumer not found', 404);
+  }
+
+  const consumerId = consumer.consumer_id;
+  const [
+    { data: bills, error: billsError },
+    { data: payments, error: paymentsError },
+    { data: readings, error: readingsError },
+    { data: meters, error: metersError },
+  ] = await Promise.all([
+    supabase!.from('bills').select('*').eq('consumer_id', consumerId).order('bill_date', { ascending: false }),
+    supabase!.from('payment').select('*').eq('consumer_id', consumerId).order('payment_date', { ascending: false }),
+    supabase!.from('meterreadings').select('*').eq('consumer_id', consumerId).order('reading_date', { ascending: false }).limit(6),
+    supabase!.from('meter').select('meter_serial_number').eq('consumer_id', consumerId).order('meter_id', { ascending: false }).limit(1),
+  ]);
+
+  if (billsError) throw billsError;
+  if (paymentsError) throw paymentsError;
+  if (readingsError) throw readingsError;
+  if (metersError) throw metersError;
+
+  return {
+    consumer: {
+      ...consumer,
+      Consumer_ID: consumer.consumer_id,
+      First_Name: consumer.first_name,
+      Middle_Name: consumer.middle_name,
+      Last_Name: consumer.last_name,
+      Status: consumer.status,
+      Account_Number: consumer.account_number || null,
+      Meter_Number: meters?.[0]?.meter_serial_number || null,
+    },
+    bills: (bills || []).map((bill) => ({
+      ...bill,
+      Bill_ID: bill.bill_id,
+      Bill_Date: bill.bill_date,
+      Due_Date: bill.due_date,
+      Total_Amount: toNumber(bill.total_amount),
+      Status: bill.status || 'Unpaid',
+    })),
+    payments: (payments || []).map((payment) => ({
+      ...payment,
+      Payment_ID: payment.payment_id,
+      Amount_Paid: toNumber(payment.amount_paid),
+      Payment_Date: payment.payment_date,
+      Reference_Number: payment.reference_number,
+      Reference_No: payment.reference_number,
+      OR_Number: payment.or_number,
+    })),
+    readings: (readings || []).map((reading) => ({
+      Reading_Date: reading.reading_date || reading.created_at || reading.created_date,
+      Consumption: toNumber(reading.consumption),
+    })).reverse(),
+  };
+};
+
 const loadApplicationsFromSupabase = async () => {
   const [
     { data: tickets, error: ticketError },
@@ -558,6 +668,14 @@ export const getErrorMessage = (error: unknown, fallbackMessage: string) => {
 };
 
 export const requestJson = async <T = any>(path: string, options: RequestInit = {}, fallbackMessage = 'Request failed.'): Promise<T> => {
+  const method = normalizeRequestMethod(options);
+  const isWriteRequest = method !== 'GET' && method !== 'HEAD';
+
+  if (isWriteRequest && !(await canReachBackend())) {
+    const queueMeta = await queueOfflineRequest(path, options);
+    return createQueuedWriteResponse<T>(method, path, queueMeta || undefined);
+  }
+
   try {
     const headers = options.body
       ? { 'Content-Type': 'application/json', ...(options.headers || {}) }
@@ -576,11 +694,43 @@ export const requestJson = async <T = any>(path: string, options: RequestInit = 
 
     return payload as T;
   } catch (error) {
+    if (isWriteRequest && shouldAttemptSupabaseFallback(error) && !(await canReachBackend())) {
+      const queueMeta = await queueOfflineRequest(path, options);
+      return createQueuedWriteResponse<T>(method, path, queueMeta || undefined);
+    }
+
     if ((error as RequestError)?.status) {
       throw error;
     }
 
     throw createRequestError(getErrorMessage(error, fallbackMessage));
+  }
+};
+
+export const requestJsonWithOfflineSnapshot = async <T>(
+  path: string,
+  offlineDatasetKey: string,
+  fallbackMessage = 'Request failed.',
+  extractApiData: (payload: any) => T = (payload) => payload as T
+): Promise<LoadResult<T>> => {
+  try {
+    const payload = await requestJson(path, {}, fallbackMessage);
+    const data = extractApiData(payload);
+    await persistOfflineSnapshot(offlineDatasetKey, data);
+    return {
+      data,
+      source: 'api',
+    };
+  } catch (error) {
+    const offlineData = await loadOfflineSnapshot<T>(offlineDatasetKey);
+    if (offlineData !== null) {
+      return {
+        data: offlineData,
+        source: 'offline',
+      };
+    }
+
+    throw createRequestError(getErrorMessage(error, fallbackMessage), (error as RequestError)?.status, (error as RequestError)?.responseBody);
   }
 };
 
@@ -657,7 +807,8 @@ export const loadRolesWithFallback = async () => requestWithSupabaseFallback(
     }));
   },
   (payload) => payload?.data || [],
-  'Failed to load roles.'
+  'Failed to load roles.',
+  'dataset.roles'
 );
 
 export const loadZonesWithFallback = async () => requestWithSupabaseFallback(
@@ -671,7 +822,8 @@ export const loadZonesWithFallback = async () => requestWithSupabaseFallback(
     }));
   },
   (payload) => payload?.data || [],
-  'Failed to load zones.'
+  'Failed to load zones.',
+  'dataset.zones'
 );
 
 export const loadClassificationsWithFallback = async () => requestWithSupabaseFallback(
@@ -685,7 +837,8 @@ export const loadClassificationsWithFallback = async () => requestWithSupabaseFa
     }));
   },
   (payload) => payload?.data || [],
-  'Failed to load classifications.'
+  'Failed to load classifications.',
+  'dataset.classifications'
 );
 
 export const loadConsumersWithFallback = async () => requestWithSupabaseFallback(
@@ -716,7 +869,21 @@ export const loadMeterReadingsWithFallback = async () => requestWithSupabaseFall
   '/meter-readings',
   loadMeterReadingsFromSupabase,
   (payload) => (Array.isArray(payload) ? payload : payload?.data || []),
-  'Failed to load meter readings.'
+  'Failed to load meter readings.',
+  'dataset.meterReadings'
+);
+
+export const loadConsumerDashboardWithFallback = async (accountId: number | string) => requestWithSupabaseFallback(
+  `/consumer-dashboard/${accountId}`,
+  async () => loadConsumerDashboardFromSupabase(accountId),
+  (payload) => ({
+    consumer: payload?.consumer || null,
+    bills: toArray(payload?.bills),
+    payments: toArray(payload?.payments),
+    readings: toArray(payload?.readings),
+  }),
+  'Failed to load consumer dashboard.',
+  `dataset.consumerDashboard.${accountId}`
 );
 
 export const loadUnifiedUsersWithFallback = async () => requestWithSupabaseFallback(
@@ -741,14 +908,16 @@ export const loadUnifiedUsersWithFallback = async () => requestWithSupabaseFallb
     }));
   },
   (payload) => payload?.data || [],
-  'Failed to load users.'
+  'Failed to load users.',
+  'dataset.unifiedUsers'
 );
 
 export const loadApplicationsWithFallback = async () => requestWithSupabaseFallback(
   '/applications',
   loadApplicationsFromSupabase,
   (payload) => payload?.data || [],
-  'Failed to load applications.'
+  'Failed to load applications.',
+  'dataset.applications'
 );
 
 export const loadPendingApplicationsWithFallback = async () => requestWithSupabaseFallback(
@@ -758,14 +927,16 @@ export const loadPendingApplicationsWithFallback = async () => requestWithSupaba
     return rows.filter((row) => normalizeStatus(row.Application_Status) === 'pending');
   },
   (payload) => payload?.data || [],
-  'Failed to load pending applications.'
+  'Failed to load pending applications.',
+  'dataset.pendingApplications'
 );
 
 export const loadLatestWaterRateWithFallback = async () => requestWithSupabaseFallback(
   '/water-rates/latest',
   loadLatestWaterRateFromSupabase,
   (payload) => payload?.data || null,
-  'Failed to load the latest water rate.'
+  'Failed to load the latest water rate.',
+  'dataset.latestWaterRate'
 );
 
 export const loadAdminSettingsWithFallback = async () => requestWithSupabaseFallback(
@@ -775,7 +946,8 @@ export const loadAdminSettingsWithFallback = async () => requestWithSupabaseFall
     waterRates: await loadLatestWaterRateFromSupabase(),
   }),
   (payload) => payload?.data || { systemSettings: { ...defaultSystemSettings }, waterRates: null },
-  'Failed to load admin settings.'
+  'Failed to load admin settings.',
+  'dataset.adminSettings'
 );
 
 export const loadTreasurerDashboardSummaryWithFallback = async (dateKey = getCurrentDateKey()) => requestWithSupabaseFallback(
@@ -805,14 +977,16 @@ export const loadTreasurerDashboardSummaryWithFallback = async (dateKey = getCur
     };
   },
   (payload) => payload?.data || { todaysCollections: 0, paymentsToday: 0, pendingValidation: 0, recentPayments: [] },
-  'Failed to load treasurer dashboard.'
+  'Failed to load treasurer dashboard.',
+  `dataset.treasurerDashboard.${dateKey}`
 );
 
 export const loadAccountLookupWithFallback = async (query: string) => requestWithSupabaseFallback(
   `/treasurer/account-lookup?q=${encodeURIComponent(query)}`,
   async () => buildAccountLookupFallback(query),
   (payload) => payload?.data || null,
-  'Account lookup failed.'
+  'Account lookup failed.',
+  `dataset.accountLookup.${query.trim().toLowerCase()}`
 );
 
 export const getFallbackSourceLabel = (sources: Array<'api' | 'supabase' | 'offline'>) => {

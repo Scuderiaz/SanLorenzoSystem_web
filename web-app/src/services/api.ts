@@ -3,6 +3,7 @@ import { initOfflineDB, saveOfflineDB, addToSyncQueue } from '../config/database
 import { supabase, isSupabaseConfigured } from '../config/supabase';
 import { appendClientDiagnostic } from '../utils/clientDiagnostics';
 import { canReachBackend } from '../utils/backendAvailability';
+import { getSourceSiteId } from '../utils/syncIdentity';
 
 const isNetworkError = (error: any) => {
   return error.code === 'ERR_NETWORK' || !error.response || error.response.status >= 500;
@@ -37,6 +38,9 @@ const syncEndpointMap: Record<string, string> = {
   bills: '/bills',
   payment: '/payments',
 };
+
+const OFFLINE_REQUEST_QUEUE = '__request__';
+const defaultSourceSiteId = getSourceSiteId();
 
 export const authService = {
   login: async (username: string, password: string) => {
@@ -222,9 +226,10 @@ export const consumerService = {
       } else {
         await addToSyncQueue('consumer', 'INSERT', consumer);
         const db = await initOfflineDB();
+        const timestamp = new Date().toISOString();
         db.run(`
-          INSERT INTO consumer (First_Name, Last_Name, Address, Zone_ID, Classification_ID, Account_Number, Meter_Number, Status, Contact_Number, Connection_Date)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO consumer (First_Name, Last_Name, Address, Zone_ID, Classification_ID, Account_Number, Meter_Number, Status, Contact_Number, Connection_Date, created_at, updated_at, source_site_id, sync_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           consumer.First_Name,
           consumer.Last_Name,
@@ -236,6 +241,10 @@ export const consumerService = {
           consumer.Status || 'Active',
           consumer.Contact_Number,
           consumer.Connection_Date,
+          timestamp,
+          timestamp,
+          defaultSourceSiteId,
+          'pending',
         ]);
         await saveOfflineDB(db);
         return [consumer];
@@ -254,8 +263,13 @@ export const consumerService = {
       } else {
         await addToSyncQueue('consumer', 'UPDATE', { id, ...consumer });
         const db = await initOfflineDB();
-        const fields = Object.keys(consumer).map(k => `${k} = ?`).join(', ');
-        const values: any[] = [...Object.values(consumer), id];
+        const fields = [
+          ...Object.keys(consumer).map(k => `${k} = ?`),
+          'updated_at = ?',
+          'source_site_id = ?',
+          'sync_status = ?',
+        ].join(', ');
+        const values: any[] = [...Object.values(consumer), new Date().toISOString(), defaultSourceSiteId, 'pending', id];
         db.run(`UPDATE consumer SET ${fields} WHERE Consumer_ID = ?`, values);
         await saveOfflineDB(db);
         return [consumer];
@@ -331,9 +345,10 @@ export const meterReadingService = {
       } else {
         await addToSyncQueue('meterreadings', 'INSERT', reading);
         const db = await initOfflineDB();
+        const timestamp = new Date().toISOString();
         db.run(`
-          INSERT INTO meterreadings (Consumer_ID, Meter_ID, Previous_Reading, Current_Reading, Consumption, Reading_Status, Notes, Reading_Date)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO meterreadings (Consumer_ID, Meter_ID, Previous_Reading, Current_Reading, Consumption, Reading_Status, Notes, Reading_Date, created_at, updated_at, source_site_id, sync_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           reading.Consumer_ID,
           reading.Meter_ID,
@@ -343,6 +358,10 @@ export const meterReadingService = {
           reading.Reading_Status || 'Normal',
           reading.Notes,
           reading.Reading_Date,
+          timestamp,
+          timestamp,
+          defaultSourceSiteId,
+          'pending',
         ]);
         await saveOfflineDB(db);
         return [reading];
@@ -402,9 +421,10 @@ export const billService = {
       } else {
         await addToSyncQueue('bills', 'INSERT', bill);
         const db = await initOfflineDB();
+        const timestamp = new Date().toISOString();
         db.run(`
-          INSERT INTO bills (Consumer_ID, Reading_ID, Bill_Date, Due_Date, Total_Amount, Status)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO bills (Consumer_ID, Reading_ID, Bill_Date, Due_Date, Total_Amount, Status, created_at, updated_at, source_site_id, sync_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           bill.Consumer_ID,
           bill.Reading_ID,
@@ -412,6 +432,10 @@ export const billService = {
           bill.Due_Date,
           bill.Total_Amount,
           bill.Status || 'Unpaid',
+          timestamp,
+          timestamp,
+          defaultSourceSiteId,
+          'pending',
         ]);
         await saveOfflineDB(db);
         return [bill];
@@ -442,8 +466,19 @@ export const syncService = {
       for (const row of result[0].values) {
         const [id, tableName, operation, data] = row;
         const parsedData = JSON.parse(data as string);
+        db.run('UPDATE sync_queue SET attempt_count = COALESCE(attempt_count, 0) + 1 WHERE id = ?', [id]);
 
         try {
+          if (tableName === OFFLINE_REQUEST_QUEUE) {
+            await api.request({
+              url: parsedData.path,
+              method: parsedData.method || operation || 'POST',
+              data: parsedData.body,
+            });
+            db.run('UPDATE sync_queue SET synced = 1 WHERE id = ?', [id]);
+            continue;
+          }
+
           const endpoint = syncEndpointMap[tableName as string];
           if (!endpoint) {
             throw new Error(`No sync endpoint configured for table ${tableName}`);

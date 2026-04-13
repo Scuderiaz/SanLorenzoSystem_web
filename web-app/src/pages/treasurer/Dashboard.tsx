@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
+import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
 import {
   getErrorMessage,
   loadAccountLookupWithFallback,
@@ -34,21 +35,6 @@ interface QuickLookupResult {
   billingMonth: string | null;
 }
 
-interface PaymentSummaryRow {
-  Payment_ID?: number;
-  OR_Number?: string;
-  OR_No?: string;
-  Reference_No?: string;
-  Account_Number?: string;
-  Consumer_Name?: string;
-  Amount_Paid?: number | string;
-  Amount?: number | string;
-  Payment_Method?: string;
-  Payment_Date?: string;
-  Date_Time?: string;
-  Status?: string;
-}
-
 interface QuickLookupAccount {
   Consumer_ID: number;
   Account_Number: string;
@@ -57,29 +43,6 @@ interface QuickLookupAccount {
   Last_Name?: string;
   Address?: string;
 }
-
-const sameDay = (value: string | null | undefined, dateText: string): boolean => {
-  if (!value) {
-    return false;
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return false;
-  }
-
-  return date.toISOString().slice(0, 10) === dateText;
-};
-
-const mapFallbackRecentPayment = (payment: PaymentSummaryRow): RecentPayment => ({
-  Receipt_No: payment.OR_Number || payment.OR_No || payment.Reference_No || `PAY-${payment.Payment_ID || 'N/A'}`,
-  Account_Number: payment.Account_Number || 'N/A',
-  Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
-  Amount: toAmount(payment.Amount_Paid ?? payment.Amount),
-  Payment_Method: payment.Payment_Method || 'Cash',
-  Date_Time: payment.Payment_Date || payment.Date_Time || '',
-  Validation_Status: payment.Status || 'Pending',
-});
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -207,6 +170,7 @@ const Dashboard: React.FC = () => {
       key: 'Account_Number',
       label: 'Account No.',
       sortable: true,
+      render: (value: string) => formatAccountNumberForDisplay(value, 'N/A'),
     },
     {
       key: 'Consumer_Name',
@@ -275,7 +239,7 @@ const Dashboard: React.FC = () => {
                         onClick={() => performQuickLookup(account.Account_Number || account.Consumer_Name)}
                       >
                         <div className="quick-search-suggestion-main">
-                          <strong>{account.Account_Number || 'No account number'}</strong>
+                          <strong>{formatAccountNumberForDisplay(account.Account_Number, 'No account number')}</strong>
                           <span>{account.Consumer_Name || 'Unnamed consumer'}</span>
                         </div>
                         <span className="quick-search-suggestion-address">{account.Address || 'No saved address'}</span>

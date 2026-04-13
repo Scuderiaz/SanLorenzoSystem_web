@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api, { authService } from '../../services/api';
+import { authService } from '../../services/api';
+import { loadClassificationsWithFallback } from '../../services/userManagementApi';
 import './ForgotPassword.css'; // Reusing some styles
 
 const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
@@ -54,8 +55,8 @@ const SignUp: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const classRes = await api.get('/classifications');
-        setClassifications(classRes.data.data || []);
+        const result = await loadClassificationsWithFallback();
+        setClassifications(result.data || []);
       } catch (err) {
         console.error('Error fetching classifications:', err);
       }

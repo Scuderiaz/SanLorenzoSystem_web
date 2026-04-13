@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api';
+import { getErrorMessage, loadConsumerDashboardWithFallback } from '../../services/userManagementApi';
 import { 
   AreaChart, 
   Area, 
@@ -236,25 +236,27 @@ const ConsumerMain: React.FC = () => {
   const [readings, setReadings] = useState<Reading[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [dataSource, setDataSource] = useState<'api' | 'supabase' | 'offline' | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
     const fetchDashboard = async () => {
       try {
-        const res = await api.get(`/consumer-dashboard/${user.id}`);
-        const { consumer: c, bills: b, payments: p, readings: r } = res.data;
+        const { data, source } = await loadConsumerDashboardWithFallback(user.id);
+        const { consumer: c, bills: b, payments: p, readings: r } = data;
+        setDataSource(source);
         setConsumer({
           name: c.First_Name && c.Last_Name
             ? `${c.First_Name}${c.Middle_Name ? ' ' + c.Middle_Name : ''} ${c.Last_Name}`
             : user.fullName || 'Consumer',
-          accountNo: `C-${String(c.Consumer_ID).padStart(4, '0')}`,
+          accountNo: c.Account_Number || c.account_number || `C-${String(c.Consumer_ID).padStart(4, '0')}`,
           connectionStatus: c.Status || 'Active',
         });
         setBills(b || []);
         setPayments(p || []);
         setReadings(r || []);
       } catch (err: any) {
-        setError(err.message || 'Failed to load dashboard');
+        setError(getErrorMessage(err, 'Failed to load dashboard.'));
       } finally {
         setLoading(false);
       }
@@ -304,6 +306,16 @@ const ConsumerMain: React.FC = () => {
         <div className="cm-header-info">
           <div className="cm-dashboard-label">San Lorenzo Ruiz Water System</div>
           <h1 className="cm-name">{formatName(consumer?.name || user?.fullName)}</h1>
+          {dataSource === 'supabase' && (
+            <div style={{ marginTop: '10px', color: '#b45309', fontSize: '12px', fontWeight: 700 }}>
+              Cloud fallback active. Dashboard data is loading from Supabase.
+            </div>
+          )}
+          {dataSource === 'offline' && (
+            <div style={{ marginTop: '10px', color: '#92400e', fontSize: '12px', fontWeight: 700 }}>
+              Offline snapshot active. Recent updates will appear after sync.
+            </div>
+          )}
           <div className="cm-meta">
             <span className="cm-meta-item">
               <i className="fas fa-id-card" /> Account: <strong>{consumer?.accountNo}</strong>

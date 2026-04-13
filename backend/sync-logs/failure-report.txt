@@ -503,3 +503,60 @@
 [2026-04-13T05:33:25.133Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.account_approval","message":"account_approval: TypeError: fetch failed","context":{"tableName":"account_approval","direction":"postgres-to-supabase"}}
 [2026-04-13T05:33:25.149Z] {"kind":"ERROR","module":"supabase.sync.waterrates","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
 [2026-04-13T05:33:25.153Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.waterrates","message":"waterrates: TypeError: fetch failed","context":{"tableName":"waterrates","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.241Z] {"kind":"ERROR","module":"postgres.sync.roles","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.279Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.roles","message":"roles: TypeError: fetch failed","context":{"tableName":"roles","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.300Z] {"kind":"ERROR","module":"postgres.sync.zone","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.301Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.zone","message":"zone: TypeError: fetch failed","context":{"tableName":"zone","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.325Z] {"kind":"ERROR","module":"postgres.sync.classification","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.334Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.classification","message":"classification: TypeError: fetch failed","context":{"tableName":"classification","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.368Z] {"kind":"ERROR","module":"postgres.sync.accounts","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.379Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.accounts","message":"accounts: TypeError: fetch failed","context":{"tableName":"accounts","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.394Z] {"kind":"ERROR","module":"postgres.sync.consumer","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.395Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.consumer","message":"consumer: TypeError: fetch failed","context":{"tableName":"consumer","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.408Z] {"kind":"ERROR","module":"postgres.sync.meter","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.409Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.meter","message":"meter: TypeError: fetch failed","context":{"tableName":"meter","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.432Z] {"kind":"ERROR","module":"postgres.sync.route","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.456Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.route","message":"route: TypeError: fetch failed","context":{"tableName":"route","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.470Z] {"kind":"ERROR","module":"postgres.sync.meterreadings","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.477Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.meterreadings","message":"meterreadings: TypeError: fetch failed","context":{"tableName":"meterreadings","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.486Z] {"kind":"ERROR","module":"postgres.sync.bills","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.488Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.bills","message":"bills: TypeError: fetch failed","context":{"tableName":"bills","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.493Z] {"kind":"ERROR","module":"postgres.sync.payment","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.503Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.payment","message":"payment: TypeError: fetch failed","context":{"tableName":"payment","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.511Z] {"kind":"ERROR","module":"postgres.sync.ledger_entry","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.520Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.ledger_entry","message":"ledger_entry: TypeError: fetch failed","context":{"tableName":"ledger_entry","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.537Z] {"kind":"ERROR","module":"postgres.sync.connection_ticket","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.538Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.connection_ticket","message":"connection_ticket: TypeError: fetch failed","context":{"tableName":"connection_ticket","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.575Z] {"kind":"ERROR","module":"postgres.sync.password_reset","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.584Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.password_reset","message":"password_reset: TypeError: fetch failed","context":{"tableName":"password_reset","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.597Z] {"kind":"ERROR","module":"postgres.sync.account_approval","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.620Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.account_approval","message":"account_approval: TypeError: fetch failed","context":{"tableName":"account_approval","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.641Z] {"kind":"ERROR","module":"postgres.sync.backuplogs","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.643Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.backuplogs","message":"backuplogs: TypeError: fetch failed","context":{"tableName":"backuplogs","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.659Z] {"kind":"ERROR","module":"postgres.sync.waterrates","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.669Z] {"kind":"SYNC_TABLE","module":"supabaseToPostgres.waterrates","message":"waterrates: TypeError: fetch failed","context":{"tableName":"waterrates","direction":"supabase-to-postgres"}}
+[2026-04-13T09:48:04.705Z] {"kind":"ERROR","module":"supabase.sync.roles","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.712Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.roles","message":"roles: TypeError: fetch failed","context":{"tableName":"roles","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.725Z] {"kind":"ERROR","module":"supabase.sync.zone","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.727Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.zone","message":"zone: TypeError: fetch failed","context":{"tableName":"zone","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.740Z] {"kind":"ERROR","module":"supabase.sync.classification","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.741Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.classification","message":"classification: TypeError: fetch failed","context":{"tableName":"classification","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.754Z] {"kind":"ERROR","module":"supabase.sync.accounts","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.758Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.accounts","message":"accounts: TypeError: fetch failed","context":{"tableName":"accounts","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.776Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.consumer","message":"TypeError: fetch failed","context":{"tableName":"consumer","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.786Z] {"kind":"ERROR","module":"supabase.sync.meter","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.804Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.meter","message":"meter: TypeError: fetch failed","context":{"tableName":"meter","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.814Z] {"kind":"ERROR","module":"supabase.sync.route","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.815Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.route","message":"route: TypeError: fetch failed","context":{"tableName":"route","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.824Z] {"kind":"ERROR","module":"supabase.sync.meterreadings","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.826Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.meterreadings","message":"meterreadings: TypeError: fetch failed","context":{"tableName":"meterreadings","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.910Z] {"kind":"ERROR","module":"supabase.sync.bills","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.912Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.bills","message":"bills: TypeError: fetch failed","context":{"tableName":"bills","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.928Z] {"kind":"ERROR","module":"supabase.sync.payment","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.936Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.payment","message":"payment: TypeError: fetch failed","context":{"tableName":"payment","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.946Z] {"kind":"ERROR","module":"supabase.sync.connection_ticket","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.960Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.connection_ticket","message":"connection_ticket: TypeError: fetch failed","context":{"tableName":"connection_ticket","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.970Z] {"kind":"ERROR","module":"supabase.sync.account_approval","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.971Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.account_approval","message":"account_approval: TypeError: fetch failed","context":{"tableName":"account_approval","direction":"postgres-to-supabase"}}
+[2026-04-13T09:48:04.980Z] {"kind":"ERROR","module":"supabase.sync.waterrates","message":"TypeError: fetch failed","context":{"severity":"ERROR","userId":null,"status":"Open"}}
+[2026-04-13T09:48:04.981Z] {"kind":"SYNC_TABLE","module":"postgresToSupabase.waterrates","message":"waterrates: TypeError: fetch failed","context":{"tableName":"waterrates","direction":"postgres-to-supabase"}}

@@ -4,6 +4,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
 import {
   getErrorMessage,
   loadAccountLookupWithFallback,
@@ -72,7 +73,7 @@ interface QuickLookupAccount {
 const mapPaymentHistoryRow = (payment: any): PaymentHistoryRow => ({
   Payment_ID: payment.Payment_ID,
   Receipt_No: payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID}`,
-  Account_Number: payment.Account_Number || 'N/A',
+  Account_Number: formatAccountNumberForDisplay(payment.Account_Number, 'N/A'),
   Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
   Amount: toAmount(payment.Amount_Paid),
   Payment_Date: payment.Payment_Date,
@@ -336,7 +337,12 @@ const ProcessPayment: React.FC = () => {
 
   const paymentColumns = useMemo(() => [
     { key: 'Receipt_No', label: 'Receipt No.', sortable: true },
-    { key: 'Account_Number', label: 'Account No.', sortable: true },
+    {
+      key: 'Account_Number',
+      label: 'Account No.',
+      sortable: true,
+      render: (value: string) => formatAccountNumberForDisplay(value, 'N/A'),
+    },
     { key: 'Consumer_Name', label: 'Consumer Name', sortable: true },
     {
       key: 'Amount',
@@ -435,7 +441,7 @@ const ProcessPayment: React.FC = () => {
                 <div className="breakdown-grid">
                   <div className="breakdown-item">
                     <span className="label">Account Number</span>
-                    <span className="value">{selectedConsumer.Account_Number}</span>
+                    <span className="value">{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</span>
                   </div>
                   <div className="breakdown-item">
                     <span className="label">Classification</span>
@@ -514,7 +520,7 @@ const ProcessPayment: React.FC = () => {
                               onClick={() => performConsumerSearch(account.Account_Number || consumerName)}
                             >
                               <div className="account-search-suggestion-main">
-                                <strong>{account.Account_Number || 'No account number'}</strong>
+                                <strong>{formatAccountNumberForDisplay(account.Account_Number, 'No account number')}</strong>
                                 <span>{consumerName || 'Unnamed consumer'}</span>
                               </div>
                               <span className="account-search-suggestion-address">{account.Address || 'No saved address'}</span>
@@ -636,7 +642,7 @@ const ProcessPayment: React.FC = () => {
                   <strong>PAYOR:</strong>
                   <span style={{ borderBottom: '1px solid #e2e8f0', display: 'block' }}>{currentReceipt.Consumer_Name}</span>
                   <strong>ACCT NO:</strong>
-                  <span style={{ borderBottom: '1px solid #e2e8f0', display: 'block' }}>{currentReceipt.Account_Number}</span>
+                  <span style={{ borderBottom: '1px solid #e2e8f0', display: 'block' }}>{formatAccountNumberForDisplay(currentReceipt.Account_Number, 'N/A')}</span>
                 </div>
               </div>
 
@@ -696,7 +702,7 @@ const ProcessPayment: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '30px' }}>
                 <div>
                   <h4 style={{ color: '#1B1B63', marginBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>Consumer Information</h4>
-                  <p><strong>Account:</strong> {consumerProfile.Account_Number}</p>
+                  <p><strong>Account:</strong> {formatAccountNumberForDisplay(consumerProfile.Account_Number)}</p>
                   <p><strong>Name:</strong> {consumerProfile.Consumer_Name}</p>
                   <p><strong>Address:</strong> {consumerProfile.Address}</p>
                 </div>
@@ -770,7 +776,7 @@ const ProcessPayment: React.FC = () => {
                 <section className="quick-summary-panel">
                   <h3>Consumer Profile</h3>
                   <div className="quick-summary-list">
-                    <div><span>Account</span><strong>{consumerProfile.Account_Number}</strong></div>
+                    <div><span>Account</span><strong>{formatAccountNumberForDisplay(consumerProfile.Account_Number)}</strong></div>
                     <div><span>Name</span><strong>{consumerProfile.Consumer_Name}</strong></div>
                     <div><span>Address</span><strong>{consumerProfile.Address}</strong></div>
                     <div><span>Classification</span><strong>{selectedConsumer.Classification || 'N/A'}</strong></div>
