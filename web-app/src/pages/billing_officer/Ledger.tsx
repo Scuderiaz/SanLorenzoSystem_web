@@ -293,17 +293,112 @@ const BillingLedger: React.FC = () => {
         </div>
 
         {selectedConsumer && (
-          <Modal isOpen={Boolean(selectedConsumer)} onClose={() => setSelectedConsumer(null)} title="Account Ledger Details" size="large" closeOnOverlayClick={true}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-              <div><strong>Account No.:</strong> {selectedConsumer.Account_Number}</div>
-              <div><strong>Consumer:</strong> {selectedConsumer.Consumer_Name}</div>
-              <div><strong>Zone:</strong> {selectedConsumer.Zone}</div>
-              <div><strong>Classification:</strong> {selectedConsumer.Classification}</div>
-              <div><strong>Current Balance:</strong> {formatCurrency(selectedConsumer.Current_Balance)}</div>
-              <div><strong>Last Payment:</strong> {formatDate(selectedConsumer.Last_Payment)}</div>
-              <div style={{ gridColumn: '1 / -1' }}><strong>Address:</strong> {selectedConsumer.Address}</div>
+          <Modal isOpen={Boolean(selectedConsumer)} onClose={() => setSelectedConsumer(null)} title="Official Account Ledger" size="portrait" closeOnOverlayClick={true}>
+            <div className="billing-paper-theme">
+              <div className="ledger-big-id">{selectedConsumer.Account_Number.split('-').pop()}</div>
+              
+              <div className="ledger-official-header">
+                <div className="title">REPUBLIC OF THE PHILIPPINES</div>
+                <div className="subtitle">MUNICIPALITY OF SAN LORENZO RUIZ</div>
+                <div style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', color: '#1e293b' }}>WATER SERVICE RECORD</div>
+                <h3>RECORDS OF PAYMENT</h3>
+              </div>
+
+              <div className="ledger-consumer-info">
+                <div className="info-row-layout">
+                  <div className="form-field flex-wide">
+                    <span className="form-label">Consumer Name</span>
+                    <div className="form-data underline">{selectedConsumer.Consumer_Name}</div>
+                  </div>
+                  <div className="form-field">
+                    <span className="form-label">Zone</span>
+                    <div className="form-data underline">{selectedConsumer.Zone}</div>
+                  </div>
+                </div>
+                <div className="info-row-layout">
+                  <div className="form-field flex-wide">
+                    <span className="form-label">Address</span>
+                    <div className="form-data underline">{selectedConsumer.Address}</div>
+                  </div>
+                  <div className="form-field flex-narrow">
+                    <span className="form-label">Account No.</span>
+                    <div className="form-data underline">{selectedConsumer.Account_Number}</div>
+                  </div>
+                </div>
+                <div className="info-row-layout">
+                  <div className="form-field">
+                    <span className="form-label">Classification</span>
+                    <div className="form-data underline">{selectedConsumer.Classification}</div>
+                  </div>
+                  <div className="form-field">
+                    <span className="form-label">Meter Serial No.</span>
+                    <div className="form-data underline">0801000048</div>
+                  </div>
+                  <div className="form-field">
+                    <span className="form-label">Connection Date</span>
+                    <div className="form-data underline">N/A</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="paper-table-wrapper">
+                <table className="paper-ledger-table">
+                  <thead>
+                    <tr>
+                      <th rowSpan={2}>Date</th>
+                      <th rowSpan={2}>Meter Reading</th>
+                      <th rowSpan={2}>Consumption</th>
+                      <th rowSpan={2}>Water Billing</th>
+                      <th rowSpan={2}>Penalty</th>
+                      <th rowSpan={2}>Meter</th>
+                      <th rowSpan={2}>Payment</th>
+                      <th rowSpan={2}>Receipt Number</th>
+                      <th colSpan={2} className="balance-col-header">Balance</th>
+                    </tr>
+                    <tr>
+                      <th className="sub-th">PHP</th>
+                      <th className="sub-th">cts.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={10} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                          No bill or payment transactions found.
+                        </td>
+                      </tr>
+                    ) : (
+                      transactions.map((row, idx) => {
+                        const bill = row.Type === 'Bill' ? bills.find(b => `BILL-${b.Bill_ID}` === row.Reference) : null;
+                        const payment = row.Type === 'Payment' ? payments.find(p => p.OR_Number === row.Reference || p.Reference_No === row.Reference) : null;
+                        
+                        return (
+                          <tr key={`${row.Reference}-${idx}`}>
+                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{formatDate(row.Date)}</td>
+                            <td style={{ textAlign: 'right' }}>{bill ? (bill as any).Current_Reading : ''}</td>
+                            <td style={{ textAlign: 'center' }}>{bill ? (bill as any).Consumption : ''}</td>
+                            <td style={{ textAlign: 'right' }}>{row.Debit > 0 ? row.Debit.toFixed(2) : ''}</td>
+                            <td style={{ textAlign: 'right' }}>{bill ? (bill as any).Penalty?.toFixed(2) : ''}</td>
+                            <td style={{ textAlign: 'right' }}>{bill ? (bill as any).Meter_Fee?.toFixed(2) : ''}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{row.Credit > 0 ? row.Credit.toFixed(2) : ''}</td>
+                            <td style={{ textAlign: 'center' }}>{row.Reference.startsWith('BILL-') ? '' : row.Reference}</td>
+                            <td style={{ textAlign: 'right' }}>{Math.floor(row.Running_Balance)}</td>
+                            <td style={{ textAlign: 'right' }}>{(row.Running_Balance % 1).toFixed(2).split('.')[1]}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="ledger-footer-actions no-print">
+                <button className="btn btn-secondary" onClick={() => setSelectedConsumer(null)}>Close Record</button>
+                <button className="btn btn-primary" onClick={() => window.print()}>
+                  <i className="fas fa-print"></i> Generate Audit Report
+                </button>
+              </div>
             </div>
-            <DataTable columns={transactionColumns} data={transactions} loading={false} emptyMessage="No bill or payment transactions found." />
           </Modal>
         )}
       </div>

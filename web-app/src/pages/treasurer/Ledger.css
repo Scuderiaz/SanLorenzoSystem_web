@@ -232,48 +232,141 @@
   color: #1B1B63;
 }
 
-/* ─── Table Styling ───────────────────────────────────────────── */
-.or-badge {
-  background: #fffbeb;
-  color: #dc2626;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: 900;
-  border: 1px solid #fef3c7;
+/* ─── Balance Color Logic ─────────────────────────────────────────── */
+.balance-due {
+  color: #dc2626 !important;
+  font-weight: 900 !important;
 }
 
-.data-table-container {
-  border-radius: 0;
-  border: none;
-  width: 100%;
+.balance-paid {
+  color: #059669 !important;
+  font-weight: 900 !important;
 }
 
-.data-table {
-  width: 100%;
+/* ─── High-Fidelity Paper Ledger (Yellow Official Aesthetic) ──────── */
+.treasurer-paper-theme {
+  background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%); /* Yellow Fade Aesthetic */
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1), inset 0 0 100px rgba(0, 0, 0, 0.05);
+  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+  min-height: 800px;
+  max-width: 900px;
+  margin: 0 auto;
+  border: 1px solid #fde68a;
+  position: relative;
 }
 
-.data-table th {
-  background: #f1f5f9;
-  font-size: 11px;
-  font-weight: 800;
-  color: #475569;
-  padding: 18px 24px;
+.treasurer-paper-theme .ledger-official-header {
+  text-align: center;
+  margin-bottom: 24px;
+  border-bottom: 3px double #000;
+  padding-bottom: 15px;
+}
+
+.treasurer-paper-theme .ledger-official-header h3 {
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+  color: #000;
   text-transform: uppercase;
-  border-bottom: 2px solid #e2e8f0;
-  white-space: nowrap;
 }
 
-.data-table td {
-  font-size: 13px;
-  padding: 15px 20px;
-  font-weight: 600;
-  border-bottom: 1px solid #f1f5f9;
+.treasurer-paper-theme .ledger-official-header p {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
   color: #334155;
 }
 
-.data-table tr:hover td {
-  background-color: transparent !important;
+.treasurer-paper-theme .ledger-consumer-info {
+  margin-bottom: 30px;
+}
+
+.treasurer-paper-theme .info-row-layout {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 15px;
+  align-items: flex-end;
+}
+
+.treasurer-paper-theme .form-field {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.treasurer-paper-theme .form-field.flex-narrow { flex: 0 0 120px; }
+.treasurer-paper-theme .form-field.flex-wide { flex: 2; }
+
+.treasurer-paper-theme .form-label {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.treasurer-paper-theme .form-data.underline {
+  border-bottom: 1px solid #000;
+  padding: 4px 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #000;
+  min-height: 28px;
+}
+
+.treasurer-paper-theme .paper-table-wrapper {
+  margin-bottom: 30px;
+  background: white;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.treasurer-paper-theme .paper-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.treasurer-paper-theme .paper-ledger-table th, 
+.treasurer-paper-theme .paper-ledger-table td {
+  border: 1px solid #000;
+  padding: 8px 6px;
+  font-size: 12px;
+}
+
+.treasurer-paper-theme .paper-ledger-table th {
+  background: #f8fafc;
+  font-weight: 950;
+  text-transform: uppercase;
+  font-size: 10px;
+  color: #000;
+  height: 40px;
+}
+
+.treasurer-paper-theme .sub-th {
+  font-size: 9px !important;
+  height: 20px !important;
+}
+
+.treasurer-paper-theme .ledger-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 40px;
+}
+
+/* Print Overrides */
+@media print {
+  .no-print { display: none !important; }
+  .treasurer-paper-theme { 
+    box-shadow: none !important; 
+    padding: 0 !important;
+    background: #fefce8 !important; 
+  }
+  body { background: white !important; }
 }
 
 /* Explicitly disable any card-level move effects */

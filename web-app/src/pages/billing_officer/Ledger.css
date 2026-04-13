@@ -134,168 +134,169 @@
 /* ─── Balance Color Logic ─────────────────────────────────────────── */
 .balance-due {
   color: #dc2626;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .balance-paid {
-  color: #10b981;
-  font-weight: 800;
+  color: #059669;
+  font-weight: 900;
 }
 
-/* ─── High-Fidelity Paper Ledger (100% Match) ─────────────────────── */
-.paper-ledger-container {
-  background-color: #e0f2fe; /* Light Blue Paper Aesthetic */
-  padding: 30px;
-  border-radius: 4px;
+/* ─── High-Fidelity Paper Ledger (Office Blue Aesthetic) ──────────── */
+.billing-paper-theme {
+  background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%); /* Vibrantly Blue Aesthetic */
+  padding: 40px;
+  border-radius: 8px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1), inset 0 0 100px rgba(0, 0, 0, 0.05);
   color: #1e293b;
   font-family: 'Inter', sans-serif;
   min-height: 1000px;
-  max-width: 820px; /* Standard Portrait width */
+  max-width: 900px;
   margin: 0 auto;
+  border: 1px solid #7dd3fc;
+  position: relative;
 }
 
-.ledger-official-header {
-  text-align: center;
-  margin-bottom: 24px;
-  border-bottom: 3px double #000;
-  padding-bottom: 15px;
-}
-
-.ledger-official-header h3 {
-  font-size: 22px;
+.billing-paper-theme .ledger-big-id {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  font-size: 64px;
   font-weight: 950;
-  letter-spacing: 3px;
-  margin-bottom: 4px;
-  color: #000;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 1;
+  letter-spacing: -2px;
 }
 
-.ledger-official-header p {
+.billing-paper-theme .ledger-official-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-top: 10px;
+}
+
+.billing-paper-theme .ledger-official-header .title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+  color: #1e293b;
+}
+
+.billing-paper-theme .ledger-official-header .subtitle {
   font-size: 11px;
   font-weight: 700;
-  margin: 0;
   color: #334155;
-}
-
-.ledger-consumer-info {
-  margin-bottom: 24px;
-}
-
-.info-row-layout {
-  display: flex;
-  gap: 24px;
+  text-transform: uppercase;
   margin-bottom: 15px;
+}
+
+.billing-paper-theme .ledger-official-header h3 {
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: 1px;
+  color: #000;
+  text-decoration: underline;
+  margin-top: 10px;
+}
+
+.billing-paper-theme .ledger-consumer-info {
+  margin-bottom: 30px;
+  border-top: 2px solid #000;
+  padding-top: 15px;
+}
+
+.billing-paper-theme .info-row-layout {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 12px;
   align-items: flex-end;
 }
 
-.form-field {
+.billing-paper-theme .form-field {
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.form-field.flex-narrow { flex: 0 0 100px; }
-.form-field.flex-wide { flex: 2; }
+.billing-paper-theme .form-field.flex-narrow { flex: 0 0 150px; }
+.billing-paper-theme .form-field.flex-wide { flex: 2; }
 
-.form-label {
-  font-size: 9px;
+.billing-paper-theme .form-label {
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
-  color: #475569;
-  margin-bottom: 2px;
+  color: #1e293b;
+  margin-bottom: 4px;
 }
 
-.form-data.underline {
+.billing-paper-theme .form-data.underline {
   border-bottom: 1px solid #000;
   padding: 2px 0;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 850;
   color: #000;
   min-height: 25px;
 }
 
-.paper-table-wrapper {
-  margin-bottom: 24px;
+.billing-paper-theme .paper-table-wrapper {
+  margin-bottom: 30px;
   background: white;
   border: 2px solid #000;
-  width: 100%;
+  box-shadow: 2px 2px 0px #000;
 }
 
-.paper-ledger-table {
+.billing-paper-theme .paper-ledger-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.paper-ledger-table th, 
-.paper-ledger-table td {
+.billing-paper-theme .paper-ledger-table th, 
+.billing-paper-theme .paper-ledger-table td {
   border: 1px solid #000;
   padding: 6px 4px;
   font-size: 11px;
 }
 
-.paper-ledger-table th {
+.billing-paper-theme .paper-ledger-table th {
   background: #f1f5f9;
   font-weight: 900;
   text-transform: uppercase;
   font-size: 9px;
   color: #000;
-  height: 35px;
+  height: 40px;
 }
 
-.sub-th {
+.billing-paper-theme .balance-col-header {
+  text-align: center;
+  font-size: 10px;
+  background: #e2e8f0;
+}
+
+.billing-paper-theme .sub-th {
   font-size: 8px !important;
   height: 20px !important;
 }
 
-.year-header-row {
-  background-color: #cbd5e1 !important;
-}
-
-.year-header-row td {
-  text-align: center;
-  font-size: 14px;
-  letter-spacing: 4px;
-  background: #e2e8f0;
-}
-
-.empty-row td {
-  height: 26px;
-}
-
-.ledger-footer-actions {
+.billing-paper-theme .ledger-footer-actions {
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  margin-top: 30px;
+  margin-top: 40px;
 }
 
 /* Print Overrides */
 @media print {
   .no-print { display: none !important; }
-  .paper-ledger-container { box-shadow: none !important; padding: 0 !important; }
+  .billing-paper-theme { 
+    box-shadow: none !important; 
+    padding: 0 !important;
+    background: #bae6fd !important;
+  }
   body { background: white !important; }
 }
 
-.ledger-footer-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 30px;
-}
-
-/* ─── Utility Classes ────────────────────────────────────────────── */
-.font-bold { font-weight: 800; }
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-
-@media print {
-  .no-print { display: none !important; }
-  .modal-overlay { background: white !important; padding: 0 !important; }
-  .modal-content { box-shadow: none !important; width: 100% !important; margin: 0 !important; }
-  .paper-ledger-container { box-shadow: none !important; padding: 20px !important; }
-}
-
-@media (max-width: 768px) {
-  .info-grid { grid-template-columns: 1fr 1fr; }
+@media (max-width: 760px) {
+  .ledger-big-id { font-size: 40px; position: static; margin-bottom: 20px; }
+  .info-row-layout { flex-direction: column; gap: 10px; align-items: stretch; }
   .paper-table-wrapper { overflow-x: auto; }
 }

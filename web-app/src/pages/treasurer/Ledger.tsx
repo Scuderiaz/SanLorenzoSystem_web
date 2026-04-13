@@ -353,7 +353,7 @@ const TreasurerLedger: React.FC = () => {
 
         {showLedgerModal && selectedConsumer && (
           <Modal isOpen={showLedgerModal} onClose={() => setShowLedgerModal(false)} title="Official Water Service Record" size="portrait" closeOnOverlayClick={true}>
-            <div className="paper-ledger-container">
+            <div className="treasurer-paper-theme">
               <div className="ledger-official-header">
                 <p>REPUBLIC OF THE PHILIPPINES</p>
                 <h3>SAN LORENZO WATER SYSTEM</h3>
