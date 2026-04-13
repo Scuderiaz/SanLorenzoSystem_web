@@ -1128,7 +1128,7 @@ function formatZoneDisplay(zoneName, zoneId) {
 }
 
 function isValidConsumerAccountNumber(accountNumber) {
-  return /^(\d{2}-\d{2}-\d{3}|\d{2}-\d{2}-\d{3}-\d{1})$/.test(String(accountNumber || '').trim());
+  return /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+(-[A-Z0-9]+)?$/i.test(String(accountNumber || '').trim());
 }
 
 function normalizePhilippinePhoneNumber(phoneNumber) {
