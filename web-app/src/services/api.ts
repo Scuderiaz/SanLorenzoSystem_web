@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { initOfflineDB, saveOfflineDB, addToSyncQueue } from '../config/database';
 import { supabase, isSupabaseConfigured } from '../config/supabase';
+import { appendClientDiagnostic } from '../utils/clientDiagnostics';
+import { canReachBackend } from '../utils/backendAvailability';
 
 const isNetworkError = (error: any) => {
   return error.code === 'ERR_NETWORK' || !error.response || error.response.status >= 500;
@@ -39,36 +41,74 @@ const syncEndpointMap: Record<string, string> = {
 export const authService = {
   login: async (username: string, password: string) => {
     try {
-      if (navigator.onLine) {
-        const response = await api.post('/login', { username, password });
-        return response.data;
-      } else {
-        const db = await initOfflineDB();
-        const result = db.exec(`
-          SELECT a.AccountID, a.Username, a.Full_Name, a.Role_ID, r.Role_Name
-          FROM accounts a
-          JOIN roles r ON a.Role_ID = r.Role_ID
-          WHERE a.Username = ? AND a.Password = ?
-        `, [username, password]);
+      const response = await api.post('/login', { username, password });
+      appendClientDiagnostic('auth.login', 'Backend login request succeeded.', {
+        username,
+        online: navigator.onLine,
+      });
+      return response.data;
+    } catch (error: any) {
+      if (isNetworkError(error)) {
+        appendClientDiagnostic('auth.login', 'Backend login request failed; checking offline cache.', {
+          username,
+          online: navigator.onLine,
+          error: error.message,
+        });
 
-        if (result.length > 0 && result[0].values.length > 0) {
-          const [id, uname, fullName, roleId, roleName] = result[0].values[0];
+        try {
+          const db = await initOfflineDB();
+          const result = db.exec(`
+            SELECT a.AccountID, a.Username, a.Full_Name, a.Role_ID, r.Role_Name
+            FROM accounts a
+            JOIN roles r ON a.Role_ID = r.Role_ID
+            WHERE a.Username = ? AND a.Password = ?
+          `, [username, password]);
+
+          if (result.length > 0 && result[0].values.length > 0) {
+            const [id, uname, fullName, roleId, roleName] = result[0].values[0];
+            appendClientDiagnostic('auth.login', 'Offline cache login succeeded.', {
+              username,
+              online: navigator.onLine,
+            });
+            return {
+              success: true,
+              user: {
+                id,
+                username: uname,
+                fullName: fullName || uname,
+                role_id: roleId,
+                role_name: roleName,
+              },
+            };
+          }
+
+          appendClientDiagnostic('auth.login', 'Offline cache login failed: no cached match found.', {
+            username,
+            online: navigator.onLine,
+          });
           return {
-            success: true,
-            user: {
-              id,
-              username: uname,
-              fullName: fullName || uname,
-              role_id: roleId,
-              role_name: roleName,
-            },
+            success: false,
+            message: 'Offline login failed: no cached account matched this username and password. Connect to the local server once, then try again offline.',
+          };
+        } catch (offlineError: any) {
+          appendClientDiagnostic('auth.login', 'Offline cache lookup failed.', {
+            username,
+            online: navigator.onLine,
+            error: offlineError.message,
+          });
+          return {
+            success: false,
+            message: 'Login failed: the server could not be reached and the offline cache could not be opened.',
           };
         }
-        return { success: false, message: 'Invalid credentials' };
       }
-    } catch (error: any) {
-      // Use the server's specific message if available, otherwise fall back to Axios message
+
       const msg = error.response?.data?.message || error.message;
+      appendClientDiagnostic('auth.login', 'Backend login request returned an application error.', {
+        username,
+        online: navigator.onLine,
+        error: msg,
+      });
       return { success: false, message: msg };
     }
   },
@@ -121,7 +161,7 @@ export const authService = {
 export const consumerService = {
   getAll: async () => {
     try {
-      if (navigator.onLine) {
+      if (await canReachBackend()) {
         try {
           const response = await api.get('/consumers');
           return response.data?.data || response.data || [];
@@ -176,7 +216,7 @@ export const consumerService = {
 
   create: async (consumer: any) => {
     try {
-      if (navigator.onLine) {
+      if (await canReachBackend()) {
         const response = await api.post('/consumers', consumer);
         return response.data?.data || response.data;
       } else {
@@ -208,7 +248,7 @@ export const consumerService = {
 
   update: async (id: number, consumer: any) => {
     try {
-      if (navigator.onLine) {
+      if (await canReachBackend()) {
         const response = await api.put(`/consumers/${id}`, consumer);
         return response.data?.data || response.data;
       } else {
@@ -228,7 +268,7 @@ export const consumerService = {
 
   delete: async (id: number) => {
     try {
-      if (navigator.onLine) {
+      if (await canReachBackend()) {
         await api.delete(`/consumers/${id}`);
       } else {
         await addToSyncQueue('consumer', 'DELETE', { id });
@@ -246,7 +286,7 @@ export const consumerService = {
 export const meterReadingService = {
   getAll: async () => {
     try {
-      if (navigator.onLine) {
+      if (await canReachBackend()) {
         try {
           const response = await api.get('/meter-readings');
           return response.data || [];
@@ -285,7 +325,7 @@ export const meterReadingService = {
 
   create: async (reading: any) => {
     try {
-      if (navigator.onLine) {
+      if (await canReachBackend()) {
         const response = await api.post('/meter-readings', reading);
         return response.data;
       } else {
@@ -317,7 +357,7 @@ export const meterReadingService = {
 export const billService = {
   getAll: async () => {
     try {
-      if (navigator.onLine) {
+      if (await canReachBackend()) {
         try {
           const response = await api.get('/bills');
           return response.data || [];
@@ -356,7 +396,7 @@ export const billService = {
 
   create: async (bill: any) => {
     try {
-      if (navigator.onLine) {
+      if (await canReachBackend()) {
         const response = await api.post('/bills', bill);
         return response.data;
       } else {
@@ -385,8 +425,8 @@ export const billService = {
 
 export const syncService = {
   syncOfflineData: async () => {
-    if (!navigator.onLine) {
-      console.log('Cannot sync: offline');
+    if (!(await canReachBackend())) {
+      console.log('Cannot sync: backend unavailable');
       return;
     }
 

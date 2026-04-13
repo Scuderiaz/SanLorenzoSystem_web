@@ -56,6 +56,7 @@ const logFiles = {
   supabase: path.join(logDirectory, 'supabase-sync.txt'),
   requestErrors: path.join(logDirectory, 'request-errors.txt'),
   failureReport: path.join(logDirectory, 'failure-report.txt'),
+  connectivity: path.join(logDirectory, 'connectivity-errors.txt'),
 };
 const adminSettingsFile = path.join(__dirname, 'data', 'admin-settings.json');
 const defaultAdminSettings = {
@@ -485,6 +486,23 @@ function truncateLogValue(value, maxLength = 4000) {
   return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
 }
 
+function isConnectivityFailureMessage(message) {
+  const loweredMessage = String(message || '').toLowerCase();
+  return (
+    loweredMessage.includes('fetch failed') ||
+    loweredMessage.includes('network') ||
+    loweredMessage.includes('timed out') ||
+    loweredMessage.includes('timeout') ||
+    loweredMessage.includes('econn') ||
+    loweredMessage.includes('enotfound') ||
+    loweredMessage.includes('ehostunreach') ||
+    loweredMessage.includes('eai_again') ||
+    loweredMessage.includes('connection') ||
+    loweredMessage.includes('schema cache') ||
+    loweredMessage.includes('invalid schema')
+  );
+}
+
 function shouldFallbackToPostgres(error) {
   const code = String(error?.code || '').toLowerCase();
   const message = String(error?.message || '').toLowerCase();
@@ -570,15 +588,18 @@ function appendTextLog(filePath, message) {
 }
 
 function appendFailureReport(kind, moduleName, message, context = {}) {
-  appendTextLog(
-    logFiles.failureReport,
-    JSON.stringify({
-      kind,
-      module: moduleName,
-      message: truncateLogValue(message),
-      context,
-    })
-  );
+  const payload = {
+    kind,
+    module: moduleName,
+    message: truncateLogValue(message),
+    context,
+  };
+
+  appendTextLog(logFiles.failureReport, JSON.stringify(payload));
+
+  if (kind === 'FALLBACK' || isConnectivityFailureMessage(message)) {
+    appendTextLog(logFiles.connectivity, JSON.stringify(payload));
+  }
 }
 
 async function writeSystemLog(action, options = {}) {
@@ -1289,6 +1310,60 @@ function buildSupabaseAuthEmail(username) {
 
   const localPart = normalized || `user.${crypto.randomUUID().slice(0, 8)}`;
   return `${localPart}@slrws.local`;
+}
+
+function mapSupabaseAccountRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    account_id: row.account_id,
+    username: row.username,
+    password: row.password,
+    auth_user_id: row.auth_user_id,
+    full_name: row.username,
+    role_id: row.role_id,
+    account_status: row.account_status,
+    role_name: row.roles?.role_name || null,
+  };
+}
+
+async function findSupabaseAccountByUsername(username) {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('accounts')
+    .select(`
+      account_id,
+      username,
+      password,
+      auth_user_id,
+      role_id,
+      account_status,
+      roles ( role_name )
+    `)
+    .eq('username', username)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapSupabaseAccountRow(data);
+}
+
+async function findPostgresAccountByUsername(username) {
+  const { rows } = await pool.query(`
+    SELECT a.account_id, a.username, a.password, a.auth_user_id, a.username AS full_name, a.role_id, a.account_status, r.role_name
+    FROM accounts a
+    JOIN roles r ON a.role_id = r.role_id
+    WHERE a.username = $1
+  `, [username]);
+
+  return rows[0] || null;
 }
 
 async function findSupabaseAuthUserByEmail(email) {
@@ -3169,81 +3244,20 @@ app.post('/api/login', async (req, res) => {
   }
 
   try {
-    let user = null;
-
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('accounts')
-        .select(`
-          account_id,
-          username,
-          password,
-          auth_user_id,
-          role_id,
-          account_status,
-          roles ( role_name )
-        `)
-        .eq('username', username)
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.role_id === 5) {
-        user = {
-          account_id: data.account_id,
-          username: data.username,
-          password: data.password,
-          auth_user_id: data.auth_user_id,
-          full_name: data.username,
-          role_id: data.role_id,
-          account_status: data.account_status,
-          role_name: data.roles?.role_name,
-        };
-      }
-    }
+    let user = await withSupabaseFallback(
+      'auth.login.consumerLookup',
+      async () => {
+        const supabaseUser = await findSupabaseAccountByUsername(username);
+        return supabaseUser?.role_id === 5 ? supabaseUser : null;
+      },
+      async () => null
+    );
 
     if (!user) {
       user = await withPostgresPrimary(
         'auth.login',
-        async () => {
-          const { rows } = await pool.query(`
-            SELECT a.account_id, a.username, a.password, a.auth_user_id, a.username AS full_name, a.role_id, a.account_status, r.role_name
-            FROM accounts a
-            JOIN roles r ON a.role_id = r.role_id
-            WHERE a.username = $1
-          `, [username]);
-          return rows[0];
-        },
-        async () => {
-          const { data, error } = await supabase
-            .from('accounts')
-            .select(`
-              account_id,
-              username,
-              password,
-              auth_user_id,
-              role_id,
-              account_status,
-              roles ( role_name )
-            `)
-            .eq('username', username)
-            .single();
-          if (error) throw error;
-          return data
-            ? {
-                account_id: data.account_id,
-                username: data.username,
-                password: data.password,
-                auth_user_id: data.auth_user_id,
-                full_name: data.username,
-                role_id: data.role_id,
-                account_status: data.account_status,
-                role_name: data.roles?.role_name,
-              }
-            : null;
-        }
+        async () => findPostgresAccountByUsername(username),
+        async () => findSupabaseAccountByUsername(username)
       );
     }
 
@@ -4157,29 +4171,37 @@ app.post('/api/bills', async (req, res) => {
             throw createHttpError('No meter is assigned to this consumer. Add or sync the meter before saving a manual bill.');
           }
 
-          const readingInsert = await pool.query(`
+          const readingInsert = await insertWithSequenceRetry(
+            'meterreadings',
+            'reading_id',
+            `
             INSERT INTO meterreadings (
               consumer_id, meter_id, previous_reading, current_reading, consumption,
               reading_status, notes, reading_date, route_id, meter_reader_id
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING reading_id
-          `, [
-            payload.consumer_id,
-            meterId,
-            previousReading,
-            currentReading,
-            consumption,
-            'Recorded',
-            bill.Notes || (bill.Water_Charge !== undefined ? 'Auto-created from manual bill entry.' : 'Auto-created for bill record.'),
-            readingDate,
-            1,
-            1,
-          ]);
+          `,
+            [
+              payload.consumer_id,
+              meterId,
+              previousReading,
+              currentReading,
+              consumption,
+              'Recorded',
+              bill.Notes || (bill.Water_Charge !== undefined ? 'Auto-created from manual bill entry.' : 'Auto-created for bill record.'),
+              readingDate,
+              1,
+              1,
+            ]
+          );
           payload.reading_id = readingInsert.rows[0]?.reading_id || null;
         }
 
-        const { rows } = await pool.query(`
+        const { rows } = await insertWithSequenceRetry(
+          'bills',
+          'bill_id',
+          `
           INSERT INTO bills (
             consumer_id, reading_id, bill_date, due_date, total_amount, status, billing_officer_id,
             billing_month, date_covered_from, date_covered_to, class_cost, water_charge,
@@ -4188,27 +4210,29 @@ app.post('/api/bills', async (req, res) => {
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
           RETURNING *, bill_id AS "Bill_ID"
-        `, [
-          payload.consumer_id,
-          payload.reading_id,
-          payload.bill_date,
-          payload.due_date,
-          payload.total_amount,
-          payload.status,
-          payload.billing_officer_id,
-          payload.billing_month,
-          payload.date_covered_from,
-          payload.date_covered_to,
-          payload.class_cost,
-          payload.water_charge,
-          payload.meter_maintenance_fee,
-          payload.connection_fee,
-          payload.amount_due,
-          payload.previous_balance,
-          payload.previous_penalty,
-          payload.penalty,
-          payload.total_after_due_date,
-        ]);
+        `,
+          [
+            payload.consumer_id,
+            payload.reading_id,
+            payload.bill_date,
+            payload.due_date,
+            payload.total_amount,
+            payload.status,
+            payload.billing_officer_id,
+            payload.billing_month,
+            payload.date_covered_from,
+            payload.date_covered_to,
+            payload.class_cost,
+            payload.water_charge,
+            payload.meter_maintenance_fee,
+            payload.connection_fee,
+            payload.amount_due,
+            payload.previous_balance,
+            payload.previous_penalty,
+            payload.penalty,
+            payload.total_after_due_date,
+          ]
+        );
         return rows[0];
       },
       async () => {

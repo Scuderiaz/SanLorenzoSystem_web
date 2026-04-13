@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase';
+import { loadOfflineDataset, saveOfflineDataset } from '../config/database';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -9,7 +10,7 @@ type RequestError = Error & {
 
 type LoadResult<T> = {
   data: T;
-  source: 'api' | 'supabase';
+  source: 'api' | 'supabase' | 'offline';
 };
 
 const defaultSystemSettings = {
@@ -69,6 +70,31 @@ const toNumber = (value: unknown, fallback = 0) => {
 const toDateTime = (value: unknown) => {
   const date = new Date(String(value || ''));
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+};
+
+const persistOfflineSnapshot = async <T>(datasetKey: string | undefined, data: T) => {
+  if (!datasetKey) {
+    return;
+  }
+
+  try {
+    await saveOfflineDataset(datasetKey, data);
+  } catch (error) {
+    console.warn(`Failed to persist offline snapshot for ${datasetKey}:`, error);
+  }
+};
+
+const loadOfflineSnapshot = async <T>(datasetKey: string | undefined): Promise<T | null> => {
+  if (!datasetKey) {
+    return null;
+  }
+
+  try {
+    return await loadOfflineDataset<T>(datasetKey);
+  } catch (error) {
+    console.warn(`Failed to read offline snapshot for ${datasetKey}:`, error);
+    return null;
+  }
 };
 
 const buildConsumerName = (...parts: Array<unknown>) => parts.filter(Boolean).map(String).join(' ').replace(/\s+/g, ' ').trim();
@@ -562,26 +588,59 @@ const requestWithSupabaseFallback = async <T>(
   path: string,
   fallbackLoader: (() => Promise<T>) | null,
   extractApiData: (payload: any) => T,
-  fallbackMessage: string
+  fallbackMessage: string,
+  offlineDatasetKey?: string
 ): Promise<LoadResult<T>> => {
   try {
     const payload = await requestJson(path, {}, fallbackMessage);
+    const data = extractApiData(payload);
+    await persistOfflineSnapshot(offlineDatasetKey, data);
     return {
-      data: extractApiData(payload),
+      data,
       source: 'api',
     };
   } catch (error) {
+    const shouldFallback = shouldAttemptSupabaseFallback(error);
+    const isBrowserOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+    if (isBrowserOffline) {
+      const offlineData = await loadOfflineSnapshot<T>(offlineDatasetKey);
+      if (offlineData !== null) {
+        return {
+          data: offlineData,
+          source: 'offline',
+        };
+      }
+    }
+
     if (!fallbackLoader || !isSupabaseConfigured || !supabase || !shouldAttemptSupabaseFallback(error)) {
+      const offlineData = shouldFallback ? await loadOfflineSnapshot<T>(offlineDatasetKey) : null;
+      if (offlineData !== null) {
+        return {
+          data: offlineData,
+          source: 'offline',
+        };
+      }
+
       throw createRequestError(getErrorMessage(error, fallbackMessage), (error as RequestError)?.status, (error as RequestError)?.responseBody);
     }
 
     try {
       const data = await fallbackLoader();
+      await persistOfflineSnapshot(offlineDatasetKey, data);
       return {
         data,
         source: 'supabase',
       };
     } catch (fallbackError) {
+      const offlineData = await loadOfflineSnapshot<T>(offlineDatasetKey);
+      if (offlineData !== null) {
+        return {
+          data: offlineData,
+          source: 'offline',
+        };
+      }
+
       throw createRequestError(getErrorMessage(fallbackError, fallbackMessage));
     }
   }
@@ -633,21 +692,24 @@ export const loadConsumersWithFallback = async () => requestWithSupabaseFallback
   '/consumers',
   loadConsumersFromSupabase,
   (payload) => (Array.isArray(payload) ? payload : payload?.data || []),
-  'Failed to load consumers.'
+  'Failed to load consumers.',
+  'dataset.consumers'
 );
 
 export const loadBillsWithFallback = async () => requestWithSupabaseFallback(
   '/bills',
   loadBillsFromSupabase,
   (payload) => (Array.isArray(payload) ? payload : payload?.data || []),
-  'Failed to load bills.'
+  'Failed to load bills.',
+  'dataset.bills'
 );
 
 export const loadPaymentsWithFallback = async () => requestWithSupabaseFallback(
   '/payments',
   loadPaymentsFromSupabase,
   (payload) => (Array.isArray(payload) ? payload : payload?.data || []),
-  'Failed to load payments.'
+  'Failed to load payments.',
+  'dataset.payments'
 );
 
 export const loadMeterReadingsWithFallback = async () => requestWithSupabaseFallback(
@@ -753,8 +815,11 @@ export const loadAccountLookupWithFallback = async (query: string) => requestWit
   'Account lookup failed.'
 );
 
-export const getFallbackSourceLabel = (sources: Array<'api' | 'supabase'>) => {
+export const getFallbackSourceLabel = (sources: Array<'api' | 'supabase' | 'offline'>) => {
   const uniqueSources = new Set(sources);
+  if (uniqueSources.has('offline')) {
+    return 'offline';
+  }
   return uniqueSources.has('supabase') ? 'supabase' : 'api';
 };
 

@@ -17,8 +17,9 @@ export const initOfflineDB = async (): Promise<Database> => {
       db = new SQL.Database(uint8Array);
     } else {
       db = new SQL.Database();
-      createOfflineTables(db);
     }
+
+    createOfflineTables(db);
 
     return db;
   } catch (error) {
@@ -130,6 +131,12 @@ const createOfflineTables = (database: Database) => {
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         synced INTEGER DEFAULT 0
       );
+
+      CREATE TABLE IF NOT EXISTS app_cache (
+        dataset_key TEXT PRIMARY KEY,
+        payload TEXT NOT NULL,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
     `);
   } catch (error) {
     console.error('Failed to create offline tables:', error);
@@ -150,6 +157,40 @@ export const saveOfflineDB = async (database: Database) => {
 
 export const getOfflineDB = (): Database | null => {
   return db;
+};
+
+export const saveOfflineDataset = async (datasetKey: string, payload: unknown) => {
+  try {
+    const database = await initOfflineDB();
+    database.run(
+      'INSERT OR REPLACE INTO app_cache (dataset_key, payload, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+      [datasetKey, JSON.stringify(payload ?? null)]
+    );
+    await saveOfflineDB(database);
+  } catch (error) {
+    console.error(`Failed to save offline dataset "${datasetKey}":`, error);
+    throw error;
+  }
+};
+
+export const loadOfflineDataset = async <T = unknown>(datasetKey: string): Promise<T | null> => {
+  try {
+    const database = await initOfflineDB();
+    const result = database.exec('SELECT payload FROM app_cache WHERE dataset_key = ? LIMIT 1', [datasetKey]);
+    if (!result.length || !result[0].values.length) {
+      return null;
+    }
+
+    const rawPayload = result[0].values[0]?.[0];
+    if (typeof rawPayload !== 'string' || !rawPayload.trim()) {
+      return null;
+    }
+
+    return JSON.parse(rawPayload) as T;
+  } catch (error) {
+    console.error(`Failed to load offline dataset "${datasetKey}":`, error);
+    throw error;
+  }
 };
 
 export const addToSyncQueue = async (

@@ -21,6 +21,8 @@ interface ConsumerRow {
   Zone_Name?: string;
   Classification_Name?: string;
   Account_Number: string;
+  Meter_Number?: string | null;
+  Connection_Date?: string | null;
   Status: string;
 }
 
@@ -30,6 +32,12 @@ interface BillRow {
   Account_Number: string;
   Consumer_Name: string;
   Total_Amount: number;
+  Penalty?: number | string | null;
+  Penalties?: number | string | null;
+  Meter_Fee?: number | string | null;
+  Environmental_Fee?: number | string | null;
+  Current_Reading?: number | string | null;
+  Consumption?: number | string | null;
   Bill_Date?: string;
   Due_Date?: string;
   Billing_Month?: string;
@@ -54,6 +62,8 @@ interface LedgerEntry {
   Address: string;
   Zone: string;
   Classification: string;
+  Meter_Number: string | null;
+  Connection_Date: string | null;
   Current_Balance: number;
   Last_Payment: string;
   Status: string;
@@ -71,8 +81,13 @@ interface TransactionRow {
   Status: string;
 }
 
+const toAmount = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const formatCurrency = (value: number) =>
-  `P${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `P${toAmount(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const formatDate = (value?: string) => {
   if (!value) return 'N/A';
@@ -106,7 +121,10 @@ const BillingLedger: React.FC = () => {
       setBills(billsResult.data || []);
       setPayments(paymentsResult.data || []);
 
-      if ([consumersResult.source, billsResult.source, paymentsResult.source].includes('supabase')) {
+      const sources = [consumersResult.source, billsResult.source, paymentsResult.source];
+      if (sources.includes('offline')) {
+        showToast('Ledger loaded from the offline database snapshot.', 'warning');
+      } else if (sources.includes('supabase')) {
         showToast('Ledger loaded using Supabase fallback for part of the data.', 'warning');
       }
     } catch (error) {
@@ -134,7 +152,7 @@ const BillingLedger: React.FC = () => {
       const consumerPayments = paymentMap.get(consumer.Consumer_ID) || [];
       const currentBalance = consumerBills
         .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
-        .reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
+        .reduce((sum, bill) => sum + toAmount(bill.Total_Amount), 0);
       const lastPayment = consumerPayments
         .map((payment) => payment.Payment_Date)
         .filter(Boolean)
@@ -147,6 +165,8 @@ const BillingLedger: React.FC = () => {
         Address: consumer.Address,
         Zone: formatZoneLabel(consumer.Zone_Name, consumer.Zone_ID),
         Classification: consumer.Classification_Name || 'Unclassified',
+        Meter_Number: consumer.Meter_Number || null,
+        Connection_Date: consumer.Connection_Date || null,
         Current_Balance: currentBalance,
         Last_Payment: lastPayment,
         Status: consumer.Status,
@@ -177,7 +197,7 @@ const BillingLedger: React.FC = () => {
           Type: 'Bill',
           Reference: `BILL-${bill.Bill_ID}`,
           Details: bill.Billing_Month || 'Generated bill',
-          Debit: Number(bill.Total_Amount || 0),
+          Debit: toAmount(bill.Total_Amount),
           Credit: 0,
           Status: bill.Status || 'Unpaid',
         });
@@ -192,7 +212,7 @@ const BillingLedger: React.FC = () => {
           Reference: payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID}`,
           Details: payment.Payment_Method || 'Payment',
           Debit: 0,
-          Credit: Number(payment.Amount_Paid || 0),
+          Credit: toAmount(payment.Amount_Paid),
           Status: payment.Status || 'Pending',
         });
       });
@@ -239,17 +259,6 @@ const BillingLedger: React.FC = () => {
         </button>
       ),
     },
-  ];
-
-  const transactionColumns = [
-    { key: 'Date', label: 'Date', sortable: true, render: (value: string) => formatDate(value) },
-    { key: 'Type', label: 'Type', sortable: true },
-    { key: 'Reference', label: 'Reference', sortable: true },
-    { key: 'Details', label: 'Details', sortable: true },
-    { key: 'Debit', label: 'Debit', sortable: true, render: (value: number) => (value ? formatCurrency(value) : '-') },
-    { key: 'Credit', label: 'Credit', sortable: true, render: (value: number) => (value ? formatCurrency(value) : '-') },
-    { key: 'Running_Balance', label: 'Balance', sortable: true, render: (value: number) => formatCurrency(value) },
-    { key: 'Status', label: 'Status', sortable: true },
   ];
 
   return (
@@ -332,11 +341,11 @@ const BillingLedger: React.FC = () => {
                   </div>
                   <div className="form-field">
                     <span className="form-label">Meter Serial No.</span>
-                    <div className="form-data underline">0801000048</div>
+                    <div className="form-data underline">{selectedConsumer.Meter_Number || 'N/A'}</div>
                   </div>
                   <div className="form-field">
                     <span className="form-label">Connection Date</span>
-                    <div className="form-data underline">N/A</div>
+                    <div className="form-data underline">{formatDate(selectedConsumer.Connection_Date || undefined)}</div>
                   </div>
                 </div>
               </div>
@@ -370,20 +379,22 @@ const BillingLedger: React.FC = () => {
                     ) : (
                       transactions.map((row, idx) => {
                         const bill = row.Type === 'Bill' ? bills.find(b => `BILL-${b.Bill_ID}` === row.Reference) : null;
-                        const payment = row.Type === 'Payment' ? payments.find(p => p.OR_Number === row.Reference || p.Reference_No === row.Reference) : null;
+                        const billPenalty = toAmount(bill?.Penalty ?? bill?.Penalties);
+                        const billMeterFee = toAmount(bill?.Meter_Fee ?? bill?.Environmental_Fee);
+                        const runningBalance = toAmount(row.Running_Balance);
                         
                         return (
                           <tr key={`${row.Reference}-${idx}`}>
                             <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{formatDate(row.Date)}</td>
-                            <td style={{ textAlign: 'right' }}>{bill ? (bill as any).Current_Reading : ''}</td>
-                            <td style={{ textAlign: 'center' }}>{bill ? (bill as any).Consumption : ''}</td>
-                            <td style={{ textAlign: 'right' }}>{row.Debit > 0 ? row.Debit.toFixed(2) : ''}</td>
-                            <td style={{ textAlign: 'right' }}>{bill ? (bill as any).Penalty?.toFixed(2) : ''}</td>
-                            <td style={{ textAlign: 'right' }}>{bill ? (bill as any).Meter_Fee?.toFixed(2) : ''}</td>
-                            <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{row.Credit > 0 ? row.Credit.toFixed(2) : ''}</td>
+                            <td style={{ textAlign: 'right' }}>{bill ? toAmount(bill.Current_Reading) : ''}</td>
+                            <td style={{ textAlign: 'center' }}>{bill ? toAmount(bill.Consumption) : ''}</td>
+                            <td style={{ textAlign: 'right' }}>{toAmount(row.Debit) > 0 ? toAmount(row.Debit).toFixed(2) : ''}</td>
+                            <td style={{ textAlign: 'right' }}>{bill ? billPenalty.toFixed(2) : ''}</td>
+                            <td style={{ textAlign: 'right' }}>{bill ? billMeterFee.toFixed(2) : ''}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{toAmount(row.Credit) > 0 ? toAmount(row.Credit).toFixed(2) : ''}</td>
                             <td style={{ textAlign: 'center' }}>{row.Reference.startsWith('BILL-') ? '' : row.Reference}</td>
-                            <td style={{ textAlign: 'right' }}>{Math.floor(row.Running_Balance)}</td>
-                            <td style={{ textAlign: 'right' }}>{(row.Running_Balance % 1).toFixed(2).split('.')[1]}</td>
+                            <td style={{ textAlign: 'right' }}>{Math.floor(runningBalance)}</td>
+                            <td style={{ textAlign: 'right' }}>{(runningBalance % 1).toFixed(2).split('.')[1]}</td>
                           </tr>
                         );
                       })

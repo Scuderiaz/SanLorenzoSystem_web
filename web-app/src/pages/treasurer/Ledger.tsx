@@ -122,7 +122,10 @@ const TreasurerLedger: React.FC = () => {
       setBills(billsResult.data || []);
       setPayments(paymentsResult.data || []);
 
-      if ([consumersResult.source, billsResult.source, paymentsResult.source].includes('supabase')) {
+      const sources = [consumersResult.source, billsResult.source, paymentsResult.source];
+      if (sources.includes('offline')) {
+        showToast('Treasurer registry loaded from the offline database snapshot.', 'warning');
+      } else if (sources.includes('supabase')) {
         showToast('Treasurer registry loaded using Supabase fallback for part of the data.', 'warning');
       }
     } catch (error) {

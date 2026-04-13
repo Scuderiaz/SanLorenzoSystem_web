@@ -2225,3 +2225,234 @@
 [2026-04-09T23:47:02.718Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
 [2026-04-09T23:47:02.906Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
 [2026-04-09T23:47:03.124Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-13T05:17:07.833Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-13T05:17:07.852Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-13T05:17:07.862Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-13T05:17:07.868Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:17:07.873Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-13T05:17:07.877Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-13T05:17:07.882Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-13T05:17:07.888Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:17:07.893Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-13T05:17:07.898Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-13T05:17:07.902Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-13T05:17:07.906Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:17:07.911Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-13T05:17:07.916Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:17:07.920Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-13T05:17:07.924Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:17:07.936Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-13T05:17:07.946Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-13T05:17:07.953Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-13T05:17:07.959Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:17:07.972Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-13T05:17:07.978Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-13T05:17:07.985Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:17:07.992Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-13T05:17:07.999Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-13T05:17:08.010Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:17:08.018Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:17:08.027Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:18:08.037Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:18:08.077Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-13T05:18:08.104Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-13T05:18:08.114Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-13T05:18:08.126Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:18:08.142Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-13T05:18:08.155Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-13T05:18:08.169Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-13T05:18:08.180Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:18:08.193Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-13T05:18:08.204Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-13T05:18:08.214Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-13T05:18:08.226Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:18:08.238Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-13T05:18:08.251Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:18:08.261Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-13T05:18:08.272Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:18:08.289Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-13T05:18:08.301Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-13T05:18:08.312Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-13T05:18:08.324Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:18:08.346Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-13T05:18:08.361Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-13T05:18:08.380Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:18:08.395Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-13T05:18:08.412Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-13T05:18:08.434Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:18:08.457Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:18:08.479Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:19:08.050Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:19:08.102Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-13T05:19:08.108Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-13T05:19:08.113Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-13T05:19:08.119Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:19:08.126Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-13T05:19:08.131Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-13T05:19:08.139Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-13T05:19:08.145Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:19:08.150Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-13T05:19:08.156Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-13T05:19:08.163Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-13T05:19:08.168Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:19:08.173Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-13T05:19:08.178Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:19:08.183Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-13T05:19:08.188Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:19:08.196Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-13T05:19:08.202Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-13T05:19:08.209Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-13T05:19:08.213Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:19:08.226Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-13T05:19:08.231Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-13T05:19:08.239Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:19:08.245Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-13T05:19:08.251Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-13T05:19:08.260Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:19:08.269Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:19:08.277Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:20:08.061Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:20:13.719Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-13T05:20:13.903Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-13T05:20:14.083Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-13T05:21:08.063Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:21:14.292Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-13T05:21:14.489Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-13T05:21:14.712Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-13T05:22:08.069Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:22:13.474Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-13T05:22:13.657Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-13T05:22:13.827Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-13T05:23:08.081Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:23:13.271Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-13T05:23:13.497Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-13T05:23:13.698Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-13T05:24:08.096Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:24:13.659Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-13T05:24:13.862Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-13T05:24:14.116Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-13T05:25:08.109Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:25:13.493Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-13T05:25:13.658Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-13T05:25:13.820Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-13T05:26:08.114Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:26:14.488Z] [supabase.sync.meterreadings] null value in column "meter_id" of relation "meterreadings" violates not-null constraint
+[2026-04-13T05:26:14.683Z] [supabase.sync.bills] insert or update on table "bills" violates foreign key constraint "fk_bills_reading"
+[2026-04-13T05:26:14.883Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-13T05:26:24.420Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-13T05:26:24.427Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-13T05:26:24.433Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-13T05:26:24.438Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:26:24.443Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-13T05:26:24.448Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-13T05:26:24.453Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-13T05:26:24.459Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:26:24.467Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-13T05:26:24.473Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-13T05:26:24.478Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-13T05:26:24.483Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:26:24.488Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-13T05:26:24.493Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:26:24.497Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-13T05:26:24.502Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:26:24.518Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-13T05:26:24.528Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-13T05:26:24.538Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-13T05:26:24.545Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:26:24.561Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-13T05:26:24.568Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-13T05:26:24.576Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:26:24.586Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-13T05:26:24.593Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-13T05:26:24.603Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:26:24.612Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:26:24.621Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:27:24.637Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:27:24.655Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-13T05:27:24.668Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-13T05:27:24.681Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-13T05:27:24.692Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:27:24.703Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-13T05:27:24.716Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-13T05:27:24.727Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-13T05:27:24.742Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:27:24.756Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-13T05:27:24.771Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-13T05:27:24.784Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-13T05:27:24.801Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:27:24.816Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-13T05:27:24.836Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:27:24.857Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-13T05:27:24.871Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:27:24.895Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-13T05:27:24.916Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-13T05:27:24.937Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-13T05:27:24.957Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:27:25.002Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-13T05:27:25.025Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-13T05:27:25.050Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:27:25.071Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-13T05:27:25.091Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-13T05:27:25.110Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:27:25.130Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:27:25.148Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:28:24.648Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:28:24.666Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-13T05:28:24.693Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-13T05:28:24.707Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-13T05:28:24.721Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:28:24.737Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-13T05:28:24.748Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-13T05:28:24.762Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-13T05:28:24.776Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:28:24.787Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-13T05:28:24.796Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-13T05:28:24.812Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-13T05:28:24.829Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:28:24.844Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-13T05:28:24.855Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:28:24.866Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-13T05:28:24.879Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:28:24.899Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-13T05:28:24.913Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-13T05:28:24.923Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-13T05:28:24.934Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:28:24.951Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-13T05:28:24.965Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-13T05:28:24.983Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:28:24.997Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-13T05:28:25.010Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-13T05:28:25.024Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:28:25.040Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:28:25.053Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:29:24.658Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:29:24.730Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-13T05:29:24.749Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-13T05:29:24.767Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-13T05:29:24.785Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:29:24.806Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-13T05:29:24.823Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-13T05:29:24.842Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-13T05:29:24.860Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:29:24.879Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-13T05:29:24.898Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-13T05:29:24.914Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-13T05:29:24.931Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:29:24.946Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-13T05:29:24.960Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:29:24.972Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-13T05:29:24.986Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:29:25.009Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-13T05:29:25.027Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-13T05:29:25.042Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-13T05:29:25.056Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:29:25.084Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-13T05:29:25.100Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-13T05:29:25.118Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:29:25.139Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-13T05:29:25.156Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-13T05:29:25.180Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:29:25.197Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:29:25.218Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:30:24.657Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:31:24.658Z] [sync.cycle] Hybrid sync cycle started via scheduler.

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './components/Common/ToastContainer';
 import { initOfflineDB } from './config/database';
 import { syncService } from './services/api';
+import { canReachBackend } from './utils/backendAvailability';
 import Login from './pages/login/Login';
 import AssessorDashboard from './pages/assessor_admin/Dashboard';
 import AccountManagement from './pages/assessor_admin/AccountManagement';
@@ -71,9 +72,20 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isOnline) {
-      syncService.syncOfflineData().catch(console.error);
-    }
+    let cancelled = false;
+
+    const attemptSync = async () => {
+      const backendAvailable = await canReachBackend(true);
+      if (!cancelled && backendAvailable) {
+        syncService.syncOfflineData().catch(console.error);
+      }
+    };
+
+    attemptSync().catch(console.error);
+
+    return () => {
+      cancelled = true;
+    };
   }, [isOnline]);
 
   return (
