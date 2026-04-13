@@ -5,6 +5,7 @@ import FormInput from '../../../components/Common/FormInput';
 import FormSelect from '../../../components/Common/FormSelect';
 import { useToast } from '../../../components/Common/ToastContainer';
 import { getErrorMessage, loadClassificationsWithFallback, loadConsumersWithFallback, loadZonesWithFallback, requestJson } from '../../../services/userManagementApi';
+import { formatAccountNumberForDisplay } from '../../../utils/accountNumber';
 import '../Consumers.css';
 
 interface Concessionaire {
@@ -338,7 +339,12 @@ const ConcessionairesTab: React.FC = () => {
   };
 
   const columns: Column[] = [
-    { key: 'Account_Number', label: 'Account #', sortable: true },
+    {
+      key: 'Account_Number',
+      label: 'Account #',
+      sortable: true,
+      render: (value: string) => formatAccountNumberForDisplay(value),
+    },
     {
       key: 'name',
       label: 'Consumer Name',
@@ -476,7 +482,7 @@ const ConcessionairesTab: React.FC = () => {
                 </h3>
                 <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                   <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Account No:</span>
-                  <span className="view-value" style={{ fontWeight: 600, color: '#333' }}>{selectedConcessionaire.Account_Number}</span>
+                  <span className="view-value" style={{ fontWeight: 600, color: '#333' }}>{formatAccountNumberForDisplay(selectedConcessionaire.Account_Number)}</span>
                 </div>
                 <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                   <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Name:</span>

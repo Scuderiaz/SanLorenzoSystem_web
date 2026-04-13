@@ -2456,3 +2456,39 @@
 [2026-04-13T05:29:25.218Z] [supabase.sync.waterrates] TypeError: fetch failed
 [2026-04-13T05:30:24.657Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-04-13T05:31:24.658Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:32:24.671Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:33:24.673Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:33:24.708Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-04-13T05:33:24.732Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-04-13T05:33:24.747Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-04-13T05:33:24.764Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:33:24.778Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-04-13T05:33:24.792Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-04-13T05:33:24.806Z] [postgres.sync.route] TypeError: fetch failed
+[2026-04-13T05:33:24.821Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:33:24.836Z] [postgres.sync.bills] TypeError: fetch failed
+[2026-04-13T05:33:24.851Z] [postgres.sync.payment] TypeError: fetch failed
+[2026-04-13T05:33:24.866Z] [postgres.sync.ledger_entry] TypeError: fetch failed
+[2026-04-13T05:33:24.880Z] [postgres.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:33:24.898Z] [postgres.sync.password_reset] TypeError: fetch failed
+[2026-04-13T05:33:24.912Z] [postgres.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:33:24.924Z] [postgres.sync.backuplogs] TypeError: fetch failed
+[2026-04-13T05:33:24.934Z] [postgres.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:33:24.956Z] [supabase.sync.roles] TypeError: fetch failed
+[2026-04-13T05:33:24.973Z] [supabase.sync.zone] TypeError: fetch failed
+[2026-04-13T05:33:24.987Z] [supabase.sync.classification] TypeError: fetch failed
+[2026-04-13T05:33:25.001Z] [supabase.sync.accounts] TypeError: fetch failed
+[2026-04-13T05:33:25.022Z] [supabase.sync.meter] TypeError: fetch failed
+[2026-04-13T05:33:25.035Z] [supabase.sync.route] TypeError: fetch failed
+[2026-04-13T05:33:25.051Z] [supabase.sync.meterreadings] TypeError: fetch failed
+[2026-04-13T05:33:25.067Z] [supabase.sync.bills] TypeError: fetch failed
+[2026-04-13T05:33:25.081Z] [supabase.sync.payment] TypeError: fetch failed
+[2026-04-13T05:33:25.105Z] [supabase.sync.connection_ticket] TypeError: fetch failed
+[2026-04-13T05:33:25.127Z] [supabase.sync.account_approval] TypeError: fetch failed
+[2026-04-13T05:33:25.148Z] [supabase.sync.waterrates] TypeError: fetch failed
+[2026-04-13T05:34:24.674Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:35:24.687Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:36:24.697Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-13T05:37:16.212Z] [sync.cycle] Hybrid sync cycle started via immediate:consumers-update.
+[2026-04-13T05:37:23.092Z] [sync.cycle] Hybrid sync cycle started via immediate:consumers-update.
+[2026-04-13T05:37:33.592Z] [sync.cycle] Hybrid sync cycle started via immediate:consumers-update.

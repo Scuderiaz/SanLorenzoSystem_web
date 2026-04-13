@@ -7,6 +7,7 @@ import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage, loadApplicationsWithFallback, loadClassificationsWithFallback, loadZonesWithFallback, requestJson } from '../../services/userManagementApi';
+import { formatAccountNumberForDisplay, isPlaceholderAccountNumber } from '../../utils/accountNumber';
 import '../assessor_admin/Users.css';
 
 interface PendingApplication {
@@ -310,7 +311,11 @@ const PendingApplications: React.FC = () => {
       return 'To be updated upon approval';
     }
 
-    return application.Account_Number || 'To be updated upon approval';
+    if (!application.Account_Number || isPlaceholderAccountNumber(application.Account_Number)) {
+      return 'Pending for update';
+    }
+
+    return formatAccountNumberForDisplay(application.Account_Number, 'To be updated upon approval');
   };
 
   return (
