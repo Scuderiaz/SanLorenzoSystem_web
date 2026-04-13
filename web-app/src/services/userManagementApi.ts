@@ -22,6 +22,8 @@ export type ConsumerDashboardData = {
 };
 
 const defaultSystemSettings = {
+  systemName: 'San Lorenzo Ruiz Water Billing System',
+  currency: 'PHP',
   lateFee: 10,
   dueDateDays: 15,
 };
@@ -33,6 +35,17 @@ const createRequestError = (message: string, status?: number, responseBody?: any
   error.status = status;
   error.responseBody = responseBody;
   return error;
+};
+
+const isNetworkStyleMessage = (value: unknown) =>
+  /failed to fetch|networkerror|load failed|fetch failed/i.test(String(value || ''));
+
+const buildOfflineAwareMessage = (fallbackMessage: string) => {
+  const browserOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  if (browserOffline) {
+    return `${fallbackMessage} Offline mode is active and no cached data is available yet.`;
+  }
+  return fallbackMessage;
 };
 
 const toDisplayErrorMessage = (value: unknown, fallbackMessage: string) => {
@@ -143,6 +156,8 @@ const loadOfflineSnapshot = async <T>(datasetKey: string | undefined): Promise<T
 };
 
 const buildConsumerName = (...parts: Array<unknown>) => parts.filter(Boolean).map(String).join(' ').replace(/\s+/g, ' ').trim();
+const isDeletedApplicationRecord = (row: Record<string, any> | null | undefined) =>
+  normalizeStatus(row?.Application_Status) === 'rejected' || normalizeStatus(row?.Account_Status) === 'rejected';
 
 const normalizeStatus = (value: unknown) => String(value || '').trim().toLowerCase();
 
@@ -526,7 +541,9 @@ const loadApplicationsFromSupabase = async () => {
       };
     });
 
-  return [...rows, ...orphanRows].sort((left, right) => toDateTime(right.Application_Date) - toDateTime(left.Application_Date));
+  return [...rows, ...orphanRows]
+    .filter((row) => !isDeletedApplicationRecord(row))
+    .sort((left, right) => toDateTime(right.Application_Date) - toDateTime(left.Application_Date));
 };
 
 const loadLatestWaterRateFromSupabase = async () => {
@@ -654,11 +671,17 @@ const buildAccountLookupFallback = async (query: string) => {
 export const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error && typeof error === 'object') {
     const requestError = error as RequestError;
+    if (isNetworkStyleMessage(requestError.message)) {
+      return buildOfflineAwareMessage(fallbackMessage);
+    }
     if (typeof requestError.message === 'string' && requestError.message.trim()) {
       return requestError.message;
     }
 
     const responseMessage = toDisplayErrorMessage(requestError.responseBody, '');
+    if (isNetworkStyleMessage(responseMessage)) {
+      return buildOfflineAwareMessage(fallbackMessage);
+    }
     if (responseMessage) {
       return responseMessage;
     }
@@ -703,7 +726,7 @@ export const requestJson = async <T = any>(path: string, options: RequestInit = 
       throw error;
     }
 
-    throw createRequestError(getErrorMessage(error, fallbackMessage));
+    throw createRequestError(buildOfflineAwareMessage(fallbackMessage));
   }
 };
 
@@ -941,10 +964,33 @@ export const loadLatestWaterRateWithFallback = async () => requestWithSupabaseFa
 
 export const loadAdminSettingsWithFallback = async () => requestWithSupabaseFallback(
   '/admin/settings',
-  async () => ({
-    systemSettings: { ...defaultSystemSettings },
-    waterRates: await loadLatestWaterRateFromSupabase(),
-  }),
+  async () => {
+    const [{ data: settingsRow, error: settingsError }, waterRates] = await Promise.all([
+      supabase!
+        .from('admin_settings')
+        .select('settings_id, system_name, currency, due_date_days, late_fee, modified_by, modified_date')
+        .eq('settings_id', 1)
+        .maybeSingle(),
+      loadLatestWaterRateFromSupabase(),
+    ]);
+
+    if (settingsError && settingsError.code !== 'PGRST116') {
+      throw settingsError;
+    }
+
+    return {
+      systemSettings: settingsRow
+        ? {
+            systemName: settingsRow.system_name || defaultSystemSettings.systemName,
+            currency: settingsRow.currency || defaultSystemSettings.currency,
+            dueDateDays: String(settingsRow.due_date_days ?? defaultSystemSettings.dueDateDays),
+            lateFee: String(settingsRow.late_fee ?? defaultSystemSettings.lateFee),
+            modifiedBy: settingsRow.modified_by ?? null,
+          }
+        : { ...defaultSystemSettings },
+      waterRates,
+    };
+  },
   (payload) => payload?.data || { systemSettings: { ...defaultSystemSettings }, waterRates: null },
   'Failed to load admin settings.',
   'dataset.adminSettings'

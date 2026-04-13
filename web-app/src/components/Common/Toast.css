@@ -1,8 +1,5 @@
 .toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 3001;
+  position: relative;
   padding: 15px 20px;
   border-radius: 4px;
   color: white;
@@ -11,6 +8,7 @@
   align-items: center;
   gap: 10px;
   min-width: 300px;
+  width: min(500px, calc(100vw - 32px));
   max-width: 500px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   animation: slideInRight 0.3s ease-in-out;
@@ -79,10 +77,8 @@
 
 @media (max-width: 768px) {
   .toast {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    min-width: auto;
+    min-width: 0;
+    width: min(100%, calc(100vw - 20px));
     max-width: none;
   }
 }

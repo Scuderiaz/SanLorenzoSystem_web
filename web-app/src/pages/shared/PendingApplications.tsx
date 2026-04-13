@@ -235,7 +235,7 @@ const PendingApplications: React.FC = () => {
     const query = searchQuery.trim().toLowerCase();
     return applications.filter((application) => {
       const matchesStatus = statusFilter === 'active'
-        ? application.Application_Status !== 'Rejected'
+        ? true
         : statusFilter === 'all' || application.Application_Status === statusFilter;
       const matchesSearch = !query || [
         application.Ticket_Number,
@@ -300,7 +300,7 @@ const PendingApplications: React.FC = () => {
 
   const confirmActionMessage = confirmAction?.type === 'approve'
     ? 'Approve this consumer application and move it forward for activation?'
-    : 'Reject this application and keep it marked as rejected in the record history?';
+    : 'Reject this application and permanently delete the pending account and ticket?';
 
   const accountNumberDisplay = (application: PendingApplication | null) => {
     if (!application) {
@@ -338,7 +338,6 @@ const PendingApplications: React.FC = () => {
               <option value="all">All Application Status</option>
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
               </select>
             </div>
             <div className="main-actions">

@@ -4,7 +4,7 @@ import Tabs, { Tab } from '../../components/Common/Tabs';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
-import { getErrorMessage, loadZonesWithFallback, requestJson } from '../../services/userManagementApi';
+import { getErrorMessage, loadZonesWithFallback, requestJsonWithOfflineSnapshot } from '../../services/userManagementApi';
 import './Reports.css';
 
 interface ConsumerReport {
@@ -56,71 +56,93 @@ const Reports: React.FC = () => {
   }, [showToast]);
 
   const loadReportOverview = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (fromDate) params.set('fromDate', fromDate);
-      if (toDate) params.set('toDate', toDate);
-      if (zoneFilter) params.set('zoneId', zoneFilter);
+    const params = new URLSearchParams();
+    if (fromDate) params.set('fromDate', fromDate);
+    if (toDate) params.set('toDate', toDate);
+    if (zoneFilter) params.set('zoneId', zoneFilter);
 
-      const result = await requestJson<any>(`/admin/reports/overview?${params.toString()}`, {}, 'Failed to load report overview.');
+    const result = await requestJsonWithOfflineSnapshot<any>(
+      `/admin/reports/overview?${params.toString()}`,
+      `dataset.adminReportsOverview.${fromDate || 'all'}.${toDate || 'all'}.${zoneFilter || 'all'}`,
+      'Failed to load report overview.',
+      (payload) => payload?.data || {}
+    );
 
-      setTotalConsumers(String(result.data?.totalConsumers ?? 0));
-      setTotalBills(String(result.data?.totalBills ?? 0));
-      setTotalRevenue(`PHP ${Number(result.data?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-    } catch (error) {
-      console.error('Error loading report overview:', error);
-      showToast(getErrorMessage(error, 'Failed to load report overview.'), 'error');
-    }
-  }, [fromDate, toDate, zoneFilter, showToast]);
+    setTotalConsumers(String(result.data?.totalConsumers ?? 0));
+    setTotalBills(String(result.data?.totalBills ?? 0));
+    setTotalRevenue(`PHP ${Number(result.data?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+    return result.source;
+  }, [fromDate, toDate, zoneFilter]);
 
   const loadConsumerReport = useCallback(async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (zoneFilter) params.set('zoneId', zoneFilter);
+    const params = new URLSearchParams();
+    if (zoneFilter) params.set('zoneId', zoneFilter);
 
-      const result = await requestJson<any>(`/admin/reports/consumers?${params.toString()}`, {}, 'Failed to load consumer report.');
+    try {
+      const result = await requestJsonWithOfflineSnapshot<any[]>(
+        `/admin/reports/consumers?${params.toString()}`,
+        `dataset.adminReportsConsumers.${zoneFilter || 'all'}`,
+        'Failed to load consumer report.',
+        (payload) => payload?.data || []
+      );
 
       setConsumerReports(result.data || []);
-    } catch (error) {
-      console.error('Error loading consumer report:', error);
-      showToast(getErrorMessage(error, 'Failed to load consumer report.'), 'error');
+      return result.source;
     } finally {
       setLoading(false);
     }
-  }, [showToast, zoneFilter]);
+  }, [zoneFilter]);
 
   const loadMonthlyReport = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('fromDate', fromDate);
+    if (toDate) params.set('toDate', toDate);
+    if (zoneFilter) params.set('zoneId', zoneFilter);
+
+    const result = await requestJsonWithOfflineSnapshot<any[]>(
+      `/admin/reports/monthly?${params.toString()}`,
+      `dataset.adminReportsMonthly.${fromDate || 'all'}.${toDate || 'all'}.${zoneFilter || 'all'}`,
+      'Failed to load monthly report.',
+      (payload) => payload?.data || []
+    );
+
+    setMonthlyReports(result.data || []);
+    return result.source;
+  }, [fromDate, toDate, zoneFilter]);
+
+  const loadAllReports = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      if (fromDate) params.set('fromDate', fromDate);
-      if (toDate) params.set('toDate', toDate);
-      if (zoneFilter) params.set('zoneId', zoneFilter);
+      const sources = await Promise.all([
+        loadReportOverview(),
+        loadConsumerReport(),
+        loadMonthlyReport(),
+      ]);
 
-      const result = await requestJson<any>(`/admin/reports/monthly?${params.toString()}`, {}, 'Failed to load monthly report.');
-
-      setMonthlyReports(result.data || []);
+      if (sources.includes('offline')) {
+        showToast('Reports loaded from the offline snapshot.', 'warning');
+      }
+      return true;
     } catch (error) {
-      console.error('Error loading monthly report:', error);
-      showToast(getErrorMessage(error, 'Failed to load monthly report.'), 'error');
+      console.error('Error loading reports:', error);
+      showToast(getErrorMessage(error, 'Failed to load reports.'), 'error');
+      return false;
     }
-  }, [fromDate, toDate, zoneFilter, showToast]);
+  }, [loadConsumerReport, loadMonthlyReport, loadReportOverview, showToast]);
 
   useEffect(() => {
     loadZones();
   }, [loadZones]);
 
   useEffect(() => {
-    loadReportOverview();
-    loadConsumerReport();
-    loadMonthlyReport();
-  }, [loadConsumerReport, loadMonthlyReport, loadReportOverview]);
+    loadAllReports();
+  }, [loadAllReports]);
 
-  const handleGenerateReports = () => {
-    loadReportOverview();
-    loadConsumerReport();
-    loadMonthlyReport();
-    showToast('Reports generated successfully', 'success');
+  const handleGenerateReports = async () => {
+    const loaded = await loadAllReports();
+    if (loaded) {
+      showToast('Reports generated successfully', 'success');
+    }
   };
 
   const handleExportConsumerReport = () => {

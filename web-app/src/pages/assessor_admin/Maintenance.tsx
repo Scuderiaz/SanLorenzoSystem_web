@@ -3,7 +3,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
 import { useAuth } from '../../context/AuthContext';
-import { getErrorMessage, requestJson } from '../../services/userManagementApi';
+import { getErrorMessage, requestJson, requestJsonWithOfflineSnapshot } from '../../services/userManagementApi';
 import './Maintenance.css';
 
 interface SystemLog {
@@ -38,12 +38,20 @@ const Maintenance: React.FC = () => {
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await requestJson<any>('/admin/maintenance', {}, 'Failed to load maintenance data.');
+      const result = await requestJsonWithOfflineSnapshot<any>(
+        '/admin/maintenance',
+        'dataset.adminMaintenance',
+        'Failed to load maintenance data.',
+        (payload) => payload?.data || {}
+      );
 
       setDbStatus(result.data?.dbStatus || 'CONNECTED');
       setPrimaryEndpoint(result.data?.primaryEndpoint || '');
       setLogs(result.data?.logs || []);
       setBackups(result.data?.backups || []);
+      if (result.source === 'offline') {
+        showToast('Maintenance data loaded from the offline snapshot.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading maintenance data:', error);
       showToast(getErrorMessage(error, 'Failed to load system logs.'), 'error');

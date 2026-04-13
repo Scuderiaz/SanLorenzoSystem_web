@@ -88,6 +88,7 @@ const syncTableConfigs = [
   { tableName: 'roles', primaryKey: 'role_id' },
   { tableName: 'zone', primaryKey: 'zone_id' },
   { tableName: 'classification', primaryKey: 'classification_id' },
+  { tableName: 'admin_settings', primaryKey: 'settings_id' },
   { tableName: 'accounts', primaryKey: 'account_id' },
   { tableName: 'consumer', primaryKey: 'consumer_id' },
   { tableName: 'meter', primaryKey: 'meter_id' },
@@ -98,7 +99,7 @@ const syncTableConfigs = [
   { tableName: 'ledger_entry', primaryKey: 'ledger_id' },
   { tableName: 'connection_ticket', primaryKey: 'ticket_id' },
   { tableName: 'password_reset', primaryKey: 'reset_id' },
-  { tableName: 'account_approval', primaryKey: 'approval_id' },
+  { tableName: 'account_review_log', primaryKey: 'review_id' },
   { tableName: 'error_logs', primaryKey: 'error_id', syncWithSupabase: false },
   { tableName: 'system_logs', primaryKey: 'log_id', syncWithSupabase: false },
   { tableName: 'backuplogs', primaryKey: 'backup_id' },
@@ -109,6 +110,7 @@ const syncTableColumns = {
   roles: ['role_id', 'role_name'],
   zone: ['zone_id', 'zone_name'],
   classification: ['classification_id', 'classification_name'],
+  admin_settings: ['settings_id', 'system_name', 'currency', 'due_date_days', 'late_fee', 'modified_by', 'modified_date'],
   accounts: ['account_id', 'username', 'password', 'role_id', 'account_status', 'created_at', 'auth_user_id'],
   consumer: [
     'consumer_id',
@@ -215,12 +217,12 @@ const syncTableColumns = {
     'status',
     'created_at',
   ],
-  account_approval: [
-    'approval_id',
+  account_review_log: [
+    'review_id',
     'account_id',
-    'approved_by',
-    'approval_status',
-    'approval_date',
+    'reviewed_by',
+    'review_status',
+    'review_date',
     'remarks',
   ],
   waterrates: [
@@ -241,6 +243,7 @@ const syncConflictPolicies = {
   roles: { mode: 'auto-merge' },
   zone: { mode: 'auto-merge' },
   classification: { mode: 'auto-merge' },
+  admin_settings: { mode: 'auto-merge' },
   waterrates: { mode: 'auto-merge' },
   consumer: {
     mode: 'strict',
@@ -1375,7 +1378,7 @@ function splitConsumerName(fullName, username) {
   };
 }
 
-function readAdminSettings() {
+function readLegacyAdminSettings() {
   try {
     if (!fs.existsSync(adminSettingsFile)) {
       return { ...defaultAdminSettings };
@@ -1390,11 +1393,163 @@ function readAdminSettings() {
   }
 }
 
-function writeAdminSettings(settings) {
+function writeLegacyAdminSettings(settings) {
   const nextSettings = { ...defaultAdminSettings, ...(settings || {}) };
   fs.mkdirSync(path.dirname(adminSettingsFile), { recursive: true });
   fs.writeFileSync(adminSettingsFile, JSON.stringify(nextSettings, null, 2), 'utf8');
   return nextSettings;
+}
+
+function mapAdminSettingsRow(row) {
+  if (!row) {
+    return { ...defaultAdminSettings };
+  }
+
+  return {
+    systemName: String(row.system_name ?? row.systemName ?? defaultAdminSettings.systemName),
+    currency: String(row.currency ?? defaultAdminSettings.currency),
+    dueDateDays: String(row.due_date_days ?? row.dueDateDays ?? defaultAdminSettings.dueDateDays),
+    lateFee: String(row.late_fee ?? row.lateFee ?? defaultAdminSettings.lateFee),
+    modifiedBy: row.modified_by ?? row.modifiedBy ?? null,
+  };
+}
+
+function normalizeAdminSettingsInput(settings, options = {}) {
+  const merged = { ...defaultAdminSettings, ...(settings || {}) };
+  const dueDateDays = Number(merged.dueDateDays);
+  const lateFee = Number(merged.lateFee);
+  const modifiedBy = Number(merged.modifiedBy ?? options.modifiedBy);
+
+  return {
+    settings_id: 1,
+    system_name: String(merged.systemName || defaultAdminSettings.systemName).trim() || defaultAdminSettings.systemName,
+    currency: String(merged.currency || defaultAdminSettings.currency).trim() || defaultAdminSettings.currency,
+    due_date_days: Number.isFinite(dueDateDays) ? dueDateDays : Number(defaultAdminSettings.dueDateDays),
+    late_fee: Number.isFinite(lateFee) ? lateFee : Number(defaultAdminSettings.lateFee),
+    modified_by: Number.isInteger(modifiedBy) && modifiedBy > 0 ? modifiedBy : null,
+    modified_date: new Date().toISOString(),
+  };
+}
+
+function isMissingAdminSettingsStorageError(error) {
+  const code = String(error?.code || '');
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+  return code === '42P01'
+    || code === 'PGRST205'
+    || (message.includes('admin_settings') && (
+      message.includes('does not exist')
+      || message.includes('schema cache')
+      || message.includes('find the table')
+      || message.includes('undefined table')
+    ));
+}
+
+async function saveAdminSettingsToPostgres(settings, executor = pool) {
+  const payload = normalizeAdminSettingsInput(settings);
+  const { rows } = await executor.query(`
+    INSERT INTO admin_settings (
+      settings_id,
+      system_name,
+      currency,
+      due_date_days,
+      late_fee,
+      modified_by,
+      modified_date
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    ON CONFLICT (settings_id) DO UPDATE
+    SET system_name = EXCLUDED.system_name,
+        currency = EXCLUDED.currency,
+        due_date_days = EXCLUDED.due_date_days,
+        late_fee = EXCLUDED.late_fee,
+        modified_by = EXCLUDED.modified_by,
+        modified_date = EXCLUDED.modified_date
+    RETURNING settings_id, system_name, currency, due_date_days, late_fee, modified_by, modified_date
+  `, [
+    payload.settings_id,
+    payload.system_name,
+    payload.currency,
+    payload.due_date_days,
+    payload.late_fee,
+    payload.modified_by,
+    payload.modified_date,
+  ]);
+  return mapAdminSettingsRow(rows[0] || null);
+}
+
+async function loadAdminSettingsFromPostgres(executor = pool) {
+  const { rows } = await executor.query(`
+    SELECT settings_id, system_name, currency, due_date_days, late_fee, modified_by, modified_date
+    FROM admin_settings
+    WHERE settings_id = 1
+    LIMIT 1
+  `);
+  if (rows[0]) {
+    return mapAdminSettingsRow(rows[0]);
+  }
+
+  return saveAdminSettingsToPostgres({ ...readLegacyAdminSettings(), modifiedBy: null }, executor);
+}
+
+async function saveAdminSettingsToSupabase(settings) {
+  const payload = normalizeAdminSettingsInput(settings);
+  const { data, error } = await supabase
+    .from('admin_settings')
+    .upsert([payload], { onConflict: 'settings_id' })
+    .select('settings_id, system_name, currency, due_date_days, late_fee, modified_by, modified_date')
+    .single();
+  if (error) throw error;
+  return mapAdminSettingsRow(data || null);
+}
+
+async function loadAdminSettingsFromSupabase() {
+  const { data, error } = await supabase
+    .from('admin_settings')
+    .select('settings_id, system_name, currency, due_date_days, late_fee, modified_by, modified_date')
+    .eq('settings_id', 1)
+    .maybeSingle();
+  if (error) throw error;
+  if (data) {
+    return mapAdminSettingsRow(data);
+  }
+
+  return saveAdminSettingsToSupabase({ ...readLegacyAdminSettings(), modifiedBy: null });
+}
+
+async function loadResolvedAdminSettings() {
+  return withPostgresPrimary(
+    'admin.settings.data',
+    async () => loadAdminSettingsFromPostgres(),
+    async () => {
+      try {
+        return await loadAdminSettingsFromSupabase();
+      } catch (error) {
+        if (isMissingAdminSettingsStorageError(error)) {
+          return readLegacyAdminSettings();
+        }
+        throw error;
+      }
+    }
+  );
+}
+
+async function saveResolvedAdminSettings(settings) {
+  const normalized = { ...settings };
+  const legacyMirror = writeLegacyAdminSettings(normalized);
+  return withPostgresPrimary(
+    'admin.settings.saveData',
+    async () => saveAdminSettingsToPostgres(normalized),
+    async () => {
+      try {
+        return await saveAdminSettingsToSupabase(normalized);
+      } catch (error) {
+        if (isMissingAdminSettingsStorageError(error)) {
+          return legacyMirror;
+        }
+        throw error;
+      }
+    }
+  );
 }
 
 function normalizeDateInput(value, fallbackDate = new Date()) {
@@ -1434,7 +1589,7 @@ function isBillPastDue(dueDate, referenceDate = new Date()) {
   return due < ref;
 }
 
-function applyBillPenaltySnapshot(bill, settings = readAdminSettings(), referenceDate = new Date()) {
+function applyBillPenaltySnapshot(bill, settings = defaultAdminSettings, referenceDate = new Date()) {
   if (!bill) return null;
 
   const amountDue = roundCurrency(Number(bill.Amount_Due ?? bill.amount_due ?? bill.Total_Amount ?? bill.total_amount ?? 0));
@@ -1938,6 +2093,21 @@ async function initDb() {
     );
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_settings (
+      settings_id INTEGER PRIMARY KEY,
+      system_name VARCHAR(255) NOT NULL,
+      currency VARCHAR(20) NOT NULL DEFAULT 'PHP',
+      due_date_days INTEGER NOT NULL DEFAULT 15,
+      late_fee NUMERIC(8,2) NOT NULL DEFAULT 10.0,
+      modified_by INTEGER,
+      modified_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_admin_settings_modified_by
+        FOREIGN KEY (modified_by) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+    );
+  `);
+  await pool.query(`
     CREATE OR REPLACE FUNCTION set_sync_row_updated_at()
     RETURNS TRIGGER AS $$
     BEGIN
@@ -2026,6 +2196,8 @@ async function initDb() {
       'Commercial',
     ]);
   }
+
+  await loadAdminSettingsFromPostgres();
 }
 
 async function syncTableToSupabase(tableName, primaryKey) {
@@ -2446,6 +2618,12 @@ function sanitizeApplicationRecord(row) {
   };
 }
 
+function isDeletedApplicationRecord(row) {
+  const applicationStatus = String(row?.Application_Status || '').toLowerCase();
+  const accountStatus = String(row?.Account_Status || '').toLowerCase();
+  return applicationStatus === 'rejected' || accountStatus === 'rejected';
+}
+
 function buildPendingApplicationRow({ ticketId = null, ticketNumber, applicationDate, connectionType = 'Added by Staff', requirementsSubmitted = null, account, consumer, zoneName = null, classificationName = null }) {
   return sanitizeApplicationRecord({
     Ticket_ID: ticketId,
@@ -2649,9 +2827,11 @@ async function loadSupabaseApplicationRows({ pendingOnly = false } = {}) {
   const combined = [...mapped, ...orphanPendingApplications]
     .sort((a, b) => new Date(b.Application_Date || 0).getTime() - new Date(a.Application_Date || 0).getTime());
 
+  const visibleRows = combined.filter((row) => !isDeletedApplicationRecord(row));
+
   return pendingOnly
-    ? combined.filter((row) => row.Application_Status === 'Pending')
-    : combined;
+    ? visibleRows.filter((row) => row.Application_Status === 'Pending')
+    : visibleRows;
 }
 
 function mapMeterReadingRecord(reading, consumerMap = new Map()) {
@@ -2874,6 +3054,7 @@ app.get('/api/applications/pending', async (req, res) => {
           LEFT JOIN zone z ON z.zone_id = c.zone_id
           LEFT JOIN classification cl ON cl.classification_id = c.classification_id
           WHERE ct.status = 'Pending'
+            AND LOWER(COALESCE(a.account_status, '')) <> 'rejected'
           ORDER BY ct.application_date DESC NULLS LAST, ct.ticket_id DESC
         `);
         const { rows: orphanRows } = await pool.query(`
@@ -2960,6 +3141,8 @@ app.get('/api/applications', async (req, res) => {
           LEFT JOIN consumer c ON c.consumer_id = ct.consumer_id
           LEFT JOIN zone z ON z.zone_id = c.zone_id
           LEFT JOIN classification cl ON cl.classification_id = c.classification_id
+          WHERE LOWER(COALESCE(ct.status, '')) <> 'rejected'
+            AND LOWER(COALESCE(a.account_status, '')) <> 'rejected'
           ORDER BY ct.application_date DESC NULLS LAST, ct.ticket_id DESC
         `);
         const { rows: orphanRows } = await pool.query(`
@@ -3243,7 +3426,7 @@ app.post('/api/admin/approve-user', async (req, res) => {
           await client.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
           await client.query('UPDATE connection_ticket SET status = $1 WHERE account_id = $2', ['Approved', accountId]);
           await client.query(`
-            INSERT INTO account_approval (account_id, approved_by, approval_status, approval_date, remarks)
+            INSERT INTO account_review_log (account_id, reviewed_by, review_status, review_date, remarks)
             VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
           `, [accountId, approverId, 'Approved', String(remarks || '').trim() || null]);
           await client.query('COMMIT');
@@ -3261,11 +3444,11 @@ app.post('/api/admin/approve-user', async (req, res) => {
           if (mirroredConsumerError) throw mirroredConsumerError;
           const { error: mirroredTicketError } = await supabase.from('connection_ticket').update({ status: 'Approved' }).eq('account_id', accountId);
           if (mirroredTicketError) throw mirroredTicketError;
-          const { error: mirroredApprovalError } = await supabase.from('account_approval').insert([{
+          const { error: mirroredApprovalError } = await supabase.from('account_review_log').insert([{
             account_id: accountId,
-            approved_by: approverId,
-            approval_status: 'Approved',
-            approval_date: new Date().toISOString(),
+            reviewed_by: approverId,
+            review_status: 'Approved',
+            review_date: new Date().toISOString(),
             remarks: String(remarks || '').trim() || null,
           }]);
           if (mirroredApprovalError) throw mirroredApprovalError;
@@ -3278,11 +3461,11 @@ app.post('/api/admin/approve-user', async (req, res) => {
         if (consumerError) throw consumerError;
         const { error: ticketError } = await supabase.from('connection_ticket').update({ status: 'Approved' }).eq('account_id', accountId);
         if (ticketError) throw ticketError;
-        const { error: approvalError } = await supabase.from('account_approval').insert([{
+        const { error: approvalError } = await supabase.from('account_review_log').insert([{
           account_id: accountId,
-          approved_by: approverId,
-          approval_status: 'Approved',
-          approval_date: new Date().toISOString(),
+          reviewed_by: approverId,
+          review_status: 'Approved',
+          review_date: new Date().toISOString(),
           remarks: String(remarks || '').trim() || null,
         }]);
         if (approvalError) throw approvalError;
@@ -3313,7 +3496,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
         try {
           await client.query('BEGIN');
           await client.query('DELETE FROM connection_ticket WHERE account_id = $1', [accountId]);
-          await client.query('DELETE FROM account_approval WHERE account_id = $1', [accountId]);
+          await client.query('DELETE FROM account_review_log WHERE account_id = $1', [accountId]);
           await client.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
           await client.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
           await client.query('COMMIT');
@@ -3327,7 +3510,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
         if (supabase) {
           const { error: mirroredTicketError } = await supabase.from('connection_ticket').delete().eq('account_id', accountId);
           if (mirroredTicketError) throw mirroredTicketError;
-          const { error: mirroredApprovalError } = await supabase.from('account_approval').delete().eq('account_id', accountId);
+          const { error: mirroredApprovalError } = await supabase.from('account_review_log').delete().eq('account_id', accountId);
           if (mirroredApprovalError) throw mirroredApprovalError;
           const { error: mirroredConsumerError } = await supabase.from('consumer').delete().eq('login_id', accountId);
           if (mirroredConsumerError) throw mirroredConsumerError;
@@ -3338,7 +3521,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
       async () => {
         const { error: ticketError } = await supabase.from('connection_ticket').delete().eq('account_id', accountId);
         if (ticketError) throw ticketError;
-        const { error: approvalError } = await supabase.from('account_approval').delete().eq('account_id', accountId);
+        const { error: approvalError } = await supabase.from('account_review_log').delete().eq('account_id', accountId);
         if (approvalError) throw approvalError;
         const { error: consumerError } = await supabase.from('consumer').delete().eq('login_id', accountId);
         if (consumerError) throw consumerError;
@@ -3666,7 +3849,7 @@ app.delete('/api/users/:id', async (req, res) => {
         try {
           if (linkedConsumer) {
             await pool.query('DELETE FROM connection_ticket WHERE account_id = $1', [accountId]);
-            await pool.query('DELETE FROM account_approval WHERE account_id = $1', [accountId]);
+            await pool.query('DELETE FROM account_review_log WHERE account_id = $1', [accountId]);
             await pool.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
           }
           await pool.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
@@ -3679,7 +3862,7 @@ app.delete('/api/users/:id', async (req, res) => {
         if (supabase) {
           if (linkedConsumer) {
             await mirrorDeleteToSupabase('connection_ticket', 'account_id', accountId);
-            await mirrorDeleteToSupabase('account_approval', 'account_id', accountId);
+            await mirrorDeleteToSupabase('account_review_log', 'account_id', accountId);
             await mirrorDeleteToSupabase('consumer', 'login_id', accountId);
           }
           await mirrorDeleteToSupabase('accounts', 'account_id', accountId);
@@ -3700,7 +3883,7 @@ app.delete('/api/users/:id', async (req, res) => {
         if (linkedConsumer) {
           const { error: ticketError } = await supabase.from('connection_ticket').delete().eq('account_id', accountId);
           if (ticketError) throw ticketError;
-          const { error: approvalError } = await supabase.from('account_approval').delete().eq('account_id', accountId);
+          const { error: approvalError } = await supabase.from('account_review_log').delete().eq('account_id', accountId);
           if (approvalError) throw approvalError;
           const { error: consumerDeleteError } = await supabase.from('consumer').delete().eq('login_id', accountId);
           if (consumerDeleteError) throw consumerDeleteError;
@@ -5190,7 +5373,7 @@ app.get('/api/payments', async (req, res) => {
 app.post('/api/payments', async (req, res) => {
   try {
     const payment = req.body;
-    const adminSettings = readAdminSettings();
+    const adminSettings = await loadResolvedAdminSettings();
     const payload = {
       bill_id: payment.Bill_ID,
       consumer_id: payment.Consumer_ID,
@@ -5762,7 +5945,7 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
   }
 
   try {
-    const adminSettings = readAdminSettings();
+    const adminSettings = await loadResolvedAdminSettings();
     const result = await withPostgresPrimary(
       'treasurer.accountLookup',
       async () => {
@@ -6326,7 +6509,7 @@ app.get('/api/admin/reports/monthly', async (req, res) => {
 app.get('/api/admin/settings', async (req, res) => {
   try {
     const [settings, waterRates] = await Promise.all([
-      Promise.resolve(readAdminSettings()),
+      loadResolvedAdminSettings(),
       withPostgresPrimary(
         'admin.settings.latestRates',
         async () => {
@@ -6367,7 +6550,7 @@ app.get('/api/admin/settings', async (req, res) => {
 
 app.post('/api/admin/settings', async (req, res) => {
   try {
-    const savedSettings = writeAdminSettings(req.body || {});
+    const savedSettings = await saveResolvedAdminSettings(req.body || {});
     await writeSystemLog('[admin-settings] System configuration updated.', {
       userId: Number(req.body?.modifiedBy || defaultSystemLogAccountId),
       role: 'Admin',

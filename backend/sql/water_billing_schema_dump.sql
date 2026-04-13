@@ -236,25 +236,25 @@ CREATE TABLE water_billing.zone (
 
 
 --
--- Name: account_approval; Type: TABLE; Schema: water_billing; Owner: -
+-- Name: account_review_log; Type: TABLE; Schema: water_billing; Owner: -
 --
 
-CREATE TABLE water_billing.account_approval (
-    approval_id integer NOT NULL,
+CREATE TABLE water_billing.account_review_log (
+    review_id integer NOT NULL,
     account_id integer NOT NULL,
-    approved_by integer NOT NULL,
-    approval_status character varying(20) NOT NULL,
-    approval_date timestamp without time zone,
+    reviewed_by integer NOT NULL,
+    review_status character varying(20) NOT NULL,
+    review_date timestamp without time zone,
     remarks text,
-    CONSTRAINT account_approval_approval_status_check CHECK (((approval_status)::text = ANY ((ARRAY['Pending'::character varying, 'Approved'::character varying, 'Rejected'::character varying])::text[])))
+    CONSTRAINT account_review_log_review_status_check CHECK (((review_status)::text = ANY ((ARRAY['Pending'::character varying, 'Approved'::character varying, 'Rejected'::character varying])::text[])))
 );
 
 
 --
--- Name: account_approval_approval_id_seq; Type: SEQUENCE; Schema: water_billing; Owner: -
+-- Name: account_review_log_review_id_seq; Type: SEQUENCE; Schema: water_billing; Owner: -
 --
 
-CREATE SEQUENCE water_billing.account_approval_approval_id_seq
+CREATE SEQUENCE water_billing.account_review_log_review_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -264,10 +264,10 @@ CREATE SEQUENCE water_billing.account_approval_approval_id_seq
 
 
 --
--- Name: account_approval_approval_id_seq; Type: SEQUENCE OWNED BY; Schema: water_billing; Owner: -
+-- Name: account_review_log_review_id_seq; Type: SEQUENCE OWNED BY; Schema: water_billing; Owner: -
 --
 
-ALTER SEQUENCE water_billing.account_approval_approval_id_seq OWNED BY water_billing.account_approval.approval_id;
+ALTER SEQUENCE water_billing.account_review_log_review_id_seq OWNED BY water_billing.account_review_log.review_id;
 
 
 --
@@ -819,10 +819,10 @@ ALTER SEQUENCE water_billing.zone_zone_id_seq OWNED BY water_billing.zone.zone_i
 
 
 --
--- Name: account_approval approval_id; Type: DEFAULT; Schema: water_billing; Owner: -
+-- Name: account_review_log review_id; Type: DEFAULT; Schema: water_billing; Owner: -
 --
 
-ALTER TABLE ONLY water_billing.account_approval ALTER COLUMN approval_id SET DEFAULT nextval('water_billing.account_approval_approval_id_seq'::regclass);
+ALTER TABLE ONLY water_billing.account_review_log ALTER COLUMN review_id SET DEFAULT nextval('water_billing.account_review_log_review_id_seq'::regclass);
 
 
 --
@@ -966,11 +966,11 @@ ALTER TABLE ONLY water_billing.zone ALTER COLUMN zone_id SET DEFAULT nextval('wa
 
 
 --
--- Name: account_approval account_approval_pkey; Type: CONSTRAINT; Schema: water_billing; Owner: -
+-- Name: account_review_log account_review_log_pkey; Type: CONSTRAINT; Schema: water_billing; Owner: -
 --
 
-ALTER TABLE ONLY water_billing.account_approval
-    ADD CONSTRAINT account_approval_pkey PRIMARY KEY (approval_id);
+ALTER TABLE ONLY water_billing.account_review_log
+    ADD CONSTRAINT account_review_log_pkey PRIMARY KEY (review_id);
 
 
 --
@@ -1384,19 +1384,19 @@ CREATE INDEX idx_system_logs_account_id ON water_billing.system_logs USING btree
 
 
 --
--- Name: account_approval fk_account_approval_account; Type: FK CONSTRAINT; Schema: water_billing; Owner: -
+-- Name: account_review_log fk_account_review_log_account; Type: FK CONSTRAINT; Schema: water_billing; Owner: -
 --
 
-ALTER TABLE ONLY water_billing.account_approval
-    ADD CONSTRAINT fk_account_approval_account FOREIGN KEY (account_id) REFERENCES water_billing.accounts(account_id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY water_billing.account_review_log
+    ADD CONSTRAINT fk_account_review_log_account FOREIGN KEY (account_id) REFERENCES water_billing.accounts(account_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: account_approval fk_account_approval_approved_by; Type: FK CONSTRAINT; Schema: water_billing; Owner: -
+-- Name: account_review_log fk_account_review_log_reviewed_by; Type: FK CONSTRAINT; Schema: water_billing; Owner: -
 --
 
-ALTER TABLE ONLY water_billing.account_approval
-    ADD CONSTRAINT fk_account_approval_approved_by FOREIGN KEY (approved_by) REFERENCES water_billing.accounts(account_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY water_billing.account_review_log
+    ADD CONSTRAINT fk_account_review_log_reviewed_by FOREIGN KEY (reviewed_by) REFERENCES water_billing.accounts(account_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --

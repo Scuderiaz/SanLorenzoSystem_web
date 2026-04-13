@@ -64,7 +64,7 @@ const Settings: React.FC = () => {
       }
 
       if (result.source === 'supabase') {
-        showToast('Settings loaded with fallback defaults and Supabase water rates.', 'warning');
+        showToast('Settings loaded using Supabase fallback.', 'warning');
       }
     } catch (error) {
       console.error('Error loading settings:', error);

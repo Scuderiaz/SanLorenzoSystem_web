@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './Toast.css';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -11,13 +11,19 @@ interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }) => {
+  const onCloseRef = useRef(onClose);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      onCloseRef.current();
     }, duration);
 
-    return () => clearTimeout(timer);
-  }, [duration, onClose]);
+    return () => window.clearTimeout(timer);
+  }, [duration]);
 
   const getIcon = () => {
     switch (type) {

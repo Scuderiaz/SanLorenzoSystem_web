@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import { useToast } from '../../components/Common/ToastContainer';
-import { getErrorMessage, requestJson } from '../../services/userManagementApi';
+import { getErrorMessage, requestJsonWithOfflineSnapshot } from '../../services/userManagementApi';
 import './Dashboard.css';
 
 interface DashboardStats {
@@ -33,7 +33,12 @@ const Dashboard: React.FC = () => {
   const fetchDashboardStats = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await requestJson<any>('/admin/dashboard-summary', {}, 'Failed to load dashboard summary.');
+      const result = await requestJsonWithOfflineSnapshot<any>(
+        '/admin/dashboard-summary',
+        'dataset.adminDashboardSummary',
+        'Failed to load dashboard summary.',
+        (payload) => payload?.data || {}
+      );
 
       setStats(result.data?.stats || {
         staffMembers: 0,
@@ -42,6 +47,9 @@ const Dashboard: React.FC = () => {
         pendingApplications: 0,
       });
       setLogs(result.data?.recentLogs || []);
+      if (result.source === 'offline') {
+        showToast('Admin dashboard loaded from the offline snapshot.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading admin dashboard summary:', error);
       showToast(getErrorMessage(error, 'Failed to load dashboard data.'), 'error');

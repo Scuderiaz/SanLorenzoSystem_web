@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { canReachBackend } from '../utils/backendAvailability';
 
 interface AuthContextType {
   user: User | null;
@@ -15,9 +16,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const refreshBackendStatus = async (force = true) => {
+      try {
+        const reachable = await canReachBackend(force);
+        if (!cancelled) {
+          setIsOnline(reachable);
+        }
+      } catch {
+        if (!cancelled) {
+          setIsOnline(false);
+        }
+      }
+    };
+
     try {
       const savedUser = localStorage.getItem('user');
       if (savedUser) {
@@ -29,15 +45,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
 
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    refreshBackendStatus(true).catch(() => setIsOnline(false));
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    const handleConnectivityChange = () => {
+      refreshBackendStatus(true).catch(() => setIsOnline(false));
+    };
+
+    const intervalId = window.setInterval(() => {
+      refreshBackendStatus(true).catch(() => setIsOnline(false));
+    }, 15000);
+
+    window.addEventListener('online', handleConnectivityChange);
+    window.addEventListener('offline', handleConnectivityChange);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('online', handleConnectivityChange);
+      window.removeEventListener('offline', handleConnectivityChange);
     };
   }, []);
 

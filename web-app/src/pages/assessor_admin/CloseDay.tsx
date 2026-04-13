@@ -4,7 +4,7 @@ import DataTable from '../../components/Common/DataTable';
 import FormInput from '../../components/Common/FormInput';
 import { useToast } from '../../components/Common/ToastContainer';
 import { useAuth } from '../../context/AuthContext';
-import { getErrorMessage, requestJson } from '../../services/userManagementApi';
+import { getErrorMessage, requestJson, requestJsonWithOfflineSnapshot } from '../../services/userManagementApi';
 import './CloseDay.css';
 
 interface Transaction {
@@ -31,7 +31,12 @@ const CloseDay: React.FC = () => {
     setLoading(true);
     try {
       const todayIso = new Date().toISOString().slice(0, 10);
-      const result = await requestJson<any>(`/admin/close-day-summary?date=${todayIso}`, {}, 'Failed to load close-day summary.');
+      const result = await requestJsonWithOfflineSnapshot<any>(
+        `/admin/close-day-summary?date=${todayIso}`,
+        `dataset.adminCloseDay.${todayIso}`,
+        'Failed to load close-day summary.',
+        (payload) => payload?.data || {}
+      );
 
       setCurrentDate(new Date(result.data?.date || todayIso).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -41,6 +46,9 @@ const CloseDay: React.FC = () => {
       setSystemTotal(Number(result.data?.systemTotal || 0));
       setCashOnHand(Number(result.data?.cashOnHand || 0));
       setTransactions(result.data?.transactions || []);
+      if (result.source === 'offline') {
+        showToast('Close-day summary loaded from the offline snapshot.', 'warning');
+      }
     } catch (error) {
       console.error('Error loading transactions:', error);
       showToast(getErrorMessage(error, 'Failed to load transactions.'), 'error');

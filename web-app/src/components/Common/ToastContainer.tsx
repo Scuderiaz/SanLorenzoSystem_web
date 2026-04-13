@@ -40,9 +40,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 3000 }}>
-        {toasts.map((toast, index) => (
-          <div key={toast.id} style={{ marginTop: index > 0 ? '10px' : '0' }}>
+      <div
+        style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 3000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '10px',
+          pointerEvents: 'none',
+          maxWidth: 'calc(100vw - 20px)',
+        }}
+      >
+        {toasts.map((toast) => (
+          <div key={toast.id} style={{ pointerEvents: 'auto' }}>
             <Toast
               message={toast.message}
               type={toast.type}

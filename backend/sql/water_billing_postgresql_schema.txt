@@ -53,7 +53,25 @@ CREATE TABLE zone (
 );
 
 -- =========================================
--- 5. CONSUMER
+-- 5. ADMIN_SETTINGS
+-- =========================================
+CREATE TABLE admin_settings (
+    settings_id INT PRIMARY KEY,
+    system_name VARCHAR(255) NOT NULL,
+    currency VARCHAR(20) NOT NULL DEFAULT 'PHP',
+    due_date_days INT NOT NULL DEFAULT 15,
+    late_fee NUMERIC(8,2) NOT NULL DEFAULT 10.00,
+    modified_by INT,
+    modified_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_admin_settings_modified_by
+        FOREIGN KEY (modified_by) REFERENCES accounts(account_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+-- =========================================
+-- 6. CONSUMER
 -- =========================================
 CREATE TABLE consumer (
     consumer_id SERIAL PRIMARY KEY,
@@ -92,7 +110,7 @@ CREATE TABLE consumer (
 );
 
 -- =========================================
--- 6. METER
+-- 7. METER
 -- =========================================
 CREATE TABLE meter (
     meter_id SERIAL PRIMARY KEY,
@@ -111,7 +129,7 @@ CREATE TABLE meter (
 );
 
 -- =========================================
--- 7. ROUTE
+-- 8. ROUTE
 -- =========================================
 CREATE TABLE route (
     route_id SERIAL PRIMARY KEY,
@@ -130,7 +148,7 @@ CREATE TABLE route (
 );
 
 -- =========================================
--- 8. METERREADINGS
+-- 9. METERREADINGS
 -- =========================================
 CREATE TABLE meterreadings (
     reading_id SERIAL PRIMARY KEY,
@@ -180,7 +198,7 @@ CREATE TABLE meterreadings (
 );
 
 -- =========================================
--- 9. BILLS
+-- 10. BILLS
 -- =========================================
 CREATE TABLE bills (
     bill_id SERIAL PRIMARY KEY,
@@ -224,7 +242,7 @@ CREATE TABLE bills (
 );
 
 -- =========================================
--- 10. PAYMENT
+-- 11. PAYMENT
 -- =========================================
 CREATE TABLE payment (
     payment_id SERIAL PRIMARY KEY,
@@ -261,7 +279,7 @@ CREATE TABLE payment (
 );
 
 -- =========================================
--- 11. LEDGER_ENTRY
+-- 12. LEDGER_ENTRY
 -- =========================================
 CREATE TABLE ledger_entry (
     ledger_id SERIAL PRIMARY KEY,
@@ -281,7 +299,7 @@ CREATE TABLE ledger_entry (
 );
 
 -- =========================================
--- 12. WATERRATES
+-- 13. WATERRATES
 -- =========================================
 CREATE TABLE waterrates (
     rate_id SERIAL PRIMARY KEY,
@@ -299,7 +317,7 @@ CREATE TABLE waterrates (
 );
 
 -- =========================================
--- 13. CONNECTION_TICKET
+-- 14. CONNECTION_TICKET
 -- =========================================
 CREATE TABLE connection_ticket (
     ticket_id SERIAL PRIMARY KEY,
@@ -335,7 +353,7 @@ CREATE TABLE connection_ticket (
 );
 
 -- =========================================
--- 14. PASSWORD_RESET
+-- 15. PASSWORD_RESET
 -- =========================================
 CREATE TABLE password_reset (
     reset_id SERIAL PRIMARY KEY,
@@ -353,30 +371,30 @@ CREATE TABLE password_reset (
 );
 
 -- =========================================
--- 15. ACCOUNT_APPROVAL
+-- 16. ACCOUNT_REVIEW_LOG
 -- =========================================
-CREATE TABLE account_approval (
-    approval_id SERIAL PRIMARY KEY,
+CREATE TABLE account_review_log (
+    review_id SERIAL PRIMARY KEY,
     account_id INT NOT NULL,
-    approved_by INT NOT NULL,
-    approval_status VARCHAR(20) NOT NULL
-        CHECK (approval_status IN ('Pending', 'Approved', 'Rejected')),
-    approval_date TIMESTAMP,
+    reviewed_by INT NOT NULL,
+    review_status VARCHAR(20) NOT NULL
+        CHECK (review_status IN ('Pending', 'Approved', 'Rejected')),
+    review_date TIMESTAMP,
     remarks TEXT,
 
-    CONSTRAINT fk_account_approval_account
+    CONSTRAINT fk_account_review_log_account
         FOREIGN KEY (account_id) REFERENCES accounts(account_id)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_account_approval_approved_by
-        FOREIGN KEY (approved_by) REFERENCES accounts(account_id)
+    CONSTRAINT fk_account_review_log_reviewed_by
+        FOREIGN KEY (reviewed_by) REFERENCES accounts(account_id)
         ON UPDATE CASCADE
         ON DELETE NO ACTION
 );
 
 -- =========================================
--- 16. BACKUPLOGS
+-- 17. BACKUPLOGS
 -- =========================================
 CREATE TABLE backuplogs (
     backup_id SERIAL PRIMARY KEY,
@@ -393,7 +411,7 @@ CREATE TABLE backuplogs (
 );
 
 -- =========================================
--- 17. ERROR_LOGS
+-- 18. ERROR_LOGS
 -- =========================================
 CREATE TABLE error_logs (
     error_id SERIAL PRIMARY KEY,
@@ -412,7 +430,7 @@ CREATE TABLE error_logs (
 );
 
 -- =========================================
--- 18. SYSTEM_LOGS
+-- 19. SYSTEM_LOGS
 -- =========================================
 CREATE TABLE system_logs (
     log_id SERIAL PRIMARY KEY,
