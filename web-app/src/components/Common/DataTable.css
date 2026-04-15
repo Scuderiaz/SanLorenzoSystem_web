@@ -15,20 +15,20 @@
 .data-table th {
   background-color: #f8fafc;
   color: #64748b;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 16px 24px;
+  padding: 18px 28px;
   text-align: left;
   border-bottom: 2px solid #f1f5f9;
 }
 
 .data-table td {
-  padding: 18px 24px;
+  padding: 20px 28px;
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -50,9 +50,9 @@
 
 /* Badge styling for status within tables */
 .status-badge {
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 30px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;

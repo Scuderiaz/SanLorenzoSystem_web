@@ -49,25 +49,26 @@ textarea {
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   text-align: left;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   color: var(--dark-color);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--gray-color);
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 15px;
   color: var(--text-color);
   background-color: white;
   transition: all 0.3s ease;

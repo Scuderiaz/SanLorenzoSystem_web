@@ -19,7 +19,7 @@
 }
 
 .dashboard-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 800;
   color: #1B1B63;
   margin: 0;
@@ -79,7 +79,7 @@
 .card {
   background: #ffffff;
   border-radius: 16px;
-  padding: 16px 20px;
+  padding: 22px 26px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   border: 1px solid #f1f5f9;
   overflow: hidden;
@@ -98,7 +98,7 @@
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   color: #64748b;
   text-transform: uppercase;
@@ -120,10 +120,10 @@
 }
 
 .card-value {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 900;
   color: #1B1B63;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   letter-spacing: -0.5px;
 }
 

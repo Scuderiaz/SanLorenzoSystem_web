@@ -1,13 +1,13 @@
 .form-input-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .form-label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   color: #202124;
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 15px;
 }
 
 .form-label i {
@@ -22,10 +22,10 @@
 
 .form-input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid #dadce0;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 15px;
   color: #3c4043;
   background-color: white;
   transition: all 0.3s ease;
