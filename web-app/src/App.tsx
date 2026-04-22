@@ -24,6 +24,7 @@ import ProcessPayment from './pages/treasurer/ProcessPayment';
 import TreasurerLedger from './pages/treasurer/Ledger';
 import ForgotPassword from './pages/login/ForgotPassword';
 import SignUp from './pages/login/SignUp';
+import LandingPage from './pages/landing/LandingPage';
 import ConsumerMain from './pages/consumer/ConsumerMain';
 import ConsumerProfile from './pages/consumer/ConsumerProfile';
 import './App.css';
@@ -206,7 +207,7 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<Navigate to="/login" />} />
+      <Route path="/" element={<LandingPage />} />
     </Routes>
   );
 };

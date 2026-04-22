@@ -43,7 +43,7 @@ const Login: React.FC = () => {
     <div className="login-body">
       <div className="login-container">
         <div className="login-header">
-          <div className="logo-placeholder">
+          <div className="logo-placeholder" onClick={() => navigate('/')}>
             <img src="/slr-logo.svg" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
           </div>
           <h1>San Lorenzo Ruiz Municipal</h1>
