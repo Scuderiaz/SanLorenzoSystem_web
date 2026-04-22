@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage, loadConsumerDashboardWithFallback } from '../../services/userManagementApi';
 import { 
@@ -280,15 +280,6 @@ const ConsumerMain: React.FC = () => {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  if (loading) return (
-    <div className="cm-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center', color: '#1a73e8' }}>
-        <i className="fas fa-spinner fa-spin" style={{ fontSize: 40 }} />
-        <p>Loading dashboard...</p>
-      </div>
-    </div>
-  );
-
   if (error) return (
     <div className="cm-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center', color: '#e53935' }}>
@@ -325,9 +316,14 @@ const ConsumerMain: React.FC = () => {
             </span>
           </div>
         </div>
-        <button className="cm-logout-btn" onClick={handleLogout}>
-          <i className="fas fa-sign-out-alt" /> Logout
-        </button>
+        <div className="cm-header-actions">
+          <Link to="/consumer/profile" className="cm-profile-btn">
+            <i className="fas fa-user" /> My Profile
+          </Link>
+          <button className="cm-logout-btn" onClick={handleLogout}>
+            <i className="fas fa-sign-out-alt" /> Logout
+          </button>
+        </div>
       </div>
 
       {/* ── 3 Cards ── */}

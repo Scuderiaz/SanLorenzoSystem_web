@@ -3818,3 +3818,6 @@
 [2026-04-22T05:29:50.386Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
 [2026-04-22T05:29:50.561Z] [supabase.sync.accounts] Could not find the 'profile_picture_url' column of 'accounts' in the schema cache
 [2026-04-22T05:29:53.200Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-22T07:09:31.714Z] [server.start] AggregateError
+[2026-04-22T07:54:04.249Z] [server.start] AggregateError
+[2026-04-22T08:01:46.456Z] [server.start] AggregateError

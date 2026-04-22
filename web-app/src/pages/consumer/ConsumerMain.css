@@ -140,6 +140,35 @@
   box-shadow: 0 15px 30px rgba(197, 48, 48, 0.2);
 }
 
+.cm-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cm-profile-btn {
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+}
+
+.cm-profile-btn:hover { 
+  background: #2563eb; 
+  color: white; 
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(37, 99, 235, 0.2);
+}
+
 /* ─── Cards ──────────────────────────────────────────────────────────────── */
 .cm-cards {
   display: grid;
@@ -466,6 +495,7 @@
   .cm-card-highlight { transform: none; }
   .cm-header { flex-direction: column; gap: 20px; text-align: center; align-items: center; }
   .cm-meta { justify-content: center; flex-wrap: wrap; }
-  .cm-logout-btn { width: 100%; justify-content: center; }
+  .cm-header-actions { width: 100%; flex-direction: column; }
+  .cm-profile-btn, .cm-logout-btn { width: 100%; justify-content: center; }
   .cm-name { font-size: 30px; }
 }

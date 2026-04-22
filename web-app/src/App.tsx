@@ -25,6 +25,7 @@ import TreasurerLedger from './pages/treasurer/Ledger';
 import ForgotPassword from './pages/login/ForgotPassword';
 import SignUp from './pages/login/SignUp';
 import ConsumerMain from './pages/consumer/ConsumerMain';
+import ConsumerProfile from './pages/consumer/ConsumerProfile';
 import './App.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -98,6 +99,14 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <ConsumerMain />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/consumer/profile"
+        element={
+          <ProtectedRoute>
+            <ConsumerProfile />
           </ProtectedRoute>
         }
       />
