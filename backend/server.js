@@ -3056,32 +3056,101 @@ app.get('/api/users/unified', async (req, res) => {
       'users.fetchUnified',
       async () => {
         const { rows } = await pool.query(`
-          SELECT a.account_id AS "AccountID", a.username AS "Username", 
-                 a.username AS "Full_Name", a.role_id AS "Role_ID", a.profile_picture_url AS "Profile_Picture_URL",
-                 a.account_status AS "Status", r.role_name AS "Role_Name"
+          SELECT
+                 a.account_id AS "AccountID",
+                 a.username AS "Username",
+                 COALESCE(NULLIF(CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name), ''), a.username) AS "Full_Name",
+                 a.role_id AS "Role_ID",
+                 a.profile_picture_url AS "Profile_Picture_URL",
+                 a.account_status AS "Status",
+                 a.created_at AS "Created_At",
+                 r.role_name AS "Role_Name",
+                 c.consumer_id AS "Consumer_ID",
+                 c.account_number AS "Account_Number",
+                 c.contact_number AS "Contact_Number",
+                 NULLIF(CONCAT_WS(', ',
+                   NULLIF(c.address, ''),
+                   NULLIF(c.purok, ''),
+                   NULLIF(c.barangay, ''),
+                   NULLIF(c.municipality, ''),
+                   NULLIF(c.zip_code, '')
+                 ), '') AS "Address",
+                 z.zone_name AS "Zone_Name",
+                 cl.classification_name AS "Classification_Name",
+                 CASE
+                   WHEN c.consumer_id IS NOT NULL THEN 'Consumer Profile'
+                   ELSE 'Account Only'
+                 END AS "Profile_Source"
           FROM accounts a
           LEFT JOIN roles r ON a.role_id = r.role_id
+          LEFT JOIN consumer c ON c.login_id = a.account_id
+          LEFT JOIN zone z ON z.zone_id = c.zone_id
+          LEFT JOIN classification cl ON cl.classification_id = c.classification_id
           ORDER BY a.account_id DESC
         `);
         return { success: true, data: rows };
       },
       async () => {
-        const roleMap = await loadSupabaseRoleMap();
-        const { data, error } = await supabase
-          .from('accounts')
-          .select('*')
-          .order('account_id', { ascending: false });
-        if (error) throw error;
+        const [
+          roleMap,
+          { data: accounts, error: accountError },
+          { data: consumers, error: consumerError },
+          { data: zones, error: zoneError },
+          { data: classifications, error: classificationError },
+        ] = await Promise.all([
+          loadSupabaseRoleMap(),
+          supabase
+            .from('accounts')
+            .select('*')
+            .order('account_id', { ascending: false }),
+          supabase
+            .from('consumer')
+            .select('consumer_id, first_name, middle_name, last_name, contact_number, address, purok, barangay, municipality, zip_code, account_number, zone_id, classification_id, login_id'),
+          supabase
+            .from('zone')
+            .select('zone_id, zone_name'),
+          supabase
+            .from('classification')
+            .select('classification_id, classification_name'),
+        ]);
+
+        if (accountError) throw accountError;
+        if (consumerError) throw consumerError;
+        if (zoneError) throw zoneError;
+        if (classificationError) throw classificationError;
+
+        const consumerByLoginId = new Map((consumers || []).map((consumer) => [consumer.login_id, consumer]));
+        const zoneMap = new Map((zones || []).map((zone) => [zone.zone_id, zone.zone_name]));
+        const classificationMap = new Map((classifications || []).map((classification) => [classification.classification_id, classification.classification_name]));
+
         return {
           success: true,
-          data: (data || []).map((u) => ({
-            AccountID: u.account_id,
-            Username: u.username,
-            Full_Name: u.username || 'N/A',
-            Role_ID: u.role_id,
-            Status: u.account_status,
-            Profile_Picture_URL: u.profile_picture_url || null,
-            Role_Name: roleMap.get(u.role_id) || null,
+          data: (accounts || []).map((u) => {
+            const consumer = consumerByLoginId.get(u.account_id) || null;
+            const fullName = consumer
+              ? [consumer.first_name, consumer.middle_name, consumer.last_name].filter(Boolean).join(' ').trim()
+              : '';
+            const address = consumer
+              ? [consumer.address, consumer.purok, consumer.barangay, consumer.municipality, consumer.zip_code].filter(Boolean).join(', ')
+              : '';
+
+            return {
+              AccountID: u.account_id,
+              Username: u.username,
+              Full_Name: fullName || u.username || 'N/A',
+              Role_ID: u.role_id,
+              Status: u.account_status,
+              Created_At: u.created_at || null,
+              Profile_Picture_URL: u.profile_picture_url || null,
+              Role_Name: roleMap.get(u.role_id) || null,
+              Consumer_ID: consumer?.consumer_id || null,
+              Account_Number: consumer?.account_number || null,
+              Contact_Number: consumer?.contact_number || null,
+              Address: address || null,
+              Zone_Name: consumer?.zone_id ? zoneMap.get(consumer.zone_id) || null : null,
+              Classification_Name: consumer?.classification_id ? classificationMap.get(consumer.classification_id) || null : null,
+              Profile_Source: consumer?.consumer_id ? 'Consumer Profile' : 'Account Only',
+            };
           })),
         };
       }

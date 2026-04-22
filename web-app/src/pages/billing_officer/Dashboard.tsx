@@ -192,7 +192,7 @@ const Dashboard: React.FC = () => {
   }, [applications, pendingPaymentValidation, overdueBills]);
 
   const queueColumns: Column[] = [
-    { key: 'type', label: 'Queue', sortable: true },
+    { key: 'type', label: 'Queue', sortable: true, filterType: 'select', filterLabel: 'Queue' },
     { key: 'reference', label: 'Reference', sortable: true },
     { key: 'consumer', label: 'Consumer', sortable: true },
     { key: 'detail', label: 'Details', sortable: true },
@@ -212,6 +212,8 @@ const Dashboard: React.FC = () => {
       key: 'status',
       label: 'Status',
       sortable: true,
+      filterType: 'select',
+      filterLabel: 'Status',
       render: (value: string) => <span className={`status-pill status-${String(value || 'unknown').toLowerCase().replace(/\s+/g, '-')}`}>{value}</span>,
     },
     {
@@ -303,7 +305,14 @@ const Dashboard: React.FC = () => {
 
           <div className="card-body">
             <div className="dashboard-table-wrap">
-              <DataTable columns={queueColumns} data={workQueue} loading={loading} emptyMessage="No priority items at the moment." />
+              <DataTable
+                columns={queueColumns}
+                data={workQueue}
+                loading={loading}
+                emptyMessage="No priority items at the moment."
+                enableFiltering
+                filterPlaceholder="Search by reference, consumer, or details..."
+              />
             </div>
           </div>
         </div>

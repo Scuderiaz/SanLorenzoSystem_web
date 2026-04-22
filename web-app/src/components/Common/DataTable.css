@@ -6,6 +6,11 @@
   border: 1px solid #f1f5f9;
 }
 
+.data-table-toolbar {
+  padding: 20px 24px 0;
+  border-bottom: 1px solid #f8fafc;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -73,6 +78,10 @@
   .data-table-container {
     border-radius: 8px;
     overflow-x: auto;
+  }
+
+  .data-table-toolbar {
+    padding: 16px 16px 0;
   }
 
   .data-table {

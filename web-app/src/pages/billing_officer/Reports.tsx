@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import Tabs, { Tab } from '../../components/Common/Tabs';
+import DataTable, { Column } from '../../components/Common/DataTable';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
@@ -214,6 +215,38 @@ const BillingReports: React.FC = () => {
 
   const zoneOptions = zones.map((zone) => ({ value: zone.Zone_ID, label: formatZoneLabel(zone.Zone_Name, zone.Zone_ID) }));
 
+  const consumerReportColumns = useMemo<Column[]>(() => [
+    { key: 'zone', label: 'Zone', sortable: true },
+    { key: 'totalConsumers', label: 'Total Consumers', sortable: true },
+    { key: 'active', label: 'Active', sortable: true },
+    { key: 'inactive', label: 'Inactive', sortable: true },
+    { key: 'percentage', label: 'Activation Rate', sortable: true },
+  ], []);
+
+  const monthlyReportColumns = useMemo<Column[]>(() => [
+    { key: 'period', label: 'Period', sortable: true },
+    { key: 'billsGenerated', label: 'Bills Generated', sortable: true },
+    {
+      key: 'totalInvoiced',
+      label: 'Total Invoiced',
+      sortable: true,
+      render: (value: number) => formatCurrency(value),
+    },
+    {
+      key: 'totalCollected',
+      label: 'Total Collected',
+      sortable: true,
+      render: (value: number) => formatCurrency(value),
+    },
+    { key: 'collectionRate', label: 'Collection Rate', sortable: true },
+    {
+      key: 'unpaidBalance',
+      label: 'Outstanding',
+      sortable: true,
+      render: (value: number) => formatCurrency(value),
+    },
+  ], []);
+
   const tabs: Tab[] = [
     {
       id: 'consumers',
@@ -224,34 +257,14 @@ const BillingReports: React.FC = () => {
             <h2 className="card-title">Consumer Summary Report</h2>
           </div>
           <div className="card-body">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Zone</th>
-                  <th>Total Consumers</th>
-                  <th>Active</th>
-                  <th>Inactive</th>
-                  <th>Activation Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Loading consumer report...</td></tr>
-                ) : consumerReports.length === 0 ? (
-                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>No consumer data available.</td></tr>
-                ) : (
-                  consumerReports.map((report) => (
-                    <tr key={report.zone}>
-                      <td>{report.zone}</td>
-                      <td>{report.totalConsumers}</td>
-                      <td>{report.active}</td>
-                      <td>{report.inactive}</td>
-                      <td>{report.percentage}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <DataTable
+              columns={consumerReportColumns}
+              data={consumerReports}
+              loading={loading}
+              emptyMessage="No consumer data available."
+              enableFiltering
+              filterPlaceholder="Search consumer report by zone or totals..."
+            />
           </div>
         </div>
       ),
@@ -265,34 +278,14 @@ const BillingReports: React.FC = () => {
             <h2 className="card-title">Billing and Collection Summary</h2>
           </div>
           <div className="card-body">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Period</th>
-                  <th>Bills Generated</th>
-                  <th>Total Invoiced</th>
-                  <th>Total Collected</th>
-                  <th>Collection Rate</th>
-                  <th>Outstanding</th>
-                </tr>
-              </thead>
-              <tbody>
-                {monthlyReports.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>No billing data available.</td></tr>
-                ) : (
-                  monthlyReports.map((report) => (
-                    <tr key={report.period}>
-                      <td>{report.period}</td>
-                      <td>{report.billsGenerated}</td>
-                      <td>{formatCurrency(report.totalInvoiced)}</td>
-                      <td>{formatCurrency(report.totalCollected)}</td>
-                      <td>{report.collectionRate}</td>
-                      <td>{formatCurrency(report.unpaidBalance)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <DataTable
+              columns={monthlyReportColumns}
+              data={monthlyReports}
+              loading={loading}
+              emptyMessage="No billing data available."
+              enableFiltering
+              filterPlaceholder="Search billing summary by period or totals..."
+            />
           </div>
         </div>
       ),

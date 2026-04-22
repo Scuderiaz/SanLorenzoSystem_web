@@ -81,6 +81,8 @@ const Consumers: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
+  const [classificationFilter, setClassificationFilter] = useState('');
+  const [meterStatusFilter, setMeterStatusFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   const [formData, setFormData] = useState({
@@ -163,12 +165,20 @@ const Consumers: React.FC = () => {
       filtered = filtered.filter((c) => c.Zone_ID === parseInt(zoneFilter));
     }
 
+    if (classificationFilter) {
+      filtered = filtered.filter((c) => String(c.Classification_ID) === classificationFilter);
+    }
+
+    if (meterStatusFilter) {
+      filtered = filtered.filter((c) => String(c.Meter_Status || 'Active') === meterStatusFilter);
+    }
+
     if (statusFilter) {
       filtered = filtered.filter((c) => c.Status === statusFilter);
     }
 
     setFilteredConsumers(filtered);
-  }, [consumers, searchTerm, statusFilter, zoneFilter]);
+  }, [classificationFilter, consumers, meterStatusFilter, searchTerm, statusFilter, zoneFilter]);
 
   useEffect(() => {
     loadConsumers();
@@ -400,10 +410,18 @@ const Consumers: React.FC = () => {
     value: c.Classification_ID,
     label: c.Classification_Name,
   }));
-  const hasActiveFilters = Boolean(searchTerm.trim() || zoneFilter || statusFilter);
+  const meterStatusOptions = [
+    { value: 'Active', label: 'Active Meter' },
+    { value: 'Inactive', label: 'Inactive Meter' },
+    { value: 'Defective', label: 'Defective Meter' },
+    { value: 'Disconnected', label: 'Disconnected Meter' },
+  ];
+  const hasActiveFilters = Boolean(searchTerm.trim() || zoneFilter || classificationFilter || meterStatusFilter || statusFilter);
   const clearFilters = () => {
     setSearchTerm('');
     setZoneFilter('');
+    setClassificationFilter('');
+    setMeterStatusFilter('');
     setStatusFilter('');
   };
 
@@ -425,11 +443,27 @@ const Consumers: React.FC = () => {
               />
               <FormSelect
                 label=""
+                value={classificationFilter}
+                onChange={setClassificationFilter}
+                options={classificationOptions}
+                placeholder="All Consumer Types"
+              />
+              <FormSelect
+                label=""
+                value={meterStatusFilter}
+                onChange={setMeterStatusFilter}
+                options={meterStatusOptions}
+                placeholder="All Meter Statuses"
+              />
+              <FormSelect
+                label=""
                 value={statusFilter}
                 onChange={setStatusFilter}
                 options={[
                   { value: 'Active', label: 'Active Account' },
                   { value: 'Inactive', label: 'Inactive Account' },
+                  { value: 'Pending', label: 'Pending Account' },
+                  { value: 'Disconnected', label: 'Disconnected Account' },
                 ]}
                 placeholder="All Account Statuses"
               />

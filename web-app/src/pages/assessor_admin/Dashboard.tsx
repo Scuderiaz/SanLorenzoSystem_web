@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
+import DataTable, { Column } from '../../components/Common/DataTable';
 import { useToast } from '../../components/Common/ToastContainer';
 import { getErrorMessage, requestJsonWithOfflineSnapshot } from '../../services/userManagementApi';
 import './Dashboard.css';
@@ -62,6 +63,24 @@ const Dashboard: React.FC = () => {
     fetchDashboardStats();
   }, [fetchDashboardStats]);
 
+  const logColumns: Column[] = [
+    {
+      key: 'timestamp',
+      label: 'Timestamp',
+      sortable: true,
+      render: (value: string) => new Date(value).toLocaleString(),
+    },
+    {
+      key: 'category',
+      label: 'Event Category',
+      sortable: true,
+      filterType: 'select',
+      filterLabel: 'Event Category',
+    },
+    { key: 'operator', label: 'Operator', sortable: true },
+    { key: 'description', label: 'Activity Description', sortable: true },
+  ];
+
   return (
     <MainLayout title="Admin Overview">
       <div className="dashboard-page">
@@ -119,42 +138,14 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
           <div className="card-body">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Event Category</th>
-                  <th>Operator</th>
-                  <th>Activity Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-                      <i className="fas fa-spinner fa-spin" style={{ display: 'block', fontSize: '24px', marginBottom: '12px' }}></i>
-                      Loading activity logs...
-                    </td>
-                  </tr>
-                ) : logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
-                      <i className="fas fa-history" style={{ display: 'block', fontSize: '24px', marginBottom: '12px' }}></i>
-                      No recent activity logs found
-                    </td>
-                  </tr>
-                ) : (
-                  logs.map((log) => (
-                    <tr key={log.id}>
-                      <td>{new Date(log.timestamp).toLocaleString()}</td>
-                      <td>{log.category}</td>
-                      <td>{log.operator}</td>
-                      <td>{log.description}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <DataTable
+              columns={logColumns}
+              data={logs}
+              loading={loading}
+              emptyMessage="No recent activity logs found"
+              enableFiltering
+              filterPlaceholder="Search logs by operator, category, or description..."
+            />
           </div>
         </div>
       </div>

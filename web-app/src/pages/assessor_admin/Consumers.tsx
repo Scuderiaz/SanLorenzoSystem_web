@@ -25,6 +25,7 @@ interface Consumer {
   Classification_Name?: string;
   Account_Number: string;
   Meter_Number: string;
+  Meter_Status?: string;
   Status: string;
   Contact_Number: string;
   Connection_Date: string;
@@ -76,6 +77,8 @@ const Consumers: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
+  const [classificationFilter, setClassificationFilter] = useState('');
+  const [meterStatusFilter, setMeterStatusFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   const [formData, setFormData] = useState({
@@ -106,7 +109,7 @@ const Consumers: React.FC = () => {
 
   useEffect(() => {
     filterConsumers();
-  }, [consumers, searchTerm, zoneFilter, statusFilter]);
+  }, [consumers, searchTerm, zoneFilter, classificationFilter, meterStatusFilter, statusFilter]);
 
   useEffect(() => {
     const composedAddress = [formData.purok, formData.barangay, formData.municipality, formData.zipCode]
@@ -176,6 +179,14 @@ const Consumers: React.FC = () => {
 
     if (zoneFilter) {
       filtered = filtered.filter((c) => c.Zone_ID === parseInt(zoneFilter));
+    }
+
+    if (classificationFilter) {
+      filtered = filtered.filter((c) => String(c.Classification_ID) === classificationFilter);
+    }
+
+    if (meterStatusFilter) {
+      filtered = filtered.filter((c) => String(c.Meter_Status || 'Active') === meterStatusFilter);
     }
 
     if (statusFilter) {
@@ -349,6 +360,14 @@ const Consumers: React.FC = () => {
     { key: 'Zone_Name', label: 'Zone', sortable: true },
     { key: 'Classification_Name', label: 'Classification', sortable: true },
     {
+      key: 'Meter_Status',
+      label: 'Meter Status',
+      sortable: true,
+      render: (value: string) => (
+        <span className={`status-badge status-${(value || 'active').toLowerCase()}`}>{value || 'Active'}</span>
+      ),
+    },
+    {
       key: 'Status',
       label: 'Status',
       render: (value: string) => (
@@ -391,6 +410,12 @@ const Consumers: React.FC = () => {
     value: c.Classification_ID,
     label: c.Classification_Name,
   }));
+  const meterStatusOptions = [
+    { value: 'Active', label: 'Active Meter' },
+    { value: 'Inactive', label: 'Inactive Meter' },
+    { value: 'Defective', label: 'Defective Meter' },
+    { value: 'Disconnected', label: 'Disconnected Meter' },
+  ];
 
   return (
     <MainLayout title="Consumer Registry">
@@ -429,11 +454,26 @@ const Consumers: React.FC = () => {
             />
             <FormSelect
               label=""
+              value={classificationFilter}
+              onChange={setClassificationFilter}
+              options={classificationOptions}
+              placeholder="All Consumer Types"
+            />
+            <FormSelect
+              label=""
+              value={meterStatusFilter}
+              onChange={setMeterStatusFilter}
+              options={meterStatusOptions}
+              placeholder="All Meter Statuses"
+            />
+            <FormSelect
+              label=""
               value={statusFilter}
               onChange={setStatusFilter}
               options={[
                 { value: 'Active', label: 'Active Status' },
                 { value: 'Inactive', label: 'Inactive Status' },
+                { value: 'Pending', label: 'Pending Status' },
                 { value: 'Disconnected', label: 'Disconnected' },
               ]}
               placeholder="All Account Status"
@@ -510,6 +550,12 @@ const Consumers: React.FC = () => {
                   <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                     <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Classification:</span>
                     <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConsumer.Classification_Name}</span>
+                  </div>
+                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Meter Status:</span>
+                    <span className={`status-badge status-${(selectedConsumer.Meter_Status || 'active').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
+                      {selectedConsumer.Meter_Status || 'Active'}
+                    </span>
                   </div>
                   <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                     <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Status:</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import Tabs, { Tab } from '../../components/Common/Tabs';
+import DataTable, { Column } from '../../components/Common/DataTable';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
@@ -158,6 +159,54 @@ const Reports: React.FC = () => {
     label: formatZoneLabel(z.Zone_Name ?? z.zone_name, z.Zone_ID ?? z.zone_id),
   }));
 
+  const consumerReportColumns: Column[] = [
+    { key: 'zone', label: 'Zone', sortable: true },
+    { key: 'totalConsumers', label: 'Total Consumers', sortable: true },
+    { key: 'active', label: 'Active', sortable: true },
+    { key: 'inactive', label: 'Inactive', sortable: true },
+    { key: 'percentage', label: 'Percentage', sortable: true },
+  ];
+
+  const monthlyReportColumns: Column[] = [
+    { key: 'period', label: 'Period', sortable: true },
+    { key: 'billsGenerated', label: 'Bills Generated', sortable: true },
+    {
+      key: 'totalInvoiced',
+      label: 'Total Invoiced',
+      sortable: true,
+      render: (value: number) => `PHP ${value.toLocaleString()}`,
+    },
+    {
+      key: 'totalCollected',
+      label: 'Actual Collections',
+      sortable: true,
+      render: (value: number) => `PHP ${value.toLocaleString()}`,
+    },
+    {
+      key: 'collectionRate',
+      label: 'Collection Rate',
+      sortable: true,
+      render: (value: string) => (
+        <span style={{
+          color: parseFloat(value) >= 90 ? '#10b981' : '#f59e0b',
+          fontWeight: 'bold'
+        }}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      key: 'unpaidBalance',
+      label: 'Unpaid Balance',
+      sortable: true,
+      render: (value: number) => (
+        <span style={{ color: value > 0 ? '#ef4444' : 'inherit' }}>
+          PHP {value.toLocaleString()}
+        </span>
+      ),
+    },
+  ];
+
   const tabs: Tab[] = [
     {
       id: 'consumers',
@@ -168,42 +217,14 @@ const Reports: React.FC = () => {
             <h2 className="card-title">Consumer Summary Report</h2>
           </div>
           <div className="card-body">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Zone</th>
-                  <th>Total Consumers</th>
-                  <th>Active</th>
-                  <th>Inactive</th>
-                  <th>Percentage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
-                      <i className="fas fa-spinner fa-spin"></i> Loading consumer report...
-                    </td>
-                  </tr>
-                ) : consumerReports.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
-                      No consumer data available
-                    </td>
-                  </tr>
-                ) : (
-                  consumerReports.map((report, index) => (
-                    <tr key={index}>
-                      <td>{report.zone}</td>
-                      <td>{report.totalConsumers}</td>
-                      <td>{report.active}</td>
-                      <td>{report.inactive}</td>
-                      <td>{report.percentage}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <DataTable
+              columns={consumerReportColumns}
+              data={consumerReports}
+              loading={loading}
+              emptyMessage="No consumer data available"
+              enableFiltering
+              filterPlaceholder="Search consumer report by zone or totals..."
+            />
           </div>
         </div>
       ),
@@ -217,45 +238,14 @@ const Reports: React.FC = () => {
             <h2 className="card-title">Monthly Billing & Collection Summary</h2>
           </div>
           <div className="card-body">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Period</th>
-                  <th>Bills Generated</th>
-                  <th>Total Invoiced</th>
-                  <th>Actual Collections</th>
-                  <th>Collection Rate</th>
-                  <th>Unpaid Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {monthlyReports.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>
-                      No report data available
-                    </td>
-                  </tr>
-                ) : (
-                  monthlyReports.map((report, index) => (
-                    <tr key={index}>
-                      <td>{report.period}</td>
-                      <td>{report.billsGenerated}</td>
-                      <td>PHP {report.totalInvoiced.toLocaleString()}</td>
-                      <td>PHP {report.totalCollected.toLocaleString()}</td>
-                      <td style={{
-                        color: parseFloat(report.collectionRate) >= 90 ? '#10b981' : '#f59e0b',
-                        fontWeight: 'bold'
-                      }}>
-                        {report.collectionRate}
-                      </td>
-                      <td style={{ color: report.unpaidBalance > 0 ? '#ef4444' : 'inherit' }}>
-                        PHP {report.unpaidBalance.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <DataTable
+              columns={monthlyReportColumns}
+              data={monthlyReports}
+              loading={loading}
+              emptyMessage="No report data available"
+              enableFiltering
+              filterPlaceholder="Search monthly report by period or values..."
+            />
           </div>
         </div>
       ),

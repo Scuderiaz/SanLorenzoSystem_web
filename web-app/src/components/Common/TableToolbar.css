@@ -1,122 +1,146 @@
 .table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.95fr);
+  align-items: end;
+  gap: 18px;
   margin-bottom: 12px;
 }
 
 .table-toolbar__primary,
 .table-toolbar__secondary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .table-toolbar__primary {
-  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
 }
 
 .table-toolbar__secondary {
-  flex: 1 1 360px;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) auto;
+  align-items: end;
+  justify-items: stretch;
+  align-content: start;
+  gap: 12px;
 }
 
 .table-toolbar__quick-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.table-toolbar__meta {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  align-self: stretch;
 }
 
 .table-toolbar .form-select-group {
   margin-bottom: 0;
-  min-width: 190px;
+  min-width: 0;
 }
 
 .table-toolbar .form-select {
+  width: 100%;
+  min-width: 0;
   min-height: 54px;
-  min-width: 190px;
-  border-radius: 16px;
-  padding: 14px 44px 14px 18px;
-  border-color: #cbd5e1;
-  color: #1e293b;
+  padding: 12px 36px 12px 14px;
+  border-color: #dadce0;
+  border-radius: 6px;
+  color: #3c4043;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 400;
   background-color: #ffffff;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
-  background-position: right 14px center;
-  background-size: 18px;
+  box-shadow: none;
+  background-position: right 8px center;
+  background-size: 16px;
 }
 
 .table-toolbar .form-select:focus {
-  border-color: #1b1b63;
-  box-shadow: 0 0 0 4px rgba(27, 27, 99, 0.08), 0 12px 28px rgba(15, 23, 42, 0.08);
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
 }
 
 .table-toolbar__search {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1 1 360px;
-  max-width: 560px;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  border-radius: 12px;
 }
 
 .table-toolbar__search i {
   position: absolute;
-  left: 18px;
+  left: 19px;
   top: 50%;
   transform: translateY(-50%);
-  color: #475569;
+  color: #1b1b63;
   font-size: 18px;
-  opacity: 0.95;
+  opacity: 1;
   pointer-events: none;
+  transition: color 0.2s ease;
 }
 
 .table-toolbar__search input {
   width: 100%;
   min-height: 54px;
-  padding: 15px 18px 15px 54px;
-  border: 1px solid #cbd5e1;
-  border-radius: 16px;
+  padding: 15px 18px 15px 52px;
+  border: 1px solid #c7d4ea;
+  border-radius: 12px;
   font-size: 15px;
-  font-weight: 600;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  color: #0f172a;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  font-weight: 500;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+  color: #3c4043;
+  box-shadow: 0 8px 18px rgba(27, 27, 99, 0.06);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .table-toolbar__search input::placeholder {
-  color: #64748b;
+  color: #51627f;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .table-toolbar__search input:focus {
   outline: none;
-  border-color: #1b1b63;
-  box-shadow: 0 0 0 4px rgba(27, 27, 99, 0.08), 0 12px 28px rgba(15, 23, 42, 0.08);
+  border-color: #8ea8dd;
+  box-shadow: 0 0 0 3px rgba(142, 168, 221, 0.2), 0 10px 22px rgba(27, 27, 99, 0.08);
+}
+
+.table-toolbar__search:focus-within i {
+  color: #1b1b63;
 }
 
 .table-toolbar__clear {
-  min-height: 54px;
-  padding: 0 18px;
+  min-height: 50px;
+  padding: 0 16px;
   border: 1px solid #dbe4f0;
-  border-radius: 16px;
+  border-radius: 14px;
   background: #ffffff;
-  color: #1b1b63;
+  color: #475569;
   font-size: 14px;
   font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .table-toolbar__clear:hover {
-  background: #eef2ff;
-  border-color: #c7d2fe;
+  background: #f8fbff;
+  border-color: #c3d1e8;
+  color: #1b1b63;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
 .table-toolbar__loading {
@@ -133,16 +157,50 @@
 .table-toolbar__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: nowrap;
+  width: auto;
+  padding: 4px;
+  border: 1px solid #edf2f7;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
 }
 
 .table-toolbar__actions .btn {
   min-height: 54px;
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 0 18px;
   font-size: 15px;
   font-weight: 800;
+}
+
+.table-toolbar__actions .btn-secondary {
+  min-width: 54px;
+  padding: 0 14px;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 1200px) {
+  .table-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .table-toolbar__primary {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .table-toolbar__quick-filters {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .table-toolbar__secondary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
 }
 
 @media (max-width: 768px) {
@@ -153,17 +211,13 @@
   .table-toolbar__primary,
   .table-toolbar__secondary,
   .table-toolbar__quick-filters,
+  .table-toolbar__meta,
   .table-toolbar__actions {
     width: 100%;
   }
 
   .table-toolbar__secondary {
-    justify-content: stretch;
-  }
-
-  .table-toolbar__search {
-    max-width: none;
-    flex-basis: 100%;
+    grid-template-columns: 1fr;
   }
 
   .table-toolbar .form-select-group,
@@ -171,5 +225,13 @@
   .table-toolbar__clear,
   .table-toolbar__actions .btn {
     width: 100%;
+  }
+
+  .table-toolbar__actions {
+    flex-wrap: wrap;
+  }
+
+  .table-toolbar__meta {
+    justify-content: stretch;
   }
 }

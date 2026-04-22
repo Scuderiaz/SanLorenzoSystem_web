@@ -19,6 +19,7 @@ interface User {
   Role_Name: string;
   Status: 'Active' | 'Pending' | 'Inactive' | 'Rejected';
   Phone_Number?: string;
+  Created_At?: string | null;
   Profile_Picture_URL?: string | null;
 }
 
@@ -26,6 +27,12 @@ interface Role {
   Role_ID: number;
   Role_Name: string;
 }
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('en-PH');
+};
 
 const UsersTab: React.FC = () => {
   const { user: currentUser, updateUser } = useAuth();
@@ -195,8 +202,14 @@ const UsersTab: React.FC = () => {
   };
 
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.Username.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         u.Full_Name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const normalizedQuery = searchQuery.toLowerCase();
+    const matchesSearch = [
+      u.AccountID,
+      u.Username,
+      u.Full_Name,
+      u.Role_Name,
+      u.Status,
+    ].some((value) => String(value || '').toLowerCase().includes(normalizedQuery));
     const matchesRole = !roleFilter || u.Role_ID.toString() === roleFilter;
     const matchesStatus = !statusFilter || u.Status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
@@ -218,9 +231,16 @@ const UsersTab: React.FC = () => {
         </div>
       ),
     },
+    { key: 'AccountID', label: 'Account ID', sortable: true },
     { key: 'Username', label: 'Username', sortable: true },
     { key: 'Full_Name', label: 'Full Name', sortable: true },
     { key: 'Role_Name', label: 'Role', sortable: true },
+    {
+      key: 'Created_At',
+      label: 'Created',
+      sortable: true,
+      render: (value: string | null) => formatDateTime(value),
+    },
     {
       key: 'Status',
       label: 'Status',
@@ -273,7 +293,7 @@ const UsersTab: React.FC = () => {
       <TableToolbar
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search staff by name or username..."
+        searchPlaceholder="Search by account ID, username, role, or status..."
         quickFilters={
           <>
             <FormSelect

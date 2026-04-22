@@ -31,8 +31,6 @@ const Maintenance: React.FC = () => {
   const [primaryEndpoint, setPrimaryEndpoint] = useState('');
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [backups, setBackups] = useState<BackupLog[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<SystemLog[]>([]);
-  const [logTypeFilter, setLogTypeFilter] = useState('');
   const [loading, setLoading] = useState(false);
 
   const loadLogs = useCallback(async () => {
@@ -63,14 +61,6 @@ const Maintenance: React.FC = () => {
   useEffect(() => {
     loadLogs();
   }, [loadLogs]);
-
-  useEffect(() => {
-    if (!logTypeFilter) {
-      setFilteredLogs(logs);
-    } else {
-      setFilteredLogs(logs.filter((log) => log.type === logTypeFilter));
-    }
-  }, [logs, logTypeFilter]);
 
   const handleCreateBackup = async () => {
     try {
@@ -189,30 +179,32 @@ const Maintenance: React.FC = () => {
           </div>
 
           <div className="mt-4">
-            <div className="filter-bar mb-4 d-flex justify-content-between align-items-center">
-              <select value={logTypeFilter} onChange={(e) => setLogTypeFilter(e.target.value)} className="form-control" style={{ width: '220px', borderRadius: '12px', fontWeight: 700 }}>
-                <option value="">All Event Severities</option>
-                <option value="ERROR">Critical Failures</option>
-                <option value="WARNING">Operational Warnings</option>
-                <option value="INFO">Standard Info</option>
-              </select>
-              <div className="d-flex gap-2">
-                <button className="btn btn-secondary btn-sm" onClick={loadLogs}><i className="fas fa-sync"></i> Refresh</button>
-                <button className="btn btn-secondary btn-sm" onClick={handleClearLogs} style={{ color: '#dc2626' }}><i className="fas fa-trash-alt"></i> Purge Logs</button>
-              </div>
-            </div>
-
             <DataTable
               columns={[
-                { key: 'timestamp', label: 'EVENT TIME', render: (v: string) => new Date(v).toLocaleString() },
-                { key: 'type', label: 'SEVERITY', render: (v: string) => <span className={`log-badge log-${v.toLowerCase()}`}>{v}</span> },
-                { key: 'action', label: 'PROTOCOL' },
-                { key: 'description', label: 'EVENT DETAILS' },
-                { key: 'user', label: 'RESPONSIBLE ENTITY' }
+                { key: 'timestamp', label: 'EVENT TIME', sortable: true, render: (v: string) => new Date(v).toLocaleString() },
+                {
+                  key: 'type',
+                  label: 'SEVERITY',
+                  sortable: true,
+                  filterType: 'select',
+                  filterLabel: 'Severity',
+                  render: (v: string) => <span className={`log-badge log-${v.toLowerCase()}`}>{v}</span>,
+                },
+                { key: 'action', label: 'PROTOCOL', sortable: true },
+                { key: 'description', label: 'EVENT DETAILS', sortable: true },
+                { key: 'user', label: 'RESPONSIBLE ENTITY', sortable: true }
               ]}
-              data={filteredLogs}
+              data={logs}
               loading={loading}
               emptyMessage="Current ledger environment is clear."
+              enableFiltering
+              filterPlaceholder="Search logs by protocol, details, or responsible entity..."
+              filterActions={(
+                <>
+                  <button className="btn btn-secondary btn-sm" onClick={loadLogs}><i className="fas fa-sync"></i> Refresh</button>
+                  <button className="btn btn-secondary btn-sm" onClick={handleClearLogs} style={{ color: '#dc2626' }}><i className="fas fa-trash-alt"></i> Purge Logs</button>
+                </>
+              )}
             />
 
             {backups.length > 0 && (
@@ -220,14 +212,16 @@ const Maintenance: React.FC = () => {
                 <h3 style={{ marginBottom: '12px', color: '#1B1B63' }}>Recent Backups</h3>
                 <DataTable
                   columns={[
-                    { key: 'name', label: 'BACKUP NAME' },
-                    { key: 'timestamp', label: 'CREATED AT', render: (v: string) => new Date(v).toLocaleString() },
-                    { key: 'type', label: 'TYPE' },
-                    { key: 'size', label: 'SIZE' },
+                    { key: 'name', label: 'BACKUP NAME', sortable: true },
+                    { key: 'timestamp', label: 'CREATED AT', sortable: true, render: (v: string) => new Date(v).toLocaleString() },
+                    { key: 'type', label: 'TYPE', sortable: true, filterType: 'select', filterLabel: 'Backup Type' },
+                    { key: 'size', label: 'SIZE', sortable: true },
                   ]}
                   data={backups}
                   loading={loading}
                   emptyMessage="No backup snapshots found."
+                  enableFiltering
+                  filterPlaceholder="Search backups by name, type, or size..."
                 />
               </div>
             )}

@@ -187,6 +187,8 @@ const Dashboard: React.FC = () => {
       key: 'Payment_Method',
       label: 'Payment Method',
       sortable: true,
+      filterType: 'select',
+      filterLabel: 'Payment Method',
     },
     {
       key: 'Date_Time',
@@ -198,6 +200,8 @@ const Dashboard: React.FC = () => {
       key: 'Validation_Status',
       label: 'Validation Status',
       sortable: true,
+      filterType: 'select',
+      filterLabel: 'Validation Status',
       render: (val: string) => (
         <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>
           {val || 'Unknown'}
@@ -334,7 +338,14 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="card-body">
             <div style={{ padding: '24px' }}>
-              <DataTable columns={columns} data={recentPayments} loading={loading} emptyMessage="No recent payment records found." />
+              <DataTable
+                columns={columns}
+                data={recentPayments}
+                loading={loading}
+                emptyMessage="No recent payment records found."
+                enableFiltering
+                filterPlaceholder="Search by receipt number, account, or consumer..."
+              />
             </div>
           </div>
         </div>

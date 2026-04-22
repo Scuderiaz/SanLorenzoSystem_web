@@ -350,7 +350,13 @@ const ProcessPayment: React.FC = () => {
       sortable: true,
       render: (val: number) => `P${toAmount(val).toFixed(2)}`,
     },
-    { key: 'Payment_Method', label: 'Method', sortable: true },
+    {
+      key: 'Payment_Method',
+      label: 'Method',
+      sortable: true,
+      filterType: 'select',
+      filterLabel: 'Method',
+    },
     {
       key: 'Payment_Date',
       label: 'Date',
@@ -361,6 +367,8 @@ const ProcessPayment: React.FC = () => {
       key: 'Status',
       label: 'Status',
       sortable: true,
+      filterType: 'select',
+      filterLabel: 'Status',
       render: (val: string) => (
         <span className={`status-badge status-${(val || 'unknown').toLowerCase()}`}>{val || 'Unknown'}</span>
       ),
@@ -616,7 +624,14 @@ const ProcessPayment: React.FC = () => {
           </div>
           <div className="card-body">
             <div style={{ padding: '24px' }}>
-              <DataTable columns={paymentColumns} data={payments} loading={loading} emptyMessage="No payment history found." />
+              <DataTable
+                columns={paymentColumns}
+                data={payments}
+                loading={loading}
+                emptyMessage="No payment history found."
+                enableFiltering
+                filterPlaceholder="Search by receipt number, account, or consumer..."
+              />
             </div>
           </div>
         </div>

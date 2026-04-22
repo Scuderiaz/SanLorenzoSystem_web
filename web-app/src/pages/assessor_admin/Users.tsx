@@ -17,7 +17,14 @@ interface User {
   Role_Name: string;
   Status: 'Active' | 'Pending' | 'Inactive';
   Phone_Number?: string;
+  Created_At?: string | null;
 }
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('en-PH');
+};
 
 interface Role {
   Role_ID: number;
@@ -166,17 +173,30 @@ const Users: React.FC = () => {
 
   // Filter Logic
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.Username.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         u.Full_Name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const normalizedQuery = searchQuery.toLowerCase();
+    const matchesSearch = [
+      u.AccountID,
+      u.Username,
+      u.Full_Name,
+      u.Role_Name,
+      u.Status,
+    ].some((value) => String(value || '').toLowerCase().includes(normalizedQuery));
     const matchesRole = roleFilter === 'all' || u.Role_ID.toString() === roleFilter;
     const matchesStatus = statusFilter === 'all' || u.Status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
   const columns: Column[] = [
+    { key: 'AccountID', label: 'Account ID', sortable: true },
     { key: 'Username', label: 'Username', sortable: true },
     { key: 'Full_Name', label: 'Full Name', sortable: true },
     { key: 'Role_Name', label: 'Role', sortable: true },
+    {
+      key: 'Created_At',
+      label: 'Created',
+      sortable: true,
+      render: (value: string | null) => formatDateTime(value),
+    },
     {
       key: 'Status',
       label: 'Status',
@@ -229,7 +249,7 @@ const Users: React.FC = () => {
             <i className="fas fa-search"></i>
             <input 
               type="text" 
-              placeholder="Search by name or username..." 
+              placeholder="Search by account ID, username, role, or status..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

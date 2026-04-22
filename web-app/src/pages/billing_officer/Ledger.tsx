@@ -106,6 +106,9 @@ const BillingLedger: React.FC = () => {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [zoneFilter, setZoneFilter] = useState('');
+  const [classificationFilter, setClassificationFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [selectedConsumer, setSelectedConsumer] = useState<LedgerEntry | null>(null);
 
   const loadLedgerData = useCallback(async () => {
@@ -177,13 +180,29 @@ const BillingLedger: React.FC = () => {
 
   const filteredData = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return ledgerData;
-    return ledgerData.filter((entry) =>
-      [entry.Account_Number, entry.Consumer_Name, entry.Address]
+    return ledgerData.filter((entry) => {
+      const matchesSearch = !query || [entry.Account_Number, entry.Consumer_Name, entry.Address]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query))
-    );
-  }, [ledgerData, searchTerm]);
+        .some((value) => String(value).toLowerCase().includes(query));
+      const matchesZone = !zoneFilter || entry.Zone === zoneFilter;
+      const matchesClassification = !classificationFilter || entry.Classification === classificationFilter;
+      const matchesStatus = !statusFilter || entry.Status === statusFilter;
+      return matchesSearch && matchesZone && matchesClassification && matchesStatus;
+    });
+  }, [classificationFilter, ledgerData, searchTerm, statusFilter, zoneFilter]);
+
+  const zoneOptions = useMemo(
+    () => Array.from(new Set(ledgerData.map((entry) => entry.Zone).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [ledgerData]
+  );
+  const classificationOptions = useMemo(
+    () => Array.from(new Set(ledgerData.map((entry) => entry.Classification).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [ledgerData]
+  );
+  const statusOptions = useMemo(
+    () => Array.from(new Set(ledgerData.map((entry) => entry.Status).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [ledgerData]
+  );
 
   const transactions = useMemo<TransactionRow[]>(() => {
     if (!selectedConsumer) return [];
@@ -282,6 +301,20 @@ const BillingLedger: React.FC = () => {
                 </div>
               </div>
               <div className="hub-filters">
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <select className="form-control" style={{ minWidth: '180px' }} value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)}>
+                    <option value="">All Zones</option>
+                    {zoneOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                  <select className="form-control" style={{ minWidth: '180px' }} value={classificationFilter} onChange={(e) => setClassificationFilter(e.target.value)}>
+                    <option value="">All Types</option>
+                    {classificationOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                  <select className="form-control" style={{ minWidth: '180px' }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="">All Statuses</option>
+                    {statusOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </div>
                 <button className="btn-sync-registry" onClick={loadLedgerData} title="Refresh Registry">
                   <i className="fas fa-sync-alt"></i>
                 </button>

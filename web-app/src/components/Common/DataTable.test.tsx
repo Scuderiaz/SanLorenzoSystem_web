@@ -47,4 +47,23 @@ describe('DataTable', () => {
 
     expect(screen.getByText(/Nothing to display/i)).toBeInTheDocument();
   });
+
+  test('filters rows using the built-in toolbar', () => {
+    render(
+      <DataTable
+        columns={[
+          { key: 'name', label: 'Name', sortable: true },
+          { key: 'status', label: 'Status', sortable: true, filterType: 'select' },
+        ]}
+        data={rows}
+        enableFiltering
+        filterPlaceholder="Search people"
+      />
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Search people'), { target: { value: 'brian' } });
+
+    expect(screen.getByRole('cell', { name: 'Brian Cruz' })).toBeInTheDocument();
+    expect(screen.queryByRole('cell', { name: 'Alice Santos' })).not.toBeInTheDocument();
+  });
 });

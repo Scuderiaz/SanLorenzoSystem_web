@@ -29,17 +29,21 @@ const TableToolbar: React.FC<TableToolbarProps> = ({
   <div className={`table-toolbar ${className}`.trim()}>
     <div className="table-toolbar__primary">
       {quickFilters && <div className="table-toolbar__quick-filters">{quickFilters}</div>}
-      {hasActiveFilters && onClear && (
-        <button type="button" className="table-toolbar__clear" onClick={onClear}>
-          Clear
-        </button>
-      )}
-      {loading && (
-        <div className="table-toolbar__loading" aria-live="polite">
-          <i className="fas fa-spinner fa-spin" aria-hidden="true"></i>
-          <span>Updating</span>
+      {(hasActiveFilters && onClear) || loading ? (
+        <div className="table-toolbar__meta">
+          {hasActiveFilters && onClear && (
+            <button type="button" className="table-toolbar__clear" onClick={onClear}>
+              Clear
+            </button>
+          )}
+          {loading && (
+            <div className="table-toolbar__loading" aria-live="polite">
+              <i className="fas fa-spinner fa-spin" aria-hidden="true"></i>
+              <span>Updating</span>
+            </div>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
 
     <div className="table-toolbar__secondary">

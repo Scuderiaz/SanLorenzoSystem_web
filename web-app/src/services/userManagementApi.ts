@@ -928,6 +928,7 @@ export const loadUnifiedUsersWithFallback = async () => requestWithSupabaseFallb
       Role_ID: account.role_id,
       Role_Name: roleMap.get(account.role_id) || null,
       Status: account.account_status,
+      Created_At: account.created_at || null,
       Profile_Picture_URL: account.profile_picture_url || null,
     }));
   },
