@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import DataTable, { Column } from '../../../components/Common/DataTable';
 import Modal from '../../../components/Common/Modal';
 import FormInput from '../../../components/Common/FormInput';
 import FormSelect from '../../../components/Common/FormSelect';
+import ProfileImageEditor from '../../../components/Common/ProfileImageEditor';
+import TableToolbar from '../../../components/Common/TableToolbar';
 import { useToast } from '../../../components/Common/ToastContainer';
 import { getErrorMessage, loadRolesWithFallback, loadUnifiedUsersWithFallback, requestJson } from '../../../services/userManagementApi';
+import { getUserInitials } from '../../../utils/profileImage';
 import '../Users.css';
 
 interface User {
@@ -16,6 +19,7 @@ interface User {
   Role_Name: string;
   Status: 'Active' | 'Pending' | 'Inactive' | 'Rejected';
   Phone_Number?: string;
+  Profile_Picture_URL?: string | null;
 }
 
 interface Role {
@@ -24,15 +28,15 @@ interface Role {
 }
 
 const UsersTab: React.FC = () => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, updateUser } = useAuth();
   const { showToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
   
   // Filters
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modal State
@@ -44,12 +48,9 @@ const UsersTab: React.FC = () => {
     password: '',
     roleId: '',
   });
-  useEffect(() => {
-    loadRoles();
-    loadUsers();
-  }, []);
-
-  const loadRoles = async () => {
+  const [profileImageDraft, setProfileImageDraft] = useState<string | null>(null);
+  const [profileImageDirty, setProfileImageDirty] = useState(false);
+  const loadRoles = useCallback(async () => {
     try {
       const { data } = await loadRolesWithFallback();
       setRoles(data);
@@ -57,9 +58,9 @@ const UsersTab: React.FC = () => {
       console.error('Error loading roles:', error);
       showToast(getErrorMessage(error, 'Failed to load roles.'), 'error');
     }
-  };
+  }, [showToast]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const { data, source } = await loadUnifiedUsersWithFallback();
@@ -73,7 +74,12 @@ const UsersTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    loadRoles();
+    loadUsers();
+  }, [loadRoles, loadUsers]);
 
   const handleApprove = async (accountId: number) => {
     if (!window.confirm('Are you sure you want to approve this registration?')) return;
@@ -143,7 +149,7 @@ const UsersTab: React.FC = () => {
         roleId: parseInt(formData.roleId),
         ...(formData.password && { password: formData.password }),
       };
-      const result = await requestJson<{ success: boolean; message?: string }>(
+      const result = await requestJson<{ success: boolean; message?: string; data?: { account_id?: number; accountId?: number } }>(
         editingUser ? `/users/${editingUser.AccountID}` : '/users',
         {
         method: editingUser ? 'PUT' : 'POST',
@@ -152,8 +158,33 @@ const UsersTab: React.FC = () => {
         'Failed to save user.'
       );
       if (result.success) {
+        const targetAccountId = editingUser?.AccountID || Number(result.data?.account_id || result.data?.accountId || 0);
+
+        if (profileImageDirty && targetAccountId > 0 && canManageSelectedProfilePicture) {
+          const pictureResult = await requestJson<{ data?: { Profile_Picture_URL?: string | null } }>(
+            `/users/${targetAccountId}/profile-picture`,
+            {
+              method: 'PUT',
+              body: JSON.stringify({
+                actorAccountId: currentUser?.id,
+                actorRoleId: currentUser?.role_id,
+                profilePictureUrl: profileImageDraft,
+                removePicture: !profileImageDraft,
+              }),
+            },
+            'Failed to update profile picture.'
+          );
+
+          if (targetAccountId === currentUser?.id) {
+            updateUser({
+              profile_picture_url: pictureResult.data?.Profile_Picture_URL ?? (profileImageDraft || null),
+            });
+          }
+        }
+
         showToast(result.message || (editingUser ? 'User updated' : 'User created'), 'success');
         setIsModalOpen(false);
+        setProfileImageDirty(false);
         loadUsers();
       } else {
         showToast(result.message || 'Failed to save user', 'error');
@@ -166,12 +197,27 @@ const UsersTab: React.FC = () => {
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.Username.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          u.Full_Name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u.Role_ID.toString() === roleFilter;
-    const matchesStatus = statusFilter === 'all' || u.Status === statusFilter;
+    const matchesRole = !roleFilter || u.Role_ID.toString() === roleFilter;
+    const matchesStatus = !statusFilter || u.Status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
+  const selectedRoleId = Number(formData.roleId || editingUser?.Role_ID || 0);
+  const canManageSelectedProfilePicture = [1, 2, 3, 4].includes(selectedRoleId);
 
   const columns: Column[] = [
+    {
+      key: 'Profile_Picture_URL',
+      label: 'Profile',
+      render: (_, row: User) => (
+        <div className="table-avatar" title={row.Full_Name || row.Username}>
+          {row.Profile_Picture_URL ? (
+            <img src={row.Profile_Picture_URL} alt={`${row.Full_Name || row.Username} profile`} className="table-avatar-image" />
+          ) : (
+            <span>{getUserInitials(row.Full_Name || row.Username)}</span>
+          )}
+        </div>
+      ),
+    },
     { key: 'Username', label: 'Username', sortable: true },
     { key: 'Full_Name', label: 'Full Name', sortable: true },
     { key: 'Role_Name', label: 'Role', sortable: true },
@@ -196,6 +242,8 @@ const UsersTab: React.FC = () => {
           <button className="btn-icon" title="Edit" onClick={() => {
             setEditingUser(row);
             setFormData({ username: row.Username, fullName: row.Full_Name || '', roleId: row.Role_ID.toString(), password: '' });
+            setProfileImageDraft(row.Profile_Picture_URL || null);
+            setProfileImageDirty(false);
             setIsModalOpen(true);
           }}><i className="fas fa-edit"></i></button>
           {row.Status !== 'Pending' && (
@@ -207,32 +255,53 @@ const UsersTab: React.FC = () => {
   ];
 
   const roleOptions = roles.map(r => ({ value: r.Role_ID, label: r.Role_Name }));
+  const userStatusOptions = [
+    { value: 'Active', label: 'Active' },
+    { value: 'Pending', label: 'Pending' },
+    { value: 'Inactive', label: 'Inactive' },
+    { value: 'Rejected', label: 'Rejected' },
+  ];
+  const hasActiveFilters = Boolean(searchQuery.trim() || roleFilter || statusFilter);
+  const clearFilters = () => {
+    setSearchQuery('');
+    setRoleFilter('');
+    setStatusFilter('');
+  };
 
   return (
     <div className="users-tab">
-      <div className="filter-bar" style={{ marginBottom: '20px' }}>
-        <div className="search-box">
-          <i className="fas fa-search"></i>
-          <input type="text" placeholder="Search staff by name or username..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-        </div>
-        <div className="filters">
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-            <option value="all">All Roles</option>
-            {roles.map(r => <option key={r.Role_ID} value={r.Role_ID}>{r.Role_Name}</option>)}
-          </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Pending">Pending</option>
-            <option value="Inactive">Inactive</option>
-            <option value="Rejected">Rejected</option>
-          </select>
-        </div>
-        <div className="main-actions">
-          <button className="btn btn-primary" onClick={() => { setEditingUser(null); setFormData({ username: '', fullName: '', password: '', roleId: '' }); setIsModalOpen(true); }}><i className="fas fa-user-plus"></i> Add User</button>
-          <button className="btn btn-secondary" onClick={loadUsers} title="Refresh"><i className="fas fa-sync-alt"></i></button>
-        </div>
-      </div>
+      <TableToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search staff by name or username..."
+        quickFilters={
+          <>
+            <FormSelect
+              label=""
+              value={roleFilter}
+              onChange={setRoleFilter}
+              options={roleOptions}
+              placeholder="All Roles"
+            />
+            <FormSelect
+              label=""
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={userStatusOptions}
+              placeholder="All Statuses"
+            />
+          </>
+        }
+        actions={
+          <>
+            <button className="btn btn-primary" onClick={() => { setEditingUser(null); setFormData({ username: '', fullName: '', password: '', roleId: '' }); setProfileImageDraft(null); setProfileImageDirty(false); setIsModalOpen(true); }}><i className="fas fa-user-plus"></i> Add User</button>
+            <button className="btn btn-secondary" onClick={loadUsers} title="Refresh"><i className="fas fa-sync-alt"></i></button>
+          </>
+        }
+        loading={loading}
+        hasActiveFilters={hasActiveFilters}
+        onClear={clearFilters}
+      />
 
       <div className="users-card">
         <DataTable columns={columns} data={filteredUsers} loading={loading} emptyMessage="No staff accounts found." />
@@ -240,6 +309,23 @@ const UsersTab: React.FC = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser ? 'Edit System User' : 'Register New User'} size="medium"
         footer={<><button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button><button className="btn btn-primary" onClick={handleSaveUser}><i className="fas fa-save"></i> Save User</button></>}>
+        {canManageSelectedProfilePicture ? (
+          <ProfileImageEditor
+            imageUrl={profileImageDraft}
+            displayName={formData.fullName || formData.username || 'User'}
+            onChange={(value) => {
+              setProfileImageDraft(value);
+              setProfileImageDirty(true);
+            }}
+            onError={(message) => showToast(message, 'error')}
+            helperText="Admin can upload, replace, or remove the profile picture for this staff account."
+            compact
+          />
+        ) : (
+          <p className="profile-picture-note">
+            Profile picture management is currently enabled for staff accounts only.
+          </p>
+        )}
         <FormInput label="Username" value={formData.username} onChange={(v) => setFormData({ ...formData, username: v })} required disabled={!!editingUser} />
         <FormInput label="Full Name" value={formData.fullName} onChange={(v) => setFormData({ ...formData, fullName: v })} />
         <FormSelect label="Assigned Role" value={formData.roleId} onChange={(v) => setFormData({ ...formData, roleId: v })} options={roleOptions} required />

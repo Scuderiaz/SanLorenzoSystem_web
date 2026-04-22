@@ -80,6 +80,7 @@ export const authService = {
                 id,
                 username: uname,
                 fullName: fullName || uname,
+                profile_picture_url: null,
                 role_id: roleId,
                 role_name: roleName,
               },

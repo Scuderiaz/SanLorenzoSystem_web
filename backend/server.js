@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey =
@@ -111,7 +111,7 @@ const syncTableColumns = {
   zone: ['zone_id', 'zone_name'],
   classification: ['classification_id', 'classification_name'],
   admin_settings: ['settings_id', 'system_name', 'currency', 'due_date_days', 'late_fee', 'modified_by', 'modified_date'],
-  accounts: ['account_id', 'username', 'password', 'role_id', 'account_status', 'created_at', 'auth_user_id'],
+  accounts: ['account_id', 'username', 'password', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
   consumer: [
     'consumer_id',
     'first_name',
@@ -1302,6 +1302,15 @@ function getRequestFailureStatusCode(error) {
     return 400;
   }
 
+  const message = String(error?.message || '').toLowerCase();
+  if (message.includes('permission')) {
+    return 403;
+  }
+
+  if (message.includes('not found')) {
+    return 404;
+  }
+
   return 500;
 }
 
@@ -1325,6 +1334,22 @@ function getUserManagementErrorMessage(error) {
 
   if (loweredMessage.includes('approver information is required')) {
     return 'Approver information is required.';
+  }
+
+  if (loweredMessage.includes('profile picture must be a valid')) {
+    return 'Profile picture must be a valid PNG, JPG, WEBP, or GIF image.';
+  }
+
+  if (loweredMessage.includes('profile picture is too large')) {
+    return 'Profile picture is too large. Please upload a smaller image.';
+  }
+
+  if (loweredMessage.includes('you do not have permission to update this profile picture')) {
+    return 'You do not have permission to update this profile picture.';
+  }
+
+  if (loweredMessage.includes('user not found')) {
+    return 'User not found.';
   }
 
   if (error?.code === '23505') {
@@ -1412,6 +1437,59 @@ function mapAdminSettingsRow(row) {
     lateFee: String(row.late_fee ?? row.lateFee ?? defaultAdminSettings.lateFee),
     modifiedBy: row.modified_by ?? row.modifiedBy ?? null,
   };
+}
+
+const PROFILE_PICTURE_ALLOWED_ROLES = new Set([1, 2, 3, 4]);
+const PROFILE_PICTURE_DATA_URL_PATTERN = /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
+const MAX_PROFILE_PICTURE_LENGTH = 1_600_000;
+
+function normalizeProfilePictureUrl(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (!PROFILE_PICTURE_DATA_URL_PATTERN.test(normalized)) {
+    throw new Error('Profile picture must be a valid PNG, JPG, WEBP, or GIF image.');
+  }
+
+  if (normalized.length > MAX_PROFILE_PICTURE_LENGTH) {
+    throw new Error('Profile picture is too large. Please upload a smaller image.');
+  }
+
+  return normalized;
+}
+
+function canManageProfilePicture(actorAccountId, actorRoleId, targetAccountId, targetRoleId) {
+  if (!Number.isInteger(actorAccountId) || actorAccountId <= 0) {
+    return false;
+  }
+
+  if (!Number.isInteger(actorRoleId) || actorRoleId <= 0) {
+    return false;
+  }
+
+  if (!Number.isInteger(targetAccountId) || targetAccountId <= 0) {
+    return false;
+  }
+
+  if (!Number.isInteger(targetRoleId) || targetRoleId <= 0) {
+    return false;
+  }
+
+  if (!PROFILE_PICTURE_ALLOWED_ROLES.has(targetRoleId)) {
+    return false;
+  }
+
+  if (actorAccountId === targetAccountId && PROFILE_PICTURE_ALLOWED_ROLES.has(actorRoleId)) {
+    return true;
+  }
+
+  return actorRoleId === 1 && PROFILE_PICTURE_ALLOWED_ROLES.has(targetRoleId);
 }
 
 function normalizeAdminSettingsInput(settings, options = {}) {
@@ -1851,6 +1929,7 @@ function mapSupabaseAccountRow(row) {
     username: row.username,
     password: row.password,
     auth_user_id: row.auth_user_id,
+    profile_picture_url: row.profile_picture_url || null,
     full_name: row.username,
     role_id: row.role_id,
     account_status: row.account_status,
@@ -1865,15 +1944,7 @@ async function findSupabaseAccountByUsername(username) {
 
   const { data, error } = await supabase
     .from('accounts')
-    .select(`
-      account_id,
-      username,
-      password,
-      auth_user_id,
-      role_id,
-      account_status,
-      roles ( role_name )
-    `)
+    .select('*, roles ( role_name )')
     .eq('username', username)
     .maybeSingle();
 
@@ -1886,7 +1957,7 @@ async function findSupabaseAccountByUsername(username) {
 
 async function findPostgresAccountByUsername(username) {
   const { rows } = await pool.query(`
-    SELECT a.account_id, a.username, a.password, a.auth_user_id, a.username AS full_name, a.role_id, a.account_status, r.role_name
+    SELECT a.account_id, a.username, a.password, a.auth_user_id, a.profile_picture_url, a.username AS full_name, a.role_id, a.account_status, r.role_name
     FROM accounts a
     JOIN roles r ON a.role_id = r.role_id
     WHERE a.username = $1
@@ -2134,6 +2205,8 @@ async function initDb() {
     END
     $$;
   `);
+
+  await ensureTableColumn('accounts', 'profile_picture_url', 'TEXT');
 
   for (const tableName of durableSyncTables) {
     await ensureTableColumn(tableName, 'sync_id', 'UUID DEFAULT gen_random_uuid()');
@@ -2891,7 +2964,7 @@ app.get('/api/users/type/:type', async (req, res) => {
       async () => {
         const { rows } = await pool.query(`
           SELECT a.account_id AS "AccountID", a.username AS "Username", a.password AS "Password", 
-                 a.username AS "Full_Name", a.role_id AS "Role_ID", a.account_status AS "Status", r.role_name AS "Role_Name"
+                 a.username AS "Full_Name", a.role_id AS "Role_ID", a.account_status AS "Status", a.profile_picture_url AS "Profile_Picture_URL", r.role_name AS "Role_Name"
           FROM accounts a
           JOIN roles r ON a.role_id = r.role_id
           WHERE a.role_id = ANY($1)
@@ -2902,7 +2975,7 @@ app.get('/api/users/type/:type', async (req, res) => {
         const roleMap = await loadSupabaseRoleMap();
         const { data, error } = await supabase
           .from('accounts')
-          .select('account_id, username, password, role_id, account_status')
+          .select('*')
           .in('role_id', roleIds);
         if (error) throw error;
         return {
@@ -2914,6 +2987,7 @@ app.get('/api/users/type/:type', async (req, res) => {
             Full_Name: u.username || 'N/A',
             Role_ID: u.role_id,
             Status: u.account_status,
+            Profile_Picture_URL: u.profile_picture_url || null,
             Role_Name: roleMap.get(u.role_id) || null,
           })),
         };
@@ -2936,7 +3010,7 @@ app.get('/api/users/staff', async (req, res) => {
       async () => {
         const { rows } = await pool.query(`
           SELECT a.account_id AS "AccountID", a.username AS "Username", 
-                 a.username AS "Full_Name", a.role_id AS "Role_ID", 
+                 a.username AS "Full_Name", a.role_id AS "Role_ID", a.profile_picture_url AS "Profile_Picture_URL",
                  a.account_status AS "Status", r.role_name AS "Role_Name"
           FROM accounts a
           LEFT JOIN roles r ON a.role_id = r.role_id
@@ -2949,7 +3023,7 @@ app.get('/api/users/staff', async (req, res) => {
         const roleMap = await loadSupabaseRoleMap();
         const { data, error } = await supabase
           .from('accounts')
-          .select('account_id, username, role_id, account_status')
+          .select('*')
           .in('role_id', [1, 2, 3])
           .order('account_id', { ascending: false });
         if (error) throw error;
@@ -2961,6 +3035,7 @@ app.get('/api/users/staff', async (req, res) => {
             Full_Name: u.username || 'N/A',
             Role_ID: u.role_id,
             Status: u.account_status,
+            Profile_Picture_URL: u.profile_picture_url || null,
             Role_Name: roleMap.get(u.role_id) || null,
           })),
         };
@@ -2982,7 +3057,7 @@ app.get('/api/users/unified', async (req, res) => {
       async () => {
         const { rows } = await pool.query(`
           SELECT a.account_id AS "AccountID", a.username AS "Username", 
-                 a.username AS "Full_Name", a.role_id AS "Role_ID", 
+                 a.username AS "Full_Name", a.role_id AS "Role_ID", a.profile_picture_url AS "Profile_Picture_URL",
                  a.account_status AS "Status", r.role_name AS "Role_Name"
           FROM accounts a
           LEFT JOIN roles r ON a.role_id = r.role_id
@@ -2994,7 +3069,7 @@ app.get('/api/users/unified', async (req, res) => {
         const roleMap = await loadSupabaseRoleMap();
         const { data, error } = await supabase
           .from('accounts')
-          .select('account_id, username, role_id, account_status')
+          .select('*')
           .order('account_id', { ascending: false });
         if (error) throw error;
         return {
@@ -3005,6 +3080,7 @@ app.get('/api/users/unified', async (req, res) => {
             Full_Name: u.username || 'N/A',
             Role_ID: u.role_id,
             Status: u.account_status,
+            Profile_Picture_URL: u.profile_picture_url || null,
             Role_Name: roleMap.get(u.role_id) || null,
           })),
         };
@@ -3822,6 +3898,120 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
+app.put('/api/users/:id/profile-picture', async (req, res) => {
+  const { id } = req.params;
+  const targetAccountId = Number(id);
+  const actorAccountId = Number(req.body?.actorAccountId);
+  const actorRoleId = Number(req.body?.actorRoleId);
+  const removePicture = Boolean(req.body?.removePicture);
+
+  if (!Number.isInteger(targetAccountId) || targetAccountId <= 0) {
+    return res.status(400).json({ success: false, message: 'A valid user ID is required.' });
+  }
+
+  if (!Number.isInteger(actorAccountId) || actorAccountId <= 0 || !Number.isInteger(actorRoleId) || actorRoleId <= 0) {
+    return res.status(400).json({ success: false, message: 'Actor account information is required.' });
+  }
+
+  let normalizedProfilePictureUrl = null;
+  try {
+    normalizedProfilePictureUrl = removePicture ? null : normalizeProfilePictureUrl(req.body?.profilePictureUrl);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+
+  if (!removePicture && !normalizedProfilePictureUrl) {
+    return res.status(400).json({ success: false, message: 'A profile picture is required.' });
+  }
+
+  try {
+    const updatedUser = await withPostgresPrimary(
+      'users.profilePicture.update',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+
+          const { rows: targetRows } = await client.query(
+            'SELECT account_id, role_id, username, account_status, profile_picture_url FROM accounts WHERE account_id = $1 LIMIT 1',
+            [targetAccountId]
+          );
+          const targetUser = targetRows[0] || null;
+
+          if (!targetUser) {
+            throw new Error('User not found.');
+          }
+
+          if (!canManageProfilePicture(actorAccountId, actorRoleId, targetAccountId, Number(targetUser.role_id))) {
+            throw new Error('You do not have permission to update this profile picture.');
+          }
+
+          const { rows: updatedRows } = await client.query(
+            'UPDATE accounts SET profile_picture_url = $1 WHERE account_id = $2 RETURNING account_id, username, role_id, account_status, profile_picture_url',
+            [normalizedProfilePictureUrl, targetAccountId]
+          );
+
+          await client.query('COMMIT');
+          return updatedRows[0];
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { data: targetUser, error: fetchError } = await supabase
+          .from('accounts')
+          .select('*')
+          .eq('account_id', targetAccountId)
+          .maybeSingle();
+        if (fetchError) throw fetchError;
+        if (!targetUser) {
+          throw new Error('User not found.');
+        }
+
+        if (!canManageProfilePicture(actorAccountId, actorRoleId, targetAccountId, Number(targetUser.role_id))) {
+          throw new Error('You do not have permission to update this profile picture.');
+        }
+
+        const { data: updatedRow, error: updateError } = await supabase
+          .from('accounts')
+          .update({ profile_picture_url: normalizedProfilePictureUrl })
+          .eq('account_id', targetAccountId)
+          .select('*')
+          .single();
+        if (updateError) throw updateError;
+        return updatedRow;
+      }
+    );
+
+    await writeSystemLog(
+      removePicture
+        ? `[profile] Cleared profile picture for account #${targetAccountId}.`
+        : `[profile] Updated profile picture for account #${targetAccountId}.`,
+      { userId: actorAccountId, role: actorRoleId === 1 ? 'Admin' : 'Staff' }
+    );
+
+    scheduleImmediateSync('users-profile-picture-update');
+
+    return res.json({
+      success: true,
+      message: removePicture ? 'Profile picture removed successfully.' : 'Profile picture updated successfully.',
+      data: {
+        AccountID: updatedUser.account_id,
+        Username: updatedUser.username,
+        Role_ID: updatedUser.role_id,
+        Status: updatedUser.account_status,
+        Profile_Picture_URL: updatedUser.profile_picture_url || null,
+      },
+    });
+  } catch (error) {
+    await logRequestError(req, 'users.profilePicture.update', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: getUserManagementErrorMessage(error) || error.message });
+  }
+});
+
 // Delete user
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
@@ -3956,6 +4146,7 @@ app.post('/api/login', async (req, res) => {
         username: user.username,
         fullName: user.full_name || user.username,
         auth_user_id: user.auth_user_id || null,
+        profile_picture_url: user.profile_picture_url || null,
         role_id: user.role_id,
         role_name: user.role_name,
       },

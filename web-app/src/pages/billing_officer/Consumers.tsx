@@ -4,6 +4,7 @@ import DataTable from '../../components/Common/DataTable';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import Modal from '../../components/Common/Modal';
+import TableToolbar from '../../components/Common/TableToolbar';
 import { useToast } from '../../components/Common/ToastContainer';
 import { getErrorMessage, loadClassificationsWithFallback, loadConsumersWithFallback, loadZonesWithFallback, requestJson } from '../../services/userManagementApi';
 import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
@@ -399,49 +400,55 @@ const Consumers: React.FC = () => {
     value: c.Classification_ID,
     label: c.Classification_Name,
   }));
+  const hasActiveFilters = Boolean(searchTerm.trim() || zoneFilter || statusFilter);
+  const clearFilters = () => {
+    setSearchTerm('');
+    setZoneFilter('');
+    setStatusFilter('');
+  };
 
   return (
     <MainLayout title="Consumer Registry">
       <div className="billing-consumers-page">
-        {/* Search & Actions Bar */}
-        <div className="filter-bar" style={{ marginBottom: '20px' }}>
-          <div className="search-box">
-            <i className="fas fa-search"></i>
-            <input 
-              type="text" 
-              placeholder="Search by name, account number..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="filters">
-            <FormSelect
-              label=""
-              value={zoneFilter}
-              onChange={setZoneFilter}
-              options={zoneOptions}
-              placeholder="All Map Zones"
-            />
-            <FormSelect
-              label=""
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: 'Active', label: 'Active Account' },
-                { value: 'Inactive', label: 'Inactive Account' },
-              ]}
-              placeholder="All Account Statuses"
-            />
-          </div>
-          <div className="main-actions">
-            <button className="btn btn-primary" onClick={handleAddConsumer}>
-              <i className="fas fa-plus"></i> New Consumer
-            </button>
-            <button className="btn btn-secondary" onClick={loadConsumers} title="Refresh Records">
-              <i className="fas fa-sync-alt"></i>
-            </button>
-          </div>
-        </div>
+        <TableToolbar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Search by name, account number, or address..."
+          quickFilters={
+            <>
+              <FormSelect
+                label=""
+                value={zoneFilter}
+                onChange={setZoneFilter}
+                options={zoneOptions}
+                placeholder="All Map Zones"
+              />
+              <FormSelect
+                label=""
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: 'Active', label: 'Active Account' },
+                  { value: 'Inactive', label: 'Inactive Account' },
+                ]}
+                placeholder="All Account Statuses"
+              />
+            </>
+          }
+          actions={
+            <>
+              <button className="btn btn-primary" onClick={handleAddConsumer}>
+                <i className="fas fa-plus"></i> New Consumer
+              </button>
+              <button className="btn btn-secondary" onClick={loadConsumers} title="Refresh Records">
+                <i className="fas fa-sync-alt"></i>
+              </button>
+            </>
+          }
+          loading={loading}
+          hasActiveFilters={hasActiveFilters}
+          onClear={clearFilters}
+        />
 
         <div className="consumers-card">
           <div className="card-body p-0">

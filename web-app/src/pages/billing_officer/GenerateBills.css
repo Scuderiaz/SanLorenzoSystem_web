@@ -10,71 +10,10 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Search & Multi-Filter ────────────────────────────────────────── */
 .tab-content {
-  padding: 24px 0px;
+  padding: 24px 0;
 }
 
-.filter-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.search-box {
-  position: relative;
-  flex: 1;
-  max-width: 500px;
-}
-
-.search-box i {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-  font-size: 16px;
-}
-
-.search-box input {
-  width: 100%;
-  padding: 14px 16px 14px 48px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 14px;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-}
-
-.search-box input:focus {
-  outline: none;
-  border-color: #1B1B63;
-  box-shadow: 0 0 0 4px rgba(27, 27, 99, 0.05), 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.filters {
-  display: flex;
-  gap: 12px;
-}
-
-.filters .form-select-group {
-    margin-bottom: 0px;
-}
-
-.filters .form-select {
-    padding: 12px 16px 12px 38px;
-    border-radius: 12px;
-    width: auto;
-    min-width: 180px;
-    background-color: #ffffff;
-}
-
-/* ─────────────────────────────────────────────────────────────────── */
-
-/* ─── Bill Card ───────────────────────────────────────────────────── */
 .card {
   background: #ffffff;
   border-radius: 20px;
@@ -94,7 +33,7 @@
 .card-title {
   font-size: 18px;
   font-weight: 800;
-  color: #1B1B63;
+  color: #1b1b63;
   margin: 0;
 }
 
@@ -120,7 +59,7 @@
 
 .manual-bill-preview h4 {
   margin: 0 0 12px;
-  color: #1B1B63;
+  color: #1b1b63;
   font-size: 16px;
   font-weight: 800;
 }
@@ -136,7 +75,6 @@
   font-weight: 700;
 }
 
-/* ─── Bill Preview (Modal) ────────────────────────────────────────── */
 .bill-preview {
   padding: 20px;
   font-family: 'Inter', sans-serif;
@@ -144,7 +82,7 @@
 
 .bill-header {
   text-align: center;
-  border-bottom: 2px solid #1B1B63;
+  border-bottom: 2px solid #1b1b63;
   padding-bottom: 25px;
   margin-bottom: 30px;
 }
@@ -152,7 +90,7 @@
 .bill-title h2 {
   font-size: 22px;
   font-weight: 900;
-  color: #1B1B63;
+  color: #1b1b63;
   margin: 0;
 }
 
@@ -176,13 +114,15 @@
   margin-bottom: 30px;
 }
 
-.bill-customer p, .bill-details p {
+.bill-customer p,
+.bill-details p {
   font-size: 14px;
   margin-bottom: 8px;
   color: #1e293b;
 }
 
-.bill-customer strong, .bill-details strong {
+.bill-customer strong,
+.bill-details strong {
   color: #94a3b8;
   width: 120px;
   display: inline-block;
@@ -209,12 +149,12 @@
   padding: 20px 15px;
   font-size: 16px;
   font-weight: 700;
-  color: #1B1B63;
+  color: #1b1b63;
   border-bottom: 1px solid #f1f5f9;
 }
 
 .bill-amount {
-  background: linear-gradient(135deg, #1B1B63, #15154d);
+  background: linear-gradient(135deg, #1b1b63, #15154d);
   color: white;
   padding: 30px;
   border-radius: 16px;

@@ -8,6 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isOnline: boolean;
   login: (user: User) => void;
+  updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -76,6 +77,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser((currentUser) => {
+      if (!currentUser) {
+        return currentUser;
+      }
+
+      const nextUser = {
+        ...currentUser,
+        ...updates,
+      };
+
+      try {
+        localStorage.setItem('user', JSON.stringify(nextUser));
+      } catch (error) {
+        console.error('Failed to persist updated user session:', error);
+      }
+
+      return nextUser;
+    });
+  };
+
   const logout = () => {
     try {
       setUser(null);
@@ -94,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isOnline,
         login,
+        updateUser,
         logout,
       }}
     >

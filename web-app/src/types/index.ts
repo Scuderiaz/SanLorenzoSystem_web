@@ -2,6 +2,7 @@ export interface User {
   id: number;
   username: string;
   fullName: string;
+  profile_picture_url?: string | null;
   role_id: number;
   role_name: string;
 }

@@ -24,6 +24,13 @@
   border-bottom: 2px solid #f1f5f9;
 }
 
+.data-table-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .data-table td {
   padding: 20px 28px;
   border-bottom: 1px solid #f1f5f9;
@@ -65,5 +72,10 @@
 @media (max-width: 768px) {
   .data-table-container {
     border-radius: 8px;
+    overflow-x: auto;
+  }
+
+  .data-table {
+    min-width: 720px;
   }
 }

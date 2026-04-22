@@ -913,7 +913,7 @@ export const loadUnifiedUsersWithFallback = async () => requestWithSupabaseFallb
   '/users/unified',
   async () => {
     const [{ data: accounts, error: accountError }, { data: roles, error: roleError }] = await Promise.all([
-      supabase!.from('accounts').select('account_id, username, role_id, account_status').order('account_id', { ascending: false }),
+      supabase!.from('accounts').select('*').order('account_id', { ascending: false }),
       supabase!.from('roles').select('role_id, role_name'),
     ]);
 
@@ -928,6 +928,7 @@ export const loadUnifiedUsersWithFallback = async () => requestWithSupabaseFallb
       Role_ID: account.role_id,
       Role_Name: roleMap.get(account.role_id) || null,
       Status: account.account_status,
+      Profile_Picture_URL: account.profile_picture_url || null,
     }));
   },
   (payload) => payload?.data || [],

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import './DataTable.css';
 
 export interface Column {
@@ -35,7 +35,7 @@ const DataTable: React.FC<DataTableProps> = ({
     }
   };
 
-  const sortedData = React.useMemo(() => {
+  const sortedData = useMemo(() => {
     if (!sortColumn) return data;
 
     return [...data].sort((a, b) => {
@@ -49,17 +49,32 @@ const DataTable: React.FC<DataTableProps> = ({
     });
   }, [data, sortColumn, sortDirection]);
 
+  const renderHeader = () => (
+    <thead>
+      <tr>
+        {columns.map((col) => (
+          <th
+            key={col.key}
+            onClick={() => col.sortable && handleSort(col.key)}
+            className={col.sortable ? 'sortable' : ''}
+          >
+            <div className="data-table-header-content">
+              <span>{col.label}</span>
+              {col.sortable && sortColumn === col.key && (
+                <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} sort-icon`}></i>
+              )}
+            </div>
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+
   if (loading) {
     return (
       <div className="data-table-container">
         <table className="data-table">
-          <thead>
-            <tr>
-              {columns.map((col) => (
-                <th key={col.key}>{col.label}</th>
-              ))}
-            </tr>
-          </thead>
+          {renderHeader()}
           <tbody>
             <tr>
               <td colSpan={columns.length} style={{ textAlign: 'center', padding: '20px' }}>
@@ -76,13 +91,7 @@ const DataTable: React.FC<DataTableProps> = ({
     return (
       <div className="data-table-container">
         <table className="data-table">
-          <thead>
-            <tr>
-              {columns.map((col) => (
-                <th key={col.key}>{col.label}</th>
-              ))}
-            </tr>
-          </thead>
+          {renderHeader()}
           <tbody>
             <tr>
               <td colSpan={columns.length} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
@@ -98,22 +107,7 @@ const DataTable: React.FC<DataTableProps> = ({
   return (
     <div className="data-table-container">
       <table className="data-table">
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                onClick={() => col.sortable && handleSort(col.key)}
-                className={col.sortable ? 'sortable' : ''}
-              >
-                {col.label}
-                {col.sortable && sortColumn === col.key && (
-                  <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} sort-icon`}></i>
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
+        {renderHeader()}
         <tbody>
           {sortedData.map((row, index) => (
             <tr

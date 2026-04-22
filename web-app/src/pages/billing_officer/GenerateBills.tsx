@@ -4,6 +4,7 @@ import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
+import TableToolbar from '../../components/Common/TableToolbar';
 import { useToast } from '../../components/Common/ToastContainer';
 import {
   getErrorMessage,
@@ -155,6 +156,7 @@ const GenerateBills: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [billingMonthFilter, setBillingMonthFilter] = useState('');
   const [selectedBill, setSelectedBill] = useState<BillRow | null>(null);
   const [editingBill, setEditingBill] = useState<BillRow | null>(null);
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
@@ -333,9 +335,10 @@ const GenerateBills: React.FC = () => {
         .some((value) => String(value).toLowerCase().includes(query));
       const matchesZone = !zoneFilter || String(consumer?.Zone_ID || '') === zoneFilter;
       const matchesStatus = !statusFilter || bill.Status === statusFilter;
-      return matchesSearch && matchesZone && matchesStatus;
+      const matchesBillingMonth = !billingMonthFilter || bill.Billing_Month === billingMonthFilter;
+      return matchesSearch && matchesZone && matchesStatus && matchesBillingMonth;
     });
-  }, [bills, consumerMap, searchTerm, statusFilter, zoneFilter]);
+  }, [bills, billingMonthFilter, consumerMap, searchTerm, statusFilter, zoneFilter]);
 
   const totalBills = filteredBills.length;
   const totalBilled = filteredBills.reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
@@ -403,6 +406,22 @@ const GenerateBills: React.FC = () => {
   ];
 
   const zoneOptions = zones.map((zone) => ({ value: zone.Zone_ID, label: formatZoneLabel(zone.Zone_Name, zone.Zone_ID) }));
+  const billingMonthOptions = useMemo(() => {
+    const uniqueMonths = Array.from(
+      new Set(
+        bills
+          .map((bill) => bill.Billing_Month)
+          .filter((value): value is string => Boolean(value))
+      )
+    );
+
+    return uniqueMonths
+      .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())
+      .map((value) => ({
+        value,
+        label: formatBillingMonth(value) || value,
+      }));
+  }, [bills]);
   const consumerOptions = consumers
     .slice()
     .sort((a, b) => String(a.Account_Number || '').localeCompare(String(b.Account_Number || '')))
@@ -437,6 +456,15 @@ const GenerateBills: React.FC = () => {
     resetManualForm();
     setIsManualEntryOpen(true);
   };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setZoneFilter('');
+    setStatusFilter('');
+    setBillingMonthFilter('');
+  };
+
+  const hasActiveFilters = Boolean(searchTerm.trim() || zoneFilter || statusFilter || billingMonthFilter);
 
   const handleManualConsumerChange = (value: string) => {
     setManualForm((current) => ({
@@ -617,39 +645,50 @@ const GenerateBills: React.FC = () => {
             <h2 className="card-title">Bills Registry</h2>
           </div>
           <div className="card-body">
-            <div className="filter-bar">
-              <div className="search-box">
-                <i className="fas fa-search"></i>
-                <input
-                  type="text"
-                  placeholder="Search by account number or consumer name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="filters">
-                <FormSelect label="" value={zoneFilter} onChange={setZoneFilter} options={zoneOptions} placeholder="All Map Zones" icon="fa-map-marker-alt" />
-                <FormSelect
-                  label=""
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  options={[
-                    { value: 'Unpaid', label: 'Unpaid' },
-                    { value: 'Partially Paid', label: 'Partially Paid' },
-                    { value: 'Paid', label: 'Paid' },
-                    { value: 'Overdue', label: 'Overdue' },
-                  ]}
-                  placeholder="All Bill Statuses"
-                  icon="fa-filter"
-                />
-                <button className="btn btn-secondary" onClick={loadBills} title="Refresh Records">
-                  <i className="fas fa-sync-alt"></i>
-                </button>
-                <button className="btn btn-primary" onClick={openManualEntry} title="Manual Bill Entry">
-                  <i className="fas fa-plus-circle"></i> Manual Bill Entry
-                </button>
-              </div>
-            </div>
+            <TableToolbar
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              searchPlaceholder="Search by account number or consumer name..."
+              quickFilters={
+                <>
+                  <FormSelect label="" value={zoneFilter} onChange={setZoneFilter} options={zoneOptions} placeholder="All Map Zones" icon="fa-map-marker-alt" />
+                  <FormSelect
+                    label=""
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    options={[
+                      { value: 'Unpaid', label: 'Unpaid' },
+                      { value: 'Partially Paid', label: 'Partially Paid' },
+                      { value: 'Paid', label: 'Paid' },
+                      { value: 'Overdue', label: 'Overdue' },
+                    ]}
+                    placeholder="All Bill Statuses"
+                    icon="fa-filter"
+                  />
+                  <FormSelect
+                    label=""
+                    value={billingMonthFilter}
+                    onChange={setBillingMonthFilter}
+                    options={billingMonthOptions}
+                    placeholder="All Billing Months"
+                    icon="fa-calendar-alt"
+                  />
+                </>
+              }
+              actions={
+                <>
+                  <button className="btn btn-secondary" onClick={loadBills} title="Refresh Records">
+                    <i className="fas fa-sync-alt"></i>
+                  </button>
+                  <button className="btn btn-primary" onClick={openManualEntry} title="Manual Bill Entry">
+                    <i className="fas fa-plus-circle"></i> Manual Bill Entry
+                  </button>
+                </>
+              }
+              loading={loading}
+              hasActiveFilters={hasActiveFilters}
+              onClear={clearFilters}
+            />
             <DataTable columns={columns} data={filteredBills} loading={loading} emptyMessage="No billing records found." />
           </div>
         </div>
