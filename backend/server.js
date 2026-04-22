@@ -3151,7 +3151,7 @@ app.get('/api/users/unified', async (req, res) => {
               Classification_Name: consumer?.classification_id ? classificationMap.get(consumer.classification_id) || null : null,
               Profile_Source: consumer?.consumer_id ? 'Consumer Profile' : 'Account Only',
             };
-          })),
+          }),
         };
       }
     );
