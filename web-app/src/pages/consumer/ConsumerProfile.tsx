@@ -5,6 +5,7 @@ import { useToast } from '../../components/Common/ToastContainer';
 import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import Modal from '../../components/Common/Modal';
+import ProfileImageEditor from '../../components/Common/ProfileImageEditor';
 import { getErrorMessage, loadConsumerDashboardWithFallback, requestJson } from '../../services/userManagementApi';
 import { getUserInitials } from '../../utils/profileImage';
 import './ConsumerProfile.css';
@@ -110,6 +111,39 @@ const normalizePhoneInput = (value: string) => {
   return hasLeadingPlus ? `+${digits}` : digits;
 };
 
+const normalizeComparableValue = (value?: string | null) => String(value || '')
+  .trim()
+  .toLowerCase()
+  .replace(/\([^)]*\)/g, '')
+  .replace(/[^a-z0-9]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const resolveSelectValue = (value: string | null | undefined, options: string[]) => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const directMatch = options.find((option) => option === trimmed);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const normalizedInput = normalizeComparableValue(trimmed);
+  const normalizedMatch = options.find((option) => normalizeComparableValue(option) === normalizedInput);
+  return normalizedMatch || trimmed;
+};
+
+const buildOptionList = (value: string | null | undefined, options: string[]) => {
+  const resolvedValue = resolveSelectValue(value, options);
+  if (!resolvedValue) {
+    return options;
+  }
+
+  return options.includes(resolvedValue) ? options : [resolvedValue, ...options];
+};
+
 const composeAddress = ({
   purok,
   barangay,
@@ -135,9 +169,13 @@ const ConsumerProfile: React.FC = () => {
   const [profile, setProfile] = useState<ConsumerProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPhoto, setIsSavingPhoto] = useState(false);
+  const [draftProfileImage, setDraftProfileImage] = useState<string | null>(user?.profile_picture_url || null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
+    username: '',
     firstName: '',
     middleName: '',
     lastName: '',
@@ -146,7 +184,15 @@ const ConsumerProfile: React.FC = () => {
     municipality: 'San Lorenzo Ruiz',
     zipCode: '4610',
     contactNumber: '',
+    password: '',
+    confirmPassword: '',
   });
+
+  useEffect(() => {
+    if (!isPhotoModalOpen) {
+      setDraftProfileImage(profile?.Profile_Picture_URL || user?.profile_picture_url || null);
+    }
+  }, [isPhotoModalOpen, profile?.Profile_Picture_URL, user?.profile_picture_url]);
 
   const loadProfile = useCallback(async (showSpinner = true) => {
     if (!user?.id) {
@@ -174,10 +220,10 @@ const ConsumerProfile: React.FC = () => {
         Middle_Name: consumer.Middle_Name ?? consumer.middle_name ?? '',
         Last_Name: consumer.Last_Name ?? consumer.last_name ?? '',
         Address: consumer.Address ?? consumer.address ?? '',
-        Purok: consumer.Purok ?? consumer.purok ?? '',
-        Barangay: consumer.Barangay ?? consumer.barangay ?? '',
-        Municipality: consumer.Municipality ?? consumer.municipality ?? 'San Lorenzo Ruiz',
-        Zip_Code: consumer.Zip_Code ?? consumer.zip_code ?? '4610',
+        Purok: resolveSelectValue(consumer.Purok ?? consumer.purok ?? '', PUROK_OPTIONS),
+        Barangay: resolveSelectValue(consumer.Barangay ?? consumer.barangay ?? '', BARANGAYS),
+        Municipality: String(consumer.Municipality ?? consumer.municipality ?? 'San Lorenzo Ruiz').trim() || 'San Lorenzo Ruiz',
+        Zip_Code: String(consumer.Zip_Code ?? consumer.zip_code ?? '4610').trim() || '4610',
         Zone_ID: Number(consumer.Zone_ID ?? consumer.zone_id ?? 0),
         Zone_Name: consumer.Zone_Name ?? consumer.zone_name ?? '',
         Classification_ID: Number(consumer.Classification_ID ?? consumer.classification_id ?? 0),
@@ -213,21 +259,69 @@ const ConsumerProfile: React.FC = () => {
     }
 
     setFormData({
+      username: profile.Username || user?.username || '',
       firstName: profile.First_Name || '',
       middleName: profile.Middle_Name || '',
       lastName: profile.Last_Name || '',
-      purok: profile.Purok || '',
-      barangay: profile.Barangay || '',
-      municipality: profile.Municipality || 'San Lorenzo Ruiz',
-      zipCode: profile.Zip_Code || '4610',
+      purok: resolveSelectValue(profile.Purok || '', PUROK_OPTIONS),
+      barangay: resolveSelectValue(profile.Barangay || '', BARANGAYS),
+      municipality: String(profile.Municipality || 'San Lorenzo Ruiz').trim() || 'San Lorenzo Ruiz',
+      zipCode: String(profile.Zip_Code || '4610').trim() || '4610',
       contactNumber: profile.Contact_Number || '',
+      password: '',
+      confirmPassword: '',
     });
     setErrors({});
     setIsEditModalOpen(true);
   };
 
+  const handleSaveProfileImage = async () => {
+    if (!user?.id) {
+      showToast('Your account cannot update this profile picture.', 'error');
+      return;
+    }
+
+    const removePicture = !draftProfileImage;
+
+    setIsSavingPhoto(true);
+    try {
+      const result = await requestJson<{ success: boolean; message?: string; data?: { Profile_Picture_URL?: string | null } }>(
+        `/users/${user.id}/profile-picture`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            actorAccountId: user.id,
+            actorRoleId: user.role_id,
+            profilePictureUrl: draftProfileImage,
+            removePicture,
+          }),
+        },
+        'Failed to update profile picture.'
+      );
+
+      const nextProfilePicture = result.data?.Profile_Picture_URL ?? (removePicture ? null : draftProfileImage);
+      updateUser({ profile_picture_url: nextProfilePicture });
+      setProfile((currentProfile) => currentProfile
+        ? {
+            ...currentProfile,
+            Profile_Picture_URL: nextProfilePicture,
+          }
+        : currentProfile);
+      showToast(result.message || (removePicture ? 'Profile picture removed successfully.' : 'Profile picture updated successfully.'), 'success');
+      setIsPhotoModalOpen(false);
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to update profile picture.'), 'error');
+    } finally {
+      setIsSavingPhoto(false);
+    }
+  };
+
   const validateForm = () => {
     const nextErrors: Record<string, string> = {};
+
+    if (!formData.username.trim()) {
+      nextErrors.username = 'Username is required';
+    }
 
     if (!formData.firstName.trim()) {
       nextErrors.firstName = 'First name is required';
@@ -241,6 +335,14 @@ const ConsumerProfile: React.FC = () => {
       nextErrors.contactNumber = 'Contact number must be a valid Philippine mobile number';
     }
 
+    if (formData.password && formData.password.length < 6) {
+      nextErrors.password = 'New password must be at least 6 characters long';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      nextErrors.confirmPassword = 'Passwords do not match';
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -251,6 +353,7 @@ const ConsumerProfile: React.FC = () => {
     }
 
     const payload = {
+      Username: formData.username.trim(),
       First_Name: formData.firstName.trim(),
       Middle_Name: formData.middleName.trim(),
       Last_Name: formData.lastName.trim(),
@@ -259,6 +362,7 @@ const ConsumerProfile: React.FC = () => {
       Municipality: formData.municipality,
       Zip_Code: formData.zipCode,
       Contact_Number: normalizePhoneInput(formData.contactNumber),
+      Password: formData.password,
     };
 
     setIsSaving(true);
@@ -278,12 +382,14 @@ const ConsumerProfile: React.FC = () => {
       }
 
       updateUser({
+        username: payload.Username,
         fullName: formatConsumerName(payload.First_Name, payload.Middle_Name, payload.Last_Name),
       });
 
       setProfile((currentProfile) => currentProfile
         ? {
             ...currentProfile,
+            Username: payload.Username,
             First_Name: payload.First_Name,
             Middle_Name: payload.Middle_Name,
             Last_Name: payload.Last_Name,
@@ -355,6 +461,8 @@ const ConsumerProfile: React.FC = () => {
   const loginUsername = profile.Username || user?.username || 'N/A';
   const accountStatus = profile.Account_Status || profile.Status || 'Unknown';
   const editAddressPreview = composeAddress(formData) || 'Select your service location details';
+  const purokOptions = buildOptionList(formData.purok, PUROK_OPTIONS);
+  const barangayOptions = buildOptionList(formData.barangay, BARANGAYS);
 
   return (
     <div className="cp-page">
@@ -362,16 +470,24 @@ const ConsumerProfile: React.FC = () => {
         <section className="cp-hero">
           <div className="cp-hero-main">
             <div className="cp-avatar-panel">
-              <div className="cp-avatar">
-                {profileImage ? (
-                  <img src={profileImage} alt={`${displayName} profile`} className="cp-avatar-image" />
-                ) : (
-                  <span>{getUserInitials(displayName || loginUsername)}</span>
-                )}
-              </div>
-              <span className={`cp-status-pill ${statusClassName(accountStatus)}`}>
-                <i className="fas fa-circle" /> {accountStatus}
-              </span>
+              <button
+                type="button"
+                className="cp-avatar-trigger"
+                onClick={() => setIsPhotoModalOpen(true)}
+                title="Update profile picture"
+              >
+                <div className="cp-avatar">
+                  {profileImage ? (
+                    <img src={profileImage} alt={`${displayName} profile`} className="cp-avatar-image" />
+                  ) : (
+                    <span>{getUserInitials(displayName || loginUsername)}</span>
+                  )}
+                </div>
+                <span className="cp-avatar-badge" aria-hidden="true">
+                  <i className="fas fa-camera" />
+                </span>
+              </button>
+              <span className="cp-avatar-hint">Tap photo to update</span>
             </div>
 
             <div className="cp-hero-copy">
@@ -380,17 +496,22 @@ const ConsumerProfile: React.FC = () => {
               <p className="cp-subtitle">
                 Review your water service details and keep your personal contact information current.
               </p>
-              <div className="cp-meta">
-                <span className="cp-meta-item">
-                  <i className="fas fa-hashtag" /> Consumer ID <strong>{profile.Consumer_ID}</strong>
-                </span>
-                <span className="cp-meta-item">
-                  <i className="fas fa-file-invoice" /> Account No. <strong>{profile.Account_Number || 'Pending'}</strong>
-                </span>
-                <span className="cp-meta-item">
-                  <i className="fas fa-user-circle" /> Username <strong>{loginUsername}</strong>
-                </span>
-              </div>
+            </div>
+
+            <span className={`cp-status-pill cp-hero-status ${statusClassName(accountStatus)}`}>
+              <i className="fas fa-circle" /> {accountStatus}
+            </span>
+
+            <div className="cp-meta">
+              <span className="cp-meta-item">
+                <i className="fas fa-hashtag" /> Consumer ID <strong>{profile.Consumer_ID}</strong>
+              </span>
+              <span className="cp-meta-item">
+                <i className="fas fa-file-invoice" /> Account No. <strong>{profile.Account_Number || 'Pending'}</strong>
+              </span>
+              <span className="cp-meta-item">
+                <i className="fas fa-user-circle" /> Username <strong>{loginUsername}</strong>
+              </span>
             </div>
           </div>
 
@@ -532,7 +653,7 @@ const ConsumerProfile: React.FC = () => {
           <aside className="cp-side-column">
             <section className="cp-card cp-side-card">
               <h2 className="cp-card-title">
-                <i className="fas fa-shield-alt" /> Account Snapshot
+                <i className="fas fa-shield-alt" /> Account Overview
               </h2>
               <div className="cp-summary-list">
                 <div className="cp-summary-row">
@@ -559,12 +680,55 @@ const ConsumerProfile: React.FC = () => {
                 <i className="fas fa-info-circle" /> Need Help?
               </h2>
               <p className="cp-side-text">
-                You can update your contact number and service location here. For account number, meter, zone,
-                classification, or connection status changes, please contact the waterworks office directly.
+                You can update your username, password, contact number, and service location here. For account number,
+                meter, zone, classification, or connection status changes, please contact the waterworks office directly.
               </p>
             </section>
           </aside>
         </div>
+
+        <Modal
+          isOpen={isPhotoModalOpen}
+          onClose={() => setIsPhotoModalOpen(false)}
+          title="Update Profile Picture"
+          size="small"
+          footer={(
+            <div className="cp-modal-footer">
+              <button
+                className="cp-btn cp-btn-secondary"
+                onClick={() => setIsPhotoModalOpen(false)}
+                disabled={isSavingPhoto}
+              >
+                Cancel
+              </button>
+              <button
+                className="cp-btn cp-btn-primary"
+                onClick={handleSaveProfileImage}
+                disabled={isSavingPhoto}
+              >
+                {isSavingPhoto ? (
+                  <><i className="fas fa-spinner fa-spin" /> Saving...</>
+                ) : (
+                  <><i className="fas fa-save" /> Save Photo</>
+                )}
+              </button>
+            </div>
+          )}
+        >
+          <ProfileImageEditor
+            imageUrl={draftProfileImage}
+            displayName={displayName || loginUsername}
+            onChange={setDraftProfileImage}
+            onError={(message) => showToast(message, 'error')}
+            helperText="Upload a clear square photo for your consumer profile."
+          />
+          <div className="cp-form-note">
+            <i className="fas fa-info-circle" />
+            <span>
+              Your photo appears in your consumer profile and account header across the system.
+            </span>
+          </div>
+        </Modal>
 
         <Modal
           isOpen={isEditModalOpen}
@@ -595,85 +759,157 @@ const ConsumerProfile: React.FC = () => {
           )}
         >
           <div className="cp-form-grid">
-            <div className="cp-form-section">
-              <h3 className="cp-form-section-title">Personal Details</h3>
-              <FormInput
-                label="First Name"
-                value={formData.firstName}
-                onChange={(value) => setFormData((current) => ({ ...current, firstName: value }))}
-                required
-                error={errors.firstName}
-                icon="fa-user"
-              />
-              <FormInput
-                label="Middle Name"
-                value={formData.middleName}
-                onChange={(value) => setFormData((current) => ({ ...current, middleName: value }))}
-                icon="fa-user"
-              />
-              <FormInput
-                label="Last Name"
-                value={formData.lastName}
-                onChange={(value) => setFormData((current) => ({ ...current, lastName: value }))}
-                required
-                error={errors.lastName}
-                icon="fa-user"
-              />
-              <FormInput
-                label="Contact Number"
-                value={formData.contactNumber}
-                onChange={(value) => setFormData((current) => ({ ...current, contactNumber: value }))}
-                placeholder="09XXXXXXXXX or +639XXXXXXXXX"
-                error={errors.contactNumber}
-                icon="fa-phone"
-              />
-            </div>
-
-            <div className="cp-form-section">
-              <h3 className="cp-form-section-title">Service Address</h3>
-              <FormSelect
-                label="Purok"
-                value={formData.purok}
-                onChange={(value) => setFormData((current) => ({ ...current, purok: value }))}
-                options={PUROK_OPTIONS.map((item) => ({ value: item, label: item }))}
-                placeholder="Select purok"
-                icon="fa-map-pin"
-              />
-              <FormSelect
-                label="Barangay"
-                value={formData.barangay}
-                onChange={(value) => setFormData((current) => ({ ...current, barangay: value }))}
-                options={BARANGAYS.map((item) => ({ value: item, label: item }))}
-                placeholder="Select barangay"
-                icon="fa-map-marker-alt"
-              />
-              <FormInput
-                label="Municipality"
-                value={formData.municipality}
-                onChange={(value) => setFormData((current) => ({ ...current, municipality: value }))}
-                disabled
-                icon="fa-city"
-              />
-              <FormInput
-                label="Zip Code"
-                value={formData.zipCode}
-                onChange={(value) => setFormData((current) => ({ ...current, zipCode: value }))}
-                disabled
-                icon="fa-envelope"
-              />
-              <div className="cp-address-preview">
-                <span className="cp-info-label">Address Preview</span>
-                <strong>{editAddressPreview}</strong>
+            <section className="cp-form-section cp-form-card cp-form-card-wide">
+              <div className="cp-form-section-head">
+                <h3 className="cp-form-section-title">Account Access</h3>
+                <p className="cp-form-section-copy">Update your sign-in details for the consumer portal.</p>
               </div>
-            </div>
-          </div>
+              <div className="cp-form-fields cp-form-fields-account">
+                <div className="cp-form-field cp-form-field-wide">
+                  <FormInput
+                    label="Username"
+                    value={formData.username}
+                    onChange={(value) => setFormData((current) => ({ ...current, username: value }))}
+                    required
+                    error={errors.username}
+                    icon="fa-user-circle"
+                  />
+                </div>
+                <div className="cp-form-field">
+                  <FormInput
+                    label="New Password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(value) => setFormData((current) => ({ ...current, password: value }))}
+                    placeholder="Leave blank to keep your current password"
+                    error={errors.password}
+                    icon="fa-lock"
+                  />
+                </div>
+                <div className="cp-form-field">
+                  <FormInput
+                    label="Confirm New Password"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(value) => setFormData((current) => ({ ...current, confirmPassword: value }))}
+                    placeholder="Repeat the new password"
+                    error={errors.confirmPassword}
+                    icon="fa-shield-alt"
+                  />
+                </div>
+              </div>
+            </section>
 
-          <div className="cp-form-note">
-            <i className="fas fa-info-circle" />
-            <span>
-              This form updates your personal details and service location only. Meter, zone, classification,
-              and connection status are managed by the waterworks office.
-            </span>
+            <div className="cp-form-subgrid">
+              <div className="cp-form-stack">
+                <section className="cp-form-section cp-form-card">
+                  <div className="cp-form-section-head">
+                    <h3 className="cp-form-section-title">Personal Details</h3>
+                    <p className="cp-form-section-copy">Keep your name and contact information up to date.</p>
+                  </div>
+                  <div className="cp-form-fields">
+                    <div className="cp-form-field">
+                      <FormInput
+                        label="First Name"
+                        value={formData.firstName}
+                        onChange={(value) => setFormData((current) => ({ ...current, firstName: value }))}
+                        required
+                        error={errors.firstName}
+                        icon="fa-user"
+                      />
+                    </div>
+                    <div className="cp-form-field">
+                      <FormInput
+                        label="Middle Name"
+                        value={formData.middleName}
+                        onChange={(value) => setFormData((current) => ({ ...current, middleName: value }))}
+                        icon="fa-user"
+                      />
+                    </div>
+                    <div className="cp-form-field">
+                      <FormInput
+                        label="Last Name"
+                        value={formData.lastName}
+                        onChange={(value) => setFormData((current) => ({ ...current, lastName: value }))}
+                        required
+                        error={errors.lastName}
+                        icon="fa-user"
+                      />
+                    </div>
+                    <div className="cp-form-field">
+                      <FormInput
+                        label="Contact Number"
+                        value={formData.contactNumber}
+                        onChange={(value) => setFormData((current) => ({ ...current, contactNumber: value }))}
+                        placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+                        error={errors.contactNumber}
+                        icon="fa-phone"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <div className="cp-form-note">
+                  <i className="fas fa-info-circle" />
+                  <span>
+                    You can update your username, password, contact details, and service address here. Meter and account settings are handled by the waterworks office.
+                  </span>
+                </div>
+              </div>
+
+              <section className="cp-form-section cp-form-card">
+                <div className="cp-form-section-head">
+                  <h3 className="cp-form-section-title">Service Address</h3>
+                  <p className="cp-form-section-copy">Review the registered location connected to your water service.</p>
+                </div>
+                <div className="cp-form-fields">
+                  <div className="cp-form-field">
+                    <FormSelect
+                      label="Purok"
+                      value={formData.purok}
+                      onChange={(value) => setFormData((current) => ({ ...current, purok: value }))}
+                      options={purokOptions.map((item) => ({ value: item, label: item }))}
+                      placeholder="Select purok"
+                      icon="fa-map-pin"
+                    />
+                  </div>
+                  <div className="cp-form-field">
+                    <FormSelect
+                      label="Barangay"
+                      value={formData.barangay}
+                      onChange={(value) => setFormData((current) => ({ ...current, barangay: value }))}
+                      options={barangayOptions.map((item) => ({ value: item, label: item }))}
+                      placeholder="Select barangay"
+                      icon="fa-map-marker-alt"
+                    />
+                  </div>
+                  <div className="cp-form-field">
+                    <FormInput
+                      label="Municipality"
+                      value={formData.municipality}
+                      onChange={(value) => setFormData((current) => ({ ...current, municipality: value }))}
+                      disabled
+                      icon="fa-city"
+                    />
+                  </div>
+                  <div className="cp-form-field">
+                    <FormInput
+                      label="Zip Code"
+                      value={formData.zipCode}
+                      onChange={(value) => setFormData((current) => ({ ...current, zipCode: value }))}
+                      disabled
+                      icon="fa-envelope"
+                    />
+                  </div>
+                  <div className="cp-form-field cp-form-field-wide">
+                    <div className="cp-address-preview">
+                      <span className="cp-info-label">Address Preview</span>
+                      <strong>{editAddressPreview}</strong>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
           </div>
         </Modal>
       </div>

@@ -1439,7 +1439,7 @@ function mapAdminSettingsRow(row) {
   };
 }
 
-const PROFILE_PICTURE_ALLOWED_ROLES = new Set([1, 2, 3, 4]);
+const PROFILE_PICTURE_ALLOWED_ROLES = new Set([1, 2, 3, 4, 5]);
 const PROFILE_PICTURE_DATA_URL_PATTERN = /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 const MAX_PROFILE_PICTURE_LENGTH = 1_600_000;
 
@@ -2074,6 +2074,46 @@ async function ensureAccountAuthUser({ accountId, username, password, authUserId
   }
 
   return null;
+}
+
+async function syncAccountAuthCredentials({ accountId, username, password, authUserId }) {
+  if (!supabase?.auth?.admin || !accountId || !username) {
+    return authUserId || null;
+  }
+
+  const effectiveAuthUserId = authUserId || await ensureAccountAuthUser({
+    accountId,
+    username,
+    password,
+    authUserId,
+  });
+
+  if (!effectiveAuthUserId) {
+    return null;
+  }
+
+  const updatePayload = {
+    email: buildSupabaseAuthEmail(username),
+    user_metadata: {
+      account_id: accountId,
+      username,
+    },
+  };
+
+  if (password) {
+    updatePayload.password = password;
+  }
+
+  try {
+    const { error } = await supabase.auth.admin.updateUserById(effectiveAuthUserId, updatePayload);
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.warn(`Supabase auth credential sync failed for account ${accountId}: ${error.message}`);
+  }
+
+  return effectiveAuthUserId;
 }
 
 async function isUsernameTaken(username) {
@@ -4689,6 +4729,8 @@ app.post('/api/consumers', async (req, res) => {
 app.put('/api/consumers/:id/profile', async (req, res) => {
   const { id } = req.params;
   const consumer = req.body || {};
+  const requestedUsername = String(consumer.Username || consumer.username || '').trim();
+  const requestedPassword = String(consumer.Password || consumer.password || '').trim();
   const firstName = String(consumer.First_Name || consumer.first_name || '').trim();
   const middleName = String(consumer.Middle_Name || consumer.middle_name || '').trim() || null;
   const lastName = String(consumer.Last_Name || consumer.last_name || '').trim();
@@ -4714,6 +4756,13 @@ app.put('/api/consumers/:id/profile', async (req, res) => {
     });
   }
 
+  if (!requestedUsername) {
+    return res.status(400).json({
+      success: false,
+      message: 'Username is required.',
+    });
+  }
+
   if (rawContactNumber && !normalizedContactNumber) {
     return res.status(400).json({
       success: false,
@@ -4721,45 +4770,159 @@ app.put('/api/consumers/:id/profile', async (req, res) => {
     });
   }
 
+  if (requestedPassword && requestedPassword.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'New password must be at least 6 characters long.',
+    });
+  }
+
   try {
-    const updatedConsumer = await withPostgresPrimary(
+    const updatedProfile = await withPostgresPrimary(
       'consumers.profile.update',
       async () => {
-        const { rows } = await pool.query(`
-          UPDATE consumer
-          SET first_name = $1,
-              middle_name = $2,
-              last_name = $3,
-              address = $4,
-              purok = $5,
-              barangay = $6,
-              municipality = $7,
-              zip_code = $8,
-              contact_number = $9
-          WHERE consumer_id = $10
-          RETURNING *
-        `, [
-          firstName,
-          middleName,
-          lastName,
-          composedAddress,
-          purok,
-          barangay,
-          municipality,
-          zipCode,
-          normalizedContactNumber,
-          id,
-        ]);
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
 
-        if (!rows.length) {
-          const error = new Error('Consumer not found.');
-          error.statusCode = 404;
+          const { rows: existingRows } = await client.query(`
+            SELECT c.consumer_id, c.login_id, a.account_id, a.username, a.auth_user_id
+            FROM consumer c
+            LEFT JOIN accounts a ON a.account_id = c.login_id
+            WHERE c.consumer_id = $1
+            LIMIT 1
+          `, [id]);
+
+          const existingProfile = existingRows[0];
+          if (!existingProfile?.consumer_id || !existingProfile?.account_id) {
+            const error = new Error('Consumer not found.');
+            error.statusCode = 404;
+            throw error;
+          }
+
+          const normalizedCurrentUsername = String(existingProfile.username || '').trim().toLowerCase();
+          if (requestedUsername.toLowerCase() !== normalizedCurrentUsername) {
+            const { rows: duplicateRows } = await client.query(
+              'SELECT account_id FROM accounts WHERE LOWER(TRIM(username)) = LOWER(TRIM($1)) AND account_id <> $2 LIMIT 1',
+              [requestedUsername, existingProfile.account_id]
+            );
+            if (duplicateRows.length) {
+              const duplicateError = new Error('Username is already taken.');
+              duplicateError.statusCode = 400;
+              throw duplicateError;
+            }
+          }
+
+          const accountUpdateSets = ['username = $1'];
+          const accountParams = [requestedUsername];
+          if (requestedPassword) {
+            accountUpdateSets.push(`password = $${accountParams.length + 1}`);
+            accountParams.push(requestedPassword);
+          }
+          accountParams.push(existingProfile.account_id);
+
+          const { rows: accountRows } = await client.query(`
+            UPDATE accounts
+            SET ${accountUpdateSets.join(', ')}
+            WHERE account_id = $${accountParams.length}
+            RETURNING account_id, username, auth_user_id
+          `, accountParams);
+
+          const { rows: consumerRows } = await client.query(`
+            UPDATE consumer
+            SET first_name = $1,
+                middle_name = $2,
+                last_name = $3,
+                address = $4,
+                purok = $5,
+                barangay = $6,
+                municipality = $7,
+                zip_code = $8,
+                contact_number = $9
+            WHERE consumer_id = $10
+            RETURNING *
+          `, [
+            firstName,
+            middleName,
+            lastName,
+            composedAddress,
+            purok,
+            barangay,
+            municipality,
+            zipCode,
+            normalizedContactNumber,
+            id,
+          ]);
+
+          await client.query('COMMIT');
+
+          return {
+            consumer: consumerRows[0],
+            account: accountRows[0] || {
+              account_id: existingProfile.account_id,
+              username: requestedUsername,
+              auth_user_id: existingProfile.auth_user_id || null,
+            },
+          };
+        } catch (error) {
+          await client.query('ROLLBACK');
           throw error;
+        } finally {
+          client.release();
         }
-
-        return rows[0];
       },
       async () => {
+        const { data: existingConsumer, error: existingConsumerError } = await supabase
+          .from('consumer')
+          .select('consumer_id, login_id')
+          .eq('consumer_id', id)
+          .maybeSingle();
+
+        if (existingConsumerError) {
+          throw existingConsumerError;
+        }
+
+        if (!existingConsumer?.login_id) {
+          const notFoundError = new Error('Consumer not found.');
+          notFoundError.statusCode = 404;
+          throw notFoundError;
+        }
+
+        const { data: duplicateAccounts, error: duplicateAccountsError } = await supabase
+          .from('accounts')
+          .select('account_id, username')
+          .neq('account_id', existingConsumer.login_id);
+
+        if (duplicateAccountsError) {
+          throw duplicateAccountsError;
+        }
+
+        const duplicateAccount = (duplicateAccounts || []).find(
+          (row) => String(row.username || '').trim().toLowerCase() === requestedUsername.toLowerCase()
+        );
+
+        if (duplicateAccount) {
+          const duplicateError = new Error('Username is already taken.');
+          duplicateError.statusCode = 400;
+          throw duplicateError;
+        }
+
+        const accountPayload = { username: requestedUsername };
+        if (requestedPassword) {
+          accountPayload.password = requestedPassword;
+        }
+
+        const { data: accountData, error: accountError } = await supabase
+          .from('accounts')
+          .update(accountPayload)
+          .eq('account_id', existingConsumer.login_id)
+          .select('account_id, username, auth_user_id')
+          .maybeSingle();
+
+        if (accountError) {
+          throw accountError;
+        }
+
         const { data, error } = await supabase
           .from('consumer')
           .update({
@@ -4787,25 +4950,40 @@ app.put('/api/consumers/:id/profile', async (req, res) => {
           throw notFoundError;
         }
 
-        return data;
+        return {
+          consumer: data,
+          account: accountData || {
+            account_id: existingConsumer.login_id,
+            username: requestedUsername,
+            auth_user_id: null,
+          },
+        };
       }
     );
+
+    await syncAccountAuthCredentials({
+      accountId: updatedProfile.account?.account_id,
+      username: updatedProfile.account?.username || requestedUsername,
+      password: requestedPassword || null,
+      authUserId: updatedProfile.account?.auth_user_id || null,
+    });
 
     scheduleImmediateSync('consumers-profile-update');
     return res.json({
       success: true,
-      message: 'Profile updated successfully.',
+      message: requestedPassword ? 'Profile and login credentials updated successfully.' : 'Profile updated successfully.',
       data: {
-        Consumer_ID: updatedConsumer.consumer_id,
-        First_Name: updatedConsumer.first_name,
-        Middle_Name: updatedConsumer.middle_name,
-        Last_Name: updatedConsumer.last_name,
-        Address: updatedConsumer.address,
-        Purok: updatedConsumer.purok,
-        Barangay: updatedConsumer.barangay,
-        Municipality: updatedConsumer.municipality,
-        Zip_Code: updatedConsumer.zip_code,
-        Contact_Number: updatedConsumer.contact_number,
+        Consumer_ID: updatedProfile.consumer.consumer_id,
+        First_Name: updatedProfile.consumer.first_name,
+        Middle_Name: updatedProfile.consumer.middle_name,
+        Last_Name: updatedProfile.consumer.last_name,
+        Address: updatedProfile.consumer.address,
+        Purok: updatedProfile.consumer.purok,
+        Barangay: updatedProfile.consumer.barangay,
+        Municipality: updatedProfile.consumer.municipality,
+        Zip_Code: updatedProfile.consumer.zip_code,
+        Contact_Number: updatedProfile.consumer.contact_number,
+        Username: updatedProfile.account?.username || requestedUsername,
       },
     });
   } catch (error) {

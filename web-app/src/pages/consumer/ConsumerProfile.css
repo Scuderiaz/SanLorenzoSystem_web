@@ -77,17 +77,53 @@
 }
 
 .cp-hero-main {
-  display: flex;
-  align-items: center;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  grid-template-areas:
+    "avatar copy"
+    "status meta";
+  column-gap: 24px;
+  row-gap: 18px;
+  align-items: start;
   flex: 1;
 }
 
 .cp-avatar-panel {
+  grid-area: avatar;
+  width: 112px;
+  flex: 0 0 112px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
+}
+
+.cp-avatar-trigger {
+  position: relative;
+  width: 112px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.cp-avatar-trigger:hover {
+  transform: translateY(-1px);
+}
+
+.cp-avatar-trigger:hover .cp-avatar,
+.cp-avatar-trigger:focus-visible .cp-avatar {
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.24);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.cp-avatar-trigger:focus-visible {
+  outline: none;
+}
+
+.cp-hero-copy {
+  grid-area: copy;
 }
 
 .cp-avatar {
@@ -111,9 +147,35 @@
   object-fit: cover;
 }
 
+.cp-avatar-badge {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--cp-blue), var(--cp-cyan));
+  color: #ffffff;
+  border: 3px solid rgba(29, 47, 111, 0.9);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.26);
+}
+
+.cp-avatar-hint {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
 .cp-status-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 9px 14px;
   border-radius: 999px;
@@ -123,6 +185,14 @@
   letter-spacing: 0.08em;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  min-height: 40px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.cp-hero-status {
+  grid-area: status;
+  width: 112px;
 }
 
 .cp-status-pill.active {
@@ -166,7 +236,8 @@
 }
 
 .cp-meta {
-  margin-top: 18px;
+  grid-area: meta;
+  margin-top: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -434,19 +505,100 @@
 
 .cp-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
 }
 
 .cp-form-section {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+}
+
+.cp-form-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.cp-form-card-wide {
+  grid-column: 1 / -1;
+}
+
+.cp-form-card-half {
+  grid-column: span 6;
+}
+
+.cp-form-subgrid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
+  align-items: stretch;
+}
+
+.cp-form-stack {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  min-width: 0;
+  height: 100%;
+  align-self: stretch;
+}
+
+.cp-form-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cp-form-card .form-input-group,
+.cp-form-card .form-select-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.cp-form-card .form-label {
+  margin-bottom: 0;
+  color: #20345f !important;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  line-height: 1.35;
+  display: block !important;
+  text-align: left;
+  opacity: 1;
+  visibility: visible;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cp-form-card .form-label i {
+  display: none;
+}
+
+.cp-form-card .form-input,
+.cp-form-card .form-select {
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  width: 100%;
+  font-size: 0.95rem;
+}
+
+.cp-form-card .error-message {
+  margin-top: 0;
+  font-size: 0.78rem;
 }
 
 .cp-form-section-title {
   margin: 0;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 2px solid rgba(148, 163, 184, 0.16);
   color: var(--cp-ink);
   font-size: 0.86rem;
@@ -455,11 +607,38 @@
   text-transform: uppercase;
 }
 
+.cp-form-section-copy {
+  margin: 0;
+  color: #61718f;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.cp-form-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  align-items: start;
+}
+
+.cp-form-fields-account {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cp-form-field {
+  min-width: 0;
+}
+
+.cp-form-field-wide {
+  grid-column: 1 / -1;
+}
+
 .cp-address-preview {
   padding: 14px 16px;
   border-radius: 16px;
   background: #eff6ff;
   border: 1px solid rgba(59, 130, 246, 0.16);
+  min-height: 100%;
 }
 
 .cp-address-preview strong {
@@ -472,18 +651,27 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  margin-top: 22px;
-  padding: 16px 18px;
+  align-self: stretch;
+  height: 100%;
+  min-height: 100%;
+  margin-top: 0;
+  padding: 14px 16px;
   border-radius: 18px;
   background: #f8fafc;
   border: 1px solid rgba(148, 163, 184, 0.18);
   color: var(--cp-slate);
-  line-height: 1.65;
+  line-height: 1.6;
+  font-size: 0.92rem;
+  box-sizing: border-box;
 }
 
 .cp-form-note i {
   color: var(--cp-blue);
   margin-top: 2px;
+}
+
+.cp-form-note span {
+  display: block;
 }
 
 .cp-modal-footer {
@@ -604,10 +792,23 @@
   }
 
   .cp-hero,
-  .cp-hero-main,
   .cp-card-header,
   .cp-header-actions {
     flex-direction: column;
+  }
+
+  .cp-hero-main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "avatar"
+      "status"
+      "copy"
+      "meta";
+  }
+
+  .cp-avatar-panel,
+  .cp-hero-status {
+    justify-self: center;
   }
 
   .cp-header-actions {
@@ -621,10 +822,31 @@
   }
 
   .cp-info-grid,
-  .cp-form-grid,
   .cp-loading-grid,
   .cp-stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cp-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-form-card-half,
+  .cp-form-card-wide {
+    grid-column: auto;
+  }
+
+  .cp-form-subgrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-form-fields,
+  .cp-form-fields-account {
+    grid-template-columns: 1fr;
+  }
+
+  .cp-form-card .error-message {
+    margin-top: 5px;
   }
 
   .cp-info-tile-wide {

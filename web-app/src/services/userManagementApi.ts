@@ -718,11 +718,6 @@ export const requestJson = async <T = any>(path: string, options: RequestInit = 
   const method = normalizeRequestMethod(options);
   const isWriteRequest = method !== 'GET' && method !== 'HEAD';
 
-  if (isWriteRequest && !(await canReachBackend())) {
-    const queueMeta = await queueOfflineRequest(path, options);
-    return createQueuedWriteResponse<T>(method, path, queueMeta || undefined);
-  }
-
   try {
     const headers = options.body
       ? { 'Content-Type': 'application/json', ...(options.headers || {}) }
@@ -741,12 +736,16 @@ export const requestJson = async <T = any>(path: string, options: RequestInit = 
 
     return payload as T;
   } catch (error) {
-    if (isWriteRequest && shouldAttemptSupabaseFallback(error) && !(await canReachBackend())) {
+    const browserOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    const requestError = error as RequestError;
+    const networkFailure = browserOffline || isNetworkStyleMessage(requestError?.message);
+
+    if (isWriteRequest && shouldAttemptSupabaseFallback(error) && (networkFailure || !(await canReachBackend(true)))) {
       const queueMeta = await queueOfflineRequest(path, options);
       return createQueuedWriteResponse<T>(method, path, queueMeta || undefined);
     }
 
-    if ((error as RequestError)?.status) {
+    if (requestError?.status) {
       throw error;
     }
 

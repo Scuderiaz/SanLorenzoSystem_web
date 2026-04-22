@@ -32,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
     }
   }, [isProfileModalOpen, user?.profile_picture_url]);
 
-  const canManageOwnProfilePicture = [1, 2, 3, 4].includes(Number(user?.role_id || 0));
+  const canManageOwnProfilePicture = [1, 2, 3, 4, 5].includes(Number(user?.role_id || 0));
 
   const handleSaveProfileImage = async () => {
     if (!user?.id || !canManageOwnProfilePicture) {
@@ -119,10 +119,10 @@ const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
           displayName={user?.fullName || user?.username || 'User'}
           onChange={setDraftProfileImage}
           onError={(message) => showToast(message, 'error')}
-          helperText="Upload a clear square photo for your staff profile card."
+          helperText="Upload a clear square photo for your account profile."
         />
         <p className="profile-modal-note">
-          This photo will appear in the staff header badge and other account views that use your profile.
+          This photo will appear in the header badge and other account views that use your profile.
         </p>
       </Modal>
     </>

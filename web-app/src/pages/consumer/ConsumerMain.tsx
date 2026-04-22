@@ -91,19 +91,6 @@ interface ConsumptionChartProps {
 const formatPeso = (value: number) =>
   `PHP ${(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const shortMonth = (dateStr?: string | null) => {
-  if (!dateStr) {
-    return 'N/A';
-  }
-
-  const parsed = new Date(dateStr);
-  if (Number.isNaN(parsed.getTime())) {
-    return 'N/A';
-  }
-
-  return parsed.toLocaleString('en-PH', { month: 'short', year: '2-digit' });
-};
-
 const fullMonth = (dateStr?: string | null) => {
   if (!dateStr) {
     return 'N/A';
@@ -447,9 +434,6 @@ const ConsumerMain: React.FC = () => {
                   <span>{getUserInitials(displayName)}</span>
                 )}
               </div>
-              <span className={`cm-status-pill ${statusClassName(serviceStatus)}`}>
-                <i className="fas fa-circle" /> {serviceStatus}
-              </span>
             </div>
 
             <div className="cm-hero-copy">
@@ -458,17 +442,22 @@ const ConsumerMain: React.FC = () => {
               <p className="cm-subtitle">
                 Track your current bill, unpaid balance, recent payments, and monthly water consumption in one place.
               </p>
-              <div className="cm-meta">
-                <span className="cm-meta-item">
-                  <i className="fas fa-file-invoice" /> Account No. <strong>{accountNumber}</strong>
-                </span>
-                <span className="cm-meta-item">
-                  <i className="fas fa-user-circle" /> Username <strong>{consumer?.Username ?? consumer?.username ?? user?.username ?? 'N/A'}</strong>
-                </span>
-                <span className="cm-meta-item">
-                  <i className="fas fa-calendar-alt" /> Connected <strong>{formatDate(consumer?.Connection_Date ?? consumer?.connection_date)}</strong>
-                </span>
-              </div>
+            </div>
+
+            <span className={`cm-status-pill cm-hero-status ${statusClassName(serviceStatus)}`}>
+              <i className="fas fa-circle" /> {serviceStatus}
+            </span>
+
+            <div className="cm-meta">
+              <span className="cm-meta-item">
+                <i className="fas fa-file-invoice" /> Account No. <strong>{accountNumber}</strong>
+              </span>
+              <span className="cm-meta-item">
+                <i className="fas fa-user-circle" /> Username <strong>{consumer?.Username ?? consumer?.username ?? user?.username ?? 'N/A'}</strong>
+              </span>
+              <span className="cm-meta-item">
+                <i className="fas fa-calendar-alt" /> Connected <strong>{formatDate(consumer?.Connection_Date ?? consumer?.connection_date)}</strong>
+              </span>
             </div>
           </div>
 
@@ -582,7 +571,7 @@ const ConsumerMain: React.FC = () => {
           <aside className="cm-side-column">
             <section className="cm-card cm-side-card">
               <h2 className="cm-card-title">
-                <i className="fas fa-file-invoice-dollar" /> Billing Snapshot
+                <i className="fas fa-file-invoice-dollar" /> Billing Summary
               </h2>
               <div className="cm-summary-list">
                 <div className="cm-summary-row">
@@ -610,7 +599,7 @@ const ConsumerMain: React.FC = () => {
 
             <section className="cm-card cm-side-card">
               <h2 className="cm-card-title">
-                <i className="fas fa-tint" /> Service Snapshot
+                <i className="fas fa-tint" /> Service Overview
               </h2>
               <div className="cm-summary-list">
                 <div className="cm-summary-row">

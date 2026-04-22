@@ -73,17 +73,25 @@
 }
 
 .cm-hero-main {
-  display: flex;
-  align-items: center;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  grid-template-areas:
+    "avatar copy"
+    "status meta";
+  column-gap: 24px;
+  row-gap: 18px;
+  align-items: start;
   flex: 1;
 }
 
 .cm-avatar-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  grid-area: avatar;
+  width: 112px;
+  flex: 0 0 112px;
+}
+
+.cm-hero-copy {
+  grid-area: copy;
 }
 
 .cm-avatar {
@@ -110,6 +118,7 @@
 .cm-status-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 9px 14px;
   border-radius: 999px;
@@ -119,6 +128,14 @@
   letter-spacing: 0.08em;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  min-height: 40px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.cm-hero-status {
+  grid-area: status;
+  width: 112px;
 }
 
 .cm-status-pill.active {
@@ -162,7 +179,8 @@
 }
 
 .cm-meta {
-  margin-top: 18px;
+  grid-area: meta;
+  margin-top: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -656,10 +674,23 @@
   }
 
   .cm-hero,
-  .cm-hero-main,
   .cm-header-actions,
   .cm-chart-controls {
     flex-direction: column;
+  }
+
+  .cm-hero-main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "avatar"
+      "status"
+      "copy"
+      "meta";
+  }
+
+  .cm-avatar-panel,
+  .cm-hero-status {
+    justify-self: center;
   }
 
   .cm-header-actions,
