@@ -2659,6 +2659,8 @@ function mapPaymentRecord(payment, consumerMap = new Map(), billMap = new Map())
     Account_Number: consumer?.account_number || null,
     Bill_Amount: bill?.total_amount || null,
     Billing_Month: bill?.billing_month || null,
+    Bill_Date: bill?.bill_date || null,
+    Due_Date: bill?.due_date || null,
   };
 }
 
@@ -3011,10 +3013,10 @@ app.get('/api/users/staff', async (req, res) => {
         const { rows } = await pool.query(`
           SELECT a.account_id AS "AccountID", a.username AS "Username", 
                  a.username AS "Full_Name", a.role_id AS "Role_ID", a.profile_picture_url AS "Profile_Picture_URL",
-                 a.account_status AS "Status", r.role_name AS "Role_Name"
+                 a.account_status AS "Status", a.created_at AS "Created_At", r.role_name AS "Role_Name"
           FROM accounts a
           LEFT JOIN roles r ON a.role_id = r.role_id
-          WHERE a.role_id IN (1, 2, 3)
+          WHERE a.role_id IN (1, 2, 3, 4)
           ORDER BY a.account_id DESC
         `);
         return { success: true, data: rows };
@@ -3024,7 +3026,7 @@ app.get('/api/users/staff', async (req, res) => {
         const { data, error } = await supabase
           .from('accounts')
           .select('*')
-          .in('role_id', [1, 2, 3])
+          .in('role_id', [1, 2, 3, 4])
           .order('account_id', { ascending: false });
         if (error) throw error;
         return {
@@ -3035,6 +3037,7 @@ app.get('/api/users/staff', async (req, res) => {
             Full_Name: u.username || 'N/A',
             Role_ID: u.role_id,
             Status: u.account_status,
+            Created_At: u.created_at || null,
             Profile_Picture_URL: u.profile_picture_url || null,
             Role_Name: roleMap.get(u.role_id) || null,
           })),
@@ -4683,6 +4686,138 @@ app.post('/api/consumers', async (req, res) => {
   }
 });
 
+app.put('/api/consumers/:id/profile', async (req, res) => {
+  const { id } = req.params;
+  const consumer = req.body || {};
+  const firstName = String(consumer.First_Name || consumer.first_name || '').trim();
+  const middleName = String(consumer.Middle_Name || consumer.middle_name || '').trim() || null;
+  const lastName = String(consumer.Last_Name || consumer.last_name || '').trim();
+  const rawContactNumber = consumer.Contact_Number || consumer.contact_number;
+  const normalizedContactNumber = normalizePhilippinePhoneNumber(rawContactNumber);
+  const purok = String(consumer.Purok || consumer.purok || '').trim() || null;
+  const barangay = String(consumer.Barangay || consumer.barangay || '').trim() || null;
+  const municipality = String(consumer.Municipality || consumer.municipality || '').trim() || 'San Lorenzo Ruiz';
+  const zipCode = String(consumer.Zip_Code || consumer.zip_code || '').trim() || '4610';
+  const composedAddress = [purok, barangay, municipality, zipCode].filter(Boolean).join(', ');
+
+  if (!firstName) {
+    return res.status(400).json({
+      success: false,
+      message: 'First name is required.',
+    });
+  }
+
+  if (!lastName) {
+    return res.status(400).json({
+      success: false,
+      message: 'Last name is required.',
+    });
+  }
+
+  if (rawContactNumber && !normalizedContactNumber) {
+    return res.status(400).json({
+      success: false,
+      message: 'Contact number must be a valid Philippine mobile number.',
+    });
+  }
+
+  try {
+    const updatedConsumer = await withPostgresPrimary(
+      'consumers.profile.update',
+      async () => {
+        const { rows } = await pool.query(`
+          UPDATE consumer
+          SET first_name = $1,
+              middle_name = $2,
+              last_name = $3,
+              address = $4,
+              purok = $5,
+              barangay = $6,
+              municipality = $7,
+              zip_code = $8,
+              contact_number = $9
+          WHERE consumer_id = $10
+          RETURNING *
+        `, [
+          firstName,
+          middleName,
+          lastName,
+          composedAddress,
+          purok,
+          barangay,
+          municipality,
+          zipCode,
+          normalizedContactNumber,
+          id,
+        ]);
+
+        if (!rows.length) {
+          const error = new Error('Consumer not found.');
+          error.statusCode = 404;
+          throw error;
+        }
+
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('consumer')
+          .update({
+            first_name: firstName,
+            middle_name: middleName,
+            last_name: lastName,
+            address: composedAddress,
+            purok,
+            barangay,
+            municipality,
+            zip_code: zipCode,
+            contact_number: normalizedContactNumber,
+          })
+          .eq('consumer_id', id)
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data) {
+          const notFoundError = new Error('Consumer not found.');
+          notFoundError.statusCode = 404;
+          throw notFoundError;
+        }
+
+        return data;
+      }
+    );
+
+    scheduleImmediateSync('consumers-profile-update');
+    return res.json({
+      success: true,
+      message: 'Profile updated successfully.',
+      data: {
+        Consumer_ID: updatedConsumer.consumer_id,
+        First_Name: updatedConsumer.first_name,
+        Middle_Name: updatedConsumer.middle_name,
+        Last_Name: updatedConsumer.last_name,
+        Address: updatedConsumer.address,
+        Purok: updatedConsumer.purok,
+        Barangay: updatedConsumer.barangay,
+        Municipality: updatedConsumer.municipality,
+        Zip_Code: updatedConsumer.zip_code,
+        Contact_Number: updatedConsumer.contact_number,
+      },
+    });
+  } catch (error) {
+    await logRequestError(req, 'consumers.profile.update', error);
+    console.error('Error updating consumer profile:', error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to update consumer profile.',
+    });
+  }
+});
+
 app.put('/api/consumers/:id', async (req, res) => {
   const { id } = req.params;
   const consumer = req.body;
@@ -5482,12 +5617,20 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
       'consumerDashboard.fetch',
       async () => {
         const consumerResult = await pool.query(`
-          SELECT c.*, z.zone_name, cl.classification_name, m.meter_serial_number AS meter_number
+          SELECT c.*,
+                 a.username,
+                 a.profile_picture_url,
+                 a.account_status,
+                 z.zone_name,
+                 cl.classification_name,
+                 m.meter_serial_number AS meter_number,
+                 m.meter_status
           FROM consumer c
+          LEFT JOIN accounts a ON a.account_id = c.login_id
           LEFT JOIN zone z ON z.zone_id = c.zone_id
           LEFT JOIN classification cl ON cl.classification_id = c.classification_id
           LEFT JOIN LATERAL (
-            SELECT meter_serial_number
+            SELECT meter_serial_number, meter_status
             FROM meter
             WHERE consumer_id = c.consumer_id
             ORDER BY meter_id DESC
@@ -5508,18 +5651,13 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
           pool.query('SELECT * FROM meterreadings WHERE consumer_id = $1 ORDER BY reading_date DESC LIMIT 6', [consumer.consumer_id]),
         ]);
 
+        const mappedBills = billRows.rows.map((bill) => mapBillRecord(bill, new Map([[consumer.consumer_id, consumer]]), new Map([[consumer.classification_id, consumer.classification_name]])));
+        const billMap = new Map(billRows.rows.map((bill) => [bill.bill_id, bill]));
+
         return {
           consumer: { ...consumer, Consumer_ID: consumer.consumer_id },
-          bills: billRows.rows.map((b) => ({ ...b, Bill_ID: b.bill_id, Bill_Date: b.bill_date, Total_Amount: b.total_amount })),
-          payments: paymentRows.rows.map((p) => ({
-            ...p,
-            Payment_ID: p.payment_id,
-            Amount_Paid: p.amount_paid,
-            Payment_Date: p.payment_date,
-            Reference_Number: p.reference_number,
-            Reference_No: p.reference_number,
-            OR_Number: p.or_number,
-          })),
+          bills: mappedBills,
+          payments: paymentRows.rows.map((payment) => mapPaymentRecord(payment, new Map([[consumer.consumer_id, consumer]]), billMap)),
           readings: readingRows.rows.map((r) => ({
             Reading_Date: r.reading_date || r.created_date,
             Consumption: r.consumption,
@@ -5538,33 +5676,47 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
         }
 
         const consumerId = consumer.consumer_id;
-        const [{ data: bills, error: billsError }, { data: payments, error: paymentsError }, { data: readings, error: readingsError }, { data: meters, error: metersError }] = await Promise.all([
+        const [
+          { data: bills, error: billsError },
+          { data: payments, error: paymentsError },
+          { data: readings, error: readingsError },
+          { data: meters, error: metersError },
+          { data: account, error: accountError },
+          { data: zone, error: zoneError },
+          { data: classification, error: classificationError },
+        ] = await Promise.all([
           supabase.from('bills').select('*').eq('consumer_id', consumerId).order('bill_date', { ascending: false }),
           supabase.from('payment').select('*').eq('consumer_id', consumerId).order('payment_date', { ascending: false }),
           supabase.from('meterreadings').select('*').eq('consumer_id', consumerId).order('reading_date', { ascending: false }).limit(6),
-          supabase.from('meter').select('meter_serial_number').eq('consumer_id', consumerId).order('meter_id', { ascending: false }).limit(1),
+          supabase.from('meter').select('meter_serial_number, meter_status').eq('consumer_id', consumerId).order('meter_id', { ascending: false }).limit(1),
+          supabase.from('accounts').select('username, profile_picture_url, account_status').eq('account_id', accountId).maybeSingle(),
+          supabase.from('zone').select('zone_name').eq('zone_id', consumer.zone_id).maybeSingle(),
+          supabase.from('classification').select('classification_name').eq('classification_id', consumer.classification_id).maybeSingle(),
         ]);
         if (billsError) throw billsError;
         if (paymentsError) throw paymentsError;
         if (readingsError) throw readingsError;
         if (metersError) throw metersError;
+        if (accountError) throw accountError;
+        if (zoneError) throw zoneError;
+        if (classificationError) throw classificationError;
+
+        const billMap = new Map((bills || []).map((bill) => [bill.bill_id, bill]));
 
         return {
           consumer: {
             ...consumer,
             Consumer_ID: consumer.consumer_id,
+            Username: account?.username || null,
+            Profile_Picture_URL: account?.profile_picture_url || null,
+            Account_Status: account?.account_status || consumer.status || null,
+            Zone_Name: zone?.zone_name || null,
+            Classification_Name: classification?.classification_name || null,
             meter_number: meters?.[0]?.meter_serial_number || null,
+            meter_status: meters?.[0]?.meter_status || null,
           },
-          bills: (bills || []).map((b) => ({ ...b, Bill_ID: b.bill_id, Bill_Date: b.bill_date, Total_Amount: b.total_amount })),
-          payments: (payments || []).map((p) => ({
-            ...p,
-            Payment_ID: p.payment_id,
-            Amount_Paid: p.amount_paid,
-            Payment_Date: p.payment_date,
-            Reference_Number: p.reference_number,
-            Reference_No: p.reference_number,
-            OR_Number: p.or_number,
-          })),
+          bills: (bills || []).map((bill) => mapBillRecord(bill, new Map([[consumerId, consumer]]), new Map([[consumer.classification_id, classification?.classification_name || null]]))),
+          payments: (payments || []).map((payment) => mapPaymentRecord(payment, new Map([[consumerId, consumer]]), billMap)),
           readings: (readings || []).map((r) => ({
             Reading_Date: r.reading_date || r.created_at || r.created_date,
             Consumption: r.consumption,

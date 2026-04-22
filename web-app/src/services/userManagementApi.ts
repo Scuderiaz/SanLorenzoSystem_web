@@ -396,17 +396,28 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
     { data: payments, error: paymentsError },
     { data: readings, error: readingsError },
     { data: meters, error: metersError },
+    { data: account, error: accountError },
+    { data: zone, error: zoneError },
+    { data: classification, error: classificationError },
   ] = await Promise.all([
     supabase!.from('bills').select('*').eq('consumer_id', consumerId).order('bill_date', { ascending: false }),
     supabase!.from('payment').select('*').eq('consumer_id', consumerId).order('payment_date', { ascending: false }),
     supabase!.from('meterreadings').select('*').eq('consumer_id', consumerId).order('reading_date', { ascending: false }).limit(6),
-    supabase!.from('meter').select('meter_serial_number').eq('consumer_id', consumerId).order('meter_id', { ascending: false }).limit(1),
+    supabase!.from('meter').select('meter_serial_number, meter_status').eq('consumer_id', consumerId).order('meter_id', { ascending: false }).limit(1),
+    supabase!.from('accounts').select('username, profile_picture_url, account_status').eq('account_id', accountId).maybeSingle(),
+    supabase!.from('zone').select('zone_name').eq('zone_id', consumer.zone_id).maybeSingle(),
+    supabase!.from('classification').select('classification_name').eq('classification_id', consumer.classification_id).maybeSingle(),
   ]);
 
   if (billsError) throw billsError;
   if (paymentsError) throw paymentsError;
   if (readingsError) throw readingsError;
   if (metersError) throw metersError;
+  if (accountError) throw accountError;
+  if (zoneError) throw zoneError;
+  if (classificationError) throw classificationError;
+
+  const billMap = new Map((bills || []).map((bill) => [bill.bill_id, bill]));
 
   return {
     consumer: {
@@ -417,7 +428,13 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
       Last_Name: consumer.last_name,
       Status: consumer.status,
       Account_Number: consumer.account_number || null,
+      Username: account?.username || null,
+      Profile_Picture_URL: account?.profile_picture_url || null,
+      Account_Status: account?.account_status || consumer.status || null,
+      Zone_Name: zone?.zone_name || null,
+      Classification_Name: classification?.classification_name || null,
       Meter_Number: meters?.[0]?.meter_serial_number || null,
+      Meter_Status: meters?.[0]?.meter_status || null,
     },
     bills: (bills || []).map((bill) => ({
       ...bill,
@@ -425,7 +442,10 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
       Bill_Date: bill.bill_date,
       Due_Date: bill.due_date,
       Total_Amount: toNumber(bill.total_amount),
+      Amount_Due: toNumber(bill.amount_due, toNumber(bill.total_amount)),
+      Total_After_Due_Date: toNumber(bill.total_after_due_date, toNumber(bill.total_amount)),
       Status: bill.status || 'Unpaid',
+      Billing_Month: bill.billing_month || null,
     })),
     payments: (payments || []).map((payment) => ({
       ...payment,
@@ -435,6 +455,10 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
       Reference_Number: payment.reference_number,
       Reference_No: payment.reference_number,
       OR_Number: payment.or_number,
+      Bill_Amount: toNumber(billMap.get(payment.bill_id)?.total_amount),
+      Billing_Month: billMap.get(payment.bill_id)?.billing_month || null,
+      Bill_Date: billMap.get(payment.bill_id)?.bill_date || null,
+      Due_Date: billMap.get(payment.bill_id)?.due_date || null,
     })),
     readings: (readings || []).map((reading) => ({
       Reading_Date: reading.reading_date || reading.created_at || reading.created_date,

@@ -62,14 +62,14 @@ export const authService = {
         try {
           const db = await initOfflineDB();
           const result = db.exec(`
-            SELECT a.AccountID, a.Username, a.Full_Name, a.Role_ID, r.Role_Name
+            SELECT a.AccountID, a.Username, a.Full_Name, a.profile_picture_url, a.Role_ID, r.Role_Name
             FROM accounts a
             JOIN roles r ON a.Role_ID = r.Role_ID
             WHERE a.Username = ? AND a.Password = ?
           `, [username, password]);
 
           if (result.length > 0 && result[0].values.length > 0) {
-            const [id, uname, fullName, roleId, roleName] = result[0].values[0];
+            const [id, uname, fullName, profilePictureUrl, roleId, roleName] = result[0].values[0];
             appendClientDiagnostic('auth.login', 'Offline cache login succeeded.', {
               username,
               online: navigator.onLine,
@@ -80,7 +80,7 @@ export const authService = {
                 id,
                 username: uname,
                 fullName: fullName || uname,
-                profile_picture_url: null,
+                profile_picture_url: profilePictureUrl || null,
                 role_id: roleId,
                 role_name: roleName,
               },

@@ -1,24 +1,58 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage, loadConsumerDashboardWithFallback } from '../../services/userManagementApi';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import { getUserInitials } from '../../utils/profileImage';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  LabelList,
   ResponsiveContainer,
-  LabelList 
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
 import './ConsumerMain.css';
 
-// ─── Types ─────────────────────────────────────────────────────────────────
 interface ConsumerInfo {
-  name: string;
-  accountNo: string;
-  connectionStatus: string;
+  Consumer_ID: number;
+  First_Name?: string | null;
+  first_name?: string | null;
+  Middle_Name?: string | null;
+  middle_name?: string | null;
+  Last_Name?: string | null;
+  last_name?: string | null;
+  Username?: string | null;
+  username?: string | null;
+  Profile_Picture_URL?: string | null;
+  profile_picture_url?: string | null;
+  Address?: string | null;
+  address?: string | null;
+  Purok?: string | null;
+  purok?: string | null;
+  Barangay?: string | null;
+  barangay?: string | null;
+  Municipality?: string | null;
+  municipality?: string | null;
+  Zip_Code?: string | null;
+  zip_code?: string | null;
+  Account_Number?: string | null;
+  account_number?: string | null;
+  Status?: string | null;
+  status?: string | null;
+  Account_Status?: string | null;
+  account_status?: string | null;
+  Meter_Number?: string | null;
+  meter_number?: string | null;
+  Meter_Status?: string | null;
+  meter_status?: string | null;
+  Zone_Name?: string | null;
+  zone_name?: string | null;
+  Classification_Name?: string | null;
+  classification_name?: string | null;
+  Connection_Date?: string | null;
+  connection_date?: string | null;
 }
 
 interface Bill {
@@ -26,6 +60,9 @@ interface Bill {
   Bill_Date: string;
   Due_Date: string;
   Total_Amount: number;
+  Amount_Due?: number;
+  Total_After_Due_Date?: number;
+  Billing_Month?: string | null;
   Status: 'Paid' | 'Unpaid';
 }
 
@@ -35,8 +72,10 @@ interface Payment {
   Amount_Paid: number;
   Reference_Number: string;
   Bill_ID: number;
-  // This comes from our new join in the backend
-  Bill_Date?: string; 
+  Bill_Amount?: number | null;
+  Billing_Month?: string | null;
+  Bill_Date?: string;
+  Due_Date?: string;
   bills?: { Bill_Date: string };
 }
 
@@ -45,88 +84,142 @@ interface Reading {
   Consumption: number;
 }
 
-interface BarChartProps {
+interface ConsumptionChartProps {
   readings: Reading[];
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
-const formatPeso = (v: number) =>
-  `₱${(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+const formatPeso = (value: number) =>
+  `PHP ${(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const shortMonth = (dateStr: string) => {
-  if (!dateStr) return 'N/A';
-  const d = new Date(dateStr);
-  return d.toLocaleString('default', { month: 'short', year: '2-digit' });
+const shortMonth = (dateStr?: string | null) => {
+  if (!dateStr) {
+    return 'N/A';
+  }
+
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/A';
+  }
+
+  return parsed.toLocaleString('en-PH', { month: 'short', year: '2-digit' });
 };
 
-const fullMonth = (dateStr?: string) => {
-  if (!dateStr) return 'N/A';
-  const d = new Date(dateStr);
-  return d.toLocaleString('default', { month: 'long', year: 'numeric' });
+const fullMonth = (dateStr?: string | null) => {
+  if (!dateStr) {
+    return 'N/A';
+  }
+
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/A';
+  }
+
+  return parsed.toLocaleString('en-PH', { month: 'long', year: 'numeric' });
 };
 
-// ─── Format Name (Capitalize) ───
-const formatName = (str?: string) => {
-  if (!str) return 'Consumer';
-  return str.split(/[\s.]+/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+const formatDate = (dateStr?: string | null) => {
+  if (!dateStr) {
+    return 'N/A';
+  }
+
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/A';
+  }
+
+  return parsed.toLocaleDateString('en-PH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 };
 
-// ─── Custom Floating Label for Peaks ───
-const CustomLabel = (props: any) => {
-  const { x, y, value } = props;
-  if (value === 0) return null; // Hide the label for zero/anchor points
+const displayBillingMonth = (billingMonth?: string | null, billDate?: string | null) => {
+  const normalizedMonth = String(billingMonth || '').trim();
+  if (normalizedMonth) {
+    return normalizedMonth;
+  }
+
+  return fullMonth(billDate);
+};
+
+const formatName = (firstName?: string | null, middleName?: string | null, lastName?: string | null, fallback?: string | null) => {
+  const fullName = [firstName, middleName, lastName]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+    .trim();
+
+  if (fullName) {
+    return fullName;
+  }
+
+  return String(fallback || 'Consumer').trim() || 'Consumer';
+};
+
+const statusClassName = (value?: string | null) => {
+  const normalized = String(value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  return normalized || 'unknown';
+};
+
+const CustomLabel = ({ x, y, value }: any) => {
+  if (!value) {
+    return null;
+  }
+
   return (
     <g>
-      <rect x={x - 20} y={y - 35} width={40} height={20} rx={4} fill="#202124" />
-      <text x={x} y={y - 21} textAnchor="middle" fill="#fff" fontSize={11} fontWeight={800}>
+      <rect x={x - 22} y={y - 35} width={44} height={20} rx={6} fill="#18264d" />
+      <text x={x} y={y - 21} textAnchor="middle" fill="#ffffff" fontSize={11} fontWeight={800}>
         {value}
       </text>
     </g>
   );
 };
 
-// ─── Premium Consumption Chart ─────────────────────────────────────────────
-const ConsumptionChart: React.FC<BarChartProps> = ({ readings }) => {
+const ConsumptionChart: React.FC<ConsumptionChartProps> = ({ readings }) => {
   const [viewMode, setViewMode] = useState<'recent' | 'annual'>('recent');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
 
   if (!readings.length) {
-    return <p style={{ color: '#5f6368', fontSize: 13, padding: '20px' }}>No reading data available.</p>;
+    return <p className="cm-empty-copy">No reading data available yet.</p>;
   }
 
-  // 1. Get available years from data
-  const availableYears = Array.from(new Set(readings.map(r => new Date(r.Reading_Date).getFullYear()))).sort((a,b) => b-a);
-  if (!availableYears.includes(new Date().getFullYear())) {
-    availableYears.unshift(new Date().getFullYear());
+  const availableYears = Array.from(
+    new Set(
+      readings
+        .map((reading) => new Date(reading.Reading_Date).getFullYear())
+        .filter((year) => !Number.isNaN(year))
+    )
+  ).sort((a, b) => b - a);
+
+  if (!availableYears.includes(currentYear)) {
+    availableYears.unshift(currentYear);
   }
 
-  // 2. Prepare Data
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  let chartData: any[] = [];
+  let chartData: Array<{ name: string; consumption: number }> = [];
 
   if (viewMode === 'annual') {
-    // Annual Mode: Full 12-month calendar
     chartData = monthNames.map((month) => ({ name: month, consumption: 0 }));
-    readings.forEach(r => {
-      const d = new Date(r.Reading_Date);
-      if (d.getFullYear() === selectedYear) {
-        chartData[d.getMonth()].consumption = r.Consumption || 0;
+    readings.forEach((reading) => {
+      const parsed = new Date(reading.Reading_Date);
+      if (parsed.getFullYear() === selectedYear) {
+        chartData[parsed.getMonth()].consumption = Number(reading.Consumption || 0);
       }
     });
   } else {
-    // Recent Mode: Only show months with data for the selected year
     const yearReadings = readings
-      .filter(r => new Date(r.Reading_Date).getFullYear() === selectedYear)
-      .sort((a,b) => new Date(a.Reading_Date).getTime() - new Date(b.Reading_Date).getTime());
-    
-    chartData = yearReadings.map(r => ({
-      name: monthNames[new Date(r.Reading_Date).getMonth()],
-      consumption: r.Consumption
+      .filter((reading) => new Date(reading.Reading_Date).getFullYear() === selectedYear)
+      .sort((left, right) => new Date(left.Reading_Date).getTime() - new Date(right.Reading_Date).getTime());
+
+    chartData = yearReadings.map((reading) => ({
+      name: monthNames[new Date(reading.Reading_Date).getMonth()],
+      consumption: Number(reading.Consumption || 0),
     }));
 
-    // Start anchor if we have data to make it look "Area"
     if (chartData.length > 0) {
       chartData = [{ name: '', consumption: 0 }, ...chartData];
     }
@@ -136,75 +229,80 @@ const ConsumptionChart: React.FC<BarChartProps> = ({ readings }) => {
     <div className="cm-chart-wrapper">
       <div className="cm-chart-controls">
         <div className="cm-view-toggle">
-          <button 
+          <button
+            type="button"
             className={`cm-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
             onClick={() => setViewMode('recent')}
           >
             Recent
           </button>
-          <button 
+          <button
+            type="button"
             className={`cm-toggle-btn ${viewMode === 'annual' ? 'active' : ''}`}
             onClick={() => setViewMode('annual')}
           >
             Annual
           </button>
         </div>
-        
+
         <div className="cm-year-select-wrapper">
-          <label>Year:</label>
-          <select 
-            value={selectedYear} 
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
+          <label htmlFor="consumer-dashboard-year">Year</label>
+          <select
+            id="consumer-dashboard-year"
+            value={selectedYear}
+            onChange={(event) => setSelectedYear(Number(event.target.value))}
             className="cm-year-select"
           >
-            {availableYears.map(year => (
-              <option key={year} value={year}>{year}</option>
+            {availableYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
             ))}
           </select>
         </div>
       </div>
 
-      <div className="consumption-chart-container" style={{ width: '100%', height: 320 }}>
+      <div className="cm-chart-canvas">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 60, right: 20, left: 0, bottom: 30 }}>
+          <AreaChart data={chartData} margin={{ top: 56, right: 18, left: 0, bottom: 24 }}>
             <defs>
-              <linearGradient id="colorConsumption" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.5}/>
-                <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+              <linearGradient id="consumerConsumptionFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.42} />
+                <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
-            <XAxis 
-              dataKey="name" 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#475569', fontSize: 13, fontWeight: 800 }}
-              dy={15}
+            <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="rgba(15, 23, 42, 0.08)" />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#5b6b86', fontSize: 13, fontWeight: 700 }}
+              dy={14}
             />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#475569', fontSize: 13, fontWeight: 800 }}
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#5b6b86', fontSize: 13, fontWeight: 700 }}
             />
-            <Tooltip 
-              cursor={{ stroke: '#2563eb', strokeWidth: 1, strokeDasharray: '5 5' }}
-              contentStyle={{ 
-                borderRadius: '12px', 
-                border: 'none', 
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                padding: '12px'
+            <Tooltip
+              cursor={{ stroke: '#2563eb', strokeWidth: 1, strokeDasharray: '6 6' }}
+              contentStyle={{
+                borderRadius: '14px',
+                border: '1px solid rgba(148, 163, 184, 0.18)',
+                boxShadow: '0 18px 40px rgba(15, 23, 42, 0.12)',
+                padding: '12px 14px',
               }}
-              labelStyle={{ color: '#1B1B63', fontWeight: 900, marginBottom: '4px' }}
+              labelStyle={{ color: '#18264d', fontWeight: 800, marginBottom: '4px' }}
               itemStyle={{ color: '#2563eb', fontWeight: 700 }}
-              formatter={(value: any) => [`${value} m³`, 'Consumption']}
+              formatter={(value: any) => [`${value} m3`, 'Consumption']}
             />
-            <Area 
-              type="monotone" 
-              dataKey="consumption" 
-              stroke="#2563eb" 
-              strokeWidth={4.5}
-              fillOpacity={1} 
-              fill="url(#colorConsumption)" 
+            <Area
+              type="monotone"
+              dataKey="consumption"
+              stroke="#2563eb"
+              strokeWidth={4}
+              fillOpacity={1}
+              fill="url(#consumerConsumptionFill)"
               dot={(props: any) => {
                 const { cx, cy, value } = props;
                 if (value > 0) {
@@ -212,9 +310,8 @@ const ConsumptionChart: React.FC<BarChartProps> = ({ readings }) => {
                 }
                 return <circle cx={cx} cy={cy} r={2} fill="#cbd5e1" />;
               }}
-              activeDot={{ r: 8, fill: '#2563eb', stroke: '#fff', strokeWidth: 3 }}
-              animationDuration={1500}
-              isAnimationActive={true}
+              activeDot={{ r: 8, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 3 }}
+              animationDuration={1400}
             >
               <LabelList dataKey="consumption" content={<CustomLabel />} />
             </Area>
@@ -225,7 +322,6 @@ const ConsumptionChart: React.FC<BarChartProps> = ({ readings }) => {
   );
 };
 
-// ─── Main Component ────────────────────────────────────────────────────────
 const ConsumerMain: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -239,187 +335,332 @@ const ConsumerMain: React.FC = () => {
   const [dataSource, setDataSource] = useState<'api' | 'supabase' | 'offline' | null>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      return;
+    }
+
     const fetchDashboard = async () => {
       try {
         const { data, source } = await loadConsumerDashboardWithFallback(user.id);
-        const { consumer: c, bills: b, payments: p, readings: r } = data;
         setDataSource(source);
-        setConsumer({
-          name: c.First_Name && c.Last_Name
-            ? `${c.First_Name}${c.Middle_Name ? ' ' + c.Middle_Name : ''} ${c.Last_Name}`
-            : user.fullName || 'Consumer',
-          accountNo: c.Account_Number || c.account_number || `C-${String(c.Consumer_ID).padStart(4, '0')}`,
-          connectionStatus: c.Status || 'Active',
-        });
-        setBills(b || []);
-        setPayments(p || []);
-        setReadings(r || []);
-      } catch (err: any) {
+        setConsumer(data.consumer as ConsumerInfo);
+        setBills((data.bills || []) as Bill[]);
+        setPayments((data.payments || []) as Payment[]);
+        setReadings((data.readings || []) as Reading[]);
+      } catch (err) {
         setError(getErrorMessage(err, 'Failed to load dashboard.'));
       } finally {
         setLoading(false);
       }
     };
-    fetchDashboard();
-  }, [user]);
 
-  // ── Bill calculations
-  const currentBill = bills.find(b => b.Status === 'Unpaid') || null;
-  const unpaidBills = bills.filter(b => b.Status === 'Unpaid');
-  
-  // The 'Balance' is all unpaid bills EXCEPT the current one
-  const balanceBills = currentBill ? unpaidBills.filter(b => b.Bill_ID !== currentBill.Bill_ID) : unpaidBills;
-  const unpaidBalance = balanceBills.reduce((s, b) => s + (b.Total_Amount || 0), 0);
-  
-  const totalDue = (currentBill?.Total_Amount || 0) + unpaidBalance;
-  
-  const dueDate = currentBill?.Due_Date
-    ? new Date(currentBill.Due_Date).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
-    : 'N/A';
+    void fetchDashboard();
+  }, [user?.id]);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
-
-  if (error) return (
-    <div className="cm-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center', color: '#e53935' }}>
-        <i className="fas fa-exclamation-circle" style={{ fontSize: 40 }} />
-        <p>{error}</p>
-      </div>
-    </div>
+  const currentBill = bills.find((bill) => bill.Status === 'Unpaid') || null;
+  const unpaidBills = bills.filter((bill) => bill.Status === 'Unpaid');
+  const balanceBills = currentBill ? unpaidBills.filter((bill) => bill.Bill_ID !== currentBill.Bill_ID) : unpaidBills;
+  const unpaidBalance = balanceBills.reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
+  const currentBillAmount = Number(
+    currentBill?.Amount_Due ??
+    currentBill?.Total_After_Due_Date ??
+    currentBill?.Total_Amount ??
+    0
   );
+  const totalDue = currentBillAmount + unpaidBalance;
+  const latestPayment = payments[0] || null;
+  const latestReading = readings[readings.length - 1] || null;
+
+  const displayName = formatName(
+    consumer?.First_Name ?? consumer?.first_name,
+    consumer?.Middle_Name ?? consumer?.middle_name,
+    consumer?.Last_Name ?? consumer?.last_name,
+    user?.fullName || user?.username || 'Consumer'
+  );
+  const accountNumber = consumer?.Account_Number ?? consumer?.account_number ?? `C-${String(consumer?.Consumer_ID || user?.id || 0).padStart(4, '0')}`;
+  const serviceStatus = consumer?.Status ?? consumer?.status ?? 'Unknown';
+  const accountStatus = consumer?.Account_Status ?? consumer?.account_status ?? 'Unknown';
+  const dueDate = currentBill?.Due_Date ? formatDate(currentBill.Due_Date) : 'No due date';
+  const profileImage = consumer?.Profile_Picture_URL ?? consumer?.profile_picture_url ?? user?.profile_picture_url ?? null;
+  const serviceAddress = (
+    consumer?.Address
+    ?? consumer?.address
+    ?? [
+      consumer?.Purok ?? consumer?.purok,
+      consumer?.Barangay ?? consumer?.barangay,
+      consumer?.Municipality ?? consumer?.municipality,
+      consumer?.Zip_Code ?? consumer?.zip_code,
+    ].filter(Boolean).join(', ')
+  ) || 'No service address recorded';
+
+  const offlineMessage = dataSource === 'supabase'
+    ? 'Cloud fallback active. Dashboard data is currently loading from Supabase.'
+    : dataSource === 'offline'
+      ? 'Offline snapshot active. Recent updates will appear after synchronization.'
+      : '';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  if (error) {
+    return (
+      <div className="cm-page">
+        <div className="cm-shell">
+          <div className="cm-empty-state">
+            <i className="fas fa-exclamation-circle" />
+            <h2>Dashboard unavailable</h2>
+            <p>{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="cm-page">
+        <div className="cm-shell cm-shell-loading">
+          <div className="cm-loading-hero" />
+          <div className="cm-loading-grid">
+            <div className="cm-loading-card" />
+            <div className="cm-loading-card" />
+            <div className="cm-loading-card" />
+            <div className="cm-loading-card" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cm-page">
-      {/* ── Header ── */}
-      {/* ── Header ── */}
-      <div className="cm-header">
-        <div className="cm-header-info">
-          <div className="cm-dashboard-label">San Lorenzo Ruiz Water System</div>
-          <h1 className="cm-name">{formatName(consumer?.name || user?.fullName)}</h1>
-          {dataSource === 'supabase' && (
-            <div style={{ marginTop: '10px', color: '#b45309', fontSize: '12px', fontWeight: 700 }}>
-              Cloud fallback active. Dashboard data is loading from Supabase.
+      <div className="cm-shell">
+        <section className="cm-hero">
+          <div className="cm-hero-main">
+            <div className="cm-avatar-panel">
+              <div className="cm-avatar">
+                {profileImage ? (
+                  <img src={profileImage} alt={`${displayName} profile`} className="cm-avatar-image" />
+                ) : (
+                  <span>{getUserInitials(displayName)}</span>
+                )}
+              </div>
+              <span className={`cm-status-pill ${statusClassName(serviceStatus)}`}>
+                <i className="fas fa-circle" /> {serviceStatus}
+              </span>
             </div>
-          )}
-          {dataSource === 'offline' && (
-            <div style={{ marginTop: '10px', color: '#92400e', fontSize: '12px', fontWeight: 700 }}>
-              Offline snapshot active. Recent updates will appear after sync.
+
+            <div className="cm-hero-copy">
+              <div className="cm-dashboard-label">Consumer Dashboard</div>
+              <h1 className="cm-name">{displayName}</h1>
+              <p className="cm-subtitle">
+                Track your current bill, unpaid balance, recent payments, and monthly water consumption in one place.
+              </p>
+              <div className="cm-meta">
+                <span className="cm-meta-item">
+                  <i className="fas fa-file-invoice" /> Account No. <strong>{accountNumber}</strong>
+                </span>
+                <span className="cm-meta-item">
+                  <i className="fas fa-user-circle" /> Username <strong>{consumer?.Username ?? consumer?.username ?? user?.username ?? 'N/A'}</strong>
+                </span>
+                <span className="cm-meta-item">
+                  <i className="fas fa-calendar-alt" /> Connected <strong>{formatDate(consumer?.Connection_Date ?? consumer?.connection_date)}</strong>
+                </span>
+              </div>
             </div>
-          )}
-          <div className="cm-meta">
-            <span className="cm-meta-item">
-              <i className="fas fa-id-card" /> Account: <strong>{consumer?.accountNo}</strong>
-            </span>
-            <span className={`cm-status ${consumer?.connectionStatus === 'Active' ? 'active' : 'inactive'}`}>
-              <i className="fas fa-circle" /> Status: {consumer?.connectionStatus}
-            </span>
           </div>
-        </div>
-        <div className="cm-header-actions">
-          <Link to="/consumer/profile" className="cm-profile-btn">
-            <i className="fas fa-user" /> My Profile
-          </Link>
-          <button className="cm-logout-btn" onClick={handleLogout}>
-            <i className="fas fa-sign-out-alt" /> Logout
-          </button>
-        </div>
-      </div>
 
-      {/* ── 3 Cards ── */}
-      <div className="cm-cards">
-        {/* Current Bill */}
-        <div className="cm-card">
-          <div className="cm-card-label"><i className="fas fa-file-invoice-dollar" /> Current Bill</div>
-          <div className="cm-card-amount">{currentBill ? formatPeso(currentBill.Total_Amount) : '₱0.00'}</div>
-          <div className="cm-card-sub">
-            {currentBill ? `Month of ${fullMonth(currentBill.Bill_Date)}` : 'No unpaid current bill'}
+          <div className="cm-header-actions">
+            <Link to="/consumer/profile" className="cm-profile-btn">
+              <i className="fas fa-user" /> My Profile
+            </Link>
+            <button className="cm-logout-btn" onClick={handleLogout}>
+              <i className="fas fa-sign-out-alt" /> Logout
+            </button>
           </div>
-        </div>
+        </section>
 
-        {/* Balance */}
-        <div className="cm-card">
-          <div className="cm-card-label">
-            <i className="fas fa-balance-scale" style={{ color: unpaidBalance > 0 ? '#ef4444' : '#12b981' }} /> 
-            Balance
+        {offlineMessage && (
+          <div className={`cm-banner ${dataSource === 'offline' ? 'offline' : 'fallback'}`}>
+            <i className={`fas ${dataSource === 'offline' ? 'fa-wifi' : 'fa-cloud'}`} />
+            <span>{offlineMessage}</span>
           </div>
-          <div className={`cm-card-amount ${unpaidBalance > 0 ? 'red' : 'green'}`}>
-            {formatPeso(unpaidBalance)}
-          </div>
-          <div className="cm-card-sub">
-            {balanceBills.length > 0
-              ? balanceBills.map(b => (
-                  <div key={b.Bill_ID} className="balance-row unpaid">
-                    <span>{shortMonth(b.Bill_Date)}</span>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span className="balance-amt">{formatPeso(b.Total_Amount)}</span>
-                      <span className="balance-tag">Unpaid</span>
-                    </div>
-                  </div>
-                ))
-              : <div className="balance-row paid">
-                  <span style={{ color: '#12b981' }}>Account up to date</span>
-                  <span className="balance-tag">Paid</span>
+        )}
+
+        <section className="cm-stat-grid">
+          <article className="cm-stat-card">
+            <span className="cm-stat-label">Current Bill</span>
+            <strong className="cm-stat-value">{currentBill ? formatPeso(currentBillAmount) : 'PHP 0.00'}</strong>
+            <p className="cm-stat-note">
+              {currentBill ? `Billing month: ${displayBillingMonth(currentBill.Billing_Month, currentBill.Bill_Date)}` : 'No unpaid current bill.'}
+            </p>
+          </article>
+
+          <article className="cm-stat-card">
+            <span className="cm-stat-label">Unpaid Balance</span>
+            <strong className={`cm-stat-value ${unpaidBalance > 0 ? 'danger' : 'success'}`}>{formatPeso(unpaidBalance)}</strong>
+            <p className="cm-stat-note">
+              {balanceBills.length > 0 ? `${balanceBills.length} older unpaid bill(s)` : 'No carried balance.'}
+            </p>
+          </article>
+
+          <article className="cm-stat-card cm-stat-card-highlight">
+            <span className="cm-stat-label">Total Amount Due</span>
+            <strong className="cm-stat-value">{formatPeso(totalDue)}</strong>
+            <p className="cm-stat-note">Due date: {dueDate}</p>
+          </article>
+
+          <article className="cm-stat-card">
+            <span className="cm-stat-label">Latest Reading</span>
+            <strong className="cm-stat-value">{latestReading ? `${latestReading.Consumption} m3` : 'N/A'}</strong>
+            <p className="cm-stat-note">
+              {latestReading ? `Recorded ${formatDate(latestReading.Reading_Date)}` : 'No recent reading yet.'}
+            </p>
+          </article>
+        </section>
+
+        <div className="cm-content">
+          <div className="cm-main-column">
+            <section className="cm-card">
+              <div className="cm-card-header">
+                <div>
+                  <h2 className="cm-card-title">
+                    <i className="fas fa-chart-line" /> Monthly Water Consumption
+                  </h2>
+                  <p className="cm-card-subtitle">Review your recent and annual water usage based on recorded meter readings.</p>
                 </div>
-            }
-            <div className="balance-overall">Overall Status: <strong>{unpaidBalance > 0 ? 'Unpaid' : 'Fully Paid'}</strong></div>
-          </div>
-        </div>
+              </div>
+              <ConsumptionChart readings={readings} />
+            </section>
 
-        {/* Total Bill - Highlight Component */}
-        <div className="cm-card cm-card-highlight">
-          <div className="cm-card-label"><i className="fas fa-receipt" /> Total Amount Due</div>
-          <div className="cm-card-amount total">{formatPeso(totalDue)}</div>
-          <div className="cm-card-sub">
-            <div className="total-formula">
-              <span>Current + Balance</span>
-              <span>{formatPeso(currentBill?.Total_Amount || 0)} + {formatPeso(unpaidBalance)}</span>
-            </div>
-            <div className="total-due-date">
-              <i className="fas fa-calendar-alt" /> Due Date: <strong>{dueDate}</strong>
-            </div>
-          </div>
-        </div>
-      </div>
+            <section className="cm-card">
+              <div className="cm-card-header">
+                <div>
+                  <h2 className="cm-card-title">
+                    <i className="fas fa-check-circle" /> Successful Payments
+                  </h2>
+                  <p className="cm-card-subtitle">A quick view of your completed payment history and reference numbers.</p>
+                </div>
+              </div>
 
-      <div className="cm-section">
-        <div className="cm-section-title"><i className="fas fa-chart-line" /> Monthly Water Consumption (m³)</div>
-        <ConsumptionChart readings={readings} />
-      </div>
-
-      {/* ── Payments ── */}
-      <div className="cm-section">
-        <div className="cm-section-title"><i className="fas fa-check-circle" /> Successful Payments</div>
-        {payments.length === 0
-          ? <p style={{ color: '#5f6368', fontSize: 13 }}>No payment records yet.</p>
-          : (
-            <div className="cm-table-wrapper">
-              <table className="cm-table">
-                <thead>
-                  <tr>
-                    <th>Date Paid</th>
-                    <th>Billing Month</th>
-                    <th>Amount Paid</th>
-                    <th>Ref Number</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map(p => {
-                    const billingDate = p.bills?.Bill_Date || p.Bill_Date;
-                    return (
-                      <tr key={p.Payment_ID}>
-                        <td>{new Date(p.Payment_Date).toLocaleDateString('en-PH')}</td>
-                        <td>{fullMonth(billingDate)}</td>
-                        <td>{formatPeso(p.Amount_Paid)}</td>
-                        <td><span className="ref-badge">{p.Reference_Number || 'N/A'}</span></td>
+              {payments.length === 0 ? (
+                <p className="cm-empty-copy">No payment records yet.</p>
+              ) : (
+                <div className="cm-table-wrapper">
+                  <table className="cm-table">
+                    <thead>
+                      <tr>
+                        <th>Date Paid</th>
+                        <th>Billing Month</th>
+                        <th>Amount Paid</th>
+                        <th>Reference Number</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )
-        }
+                    </thead>
+                    <tbody>
+                      {payments.map((payment) => {
+                        const billingDate = payment.bills?.Bill_Date || payment.Bill_Date;
+                        return (
+                          <tr key={payment.Payment_ID}>
+                            <td>{formatDate(payment.Payment_Date)}</td>
+                            <td>{displayBillingMonth(payment.Billing_Month, billingDate)}</td>
+                            <td>{formatPeso(payment.Amount_Paid)}</td>
+                            <td>
+                              <span className="cm-ref-badge">{payment.Reference_Number || 'N/A'}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <aside className="cm-side-column">
+            <section className="cm-card cm-side-card">
+              <h2 className="cm-card-title">
+                <i className="fas fa-file-invoice-dollar" /> Billing Snapshot
+              </h2>
+              <div className="cm-summary-list">
+                <div className="cm-summary-row">
+                  <span>Current billing month</span>
+                  <strong>{currentBill ? displayBillingMonth(currentBill.Billing_Month, currentBill.Bill_Date) : 'None'}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Total amount due</span>
+                  <strong>{formatPeso(totalDue)}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Due date</span>
+                  <strong>{dueDate}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Last payment</span>
+                  <strong>{latestPayment ? formatDate(latestPayment.Payment_Date) : 'No payment yet'}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Last payment amount</span>
+                  <strong>{latestPayment ? formatPeso(latestPayment.Amount_Paid) : 'PHP 0.00'}</strong>
+                </div>
+              </div>
+            </section>
+
+            <section className="cm-card cm-side-card">
+              <h2 className="cm-card-title">
+                <i className="fas fa-tint" /> Service Snapshot
+              </h2>
+              <div className="cm-summary-list">
+                <div className="cm-summary-row">
+                  <span>Service status</span>
+                  <strong>{serviceStatus}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Portal account</span>
+                  <strong>{accountStatus}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Meter number</span>
+                  <strong>{consumer?.Meter_Number ?? consumer?.meter_number ?? 'Not assigned'}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Meter status</span>
+                  <strong>{consumer?.Meter_Status ?? consumer?.meter_status ?? 'Unknown'}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Zone</span>
+                  <strong>{consumer?.Zone_Name ?? consumer?.zone_name ?? 'Not assigned'}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Classification</span>
+                  <strong>{consumer?.Classification_Name ?? consumer?.classification_name ?? 'Not assigned'}</strong>
+                </div>
+                <div className="cm-summary-row cm-summary-row-wide">
+                  <span>Service address</span>
+                  <strong>{serviceAddress}</strong>
+                </div>
+              </div>
+            </section>
+
+            {balanceBills.length > 0 && (
+              <section className="cm-card cm-side-card">
+                <h2 className="cm-card-title">
+                  <i className="fas fa-balance-scale" /> Previous Unpaid Bills
+                </h2>
+                <div className="cm-balance-list">
+                  {balanceBills.map((bill) => (
+                    <div key={bill.Bill_ID} className="cm-balance-row">
+                      <span>{displayBillingMonth(bill.Billing_Month, bill.Bill_Date)}</span>
+                      <strong>{formatPeso(bill.Total_Amount)}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </aside>
+        </div>
       </div>
     </div>
   );

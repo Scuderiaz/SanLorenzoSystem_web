@@ -28,10 +28,38 @@ interface Role {
   Role_Name: string;
 }
 
+const SYSTEM_ROLE_IDS = new Set([1, 2, 3, 4]);
+
 const formatDateTime = (value?: string | null) => {
   if (!value) return 'N/A';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('en-PH');
+};
+
+const matchesCreatedRange = (value: string | null | undefined, filter: string) => {
+  if (!filter) return true;
+  if (!value) return filter === 'undated';
+
+  const createdAt = new Date(value);
+  if (Number.isNaN(createdAt.getTime())) {
+    return filter === 'undated';
+  }
+
+  const now = new Date();
+  const daysSinceCreated = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+
+  switch (filter) {
+    case 'last7days':
+      return daysSinceCreated <= 7;
+    case 'last30days':
+      return daysSinceCreated <= 30;
+    case 'older':
+      return daysSinceCreated > 30;
+    case 'undated':
+      return false;
+    default:
+      return true;
+  }
 };
 
 const UsersTab: React.FC = () => {
@@ -44,6 +72,7 @@ const UsersTab: React.FC = () => {
   // Filters
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [createdFilter, setCreatedFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modal State
@@ -71,7 +100,7 @@ const UsersTab: React.FC = () => {
     setLoading(true);
     try {
       const { data, source } = await loadUnifiedUsersWithFallback();
-      setUsers(data);
+      setUsers(data.filter((entry: User) => SYSTEM_ROLE_IDS.has(Number(entry.Role_ID))));
       if (source === 'supabase') {
         showToast('Users loaded using Supabase fallback.', 'warning');
       }
@@ -212,7 +241,8 @@ const UsersTab: React.FC = () => {
     ].some((value) => String(value || '').toLowerCase().includes(normalizedQuery));
     const matchesRole = !roleFilter || u.Role_ID.toString() === roleFilter;
     const matchesStatus = !statusFilter || u.Status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
+    const matchesCreated = matchesCreatedRange(u.Created_At, createdFilter);
+    return matchesSearch && matchesRole && matchesStatus && matchesCreated;
   });
   const selectedRoleId = Number(formData.roleId || editingUser?.Role_ID || 0);
   const canManageSelectedProfilePicture = [1, 2, 3, 4].includes(selectedRoleId);
@@ -274,18 +304,27 @@ const UsersTab: React.FC = () => {
     },
   ];
 
-  const roleOptions = roles.map(r => ({ value: r.Role_ID, label: r.Role_Name }));
+  const roleOptions = roles
+    .filter((role) => SYSTEM_ROLE_IDS.has(Number(role.Role_ID)))
+    .map(r => ({ value: r.Role_ID, label: r.Role_Name }));
   const userStatusOptions = [
     { value: 'Active', label: 'Active' },
     { value: 'Pending', label: 'Pending' },
     { value: 'Inactive', label: 'Inactive' },
     { value: 'Rejected', label: 'Rejected' },
   ];
-  const hasActiveFilters = Boolean(searchQuery.trim() || roleFilter || statusFilter);
+  const createdDateOptions = [
+    { value: 'last7days', label: 'Created Last 7 Days' },
+    { value: 'last30days', label: 'Created Last 30 Days' },
+    { value: 'older', label: 'Created Earlier' },
+    { value: 'undated', label: 'No Created Date' },
+  ];
+  const hasActiveFilters = Boolean(searchQuery.trim() || roleFilter || statusFilter || createdFilter);
   const clearFilters = () => {
     setSearchQuery('');
     setRoleFilter('');
     setStatusFilter('');
+    setCreatedFilter('');
   };
 
   return (
@@ -293,7 +332,7 @@ const UsersTab: React.FC = () => {
       <TableToolbar
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search by account ID, username, role, or status..."
+        searchPlaceholder="Search by account ID, username, full name, role, or status..."
         quickFilters={
           <>
             <FormSelect
@@ -309,6 +348,13 @@ const UsersTab: React.FC = () => {
               onChange={setStatusFilter}
               options={userStatusOptions}
               placeholder="All Statuses"
+            />
+            <FormSelect
+              label=""
+              value={createdFilter}
+              onChange={setCreatedFilter}
+              options={createdDateOptions}
+              placeholder="All Created Dates"
             />
           </>
         }

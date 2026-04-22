@@ -65,6 +65,7 @@ const createOfflineTables = (database: Database) => {
         Username TEXT NOT NULL UNIQUE,
         Password TEXT NOT NULL,
         Full_Name TEXT,
+        profile_picture_url TEXT,
         Role_ID INTEGER,
         FOREIGN KEY (Role_ID) REFERENCES roles(Role_ID)
       );
@@ -182,6 +183,7 @@ const createOfflineTables = (database: Database) => {
       );
     `);
 
+    ensureColumn(database, 'accounts', 'profile_picture_url', 'TEXT');
     ensureColumn(database, 'consumer', 'created_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
     ensureColumn(database, 'consumer', 'updated_at', 'TEXT DEFAULT CURRENT_TIMESTAMP');
     ensureColumn(database, 'consumer', 'source_site_id', 'TEXT');
