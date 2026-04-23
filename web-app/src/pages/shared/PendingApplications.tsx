@@ -8,7 +8,9 @@ import FormSelect from '../../components/Common/FormSelect';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage, loadApplicationsWithFallback, loadClassificationsWithFallback, loadZonesWithFallback, requestJson } from '../../services/userManagementApi';
 import { formatAccountNumberForDisplay, isPlaceholderAccountNumber } from '../../utils/accountNumber';
+import { convertDocumentImageFile } from '../../utils/profileImage';
 import '../assessor_admin/Users.css';
+import './PendingApplications.css';
 
 interface PendingApplication {
   Ticket_ID: number;
@@ -58,6 +60,8 @@ const normalizePhoneInput = (value: string) => {
 
 const formatZoneLabel = (zoneName?: string | null, zoneId?: number | string | null) =>
   zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
+const isImageDataUrl = (value?: string | null) => /^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(String(value || '').trim());
 
 const PendingApplications: React.FC = () => {
   const { user } = useAuth();
@@ -161,6 +165,25 @@ const PendingApplications: React.FC = () => {
       requirementsSubmitted: application.Requirements_Submitted || '',
     });
     setIsEditOpen(true);
+  };
+
+  const handleSedulaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const imageDataUrl = await convertDocumentImageFile(file);
+      setFormData((current) => ({
+        ...current,
+        requirementsSubmitted: imageDataUrl,
+      }));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to prepare the selected sedula image.', 'error');
+    }
   };
 
   const handleApprove = async (accountId: number) => {
@@ -322,6 +345,9 @@ const PendingApplications: React.FC = () => {
     return formatAccountNumberForDisplay(application.Account_Number, 'To be updated upon approval');
   };
 
+  const requirementPreviewImage = isImageDataUrl(formData.requirementsSubmitted) ? formData.requirementsSubmitted : '';
+  const selectedRequirementImage = isImageDataUrl(selectedApplication?.Requirements_Submitted) ? selectedApplication?.Requirements_Submitted : '';
+
   return (
     <MainLayout title="Applications">
       <div className="users-page">
@@ -408,18 +434,31 @@ const PendingApplications: React.FC = () => {
         >
           {selectedApplication && (
             <div className="application-detail-grid">
-              <p><strong>Ticket Number:</strong> {selectedApplication.Ticket_Number}</p>
-              <p><strong>Application Status:</strong> {selectedApplication.Application_Status}</p>
-              <p><strong>Applicant:</strong> {selectedApplication.Consumer_Name || 'N/A'}</p>
-              {canViewUsername && <p><strong>Username:</strong> {selectedApplication.Username || 'N/A'}</p>}
-              <p><strong>Classification:</strong> {selectedApplication.Classification_Name || 'N/A'}</p>
-              <p><strong>Zone:</strong> {formatZoneLabel(selectedApplication.Zone_Name, selectedApplication.Zone_ID)}</p>
-              <p><strong>Contact Number:</strong> {selectedApplication.Contact_Number || 'N/A'}</p>
-              <p><strong>Connection Type:</strong> {selectedApplication.Connection_Type || 'N/A'}</p>
-              <p><strong>Requirements:</strong> {selectedApplication.Requirements_Submitted || 'N/A'}</p>
-              <p><strong>Official Account No.:</strong> {accountNumberDisplay(selectedApplication)}</p>
-              <p><strong>Applied On:</strong> {selectedApplication.Application_Date ? new Date(selectedApplication.Application_Date).toLocaleString() : 'N/A'}</p>
-              <p><strong>Address:</strong> {selectedApplication.Address || 'N/A'}</p>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Ticket Number:</span> <span className="pending-app-detail-value">{selectedApplication.Ticket_Number}</span></p>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Application Status:</span> <span className="pending-app-detail-value">{selectedApplication.Application_Status}</span></p>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Applicant:</span> <span className="pending-app-detail-value">{selectedApplication.Consumer_Name || 'N/A'}</span></p>
+              {canViewUsername && <p className="pending-app-detail-item"><span className="pending-app-detail-label">Username:</span> <span className="pending-app-detail-value">{selectedApplication.Username || 'N/A'}</span></p>}
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Classification:</span> <span className="pending-app-detail-value">{selectedApplication.Classification_Name || 'N/A'}</span></p>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Zone:</span> <span className="pending-app-detail-value">{formatZoneLabel(selectedApplication.Zone_Name, selectedApplication.Zone_ID)}</span></p>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Contact Number:</span> <span className="pending-app-detail-value">{selectedApplication.Contact_Number || 'N/A'}</span></p>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Connection Type:</span> <span className="pending-app-detail-value">{selectedApplication.Connection_Type || 'N/A'}</span></p>
+              <div>
+                <span className="pending-app-detail-label">Sedula:</span>
+                <div style={{ marginTop: '10px' }}>
+                  {selectedRequirementImage ? (
+                    <img
+                      src={selectedRequirementImage}
+                      alt="Sedula"
+                      className="pending-app-detail-image"
+                    />
+                  ) : (
+                    <span className="pending-app-detail-value">{selectedApplication.Requirements_Submitted || 'N/A'}</span>
+                  )}
+                </div>
+              </div>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Official Account No.:</span> <span className="pending-app-detail-value">{accountNumberDisplay(selectedApplication)}</span></p>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Applied On:</span> <span className="pending-app-detail-value">{selectedApplication.Application_Date ? new Date(selectedApplication.Application_Date).toLocaleString() : 'N/A'}</span></p>
+              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Address:</span> <span className="pending-app-detail-value">{selectedApplication.Address || 'N/A'}</span></p>
             </div>
           )}
         </Modal>
@@ -455,48 +494,117 @@ const PendingApplications: React.FC = () => {
             </>
           }
         >
-          <div className="application-edit-grid">
-            {canViewUsername && (
-              <FormInput label="Username" value={formData.username} onChange={(value) => setFormData({ ...formData, username: value })} required />
-            )}
-            <FormInput label="First Name" value={formData.firstName} onChange={(value) => setFormData({ ...formData, firstName: value })} required />
-            <FormInput label="Middle Name" value={formData.middleName} onChange={(value) => setFormData({ ...formData, middleName: value })} />
-            <FormInput label="Last Name" value={formData.lastName} onChange={(value) => setFormData({ ...formData, lastName: value })} required />
-            <FormInput label="Contact Number" value={formData.contactNumber} onChange={(value) => setFormData({ ...formData, contactNumber: normalizePhoneInput(value) })} />
-            <FormInput label="Purok" value={formData.purok} onChange={(value) => setFormData({ ...formData, purok: value })} />
-            <FormInput label="Barangay" value={formData.barangay} onChange={(value) => setFormData({ ...formData, barangay: value })} />
-            <FormInput label="Municipality" value={formData.municipality} onChange={(value) => setFormData({ ...formData, municipality: value })} />
-            <FormInput label="ZIP Code" value={formData.zipCode} onChange={(value) => setFormData({ ...formData, zipCode: value })} />
-            <FormSelect
-              label="Zone"
-              value={formData.zoneId}
-              onChange={(value) => setFormData({ ...formData, zoneId: value })}
-              options={zones.map((zone) => ({ value: zone.id, label: zone.name }))}
-              required
-            />
-            <FormSelect
-              label="Classification"
-              value={formData.classificationId}
-              onChange={(value) => setFormData({ ...formData, classificationId: value })}
-              options={classifications.map((classification) => ({ value: classification.id, label: classification.name }))}
-              required
-            />
-            <FormInput
-              label="Account Number"
-              value={formData.accountNumber}
-              onChange={(value) => setFormData({ ...formData, accountNumber: value })}
-              placeholder="This stays hidden until the application is approved"
-            />
-            <FormInput label="Connection Type" value={formData.connectionType} onChange={(value) => setFormData({ ...formData, connectionType: value })} />
-          </div>
-          <div className="application-notes-block">
-            <label className="form-label">Requirements Submitted</label>
-            <textarea
-              className="application-textarea"
-              value={formData.requirementsSubmitted}
-              onChange={(event) => setFormData({ ...formData, requirementsSubmitted: event.target.value })}
-              rows={4}
-            />
+          <div className="pending-app-edit">
+            <section className="pending-app-section">
+              <div className="pending-app-section-head">
+                <h3 className="pending-app-section-title">Applicant Details</h3>
+                <p className="pending-app-section-copy">Review the pending concessionaire information before approval.</p>
+              </div>
+              <div className="pending-app-grid">
+                {canViewUsername && (
+                  <FormInput label="Username" value={formData.username} onChange={(value) => setFormData({ ...formData, username: value })} required />
+                )}
+                <FormInput label="First Name" value={formData.firstName} onChange={(value) => setFormData({ ...formData, firstName: value })} required />
+                <FormInput label="Middle Name" value={formData.middleName} onChange={(value) => setFormData({ ...formData, middleName: value })} />
+                <FormInput label="Last Name" value={formData.lastName} onChange={(value) => setFormData({ ...formData, lastName: value })} required />
+                <FormInput label="Contact Number" value={formData.contactNumber} onChange={(value) => setFormData({ ...formData, contactNumber: normalizePhoneInput(value) })} />
+                <FormInput label="Connection Type" value={formData.connectionType} onChange={(value) => setFormData({ ...formData, connectionType: value })} />
+              </div>
+            </section>
+
+            <section className="pending-app-section">
+              <div className="pending-app-section-head">
+                <h3 className="pending-app-section-title">Service Address</h3>
+                <p className="pending-app-section-copy">Keep the pending service location and classification details organized.</p>
+              </div>
+              <div className="pending-app-grid">
+                <FormInput label="Purok" value={formData.purok} onChange={(value) => setFormData({ ...formData, purok: value })} />
+                <FormInput label="Barangay" value={formData.barangay} onChange={(value) => setFormData({ ...formData, barangay: value })} />
+                <FormInput label="Municipality" value={formData.municipality} onChange={(value) => setFormData({ ...formData, municipality: value })} />
+                <FormInput label="ZIP Code" value={formData.zipCode} onChange={(value) => setFormData({ ...formData, zipCode: value })} />
+                <FormSelect
+                  label="Zone"
+                  value={formData.zoneId}
+                  onChange={(value) => setFormData({ ...formData, zoneId: value })}
+                  options={zones.map((zone) => ({ value: zone.id, label: zone.name }))}
+                  required
+                />
+                <FormSelect
+                  label="Classification"
+                  value={formData.classificationId}
+                  onChange={(value) => setFormData({ ...formData, classificationId: value })}
+                  options={classifications.map((classification) => ({ value: classification.id, label: classification.name }))}
+                  required
+                />
+                <div className="pending-app-field-span-2">
+                  <FormInput
+                    label="Account Number"
+                    value={formData.accountNumber}
+                    onChange={(value) => setFormData({ ...formData, accountNumber: value })}
+                    placeholder="This stays hidden until the application is approved"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="pending-app-section">
+              <div className="pending-app-section-head">
+                <h3 className="pending-app-section-title">Sedula Image</h3>
+                <p className="pending-app-section-copy">The concessionaire should now upload a clear image of the sedula for verification.</p>
+              </div>
+              <div className="pending-app-document-card">
+                <div className="pending-app-document-top">
+                  <div className="pending-app-document-meta">
+                    <h4 className="pending-app-document-title">Uploaded Sedula</h4>
+                    <p className="pending-app-document-copy">Accepted formats: PNG, JPG, WEBP, or GIF. Use a clear photo or scan of the document.</p>
+                  </div>
+                  <div className="pending-app-document-actions">
+                    <input
+                      id="pending-sedula-upload"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      className="pending-app-hidden-input"
+                      onChange={handleSedulaUpload}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        const input = document.getElementById('pending-sedula-upload') as HTMLInputElement | null;
+                        input?.click();
+                      }}
+                    >
+                      <i className="fas fa-upload"></i> Upload Sedula
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setFormData((current) => ({ ...current, requirementsSubmitted: '' }))}
+                      disabled={!formData.requirementsSubmitted}
+                    >
+                      <i className="fas fa-trash-alt"></i> Remove
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pending-app-document-preview">
+                  {requirementPreviewImage ? (
+                    <img src={requirementPreviewImage} alt="Sedula preview" />
+                  ) : (
+                    <div className="pending-app-document-empty">
+                      <i className="fas fa-file-image"></i>
+                      <span>No sedula image uploaded yet.</span>
+                    </div>
+                  )}
+                </div>
+
+                {formData.requirementsSubmitted && !requirementPreviewImage && (
+                  <div className="pending-app-document-legacy">
+                    Existing legacy requirement value: <strong>{formData.requirementsSubmitted}</strong>. Uploading a new image will replace it.
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         </Modal>
 

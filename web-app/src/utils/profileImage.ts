@@ -65,3 +65,15 @@ export const convertProfileImageFile = async (file: File) => {
 
   return output;
 };
+
+export const convertDocumentImageFile = async (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please choose a valid image file.');
+  }
+
+  if (file.size > MAX_UPLOAD_FILE_SIZE) {
+    throw new Error('Please choose an image smaller than 5 MB.');
+  }
+
+  return await readFileAsDataUrl(file);
+};

@@ -852,7 +852,10 @@ export const loadRolesWithFallback = async () => requestWithSupabaseFallback(
       Role_Name: role.role_name,
     }));
   },
-  (payload) => payload?.data || [],
+  (payload) => (payload?.data || []).map((role: any) => ({
+    Role_ID: role.Role_ID ?? role.role_id,
+    Role_Name: role.Role_Name ?? role.role_name,
+  })),
   'Failed to load roles.',
   'dataset.roles'
 );
@@ -947,7 +950,7 @@ export const loadUnifiedUsersWithFallback = async () => requestWithSupabaseFallb
     return (accounts || []).map((account) => ({
       AccountID: account.account_id,
       Username: account.username,
-      Full_Name: account.username || 'N/A',
+      Full_Name: account.full_name || account.username || 'N/A',
       Role_ID: account.role_id,
       Role_Name: roleMap.get(account.role_id) || null,
       Status: account.account_status,

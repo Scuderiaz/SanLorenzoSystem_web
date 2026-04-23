@@ -586,10 +586,10 @@ const Consumers: React.FC = () => {
             </>
           }
         >
-          <div className="form-grid">
+          <div className="consumer-modal-grid">
             {!editingConsumer && (
               <>
-                <div className="form-section-title">Account Access</div>
+                <div className="consumer-modal-section-title">Account Access</div>
                 <FormInput
                   label="Username"
                   value={formData.username}
@@ -607,7 +607,7 @@ const Consumers: React.FC = () => {
                 />
               </>
             )}
-            <div className="form-section-title">Personal Information</div>
+            <div className="consumer-modal-section-title">Personal Information</div>
             <FormInput
               label="First Name"
               value={formData.firstName}
@@ -642,7 +642,7 @@ const Consumers: React.FC = () => {
               onChange={(value) => setFormData({ ...formData, meterNumber: value })}
               icon="fa-tachometer-alt"
             />
-            <div className="form-section-title">Address Details</div>
+            <div className="consumer-modal-section-title">Address Details</div>
             <FormSelect
               label="Purok"
               value={formData.purok}
@@ -675,7 +675,7 @@ const Consumers: React.FC = () => {
               onChange={() => {}}
               icon="fa-map-marker-alt"
             />
-            <div className="form-section-title">Service Details</div>
+            <div className="consumer-modal-section-title">Service Details</div>
             <FormInput
               label="Contact Number"
               value={formData.contactNumber}

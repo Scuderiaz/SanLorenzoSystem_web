@@ -585,15 +585,15 @@ const Consumers: React.FC = () => {
             </>
           }
         >
-          <div className="form-grid">
+          <div className="billing-consumer-modal-grid">
             {!editingConsumer && (
               <>
-                <div className="form-section-title">Account Access</div>
+                <div className="billing-consumer-modal-section-title">Account Access</div>
                 <FormInput label="Username" value={formData.username} onChange={(v) => setFormData({ ...formData, username: v })} required />
                 <FormInput label="Password" type="password" value={formData.password} onChange={(v) => setFormData({ ...formData, password: v })} required />
               </>
             )}
-            <div className="form-section-title">Personal Information</div>
+            <div className="billing-consumer-modal-section-title">Personal Information</div>
             <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
             <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
             <FormInput label="Last Name" value={formData.lastName} onChange={(v) => setFormData({ ...formData, lastName: v })} required />
@@ -616,13 +616,13 @@ const Consumers: React.FC = () => {
                 { value: 'Disconnected', label: 'Disconnected' },
               ]}
             />
-            <div className="form-section-title">Address Details</div>
+            <div className="billing-consumer-modal-section-title">Address Details</div>
             <FormSelect label="Purok" value={formData.purok} onChange={(v) => setFormData({ ...formData, purok: v })} options={PUROK_OPTIONS.map((item) => ({ value: item, label: item }))} />
             <FormSelect label="Barangay" value={formData.barangay} onChange={(v) => setFormData({ ...formData, barangay: v })} options={BARANGAYS.map((item) => ({ value: item, label: item }))} />
             <FormInput label="Municipality" value={formData.municipality} onChange={(v) => setFormData({ ...formData, municipality: v })} />
             <FormInput label="Zip Code" value={formData.zipCode} onChange={(v) => setFormData({ ...formData, zipCode: v })} />
             <FormInput label="Address" value={formData.address} onChange={() => {}} />
-            <div className="form-section-title">Service Details</div>
+            <div className="billing-consumer-modal-section-title">Service Details</div>
             <FormInput label="Contact #" value={formData.contactNumber} onChange={(v) => setFormData({ ...formData, contactNumber: normalizePhoneInput(v) })} />
             <FormSelect label="Zone" value={formData.zoneId} onChange={(v) => setFormData({ ...formData, zoneId: v })} options={zoneOptions} required />
             <FormSelect label="Type" value={formData.classificationId} onChange={(v) => setFormData({ ...formData, classificationId: v })} options={classificationOptions} required />

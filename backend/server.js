@@ -111,7 +111,7 @@ const syncTableColumns = {
   zone: ['zone_id', 'zone_name'],
   classification: ['classification_id', 'classification_name'],
   admin_settings: ['settings_id', 'system_name', 'currency', 'due_date_days', 'late_fee', 'modified_by', 'modified_date'],
-  accounts: ['account_id', 'username', 'password', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
+  accounts: ['account_id', 'username', 'password', 'full_name', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
   consumer: [
     'consumer_id',
     'first_name',
@@ -1464,6 +1464,32 @@ function normalizeProfilePictureUrl(value) {
   return normalized;
 }
 
+function normalizeRequirementSubmission(value, options = {}) {
+  const { allowText = true } = options;
+
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (PROFILE_PICTURE_DATA_URL_PATTERN.test(normalized)) {
+    if (normalized.length > MAX_PROFILE_PICTURE_LENGTH) {
+      throw new Error('Uploaded requirement image is too large. Please upload a smaller image.');
+    }
+    return normalized;
+  }
+
+  if (allowText) {
+    return normalized;
+  }
+
+  throw new Error('Sedula must be uploaded as a valid PNG, JPG, WEBP, or GIF image.');
+}
+
 function canManageProfilePicture(actorAccountId, actorRoleId, targetAccountId, targetRoleId) {
   if (!Number.isInteger(actorAccountId) || actorAccountId <= 0) {
     return false;
@@ -1930,7 +1956,7 @@ function mapSupabaseAccountRow(row) {
     password: row.password,
     auth_user_id: row.auth_user_id,
     profile_picture_url: row.profile_picture_url || null,
-    full_name: row.username,
+    full_name: row.full_name || row.username,
     role_id: row.role_id,
     account_status: row.account_status,
     role_name: row.roles?.role_name || null,
@@ -1957,7 +1983,7 @@ async function findSupabaseAccountByUsername(username) {
 
 async function findPostgresAccountByUsername(username) {
   const { rows } = await pool.query(`
-    SELECT a.account_id, a.username, a.password, a.auth_user_id, a.profile_picture_url, a.username AS full_name, a.role_id, a.account_status, r.role_name
+    SELECT a.account_id, a.username, a.password, a.auth_user_id, a.profile_picture_url, COALESCE(NULLIF(a.full_name, ''), a.username) AS full_name, a.role_id, a.account_status, r.role_name
     FROM accounts a
     JOIN roles r ON a.role_id = r.role_id
     WHERE a.username = $1
@@ -2247,6 +2273,7 @@ async function initDb() {
   `);
 
   await ensureTableColumn('accounts', 'profile_picture_url', 'TEXT');
+  await ensureTableColumn('accounts', 'full_name', 'TEXT');
 
   for (const tableName of durableSyncTables) {
     await ensureTableColumn(tableName, 'sync_id', 'UUID DEFAULT gen_random_uuid()');
@@ -2667,6 +2694,7 @@ function mapBillRecord(bill, consumerMap = new Map(), classificationMap = new Ma
     Basic_Charge: bill.class_cost ?? bill.water_charge ?? bill.total_amount ?? 0,
     Environmental_Fee: bill.meter_maintenance_fee ?? 0,
     Meter_Fee: bill.meter_maintenance_fee ?? 0,
+    Connection_Fee: bill.connection_fee ?? 0,
     Previous_Balance: bill.previous_balance ?? 0,
     Previous_Penalty: bill.previous_penalty ?? 0,
     Penalties: bill.penalty ?? 0,
@@ -3006,7 +3034,7 @@ app.get('/api/users/type/:type', async (req, res) => {
       async () => {
         const { rows } = await pool.query(`
           SELECT a.account_id AS "AccountID", a.username AS "Username", a.password AS "Password", 
-                 a.username AS "Full_Name", a.role_id AS "Role_ID", a.account_status AS "Status", a.profile_picture_url AS "Profile_Picture_URL", r.role_name AS "Role_Name"
+                 COALESCE(NULLIF(a.full_name, ''), a.username) AS "Full_Name", a.role_id AS "Role_ID", a.account_status AS "Status", a.profile_picture_url AS "Profile_Picture_URL", r.role_name AS "Role_Name"
           FROM accounts a
           JOIN roles r ON a.role_id = r.role_id
           WHERE a.role_id = ANY($1)
@@ -3026,7 +3054,7 @@ app.get('/api/users/type/:type', async (req, res) => {
             AccountID: u.account_id,
             Username: u.username,
             Password: u.password,
-            Full_Name: u.username || 'N/A',
+            Full_Name: u.full_name || u.username || 'N/A',
             Role_ID: u.role_id,
             Status: u.account_status,
             Profile_Picture_URL: u.profile_picture_url || null,
@@ -3052,7 +3080,7 @@ app.get('/api/users/staff', async (req, res) => {
       async () => {
         const { rows } = await pool.query(`
           SELECT a.account_id AS "AccountID", a.username AS "Username", 
-                 a.username AS "Full_Name", a.role_id AS "Role_ID", a.profile_picture_url AS "Profile_Picture_URL",
+                 COALESCE(NULLIF(a.full_name, ''), a.username) AS "Full_Name", a.role_id AS "Role_ID", a.profile_picture_url AS "Profile_Picture_URL",
                  a.account_status AS "Status", a.created_at AS "Created_At", r.role_name AS "Role_Name"
           FROM accounts a
           LEFT JOIN roles r ON a.role_id = r.role_id
@@ -3074,7 +3102,7 @@ app.get('/api/users/staff', async (req, res) => {
           data: (data || []).map((u) => ({
             AccountID: u.account_id,
             Username: u.username,
-            Full_Name: u.username || 'N/A',
+            Full_Name: u.full_name || u.username || 'N/A',
             Role_ID: u.role_id,
             Status: u.account_status,
             Created_At: u.created_at || null,
@@ -3102,7 +3130,7 @@ app.get('/api/users/unified', async (req, res) => {
           SELECT
                  a.account_id AS "AccountID",
                  a.username AS "Username",
-                 COALESCE(NULLIF(CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name), ''), a.username) AS "Full_Name",
+                 COALESCE(NULLIF(CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name), ''), NULLIF(a.full_name, ''), a.username) AS "Full_Name",
                  a.role_id AS "Role_ID",
                  a.profile_picture_url AS "Profile_Picture_URL",
                  a.account_status AS "Status",
@@ -3180,7 +3208,7 @@ app.get('/api/users/unified', async (req, res) => {
             return {
               AccountID: u.account_id,
               Username: u.username,
-              Full_Name: fullName || u.username || 'N/A',
+              Full_Name: fullName || u.full_name || u.username || 'N/A',
               Role_ID: u.role_id,
               Status: u.account_status,
               Created_At: u.created_at || null,
@@ -3391,6 +3419,7 @@ const updatePendingApplicationHandler = async (req, res) => {
   const normalizedAccountNumber = String(payload.accountNumber || '').trim();
   const rawContactNumber = payload.contactNumber;
   const normalizedContactNumber = normalizePhilippinePhoneNumber(rawContactNumber);
+  let normalizedRequirementsSubmitted = null;
 
   if (!normalizedUsername || !payload.firstName || !payload.lastName) {
     return res.status(400).json({ success: false, message: 'Username, first name, and last name are required.' });
@@ -3406,6 +3435,12 @@ const updatePendingApplicationHandler = async (req, res) => {
 
   if (rawContactNumber && !normalizedContactNumber) {
     return res.status(400).json({ success: false, message: 'Contact number must be a valid Philippine mobile number.' });
+  }
+
+  try {
+    normalizedRequirementsSubmitted = normalizeRequirementSubmission(payload.requirementsSubmitted, { allowText: true });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
   }
 
   try {
@@ -3488,7 +3523,7 @@ const updatePendingApplicationHandler = async (req, res) => {
                 connection_type = $2
             WHERE account_id = $3
           `, [
-            String(payload.requirementsSubmitted || '').trim() || null,
+            normalizedRequirementsSubmitted,
             String(payload.connectionType || '').trim() || 'New Connection',
             accountId,
           ]);
@@ -3528,7 +3563,7 @@ const updatePendingApplicationHandler = async (req, res) => {
             const { error: ticketMirrorError } = await supabase
               .from('connection_ticket')
               .update({
-                requirements_submitted: String(payload.requirementsSubmitted || '').trim() || null,
+                requirements_submitted: normalizedRequirementsSubmitted,
                 connection_type: String(payload.connectionType || '').trim() || 'New Connection',
               })
               .eq('account_id', accountId);
@@ -3574,7 +3609,7 @@ const updatePendingApplicationHandler = async (req, res) => {
         const { error: ticketError } = await supabase
           .from('connection_ticket')
           .update({
-            requirements_submitted: String(payload.requirementsSubmitted || '').trim() || null,
+            requirements_submitted: normalizedRequirementsSubmitted,
             connection_type: String(payload.connectionType || '').trim() || 'New Connection',
           })
           .eq('account_id', accountId);
@@ -3742,6 +3777,7 @@ app.post('/api/users', async (req, res) => {
 
     const isConsumerRole = numericRoleId === 5;
     const initialAccountStatus = isConsumerRole ? 'Pending' : 'Active';
+    const normalizedFullName = String(fullName || '').trim() || username;
     const { firstName, lastName } = splitConsumerName(fullName, username);
 
     const user = await withPostgresPrimary(
@@ -3757,8 +3793,8 @@ app.post('/api/users', async (req, res) => {
           ]);
 
           const { rows } = await client.query(
-            'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING *',
-            [username, password, numericRoleId, initialAccountStatus]
+            'INSERT INTO accounts (username, password, full_name, role_id, account_status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [username, password, normalizedFullName, numericRoleId, initialAccountStatus]
           );
           const createdUser = rows[0];
 
@@ -3794,7 +3830,7 @@ app.post('/api/users', async (req, res) => {
       async () => {
         const { data, error } = await supabase
           .from('accounts')
-          .insert([{ username, password, role_id: numericRoleId, account_status: initialAccountStatus }])
+          .insert([{ username, password, full_name: normalizedFullName, role_id: numericRoleId, account_status: initialAccountStatus }])
           .select()
           .single();
         if (error) throw error;
@@ -3861,6 +3897,7 @@ app.put('/api/users/:id', async (req, res) => {
     }
 
     const isConsumerRole = numericRoleId === 5;
+    const normalizedFullName = String(fullName || '').trim() || username;
     const { firstName, lastName } = splitConsumerName(fullName, username);
 
     await withPostgresPrimary(
@@ -3870,11 +3907,11 @@ app.put('/api/users/:id', async (req, res) => {
         try {
           await client.query('BEGIN');
 
-          let query = 'UPDATE accounts SET role_id = $1';
-          const params = [numericRoleId];
+          let query = 'UPDATE accounts SET username = $1, full_name = $2, role_id = $3';
+          const params = [username, normalizedFullName, numericRoleId];
           
           if (password) {
-            query += ', password = $2';
+            query += ', password = $4';
             params.push(password);
           }
 
@@ -3936,7 +3973,7 @@ app.put('/api/users/:id', async (req, res) => {
         }
       },
       async () => {
-        const payload = { role_id: numericRoleId };
+        const payload = { username, full_name: normalizedFullName, role_id: numericRoleId };
         if (password) {
           payload.password = password;
         }
@@ -4001,6 +4038,12 @@ app.put('/api/users/:id', async (req, res) => {
         }
       }
     );
+    await syncAccountAuthCredentials({
+      accountId,
+      username,
+      password,
+      authUserId: null,
+    });
     scheduleImmediateSync('users-update');
     return res.json({ success: true, message: 'User updated successfully' });
   } catch (error) {
@@ -4097,6 +4140,17 @@ app.put('/api/users/:id/profile-picture', async (req, res) => {
         return updatedRow;
       }
     );
+
+    if (supabase && isPostgresAvailable) {
+      const { error: mirroredAccountError } = await supabase
+        .from('accounts')
+        .update({ profile_picture_url: updatedUser.profile_picture_url || null })
+        .eq('account_id', targetAccountId);
+
+      if (mirroredAccountError) {
+        throw mirroredAccountError;
+      }
+    }
 
     await writeSystemLog(
       removePicture
@@ -6288,6 +6342,7 @@ app.post('/api/register', async (req, res) => {
   const classificationId = req.body.classificationId ? parseInt(req.body.classificationId) : 1;
   const normalizedAccountNumber = String(accountNumber || '').trim() || generatePendingAccountNumber(zoneId);
   const normalizedPhoneNumber = normalizePhilippinePhoneNumber(phone);
+  let normalizedRequirementsSubmitted = null;
 
   if (!username || !password) {
     return res.status(400).json({ success: false, message: 'Username and password are required.' });
@@ -6295,6 +6350,12 @@ app.post('/api/register', async (req, res) => {
 
   if (!normalizedPhoneNumber) {
     return res.status(400).json({ success: false, message: 'Phone number must be a valid Philippine mobile number.' });
+  }
+
+  try {
+    normalizedRequirementsSubmitted = normalizeRequirementSubmission(req.body.sedulaImage || req.body.requirementsSubmitted, { allowText: false });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
   }
 
   try {
@@ -6336,7 +6397,7 @@ app.post('/api/register', async (req, res) => {
               await client.query(`
                 INSERT INTO connection_ticket (consumer_id, account_id, ticket_number, connection_type, requirements_submitted, status)
                 VALUES ($1, $2, $3, $4, $5, $6)
-              `, [consumerRows[0].consumer_id, accountId, ticketNumber, 'New Connection', 'Sedula', 'Pending']);
+              `, [consumerRows[0].consumer_id, accountId, ticketNumber, 'New Connection', normalizedRequirementsSubmitted, 'Pending']);
 
               await client.query('COMMIT');
               scheduleImmediateSync('register');
@@ -6400,14 +6461,14 @@ app.post('/api/register', async (req, res) => {
           const ticketRow = await insertSupabaseRowWithPrimaryKeyRetry(
             'connection_ticket',
             'ticket_id',
-            {
-              consumer_id: consumerId,
-              account_id: accountId,
-              ticket_number: ticketNumber,
-              connection_type: 'New Connection',
-              requirements_submitted: 'Sedula',
-              status: 'Pending',
-            },
+          {
+            consumer_id: consumerId,
+            account_id: accountId,
+            ticket_number: ticketNumber,
+            connection_type: 'New Connection',
+            requirements_submitted: normalizedRequirementsSubmitted,
+            status: 'Pending',
+          },
             'ticket_id, ticket_number'
           );
 

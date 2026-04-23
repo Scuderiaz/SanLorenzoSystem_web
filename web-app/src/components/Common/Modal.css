@@ -24,6 +24,7 @@
   overflow: hidden;
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   max-height: 95vh;
+  max-width: calc(100vw - 40px);
 }
 
 .modal-small { max-width: 480px; }
@@ -91,7 +92,52 @@
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 10px;
+  }
+
   .modal-content {
-    border-radius: 12px;
+    max-width: 100%;
+    max-height: 94vh;
+    border-radius: 18px 18px 12px 12px;
+  }
+
+  .modal-header {
+    padding: 18px 18px;
+  }
+
+  .modal-header h2,
+  .modal-title {
+    font-size: 1.15rem;
+    line-height: 1.25;
+  }
+
+  .modal-body {
+    padding: 18px;
+    max-height: 72vh;
+  }
+
+  .modal-footer {
+    padding: 16px 18px;
+    flex-direction: column-reverse;
+  }
+}
+
+@media (max-width: 420px) {
+  .modal-overlay {
+    padding: 6px;
+  }
+
+  .modal-content {
+    max-height: 96vh;
+    border-radius: 16px 16px 10px 10px;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 }

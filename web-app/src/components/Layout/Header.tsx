@@ -4,6 +4,7 @@ import Modal from '../Common/Modal';
 import ProfileImageEditor from '../Common/ProfileImageEditor';
 import { useToast } from '../Common/ToastContainer';
 import { requestJson } from '../../services/userManagementApi';
+import { syncConsumerDashboardFallback } from '../../utils/consumerFallback';
 import { getUserInitials } from '../../utils/profileImage';
 import './Header.css';
 
@@ -59,6 +60,12 @@ const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
       );
 
       const nextProfilePicture = result.data?.Profile_Picture_URL ?? (removePicture ? null : draftProfileImage);
+      if (Number(user.role_id) === 5) {
+        await syncConsumerDashboardFallback(user.id, {
+          Profile_Picture_URL: nextProfilePicture,
+          profile_picture_url: nextProfilePicture,
+        });
+      }
       updateUser({ profile_picture_url: nextProfilePicture });
       showToast(result.message || (removePicture ? 'Profile picture removed successfully.' : 'Profile picture updated successfully.'), 'success');
       setIsProfileModalOpen(false);

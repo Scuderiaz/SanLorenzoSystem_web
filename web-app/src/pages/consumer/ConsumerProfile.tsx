@@ -7,6 +7,7 @@ import FormSelect from '../../components/Common/FormSelect';
 import Modal from '../../components/Common/Modal';
 import ProfileImageEditor from '../../components/Common/ProfileImageEditor';
 import { getErrorMessage, loadConsumerDashboardWithFallback, requestJson } from '../../services/userManagementApi';
+import { syncConsumerDashboardFallback } from '../../utils/consumerFallback';
 import { getUserInitials } from '../../utils/profileImage';
 import './ConsumerProfile.css';
 
@@ -300,6 +301,12 @@ const ConsumerProfile: React.FC = () => {
       );
 
       const nextProfilePicture = result.data?.Profile_Picture_URL ?? (removePicture ? null : draftProfileImage);
+      await syncConsumerDashboardFallback(user.id, {
+        Consumer_ID: profile?.Consumer_ID,
+        consumer_id: profile?.Consumer_ID,
+        Profile_Picture_URL: nextProfilePicture,
+        profile_picture_url: nextProfilePicture,
+      });
       updateUser({ profile_picture_url: nextProfilePicture });
       setProfile((currentProfile) => currentProfile
         ? {
@@ -385,6 +392,53 @@ const ConsumerProfile: React.FC = () => {
         username: payload.Username,
         fullName: formatConsumerName(payload.First_Name, payload.Middle_Name, payload.Last_Name),
       });
+      const nextAddress = composeAddress(payload);
+      await syncConsumerDashboardFallback(user?.id || profile.Consumer_ID, {
+        Consumer_ID: profile.Consumer_ID,
+        consumer_id: profile.Consumer_ID,
+        Username: payload.Username,
+        username: payload.Username,
+        First_Name: payload.First_Name,
+        first_name: payload.First_Name,
+        Middle_Name: payload.Middle_Name,
+        middle_name: payload.Middle_Name,
+        Last_Name: payload.Last_Name,
+        last_name: payload.Last_Name,
+        Purok: payload.Purok,
+        purok: payload.Purok,
+        Barangay: payload.Barangay,
+        barangay: payload.Barangay,
+        Municipality: payload.Municipality,
+        municipality: payload.Municipality,
+        Zip_Code: payload.Zip_Code,
+        zip_code: payload.Zip_Code,
+        Contact_Number: payload.Contact_Number,
+        contact_number: payload.Contact_Number,
+        Address: nextAddress,
+        address: nextAddress,
+        Profile_Picture_URL: profile.Profile_Picture_URL ?? user?.profile_picture_url ?? null,
+        profile_picture_url: profile.Profile_Picture_URL ?? user?.profile_picture_url ?? null,
+        Account_Number: profile.Account_Number,
+        account_number: profile.Account_Number,
+        Status: profile.Status,
+        status: profile.Status,
+        Account_Status: profile.Account_Status,
+        account_status: profile.Account_Status,
+        Meter_Number: profile.Meter_Number,
+        meter_number: profile.Meter_Number,
+        Meter_Status: profile.Meter_Status,
+        meter_status: profile.Meter_Status,
+        Zone_ID: profile.Zone_ID,
+        zone_id: profile.Zone_ID,
+        Zone_Name: profile.Zone_Name,
+        zone_name: profile.Zone_Name,
+        Classification_ID: profile.Classification_ID,
+        classification_id: profile.Classification_ID,
+        Classification_Name: profile.Classification_Name,
+        classification_name: profile.Classification_Name,
+        Connection_Date: profile.Connection_Date,
+        connection_date: profile.Connection_Date,
+      });
 
       setProfile((currentProfile) => currentProfile
         ? {
@@ -398,7 +452,7 @@ const ConsumerProfile: React.FC = () => {
             Municipality: payload.Municipality,
             Zip_Code: payload.Zip_Code,
             Contact_Number: payload.Contact_Number,
-            Address: composeAddress(payload),
+            Address: nextAddress,
           }
         : currentProfile);
 
@@ -504,9 +558,6 @@ const ConsumerProfile: React.FC = () => {
 
             <div className="cp-meta">
               <span className="cp-meta-item">
-                <i className="fas fa-hashtag" /> Consumer ID <strong>{profile.Consumer_ID}</strong>
-              </span>
-              <span className="cp-meta-item">
                 <i className="fas fa-file-invoice" /> Account No. <strong>{profile.Account_Number || 'Pending'}</strong>
               </span>
               <span className="cp-meta-item">
@@ -544,7 +595,7 @@ const ConsumerProfile: React.FC = () => {
           </div>
         </section>
 
-        <div className="cp-content">
+        <div className="cp-content cp-content-full">
           <div className="cp-main-column">
             <section className="cp-card">
               <div className="cp-card-header">
@@ -650,41 +701,6 @@ const ConsumerProfile: React.FC = () => {
             </section>
           </div>
 
-          <aside className="cp-side-column">
-            <section className="cp-card cp-side-card">
-              <h2 className="cp-card-title">
-                <i className="fas fa-shield-alt" /> Account Overview
-              </h2>
-              <div className="cp-summary-list">
-                <div className="cp-summary-row">
-                  <span>Portal role</span>
-                  <strong>Consumer</strong>
-                </div>
-                <div className="cp-summary-row">
-                  <span>Username</span>
-                  <strong>{loginUsername}</strong>
-                </div>
-                <div className="cp-summary-row">
-                  <span>Consumer record</span>
-                  <strong>#{profile.Consumer_ID}</strong>
-                </div>
-                <div className="cp-summary-row">
-                  <span>Account number</span>
-                  <strong>{profile.Account_Number || 'Pending'}</strong>
-                </div>
-              </div>
-            </section>
-
-            <section className="cp-card cp-side-card cp-side-card-note">
-              <h2 className="cp-card-title">
-                <i className="fas fa-info-circle" /> Need Help?
-              </h2>
-              <p className="cp-side-text">
-                You can update your username, password, contact number, and service location here. For account number,
-                meter, zone, classification, or connection status changes, please contact the waterworks office directly.
-              </p>
-            </section>
-          </aside>
         </div>
 
         <Modal

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/api';
 import { loadClassificationsWithFallback } from '../../services/userManagementApi';
+import { convertDocumentImageFile } from '../../utils/profileImage';
 import './ForgotPassword.css'; // Reusing some styles
 
 const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
@@ -29,7 +30,8 @@ const SignUp: React.FC = () => {
     barangay: '',
     municipality: 'San Lorenzo Ruiz',
     zipCode: '4610',
-    classificationId: ''
+    classificationId: '',
+    sedulaImage: '',
   });
   const [classifications, setClassifications] = useState<any[]>([]);
   const [showPassword, setShowPassword] = useState(false);
@@ -113,6 +115,26 @@ const SignUp: React.FC = () => {
       setError(err.message || 'An error occurred during registration.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSedulaChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const imageDataUrl = await convertDocumentImageFile(file);
+      setFormData((current) => ({
+        ...current,
+        sedulaImage: imageDataUrl,
+      }));
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to prepare the selected sedula image.');
     }
   };
 
@@ -336,6 +358,49 @@ const SignUp: React.FC = () => {
             <ul className="requirements-list">
               <li className="requirement-highlight"><i className="fas fa-check"></i> Sedula</li>
             </ul>
+            <div className="document-upload-card">
+              <div className="document-upload-head">
+                <div>
+                  <label className="document-upload-title">Upload Sedula Image</label>
+                  <p className="document-upload-copy">Submit a clear photo or scan of the sedula. This will be attached to your pending application.</p>
+                </div>
+                <div className="document-upload-actions">
+                  <input
+                    id="signup-sedula-upload"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="document-upload-input"
+                    onChange={handleSedulaChange}
+                  />
+                  <button
+                    type="button"
+                    className="login-btn document-upload-btn"
+                    onClick={() => document.getElementById('signup-sedula-upload')?.click()}
+                  >
+                    <i className="fas fa-upload"></i> Upload Image
+                  </button>
+                  <button
+                    type="button"
+                    className="login-btn document-upload-btn document-upload-btn-muted"
+                    onClick={() => setFormData((current) => ({ ...current, sedulaImage: '' }))}
+                    disabled={!formData.sedulaImage}
+                  >
+                    <i className="fas fa-trash-alt"></i> Remove
+                  </button>
+                </div>
+              </div>
+
+              <div className="document-upload-preview">
+                {formData.sedulaImage ? (
+                  <img src={formData.sedulaImage} alt="Sedula preview" />
+                ) : (
+                  <div className="document-upload-empty">
+                    <i className="fas fa-file-image"></i>
+                    <span>No sedula image uploaded yet.</span>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="charges-panel">
               <h4>Registration Charges</h4>
               <div className="charge-item"><span>Connection Fee</span><span>₱300.00</span></div>
@@ -346,7 +411,18 @@ const SignUp: React.FC = () => {
             <p className="small-text">You will need to present these to the municipal office and settle the charges to complete your registration.</p>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button type="button" className="login-btn" style={{ backgroundColor: '#ccc' }} onClick={() => setStep(3)}>Back</button>
-              <button type="button" className="login-btn" onClick={handleSubmit} disabled={loading}>
+              <button
+                type="button"
+                className="login-btn"
+                onClick={(event) => {
+                  if (!formData.sedulaImage) {
+                    setError('Please upload a sedula image before submitting.');
+                    return;
+                  }
+                  void handleSubmit(event as unknown as React.FormEvent);
+                }}
+                disabled={loading}
+              >
                 {loading ? 'Submitting...' : 'Submit Registration'}
               </button>
             </div>

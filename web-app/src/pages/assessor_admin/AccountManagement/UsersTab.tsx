@@ -174,7 +174,9 @@ const UsersTab: React.FC = () => {
   };
 
   const handleSaveUser = async () => {
-    if (!formData.username || (!editingUser && !formData.password) || !formData.roleId) {
+    const effectiveRoleId = formData.roleId || editingUser?.Role_ID?.toString() || '';
+
+    if (!formData.username || (!editingUser && !formData.password) || !effectiveRoleId) {
       showToast('Username, Role, and Password are required', 'error');
       return;
     }
@@ -182,7 +184,7 @@ const UsersTab: React.FC = () => {
       const body = {
         username: formData.username,
         fullName: formData.fullName,
-        roleId: parseInt(formData.roleId),
+        roleId: parseInt(effectiveRoleId, 10),
         ...(formData.password && { password: formData.password }),
       };
       const result = await requestJson<{ success: boolean; message?: string; data?: { account_id?: number; accountId?: number } }>(
@@ -195,6 +197,13 @@ const UsersTab: React.FC = () => {
       );
       if (result.success) {
         const targetAccountId = editingUser?.AccountID || Number(result.data?.account_id || result.data?.accountId || 0);
+
+        if (editingUser?.AccountID === currentUser?.id) {
+          updateUser({
+            username: formData.username,
+            fullName: formData.fullName || formData.username,
+          });
+        }
 
         if (profileImageDirty && targetAccountId > 0 && canManageSelectedProfilePicture) {
           const pictureResult = await requestJson<{ data?: { Profile_Picture_URL?: string | null } }>(

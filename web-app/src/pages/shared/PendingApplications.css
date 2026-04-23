@@ -1,0 +1,213 @@
+.pending-app-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pending-app-edit .form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #1e293b !important;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.pending-app-edit .required {
+  color: #dc2626;
+}
+
+.pending-app-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.pending-app-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pending-app-section-title {
+  margin: 0;
+  color: #1b1b63;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pending-app-section-copy {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.pending-app-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 18px;
+}
+
+.pending-app-grid .pending-app-field-span-2 {
+  grid-column: span 2;
+}
+
+.pending-app-grid .pending-app-field-span-3 {
+  grid-column: 1 / -1;
+}
+
+.pending-app-document-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.pending-app-document-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pending-app-document-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pending-app-document-title {
+  margin: 0;
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.pending-app-document-copy {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.pending-app-document-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pending-app-hidden-input {
+  display: none;
+}
+
+.pending-app-document-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 210px;
+  padding: 10px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  overflow: hidden;
+}
+
+.pending-app-document-preview img {
+  max-width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  display: block;
+  border-radius: 12px;
+}
+
+.pending-app-document-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  text-align: center;
+  padding: 26px 18px;
+}
+
+.pending-app-document-empty i {
+  font-size: 24px;
+  color: #94a3b8;
+}
+
+.pending-app-document-legacy {
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pending-app-detail-image {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 14px;
+  border: 1px solid #dbe3ef;
+  background: #fff;
+  padding: 8px;
+}
+
+.pending-app-detail-item {
+  color: #334155;
+}
+
+.pending-app-detail-label {
+  font-weight: 600;
+  color: #475569;
+}
+
+.pending-app-detail-value {
+  font-weight: 800;
+  color: #1e293b;
+}
+
+@media (max-width: 900px) {
+  .pending-app-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pending-app-grid .pending-app-field-span-2 {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .pending-app-section {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .pending-app-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .pending-app-grid .pending-app-field-span-2,
+  .pending-app-grid .pending-app-field-span-3 {
+    grid-column: auto;
+  }
+
+  .pending-app-document-top {
+    flex-direction: column;
+  }
+}

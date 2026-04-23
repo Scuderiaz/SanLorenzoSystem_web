@@ -221,6 +221,23 @@
   line-height: 1.6;
 }
 
+.users-tab .modal-body .form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #1e293b !important;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.users-tab .modal-body .form-label i {
+  color: #64748b;
+}
+
+.users-tab .modal-body .required {
+  color: #dc2626;
+}
+
 .btn-icon {
   width: 34px;
   height: 34px;
