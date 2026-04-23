@@ -36,10 +36,6 @@
   margin-bottom: 30px;
 }
 
-.signup-container .login-header {
-  margin-bottom: 12px;
-}
-
 .logo-placeholder {
   width: 130px;
   height: 130px;
@@ -61,33 +57,16 @@
   object-fit: contain;
 }
 
-.signup-container .logo-placeholder {
-  width: 88px;
-  height: 88px;
-  margin-bottom: 4px;
-}
-
 .login-header h1 {
   color: #1a73e8;
   font-size: 24px;
   margin-bottom: 5px;
 }
 
-.signup-container .login-header h1 {
-  font-size: 20px;
-  margin-bottom: 2px;
-}
-
 .login-header h2 {
   color: #3c4043;
   font-size: 16px;
   font-weight: normal;
-}
-
-.signup-container .login-header h2 {
-  font-size: 14px;
-  margin-top: 0;
-  margin-bottom: 0;
 }
 
 .error-message {

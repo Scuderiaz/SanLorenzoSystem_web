@@ -6109,3 +6109,4 @@
 [2026-04-23T14:33:51.141Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
 [2026-04-23T14:33:51.479Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
 [2026-04-23T14:33:54.574Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-23T15:43:22.686Z] [server.start] AggregateError
