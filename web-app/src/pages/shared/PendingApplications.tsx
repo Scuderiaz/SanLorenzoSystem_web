@@ -62,6 +62,7 @@ const formatZoneLabel = (zoneName?: string | null, zoneId?: number | string | nu
   zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
 
 const isImageDataUrl = (value?: string | null) => /^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(String(value || '').trim());
+const statusToneClass = (value?: string | null) => String(value || 'unknown').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
 const PendingApplications: React.FC = () => {
   const { user } = useAuth();
@@ -433,18 +434,99 @@ const PendingApplications: React.FC = () => {
           }
         >
           {selectedApplication && (
-            <div className="application-detail-grid">
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Ticket Number:</span> <span className="pending-app-detail-value">{selectedApplication.Ticket_Number}</span></p>
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Application Status:</span> <span className="pending-app-detail-value">{selectedApplication.Application_Status}</span></p>
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Applicant:</span> <span className="pending-app-detail-value">{selectedApplication.Consumer_Name || 'N/A'}</span></p>
-              {canViewUsername && <p className="pending-app-detail-item"><span className="pending-app-detail-label">Username:</span> <span className="pending-app-detail-value">{selectedApplication.Username || 'N/A'}</span></p>}
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Classification:</span> <span className="pending-app-detail-value">{selectedApplication.Classification_Name || 'N/A'}</span></p>
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Zone:</span> <span className="pending-app-detail-value">{formatZoneLabel(selectedApplication.Zone_Name, selectedApplication.Zone_ID)}</span></p>
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Contact Number:</span> <span className="pending-app-detail-value">{selectedApplication.Contact_Number || 'N/A'}</span></p>
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Connection Type:</span> <span className="pending-app-detail-value">{selectedApplication.Connection_Type || 'N/A'}</span></p>
-              <div>
-                <span className="pending-app-detail-label">Sedula:</span>
-                <div style={{ marginTop: '10px' }}>
+            <div className="pending-app-details">
+              <div className="pending-app-details-hero">
+                <div className="pending-app-details-copy">
+                  <p className="pending-app-details-eyebrow">Consumer Application</p>
+                  <h3 className="pending-app-details-title">{selectedApplication.Consumer_Name || 'Pending Application'}</h3>
+                  <p className="pending-app-details-subtitle">
+                    Review the submitted account, address, and service details before approving or updating this request.
+                  </p>
+                </div>
+                <span className={`pending-app-status-chip pending-app-status-chip-${statusToneClass(selectedApplication.Application_Status)}`}>
+                  {selectedApplication.Application_Status || 'Unknown'}
+                </span>
+              </div>
+
+              <div className="pending-app-details-meta">
+                <div className="pending-app-meta-row">
+                  <span className="pending-app-meta-label">Ticket Number</span>
+                  <span className="pending-app-meta-value">{selectedApplication.Ticket_Number}</span>
+                </div>
+                <div className="pending-app-meta-row">
+                  <span className="pending-app-meta-label">Connection Type</span>
+                  <span className="pending-app-meta-value">{selectedApplication.Connection_Type || 'N/A'}</span>
+                </div>
+                <div className="pending-app-meta-row">
+                  <span className="pending-app-meta-label">Applied On</span>
+                  <span className="pending-app-meta-value">
+                    {selectedApplication.Application_Date ? new Date(selectedApplication.Application_Date).toLocaleString() : 'N/A'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pending-app-panels">
+                <section className="pending-app-panel">
+                  <div className="pending-app-panel-head">
+                    <h4 className="pending-app-panel-title">
+                      <i className="fas fa-user-circle"></i> Applicant Snapshot
+                    </h4>
+                    <p className="pending-app-panel-copy">Submitted identity and contact details for this request.</p>
+                  </div>
+                  <div className="pending-app-info-list">
+                    <div className="pending-app-info-row">
+                      <span className="pending-app-info-label">Applicant</span>
+                      <span className="pending-app-info-value">{selectedApplication.Consumer_Name || 'N/A'}</span>
+                    </div>
+                    {canViewUsername && (
+                      <div className="pending-app-info-row">
+                        <span className="pending-app-info-label">Username</span>
+                        <span className="pending-app-info-value">{selectedApplication.Username || 'N/A'}</span>
+                      </div>
+                    )}
+                    <div className="pending-app-info-row">
+                      <span className="pending-app-info-label">Contact Number</span>
+                      <span className="pending-app-info-value">{selectedApplication.Contact_Number || 'N/A'}</span>
+                    </div>
+                    <div className="pending-app-info-row">
+                      <span className="pending-app-info-label">Classification</span>
+                      <span className="pending-app-info-value">{selectedApplication.Classification_Name || 'N/A'}</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="pending-app-panel">
+                  <div className="pending-app-panel-head">
+                    <h4 className="pending-app-panel-title">
+                      <i className="fas fa-map-marked-alt"></i> Service & Account
+                    </h4>
+                    <p className="pending-app-panel-copy">Zone, status, and account details prepared for approval.</p>
+                  </div>
+                  <div className="pending-app-info-list">
+                    <div className="pending-app-info-row">
+                      <span className="pending-app-info-label">Zone</span>
+                      <span className="pending-app-info-value">{formatZoneLabel(selectedApplication.Zone_Name, selectedApplication.Zone_ID)}</span>
+                    </div>
+                    <div className="pending-app-info-row">
+                      <span className="pending-app-info-label">Official Account No.</span>
+                      <span className="pending-app-info-value">{accountNumberDisplay(selectedApplication)}</span>
+                    </div>
+                    <div className="pending-app-info-row pending-app-info-row-highlight">
+                      <span className="pending-app-info-label">Service Address</span>
+                      <span className="pending-app-info-value">{selectedApplication.Address || 'N/A'}</span>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div className="pending-app-detail-document">
+                <div className="pending-app-document-top">
+                  <div className="pending-app-document-meta">
+                    <h4 className="pending-app-document-title">Sedula</h4>
+                    <p className="pending-app-document-copy">View the uploaded supporting document submitted with this application.</p>
+                  </div>
+                </div>
+                <div className="pending-app-document-preview">
                   {selectedRequirementImage ? (
                     <img
                       src={selectedRequirementImage}
@@ -452,13 +534,13 @@ const PendingApplications: React.FC = () => {
                       className="pending-app-detail-image"
                     />
                   ) : (
-                    <span className="pending-app-detail-value">{selectedApplication.Requirements_Submitted || 'N/A'}</span>
+                    <div className="pending-app-document-empty">
+                      <i className="fas fa-file-image"></i>
+                      <span className="pending-app-detail-value">{selectedApplication.Requirements_Submitted || 'No sedula uploaded.'}</span>
+                    </div>
                   )}
                 </div>
               </div>
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Official Account No.:</span> <span className="pending-app-detail-value">{accountNumberDisplay(selectedApplication)}</span></p>
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Applied On:</span> <span className="pending-app-detail-value">{selectedApplication.Application_Date ? new Date(selectedApplication.Application_Date).toLocaleString() : 'N/A'}</span></p>
-              <p className="pending-app-detail-item"><span className="pending-app-detail-label">Address:</span> <span className="pending-app-detail-value">{selectedApplication.Address || 'N/A'}</span></p>
             </div>
           )}
         </Modal>

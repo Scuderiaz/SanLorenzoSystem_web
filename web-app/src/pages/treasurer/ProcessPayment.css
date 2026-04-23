@@ -27,14 +27,14 @@
 }
 
 /* ─── Form Controls ──────────────────────────────────────────────── */
-.form-grid {
+.payment-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 30px;
   margin-bottom: 30px;
 }
 
-.form-group {
+.payment-form-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -49,7 +49,7 @@
   gap: 10px;
 }
 
-.form-group label {
+.payment-form-group label {
   font-size: 13px;
   font-weight: 800;
   color: #64748b;
@@ -249,7 +249,7 @@
 }
 
 @media (max-width: 900px) {
-  .form-grid { grid-template-columns: 1fr; }
+  .payment-form-grid { grid-template-columns: 1fr; }
 
   .account-search-suggestions {
     right: 0;

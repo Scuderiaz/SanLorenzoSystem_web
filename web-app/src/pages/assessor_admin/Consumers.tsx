@@ -515,55 +515,53 @@ const Consumers: React.FC = () => {
           }
         >
           {selectedConsumer && (
-            <div className="details-container" style={{ padding: '20px' }}>
-              <div className="details-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
-                {/* Personal Data Column */}
-                <div className="detail-col">
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+            <div className="consumer-detail-modal">
+              <div className="consumer-detail-grid">
+                <section className="consumer-detail-section">
+                  <h3 className="consumer-detail-section-title">
                     <i className="fas fa-user"></i> Personal Data
                   </h3>
-                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
-                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Account No:</span>
-                    <span className="view-value" style={{ fontWeight: 600, color: '#333' }}>{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</span>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Account No.</span>
+                    <span className="consumer-detail-value">{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</span>
                   </div>
-                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
-                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Name:</span>
-                    <span className="view-value" style={{ fontWeight: 800, color: '#1B1B63', fontSize: '1.1em' }}>
-                      {selectedConsumer.First_Name} {selectedConsumer.Middle_Name ? selectedConsumer.Middle_Name + ' ' : ''}{selectedConsumer.Last_Name}
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Name</span>
+                    <span className="consumer-detail-value consumer-detail-value-name">
+                      {selectedConsumer.First_Name} {selectedConsumer.Middle_Name ? `${selectedConsumer.Middle_Name} ` : ''}{selectedConsumer.Last_Name}
                     </span>
                   </div>
-                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
-                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Address:</span>
-                    <span className="view-value" style={{ fontWeight: 600, color: '#333', textAlign: 'right', maxWidth: '60%' }}>{selectedConsumer.Address}</span>
+                  <div className="consumer-detail-row consumer-detail-row-address">
+                    <span className="consumer-detail-label">Address</span>
+                    <span className="consumer-detail-value">{selectedConsumer.Address}</span>
                   </div>
-                </div>
+                </section>
 
-                {/* Account Info Column */}
-                <div className="detail-col">
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', color: '#1B1B63', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                <section className="consumer-detail-section">
+                  <h3 className="consumer-detail-section-title">
                     <i className="fas fa-credit-card"></i> Account Info
                   </h3>
-                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
-                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Map Zone:</span>
-                    <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConsumer.Zone_Name}</span>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Map Zone</span>
+                    <span className="consumer-detail-value">{formatZoneLabel(selectedConsumer.Zone_Name, selectedConsumer.Zone_ID)}</span>
                   </div>
-                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
-                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Classification:</span>
-                    <span className="view-value" style={{ fontWeight: 700, color: '#333' }}>{selectedConsumer.Classification_Name}</span>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Classification</span>
+                    <span className="consumer-detail-value">{selectedConsumer.Classification_Name}</span>
                   </div>
-                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
-                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Meter Status:</span>
-                    <span className={`status-badge status-${(selectedConsumer.Meter_Status || 'active').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Meter Status</span>
+                    <span className={`status-badge status-${(selectedConsumer.Meter_Status || 'active').toLowerCase()}`}>
                       {selectedConsumer.Meter_Status || 'Active'}
                     </span>
                   </div>
-                  <div className="view-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
-                    <span className="view-label" style={{ color: '#666', fontWeight: 500 }}>Status:</span>
-                    <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`} style={{ fontSize: '0.85em', padding: '4px 12px' }}>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Status</span>
+                    <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`}>
                       {selectedConsumer.Status}
                     </span>
                   </div>
-                </div>
+                </section>
               </div>
             </div>
           )}

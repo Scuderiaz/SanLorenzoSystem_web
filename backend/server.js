@@ -6632,7 +6632,7 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
 
         const mappedBills = billRows.rows.map((bill) => mapBillRecord(bill, new Map([[consumer.consumer_id, consumer]]), new Map([[consumer.classification_id, consumer.classification_name]])));
         const mappedPayments = paymentRows.rows.map((payment) => mapPaymentRecord(payment, new Map([[consumer.consumer_id, consumer]]), new Map(mappedBills.map((bill) => [bill.Bill_ID, { total_amount: bill.Total_Amount, billing_month: bill.Billing_Month }]))));
-        const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || mappedBills[0] || null;
+        const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || null;
         const currentBill = applyBillPenaltySnapshot(rawCurrentBill, adminSettings);
         const previousBalance = mappedBills
           .filter((bill) => currentBill ? bill.Bill_ID !== currentBill.Bill_ID : true)
@@ -6709,7 +6709,7 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
         const mappedPayments = (paymentsResult.data || [])
           .filter((payment) => payment.consumer_id === matchedConsumer.consumer_id)
           .map((payment) => mapPaymentRecord(payment, new Map([[matchedConsumer.consumer_id, matchedConsumer]]), new Map(mappedBills.map((bill) => [bill.Bill_ID, { total_amount: bill.Total_Amount, billing_month: bill.Billing_Month }]))));
-        const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || mappedBills[0] || null;
+        const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || null;
         const currentBill = applyBillPenaltySnapshot(rawCurrentBill, adminSettings);
         const previousBalance = mappedBills
           .filter((bill) => currentBill ? bill.Bill_ID !== currentBill.Bill_ID : true)

@@ -188,13 +188,13 @@ const ProcessPayment: React.FC = () => {
         Due_Date: currentBill.Due_Date || summary.dueDate || null,
         Basic_Charge: toAmount(currentBill.Basic_Charge),
         Environmental_Fee: toAmount(currentBill.Environmental_Fee),
-        Current_Bill: toAmount(summary.currentBillAmount || currentBill.Total_Amount),
+        Current_Bill: toAmount(summary.currentBillAmount ?? currentBill.Total_Amount),
         Previous_Balance: toAmount(summary.previousBalance),
         Penalties: toAmount(summary.overduePenalty ?? currentBill.Penalty ?? currentBill.Penalties),
         Overdue_Penalty: toAmount(summary.overduePenalty ?? currentBill.Penalty ?? currentBill.Penalties),
         Late_Fee_Percentage: toAmount(summary.lateFeePercentage),
         Is_Overdue: Boolean(summary.isOverdue),
-        Total_Amount_Due: toAmount(summary.totalDue || currentBill.Total_Amount),
+        Total_Amount_Due: toAmount(summary.totalDue ?? currentBill.Total_Amount),
         Status: currentBill.Status || 'Unpaid',
       };
 
@@ -496,9 +496,9 @@ const ProcessPayment: React.FC = () => {
               </div>
             )}
 
-            <div className="form-grid">
-              <div className="form-column">
-                <div className="form-group">
+            <div className="payment-form-grid">
+              <div className="payment-form-column">
+                <div className="payment-form-group">
                   <label>Primary Account Identifier</label>
                   <div className="account-search-wrap" ref={searchLookupRef}>
                     <div className="account-search-row">
@@ -540,7 +540,7 @@ const ProcessPayment: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginTop: '20px' }}>
+                <div className="payment-form-group" style={{ marginTop: '20px' }}>
                   <label>Consolidated Outstanding Balance</label>
                   <input
                     type="text"
@@ -550,7 +550,7 @@ const ProcessPayment: React.FC = () => {
                   />
                 </div>
 
-                <div className="form-group amount-highlight-group" style={{ marginTop: '20px' }}>
+                <div className="payment-form-group amount-highlight-group" style={{ marginTop: '20px' }}>
                   <label>Actual Collection Value (PHP)</label>
                   <input
                     type="number"
@@ -563,8 +563,8 @@ const ProcessPayment: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-column">
-                <div className="form-group">
+              <div className="payment-form-column">
+                <div className="payment-form-group">
                   <label>Consumer Identity Verification</label>
                   <input
                     type="text"
@@ -574,7 +574,7 @@ const ProcessPayment: React.FC = () => {
                   />
                 </div>
 
-                <div className="form-group" style={{ marginTop: '20px' }}>
+                <div className="payment-form-group" style={{ marginTop: '20px' }}>
                   <label>Collection Source Indicator</label>
                   <select
                     className="form-control"
@@ -585,7 +585,7 @@ const ProcessPayment: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="form-group" style={{ marginTop: '20px' }}>
+                <div className="payment-form-group" style={{ marginTop: '20px' }}>
                   <label>Official Receipt Number (Auto-Generated)</label>
                   <input
                     type="text"
