@@ -309,8 +309,8 @@
 }
 
 .breakdown-item.highlight-total {
-  background: #ecfdf5;
-  border-color: #d1fae5;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .breakdown-item .label {
@@ -328,7 +328,7 @@
 }
 
 .breakdown-item.highlight-total .value {
-  color: #059669;
+  color: #dc2626;
   font-size: 18px;
 }
 
@@ -488,12 +488,12 @@
 .quick-summary-total {
   margin-top: 6px;
   padding-top: 12px;
-  border-top: 2px solid #cbd5e1;
+  border-top: 2px solid #fecaca;
 }
 
 .quick-summary-total span,
 .quick-summary-total strong {
-  color: #0f766e;
+  color: #dc2626;
   font-size: 16px;
 }
 

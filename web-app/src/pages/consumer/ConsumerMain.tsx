@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage, loadConsumerDashboardWithFallback } from '../../services/userManagementApi';
+import { api } from '../../services/api';
 import Modal from '../../components/Common/Modal';
 import { getUserInitials } from '../../utils/profileImage';
 import {
@@ -15,6 +16,27 @@ import {
   YAxis,
 } from 'recharts';
 import './ConsumerMain.css';
+
+interface Ticket {
+  Ticket_ID?: number;
+  Ticket_Number: string;
+  Connection_Type?: string;
+  Status: string;
+  Application_Date?: string | null;
+  Approved_Date?: string | null;
+  Remarks?: string | null;
+}
+
+interface Concern {
+  concern_id: number;
+  category: string;
+  subject: string;
+  description: string;
+  status: string;
+  priority: string;
+  created_at: string;
+  remarks?: string | null;
+}
 
 interface ConsumerInfo {
   Consumer_ID: number;
@@ -344,11 +366,33 @@ const ConsumerMain: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [readings, setReadings] = useState<Reading[]>([]);
+  const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dataSource, setDataSource] = useState<'api' | 'supabase' | 'offline' | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [applySuccess, setApplySuccess] = useState('');
+  const [applyError, setApplyError] = useState('');
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [applyForm, setApplyForm] = useState({
+    firstName: '', middleName: '', lastName: '', phone: '',
+    purok: '', barangay: '', municipality: 'San Lorenzo Ruiz', zipCode: '4610',
+  });
+
+  const [concerns, setConcerns] = useState<Concern[]>([]);
+  const [showConcernModal, setShowConcernModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [concernLoading, setConcernLoading] = useState(false);
+  const [concernError, setConcernError] = useState('');
+  const [concernSuccess, setConcernSuccess] = useState('');
+  const [concernForm, setConcernForm] = useState({
+    category: 'Leakage',
+    subject: '',
+    description: '',
+    priority: 'Normal'
+  });
 
   useEffect(() => {
     if (!user?.id) {
@@ -363,6 +407,7 @@ const ConsumerMain: React.FC = () => {
         setBills((data.bills || []) as Bill[]);
         setPayments((data.payments || []) as Payment[]);
         setReadings((data.readings || []) as Reading[]);
+        setTicket((data as any).ticket || null);
       } catch (err) {
         setError(getErrorMessage(err, 'Failed to load dashboard.'));
       } finally {
@@ -370,7 +415,19 @@ const ConsumerMain: React.FC = () => {
       }
     };
 
+    const fetchConcerns = async () => {
+      try {
+        const res = await api.get(`/consumer/concerns/${user.id}`);
+        if (res.data?.success) {
+          setConcerns(res.data.concerns);
+        }
+      } catch (err) {
+        console.error('Failed to fetch concerns:', err);
+      }
+    };
+
     void fetchDashboard();
+    void fetchConcerns();
   }, [user?.id]);
 
   const sortedBills = [...bills].sort((left, right) =>
@@ -424,6 +481,56 @@ const ConsumerMain: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handlePrintTicket = (tkt: Ticket) => {
+    const printDate = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const applicantName = displayName || user?.username || 'Consumer';
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ticket - ${tkt.Ticket_Number}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:40px;color:#111}.ticket{border:2px solid #1B1B63;border-radius:12px;padding:32px;max-width:480px;margin:0 auto}.ticket-header{text-align:center;border-bottom:1px dashed #ccc;padding-bottom:20px;margin-bottom:20px}.ticket-logo-title{font-size:15px;font-weight:700;color:#1B1B63}.ticket-number{font-size:22px;font-weight:900;color:#1B1B63;letter-spacing:1px;margin:14px 0 4px;text-align:center}.ticket-label{font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:1px}.ticket-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}.ticket-row span{color:#555}.ticket-row strong{color:#111}.status-badge{display:inline-block;padding:4px 14px;background:#FEF3C7;color:#92400E;border-radius:99px;font-size:12px;font-weight:700;margin:10px 0}.ticket-footer{margin-top:20px;text-align:center;font-size:11px;color:#888;line-height:1.6}</style></head><body><div class="ticket"><div class="ticket-header"><div class="ticket-logo-title">San Lorenzo Ruiz Waterworks System</div><div style="font-size:12px;color:#555;margin-top:4px">Water Connection Application Receipt</div></div><div class="ticket-label">Ticket Number</div><div class="ticket-number">${tkt.Ticket_Number}</div><div style="text-align:center"><span class="status-badge">${(tkt.Status || 'PENDING').toUpperCase()}</span></div><div class="ticket-row"><span>Applicant</span><strong>${applicantName}</strong></div><div class="ticket-row"><span>Connection Type</span><strong>${tkt.Connection_Type || 'New Connection'}</strong></div><div class="ticket-row"><span>Date Applied</span><strong>${tkt.Application_Date ? formatDate(tkt.Application_Date) : printDate}</strong></div>${tkt.Approved_Date ? `<div class="ticket-row"><span>Approved On</span><strong>${formatDate(tkt.Approved_Date)}</strong></div>` : ''}${tkt.Remarks ? `<div class="ticket-row"><span>Remarks</span><strong>${tkt.Remarks}</strong></div>` : ''}<div class="ticket-footer">Please bring this ticket to the Municipal Office.<br>Present this reference number during your visit.<br><br>San Lorenzo Ruiz, Camarines Norte &mdash; Water Billing System</div></div></body></html>`;
+    const win = window.open('', '_blank', 'width=600,height=700');
+    if (win) { win.document.write(html); win.document.close(); win.focus(); setTimeout(() => win.print(), 500); }
+  };
+
+  const handleApplySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApplyLoading(true);
+    setApplyError('');
+    try {
+      const res = await api.post('/consumer/apply', { accountId: user?.id, ...applyForm });
+      if (res.data?.success) {
+        setApplySuccess(res.data.ticketNumber);
+        setTicket({ Ticket_Number: res.data.ticketNumber, Status: 'Pending', Connection_Type: 'New Connection', Application_Date: new Date().toISOString() });
+      } else {
+        setApplyError(res.data?.message || 'Submission failed.');
+      }
+    } catch (err: any) {
+      setApplyError(err.response?.data?.message || err.message || 'Failed to submit application.');
+    } finally {
+      setApplyLoading(false);
+    }
+  };
+
+  const handleConcernSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setConcernLoading(true);
+    setConcernError('');
+    setConcernSuccess('');
+    try {
+      const res = await api.post('/consumer/report-concern', { accountId: user?.id, ...concernForm });
+      if (res.data?.success) {
+        setConcernSuccess('Problem reported successfully! Our team will review it.');
+        setConcernForm({ category: 'Leakage', subject: '', description: '', priority: 'Normal' });
+        // Refresh concerns
+        const refreshRes = await api.get(`/consumer/concerns/${user?.id}`);
+        if (refreshRes.data?.success) setConcerns(refreshRes.data.concerns);
+      } else {
+        setConcernError(res.data?.message || 'Submission failed.');
+      }
+    } catch (err: any) {
+      setConcernError(err.response?.data?.message || err.message || 'Failed to submit report.');
+    } finally {
+      setConcernLoading(false);
+    }
   };
 
   if (error) {
@@ -497,6 +604,12 @@ const ConsumerMain: React.FC = () => {
           </div>
 
           <div className="cm-header-actions">
+            <button className="cm-report-btn" onClick={() => { setConcernError(''); setConcernSuccess(''); setShowConcernModal(true); }}>
+              <i className="fas fa-exclamation-triangle" /> Report Problem
+            </button>
+            <button className="cm-history-btn" onClick={() => setShowHistoryModal(true)} title="View my reports">
+              <i className="fas fa-history" /> My Reports
+            </button>
             <Link to="/consumer/profile" className="cm-profile-btn">
               <i className="fas fa-user" /> My Profile
             </Link>
@@ -512,6 +625,61 @@ const ConsumerMain: React.FC = () => {
             <span>{offlineMessage}</span>
           </div>
         )}
+
+        {/* Water Connection Application Banner — shown prominently at the top */}
+        {ticket ? (
+          <div className={`cm-application-banner cm-application-banner--${statusClassName(ticket.Status)}`}>
+            <div className="cm-application-banner-icon">
+              <i className={`fas ${
+                normalizeStatus(ticket.Status) === 'approved' ? 'fa-check-circle'
+                : normalizeStatus(ticket.Status) === 'rejected' ? 'fa-times-circle'
+                : 'fa-file-alt'
+              }`} />
+            </div>
+            <div className="cm-application-banner-body">
+              <div className="cm-application-banner-title">
+                Water Connection Application
+                <span className={`cm-status-badge ${statusClassName(ticket.Status)}`}>{ticket.Status}</span>
+              </div>
+              <div className="cm-application-banner-meta">
+                <span><strong>Ticket:</strong> {ticket.Ticket_Number}</span>
+                {ticket.Application_Date && <span><strong>Applied:</strong> {formatDate(ticket.Application_Date)}</span>}
+                {ticket.Approved_Date && <span><strong>Approved:</strong> {formatDate(ticket.Approved_Date)}</span>}
+                {ticket.Connection_Type && <span><strong>Type:</strong> {ticket.Connection_Type}</span>}
+              </div>
+              {ticket.Remarks && (
+                <p className="cm-application-banner-remarks"><i className="fas fa-comment-alt" /> {ticket.Remarks}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              className="cm-application-banner-download"
+              onClick={() => handlePrintTicket(ticket)}
+              title="Print or download ticket"
+            >
+              <i className="fas fa-print" /> Print Ticket
+            </button>
+          </div>
+        ) : normalizeStatus(serviceStatus) !== 'active' ? (
+          <div className="cm-application-banner cm-application-banner--none">
+            <div className="cm-application-banner-icon">
+              <i className="fas fa-tint" />
+            </div>
+            <div className="cm-application-banner-body">
+              <div className="cm-application-banner-title">No Water Connection Application</div>
+              <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0' }}>
+                Apply for a water service connection to get started. The office will review your application.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="cm-application-banner-apply"
+              onClick={() => { setApplySuccess(''); setApplyError(''); setShowApplyModal(true); }}
+            >
+              <i className="fas fa-plus" /> Apply for Water Connection
+            </button>
+          </div>
+        ) : null}
 
         <section className="cm-stat-grid">
           <article className="cm-stat-card">
@@ -928,6 +1096,228 @@ const ConsumerMain: React.FC = () => {
                   <strong>#{selectedPayment.Payment_ID}</strong>
                 </div>
               </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Apply for Water Connection Modal */}
+        <Modal
+          isOpen={showApplyModal}
+          onClose={() => setShowApplyModal(false)}
+          title="Apply for Water Connection"
+          size="medium"
+          footer={
+            applySuccess ? (
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button type="button" className="cm-modal-close-btn" onClick={() => handlePrintTicket({ Ticket_Number: applySuccess, Status: 'Pending', Connection_Type: 'New Connection', Application_Date: new Date().toISOString() })}>
+                  <i className="fas fa-print" /> Print Ticket
+                </button>
+                <button type="button" className="cm-modal-close-btn" onClick={() => setShowApplyModal(false)}>
+                  Close
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button type="button" className="cm-modal-close-btn" onClick={() => setShowApplyModal(false)} disabled={applyLoading}>
+                  Cancel
+                </button>
+                <button type="submit" form="apply-form" className="cm-application-banner-apply" disabled={applyLoading} style={{ padding: '10px 22px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
+                  {applyLoading ? <><i className="fas fa-spinner fa-spin" /> Submitting...</> : <><i className="fas fa-paper-plane" /> Submit Application</>}
+                </button>
+              </div>
+            )
+          }
+        >
+          {applySuccess ? (
+            <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+              <i className="fas fa-check-circle" style={{ fontSize: '52px', color: '#16a34a', marginBottom: '16px', display: 'block' }} />
+              <h3 style={{ color: '#0f172a', marginBottom: '8px' }}>Application Submitted!</h3>
+              <p style={{ color: '#64748b', marginBottom: '20px' }}>Your application has been received and is now pending review by the office.</p>
+              <div className="cm-application-ticket-number">{applySuccess}</div>
+              <p style={{ fontSize: '13px', color: '#94a3b8', marginTop: '10px' }}>
+                <i className="fas fa-info-circle" /> This ticket number also appears on your dashboard.
+              </p>
+            </div>
+          ) : (
+            <form id="apply-form" onSubmit={handleApplySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {applyError && (
+                <div className="cm-apply-error"><i className="fas fa-exclamation-circle" /> {applyError}</div>
+              )}
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                Fill in your details below to apply for a water service connection. The office will review your application and contact you.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="cm-apply-field">
+                  <label>First Name</label>
+                  <input type="text" value={applyForm.firstName} onChange={e => setApplyForm(f => ({ ...f, firstName: e.target.value }))} placeholder="First name" required />
+                </div>
+                <div className="cm-apply-field">
+                  <label>Middle Name</label>
+                  <input type="text" value={applyForm.middleName} onChange={e => setApplyForm(f => ({ ...f, middleName: e.target.value }))} placeholder="Middle name (optional)" />
+                </div>
+                <div className="cm-apply-field" style={{ gridColumn: '1 / -1' }}>
+                  <label>Last Name</label>
+                  <input type="text" value={applyForm.lastName} onChange={e => setApplyForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Last name" required />
+                </div>
+                <div className="cm-apply-field" style={{ gridColumn: '1 / -1' }}>
+                  <label>Contact Number</label>
+                  <input type="tel" value={applyForm.phone} onChange={e => setApplyForm(f => ({ ...f, phone: e.target.value }))} placeholder="09XXXXXXXXX" required />
+                </div>
+                <div className="cm-apply-field">
+                  <label>Purok</label>
+                  <input type="text" value={applyForm.purok} onChange={e => setApplyForm(f => ({ ...f, purok: e.target.value }))} placeholder="Purok" />
+                </div>
+                <div className="cm-apply-field">
+                  <label>Barangay</label>
+                  <input type="text" value={applyForm.barangay} onChange={e => setApplyForm(f => ({ ...f, barangay: e.target.value }))} placeholder="Barangay" required />
+                </div>
+                <div className="cm-apply-field">
+                  <label>Municipality</label>
+                  <input type="text" value={applyForm.municipality} onChange={e => setApplyForm(f => ({ ...f, municipality: e.target.value }))} placeholder="Municipality" />
+                </div>
+                <div className="cm-apply-field">
+                  <label>ZIP Code</label>
+                  <input type="text" value={applyForm.zipCode} onChange={e => setApplyForm(f => ({ ...f, zipCode: e.target.value }))} placeholder="4610" />
+                </div>
+              </div>
+            </form>
+          )}
+        </Modal>
+
+        {/* Report a Problem Modal */}
+        <Modal
+          isOpen={showConcernModal}
+          onClose={() => setShowConcernModal(false)}
+          title="Report a Problem"
+          size="medium"
+          footer={
+            concernSuccess ? (
+              <button type="button" className="cm-modal-close-btn" onClick={() => setShowConcernModal(false)}>
+                Close
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button type="button" className="cm-modal-close-btn" onClick={() => setShowConcernModal(false)} disabled={concernLoading}>
+                  Cancel
+                </button>
+                <button type="submit" form="concern-form" className="cm-application-banner-apply" disabled={concernLoading} style={{ padding: '10px 22px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
+                  {concernLoading ? <><i className="fas fa-spinner fa-spin" /> Submitting...</> : <><i className="fas fa-paper-plane" /> Submit Report</>}
+                </button>
+              </div>
+            )
+          }
+        >
+          {concernSuccess ? (
+            <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+              <i className="fas fa-check-circle" style={{ fontSize: '52px', color: '#16a34a', marginBottom: '16px', display: 'block' }} />
+              <h3 style={{ color: '#0f172a', marginBottom: '8px' }}>Report Submitted!</h3>
+              <p style={{ color: '#64748b', marginBottom: '20px' }}>{concernSuccess}</p>
+            </div>
+          ) : (
+            <form id="concern-form" onSubmit={handleConcernSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {concernError && (
+                <div className="cm-apply-error"><i className="fas fa-exclamation-circle" /> {concernError}</div>
+              )}
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                Please provide details about the issue you're experiencing. Our technical team will investigate it as soon as possible.
+              </p>
+              <div className="cm-apply-field">
+                <label>Issue Category</label>
+                <select 
+                  value={concernForm.category} 
+                  onChange={e => setConcernForm(f => ({ ...f, category: e.target.value }))}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', background: '#fff', fontSize: '14px' }}
+                >
+                  <option value="Leakage">Water Leakage</option>
+                  <option value="No Water">No Water Supply</option>
+                  <option value="Low Pressure">Low Water Pressure</option>
+                  <option value="Billing">Billing Concern</option>
+                  <option value="Meter">Meter Problem</option>
+                  <option value="Other">Other Issues</option>
+                </select>
+              </div>
+              <div className="cm-apply-field">
+                <label>Subject</label>
+                <input 
+                  type="text" 
+                  value={concernForm.subject} 
+                  onChange={e => setConcernForm(f => ({ ...f, subject: e.target.value }))} 
+                  placeholder="e.g., Leaking pipe near meter" 
+                  required 
+                />
+              </div>
+              <div className="cm-apply-field">
+                <label>Description</label>
+                <textarea 
+                  value={concernForm.description} 
+                  onChange={e => setConcernForm(f => ({ ...f, description: e.target.value }))} 
+                  placeholder="Please describe the problem in detail..." 
+                  required 
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', minHeight: '120px', resize: 'vertical', fontSize: '14px' }}
+                />
+              </div>
+              <div className="cm-apply-field">
+                <label>Urgency</label>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                  {['Low', 'Normal', 'High'].map(p => (
+                    <label key={p} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: '#475569' }}>
+                      <input 
+                        type="radio" 
+                        name="priority" 
+                        value={p} 
+                        checked={concernForm.priority === p} 
+                        onChange={e => setConcernForm(f => ({ ...f, priority: e.target.value }))} 
+                      />
+                      {p}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </form>
+          )}
+        </Modal>
+
+        {/* My Reports History Modal */}
+        <Modal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          title="My Problem Reports"
+          size="large"
+          footer={
+            <button type="button" className="cm-modal-close-btn" onClick={() => setShowHistoryModal(false)}>
+              Close
+            </button>
+          }
+        >
+          {concerns.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <i className="fas fa-clipboard-check" style={{ fontSize: '48px', color: '#cbd5e1', marginBottom: '16px', display: 'block' }} />
+              <p style={{ color: '#64748b' }}>You haven't reported any problems yet.</p>
+            </div>
+          ) : (
+            <div className="cm-table-wrapper" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+              <table className="cm-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {concerns.map(c => (
+                    <tr key={c.concern_id}>
+                      <td data-label="Date" style={{ whiteSpace: 'nowrap' }}>{formatDate(c.created_at)}</td>
+                      <td data-label="Category">{c.category}</td>
+                      <td data-label="Subject">{c.subject}</td>
+                      <td data-label="Status">
+                        <span className={`cm-status-badge ${statusClassName(c.status)}`}>{c.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </Modal>

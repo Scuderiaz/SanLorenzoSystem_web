@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/api';
 import { loadClassificationsWithFallback } from '../../services/userManagementApi';
 import { convertDocumentImageFile } from '../../utils/profileImage';
+import { supabase } from '../../config/supabase';
 import './SignUp.css';
 
 const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
@@ -32,6 +33,7 @@ const SignUp: React.FC = () => {
     classificationId: '',
     sedulaImage: '',
   });
+  const [registrationName, setRegistrationName] = useState('');
   const [classifications, setClassifications] = useState<any[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -130,6 +132,7 @@ const SignUp: React.FC = () => {
       const result = await authService.register(formData);
       if (result.success) {
         setTicketNumber(result.ticketNumber);
+        setRegistrationName([formData.firstName, formData.lastName].filter(Boolean).join(' '));
       } else {
         setError(result.message || 'Registration failed.');
       }
@@ -140,9 +143,93 @@ const SignUp: React.FC = () => {
     }
   };
 
-  const handleGoogleSignUp = () => {
+  const handlePrintTicket = () => {
+    const printDate = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const applicantName = registrationName || formData.username || 'Applicant';
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Registration Ticket - ${ticketNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
+    .ticket { border: 2px solid #1B1B63; border-radius: 12px; padding: 32px; max-width: 480px; margin: 0 auto; }
+    .ticket-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; }
+    .ticket-logo-title { font-size: 15px; font-weight: 700; color: #1B1B63; }
+    .ticket-subtitle { font-size: 12px; color: #555; margin-top: 4px; }
+    .ticket-number { font-size: 22px; font-weight: 900; color: #1B1B63; letter-spacing: 1px; margin: 18px 0 6px; text-align: center; }
+    .ticket-label { font-size: 11px; color: #888; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+    .ticket-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .ticket-row span { color: #555; }
+    .ticket-row strong { color: #111; }
+    .charges { margin-top: 16px; background: #f9f9f9; border-radius: 8px; padding: 14px; }
+    .charges-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 10px; }
+    .charge-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+    .charge-total { font-weight: 700; border-top: 1px solid #ddd; margin-top: 6px; padding-top: 8px; }
+    .ticket-footer { margin-top: 20px; text-align: center; font-size: 11px; color: #888; line-height: 1.6; }
+    .status-badge { display: inline-block; padding: 4px 12px; background: #FEF3C7; color: #92400E; border-radius: 99px; font-size: 12px; font-weight: 700; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="ticket-header">
+      <div class="ticket-logo-title">San Lorenzo Ruiz Waterworks System</div>
+      <div class="ticket-subtitle">Water Connection Application Receipt</div>
+    </div>
+    <div class="ticket-label">Ticket Number</div>
+    <div class="ticket-number">${ticketNumber}</div>
+    <div style="text-align:center; margin-bottom:20px"><span class="status-badge">PENDING REVIEW</span></div>
+    <div class="ticket-row"><span>Applicant</span><strong>${applicantName}</strong></div>
+    <div class="ticket-row"><span>Username</span><strong>${formData.username}</strong></div>
+    <div class="ticket-row"><span>Date Applied</span><strong>${printDate}</strong></div>
+    <div class="ticket-row"><span>Connection Type</span><strong>New Connection</strong></div>
+    <div class="charges">
+      <div class="charges-title">Registration Charges</div>
+      <div class="charge-row"><span>Connection Fee</span><span>PHP 300.00</span></div>
+      <div class="charge-row"><span>Membership Fee</span><span>PHP 50.00</span></div>
+      <div class="charge-row"><span>Meter Full Deposit</span><span>PHP 1,500.00</span></div>
+      <div class="charge-row charge-total"><span>Total Amount</span><strong>PHP 1,850.00</strong></div>
+    </div>
+    <div class="ticket-footer">
+      Please bring this ticket to the Municipal Office.<br>
+      Present this reference number during your visit.<br><br>
+      San Lorenzo Ruiz, Camarines Norte &mdash; Water Billing System
+    </div>
+  </div>
+</body>
+</html>`;
+    const win = window.open('', '_blank', 'width=600,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 500);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
     setError('');
-    window.alert('Google sign-up is frontend-only for now.');
+
+    if (!supabase) {
+      setError('Google sign-in is not available. Supabase is not configured.');
+      return;
+    }
+
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (oauthError) {
+        setError(oauthError.message || 'Failed to start Google sign-in.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred starting Google sign-in.');
+    }
   };
 
   const handleSedulaChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,13 +287,21 @@ const SignUp: React.FC = () => {
 
         {ticketNumber ? (
           <div className="signup-success">
-            <h3>Ticket Generated!</h3>
-            <p>Your registration ticket number is:</p>
+            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+              <i className="fas fa-check-circle" style={{ fontSize: '48px', color: '#16a34a' }} />
+            </div>
+            <h3>Application Submitted!</h3>
+            <p>Your application has been received. Please present the ticket number below at the Municipal Office to proceed with your water connection.</p>
             <div className="signup-ticket">{ticketNumber}</div>
-            <p>Please save this ticket number for your reference.</p>
-            <div className="signup-actions" style={{ justifyContent: 'center' }}>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: '8px 0 20px' }}>
+              <i className="fas fa-info-circle" /> You can also view this ticket any time by logging in to your dashboard.
+            </p>
+            <div className="signup-actions" style={{ justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <button type="button" className="signup-secondary-btn" onClick={handlePrintTicket}>
+                <i className="fas fa-print" /> Print / Download Ticket
+              </button>
               <button type="button" className="signup-primary" onClick={() => navigate('/login')}>
-                Back to Login
+                <i className="fas fa-sign-in-alt" /> Log In to Dashboard
               </button>
             </div>
           </div>

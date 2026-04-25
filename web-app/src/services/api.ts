@@ -25,7 +25,7 @@ const ensurePendingRegistrationAccountNumber = (userData: any) => ({
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -129,6 +129,21 @@ export const authService = {
         return {
           success: false,
           message: 'Registration requires the backend service. Please try again when the server connection is available.',
+        };
+      }
+      return error.response?.data || { success: false, message: error.message };
+    }
+  },
+
+  loginWithGoogle: async (accessToken: string) => {
+    try {
+      const response = await api.post('/auth/google', { access_token: accessToken });
+      return response.data;
+    } catch (error: any) {
+      if (isNetworkError(error)) {
+        return {
+          success: false,
+          message: 'Google sign-in requires the backend service. Please try again when the server connection is available.',
         };
       }
       return error.response?.data || { success: false, message: error.message };

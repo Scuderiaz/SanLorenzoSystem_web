@@ -100,6 +100,7 @@ const ProcessPayment: React.FC = () => {
   const [currentReceipt, setCurrentReceipt] = useState<PaymentHistoryRow | null>(null);
   const [editingPayment, setEditingPayment] = useState<PaymentHistoryRow | null>(null);
   const [editedReceiptNumber, setEditedReceiptNumber] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const searchLookupRef = useRef<HTMLDivElement | null>(null);
 
   const loadPaymentHistory = useCallback(async () => {
@@ -170,43 +171,55 @@ const ProcessPayment: React.FC = () => {
       const summary = lookup.summary || {};
       const currentBill = lookup.currentBill || null;
 
-      if (!consumer || !currentBill) {
+      if (!consumer) {
         setSelectedConsumer(null);
         setConsumerProfile(null);
-        showToast('No active bill found for this account.', 'warning');
+        showToast('No consumer found for this account.', 'warning');
         return;
       }
 
+      const totalDue = toAmount(summary.totalDue ?? currentBill?.Total_Amount ?? 0);
+      const isPaidOrNoBill = !currentBill || totalDue === 0;
+
       const mappedConsumer: BillInfo = {
-        Bill_ID: currentBill.Bill_ID,
-        Consumer_ID: currentBill.Consumer_ID,
+        Bill_ID: currentBill?.Bill_ID ?? 0,
+        Consumer_ID: currentBill?.Consumer_ID ?? consumer.Consumer_ID,
         Account_Number: consumer.Account_Number,
         Consumer_Name: consumer.Consumer_Name,
         Address: consumer.Address,
         Classification: consumer.Classification,
-        Billing_Month: currentBill.Billing_Month || summary.billingMonth || 'Current',
-        Due_Date: currentBill.Due_Date || summary.dueDate || null,
-        Basic_Charge: toAmount(currentBill.Basic_Charge),
-        Environmental_Fee: toAmount(currentBill.Environmental_Fee),
-        Current_Bill: toAmount(summary.currentBillAmount ?? currentBill.Total_Amount),
+        Billing_Month: currentBill?.Billing_Month || summary.billingMonth || '—',
+        Due_Date: currentBill?.Due_Date || summary.dueDate || null,
+        Basic_Charge: toAmount(currentBill?.Basic_Charge),
+        Environmental_Fee: toAmount(currentBill?.Environmental_Fee),
+        Current_Bill: toAmount(summary.currentBillAmount ?? currentBill?.Total_Amount),
         Previous_Balance: toAmount(summary.previousBalance),
-        Penalties: toAmount(summary.overduePenalty ?? currentBill.Penalty ?? currentBill.Penalties),
-        Overdue_Penalty: toAmount(summary.overduePenalty ?? currentBill.Penalty ?? currentBill.Penalties),
+        Penalties: toAmount(summary.overduePenalty ?? currentBill?.Penalty ?? currentBill?.Penalties),
+        Overdue_Penalty: toAmount(summary.overduePenalty ?? currentBill?.Penalty ?? currentBill?.Penalties),
         Late_Fee_Percentage: toAmount(summary.lateFeePercentage),
         Is_Overdue: Boolean(summary.isOverdue),
-        Total_Amount_Due: toAmount(summary.totalDue ?? currentBill.Total_Amount),
-        Status: currentBill.Status || 'Unpaid',
+        Total_Amount_Due: totalDue,
+        Status: isPaidOrNoBill ? 'Paid' : (currentBill?.Status || 'Unpaid'),
       };
 
       setConsumerProfile(consumer);
       setSelectedConsumer(mappedConsumer);
       setSearchTerm(query);
       setShowSearchSuggestions(false);
-      setAmountPaid(mappedConsumer.Status?.toLowerCase() === 'paid' ? '0' : String(mappedConsumer.Total_Amount_Due));
+      setAmountPaid(isPaidOrNoBill ? '0' : String(totalDue));
+
       if (result.source === 'supabase') {
         showToast('Account lookup used Supabase fallback.', 'warning');
       }
-      showToast('Valid statement for settlement identified.', 'success');
+
+      if (isPaidOrNoBill) {
+        showToast(
+          currentBill ? 'Account is fully paid — no outstanding balance.' : 'Consumer found — no current bill on record.',
+          'info'
+        );
+      } else {
+        showToast('Valid statement for settlement identified.', 'success');
+      }
     } catch (error) {
       console.error('Error searching consumer:', error);
       setSelectedConsumer(null);
@@ -233,6 +246,10 @@ const ProcessPayment: React.FC = () => {
   const handleProcessPayment = useCallback(async () => {
     if (!selectedConsumer) {
       showToast('Please search and select a consumer first', 'error');
+      return;
+    }
+    if (!selectedConsumer.Bill_ID) {
+      showToast('No active bill found for this consumer. Cannot record a collection.', 'error');
       return;
     }
     if (!amountPaid || parseFloat(amountPaid) <= 0) {
@@ -618,15 +635,55 @@ const ProcessPayment: React.FC = () => {
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Recent Daily Collections Audit</h2>
-            <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700' }} onClick={loadPaymentHistory}>
-              <i className="fas fa-sync-alt"></i> Refresh
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <i className="fas fa-calendar-alt" style={{ position: 'absolute', left: '12px', color: '#1B1B63', opacity: 0.5, fontSize: '14px', pointerEvents: 'none' }} />
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  style={{
+                    paddingLeft: '36px', paddingRight: '12px', paddingTop: '9px', paddingBottom: '9px',
+                    border: '1.5px solid #e2e8f0', borderRadius: '10px',
+                    fontSize: '13px', fontWeight: 600, color: '#334155',
+                    background: dateFilter ? '#ffffff' : '#f1f5f9',
+                    cursor: 'pointer', outline: 'none',
+                  }}
+                  title="Filter by date"
+                />
+              </div>
+              {dateFilter && (
+                <button
+                  onClick={() => setDateFilter('')}
+                  title="Clear date filter"
+                  style={{
+                    border: 'none', background: '#fee2e2', color: '#dc2626',
+                    borderRadius: '8px', padding: '8px 10px', cursor: 'pointer',
+                    fontSize: '12px', fontWeight: 700,
+                  }}
+                >
+                  <i className="fas fa-times" /> Clear
+                </button>
+              )}
+              <button className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '700' }} onClick={loadPaymentHistory}>
+                <i className="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
           </div>
           <div className="card-body">
             <div style={{ padding: '24px' }}>
               <DataTable
                 columns={paymentColumns}
-                data={payments}
+                data={payments.filter((p) => {
+                  if (!dateFilter) return true;
+                  const payDate = new Date(p.Payment_Date);
+                  const [year, month, day] = dateFilter.split('-').map(Number);
+                  return (
+                    payDate.getFullYear() === year &&
+                    payDate.getMonth() + 1 === month &&
+                    payDate.getDate() === day
+                  );
+                })}
                 loading={loading}
                 emptyMessage="No payment history found."
                 enableFiltering

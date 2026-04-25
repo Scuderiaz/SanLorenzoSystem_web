@@ -441,12 +441,15 @@
 
 .signup-ticket {
   margin: 14px auto;
-  padding: 12px;
+  padding: 14px 20px;
   border-radius: 14px;
-  border: 1px solid #dadce0;
-  background: #fff;
+  border: 2px dashed rgba(26, 115, 232, 0.4);
+  background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+  color: #1b1b63;
   font-weight: 900;
-  letter-spacing: 2px;
+  font-size: 1.3rem;
+  letter-spacing: 3px;
+  font-family: 'Courier New', monospace;
   width: min(420px, 100%);
 }
 

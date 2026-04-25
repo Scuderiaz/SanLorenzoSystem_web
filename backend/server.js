@@ -104,6 +104,7 @@ const syncTableConfigs = [
   { tableName: 'system_logs', primaryKey: 'log_id', syncWithSupabase: false },
   { tableName: 'backuplogs', primaryKey: 'backup_id' },
   { tableName: 'waterrates', primaryKey: 'rate_id' },
+  { tableName: 'consumer_concerns', primaryKey: 'concern_id' },
 ];
 
 const syncTableColumns = {
@@ -111,7 +112,7 @@ const syncTableColumns = {
   zone: ['zone_id', 'zone_name'],
   classification: ['classification_id', 'classification_name'],
   admin_settings: ['settings_id', 'system_name', 'currency', 'due_date_days', 'late_fee', 'modified_by', 'modified_date'],
-  accounts: ['account_id', 'username', 'password', 'full_name', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
+  accounts: ['account_id', 'username', 'password', 'full_name', 'email', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
   consumer: [
     'consumer_id',
     'first_name',
@@ -237,6 +238,7 @@ const syncTableColumns = {
   backuplogs: ['backup_id', 'backup_name', 'backup_time', 'backup_size', 'backup_type', 'created_by'],
   error_logs: ['error_id', 'error_time', 'severity', 'module', 'error_message', 'user_id', 'status'],
   system_logs: ['log_id', 'account_id', 'role', 'action', 'timestamp'],
+  consumer_concerns: ['concern_id', 'consumer_id', 'account_id', 'category', 'subject', 'description', 'status', 'priority', 'created_at', 'resolved_at', 'resolved_by', 'remarks'],
 };
 
 const syncConflictPolicies = {
@@ -1954,6 +1956,7 @@ function mapSupabaseAccountRow(row) {
     account_id: row.account_id,
     username: row.username,
     password: row.password,
+    email: row.email || null,
     auth_user_id: row.auth_user_id,
     profile_picture_url: row.profile_picture_url || null,
     full_name: row.full_name || row.username,
@@ -1983,13 +1986,41 @@ async function findSupabaseAccountByUsername(username) {
 
 async function findPostgresAccountByUsername(username) {
   const { rows } = await pool.query(`
-    SELECT a.account_id, a.username, a.password, a.auth_user_id, a.profile_picture_url, COALESCE(NULLIF(a.full_name, ''), a.username) AS full_name, a.role_id, a.account_status, r.role_name
+    SELECT a.account_id, a.username, a.password, a.email, a.auth_user_id, a.profile_picture_url, COALESCE(NULLIF(a.full_name, ''), a.username) AS full_name, a.role_id, a.account_status, r.role_name
     FROM accounts a
     JOIN roles r ON a.role_id = r.role_id
     WHERE a.username = $1
   `, [username]);
 
   return rows[0] || null;
+}
+
+async function findAccountByEmail(email) {
+  if (!email) return null;
+  const normalizedEmail = String(email).trim().toLowerCase();
+
+  return await withPostgresPrimary(
+    'auth.findByEmail',
+    async () => {
+      const { rows } = await pool.query(`
+        SELECT a.account_id, a.username, a.password, a.email, a.auth_user_id, a.profile_picture_url, COALESCE(NULLIF(a.full_name, ''), a.username) AS full_name, a.role_id, a.account_status, r.role_name
+        FROM accounts a
+        JOIN roles r ON a.role_id = r.role_id
+        WHERE LOWER(TRIM(a.email)) = $1
+        LIMIT 1
+      `, [normalizedEmail]);
+      return rows[0] || null;
+    },
+    async () => {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*, roles ( role_name )')
+        .ilike('email', normalizedEmail)
+        .maybeSingle();
+      if (error) throw error;
+      return mapSupabaseAccountRow(data);
+    }
+  );
 }
 
 async function findSupabaseAuthUserByEmail(email) {
@@ -2255,6 +2286,27 @@ async function initDb() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS consumer_concerns (
+      concern_id SERIAL PRIMARY KEY,
+      sync_id UUID DEFAULT gen_random_uuid() NOT NULL,
+      consumer_id INTEGER,
+      account_id INTEGER NOT NULL,
+      category CHARACTER VARYING(50) NOT NULL,
+      subject CHARACTER VARYING(255) NOT NULL,
+      description TEXT NOT NULL,
+      status CHARACTER VARYING(20) DEFAULT 'Pending' NOT NULL,
+      priority CHARACTER VARYING(20) DEFAULT 'Normal' NOT NULL,
+      created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      resolved_at TIMESTAMP WITHOUT TIME ZONE,
+      resolved_by INTEGER,
+      remarks TEXT,
+      CONSTRAINT consumer_concerns_status_check CHECK (status IN ('Pending', 'In Progress', 'Resolved', 'Closed', 'Rejected')),
+      CONSTRAINT consumer_concerns_priority_check CHECK (priority IN ('Low', 'Normal', 'High', 'Urgent'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_consumer_concerns_account_id ON consumer_concerns(account_id);
+  `);
+
+  await pool.query(`
     ALTER TABLE accounts
       ADD COLUMN IF NOT EXISTS auth_user_id UUID;
 
@@ -2274,6 +2326,7 @@ async function initDb() {
 
   await ensureTableColumn('accounts', 'profile_picture_url', 'TEXT');
   await ensureTableColumn('accounts', 'full_name', 'TEXT');
+  await ensureTableColumn('accounts', 'email', 'VARCHAR(255)');
 
   for (const tableName of durableSyncTables) {
     await ensureTableColumn(tableName, 'sync_id', 'UUID DEFAULT gen_random_uuid()');
@@ -4285,9 +4338,7 @@ app.post('/api/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid username' });
     }
-    if (user.account_status === 'Pending') {
-      return res.status(401).json({ success: false, message: 'Please wait until you are registered to access the dashboard.' });
-    }
+    // Pending consumers are allowed to log in — they see their application status in the dashboard
     if (user.account_status === 'Rejected') {
       return res.status(401).json({ success: false, message: 'Your registration was rejected. Please contact the office for assistance.' });
     }
@@ -5877,14 +5928,16 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
           return null;
         }
 
-        const [billRows, paymentRows, readingRows] = await Promise.all([
+        const [billRows, paymentRows, readingRows, ticketRows] = await Promise.all([
           pool.query('SELECT * FROM bills WHERE consumer_id = $1 ORDER BY bill_date DESC', [consumer.consumer_id]),
           pool.query('SELECT * FROM payment WHERE consumer_id = $1 ORDER BY payment_date DESC', [consumer.consumer_id]),
           pool.query('SELECT * FROM meterreadings WHERE consumer_id = $1 ORDER BY reading_date DESC LIMIT 6', [consumer.consumer_id]),
+          pool.query('SELECT ticket_id, ticket_number, connection_type, status, application_date, approved_date, remarks FROM connection_ticket WHERE account_id = $1 ORDER BY ticket_id DESC LIMIT 1', [accountId]),
         ]);
 
         const mappedBills = billRows.rows.map((bill) => mapBillRecord(bill, new Map([[consumer.consumer_id, consumer]]), new Map([[consumer.classification_id, consumer.classification_name]])));
         const billMap = new Map(billRows.rows.map((bill) => [bill.bill_id, bill]));
+        const ticket = ticketRows.rows[0] || null;
 
         return {
           consumer: { ...consumer, Consumer_ID: consumer.consumer_id },
@@ -5894,6 +5947,15 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
             Reading_Date: r.reading_date || r.created_date,
             Consumption: r.consumption,
           })).reverse(),
+          ticket: ticket ? {
+            Ticket_ID: ticket.ticket_id,
+            Ticket_Number: ticket.ticket_number,
+            Connection_Type: ticket.connection_type,
+            Status: ticket.status,
+            Application_Date: ticket.application_date,
+            Approved_Date: ticket.approved_date,
+            Remarks: ticket.remarks,
+          } : null,
         };
       },
       async () => {
@@ -5916,6 +5978,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
           { data: account, error: accountError },
           { data: zone, error: zoneError },
           { data: classification, error: classificationError },
+          { data: tickets, error: ticketError },
         ] = await Promise.all([
           supabase.from('bills').select('*').eq('consumer_id', consumerId).order('bill_date', { ascending: false }),
           supabase.from('payment').select('*').eq('consumer_id', consumerId).order('payment_date', { ascending: false }),
@@ -5924,6 +5987,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
           supabase.from('accounts').select('username, profile_picture_url, account_status').eq('account_id', accountId).maybeSingle(),
           supabase.from('zone').select('zone_name').eq('zone_id', consumer.zone_id).maybeSingle(),
           supabase.from('classification').select('classification_name').eq('classification_id', consumer.classification_id).maybeSingle(),
+          supabase.from('connection_ticket').select('ticket_id, ticket_number, connection_type, status, application_date, approved_date, remarks').eq('account_id', accountId).order('ticket_id', { ascending: false }).limit(1),
         ]);
         if (billsError) throw billsError;
         if (paymentsError) throw paymentsError;
@@ -5934,6 +5998,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
         if (classificationError) throw classificationError;
 
         const billMap = new Map((bills || []).map((bill) => [bill.bill_id, bill]));
+        const rawTicket = tickets?.[0] || null;
 
         return {
           consumer: {
@@ -5953,6 +6018,15 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
             Reading_Date: r.reading_date || r.created_at || r.created_date,
             Consumption: r.consumption,
           })).reverse(),
+          ticket: rawTicket ? {
+            Ticket_ID: rawTicket.ticket_id,
+            Ticket_Number: rawTicket.ticket_number,
+            Connection_Type: rawTicket.connection_type,
+            Status: rawTicket.status,
+            Application_Date: rawTicket.application_date,
+            Approved_Date: rawTicket.approved_date,
+            Remarks: rawTicket.remarks,
+          } : null,
         };
       }
     );
@@ -5966,6 +6040,145 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
     await logRequestError(req, 'consumerDashboard.fetch', error);
     console.error('Consumer dashboard error:', error);
     return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+
+// Consumer applies for water connection from within the dashboard
+app.post('/api/consumer/apply', async (req, res) => {
+  const { accountId, firstName, middleName, lastName, phone, purok, barangay, municipality, zipCode, classificationId, connectionType, sedulaImage } = req.body;
+  if (!accountId) return res.status(400).json({ success: false, message: 'Account ID is required.' });
+  let normalizedPhone = null;
+  if (phone) {
+    normalizedPhone = normalizePhilippinePhoneNumber(phone);
+    if (!normalizedPhone) return res.status(400).json({ success: false, message: 'Phone number must be a valid Philippine mobile number.' });
+  }
+  let normalizedSedula = null;
+  if (sedulaImage) {
+    try { normalizedSedula = normalizeRequirementSubmission(sedulaImage, { allowText: false }); }
+    catch (error) { return res.status(400).json({ success: false, message: error.message }); }
+  }
+  try {
+    const existingTicket = await withPostgresPrimary(
+      'consumer.apply.check',
+      async () => { const { rows } = await pool.query("SELECT ticket_id, ticket_number FROM connection_ticket WHERE account_id = $1 AND status IN ('Pending','Active') LIMIT 1", [accountId]); return rows[0] || null; },
+      async () => { const { data } = await supabase.from('connection_ticket').select('ticket_id, ticket_number').eq('account_id', accountId).in('status', ['Pending','Active']).limit(1); return data?.[0] || null; }
+    );
+    if (existingTicket) return res.status(409).json({ success: false, message: `You already have a pending application (Ticket: ${existingTicket.ticket_number}).` });
+    const ticketNumber = generateRegistrationTicketNumber();
+    const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
+    const address = [purok, barangay, municipality || 'San Lorenzo Ruiz', zipCode || '4610'].filter(Boolean).join(', ');
+    await withPostgresPrimary(
+      'consumer.apply.create',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('UPDATE consumer SET first_name=COALESCE(NULLIF($1,$0::text),first_name),middle_name=COALESCE(NULLIF($2,$0::text),middle_name),last_name=COALESCE(NULLIF($3,$0::text),last_name),contact_number=COALESCE($4,contact_number),purok=COALESCE(NULLIF($5,$0::text),purok),barangay=COALESCE(NULLIF($6,$0::text),barangay),municipality=COALESCE(NULLIF($7,$0::text),municipality),zip_code=COALESCE(NULLIF($8,$0::text),zip_code),classification_id=COALESCE($9::int,classification_id),address=COALESCE(NULLIF($10,$0::text),address),status=$$Pending$$ WHERE login_id=$11'.replace(/\$0::text/g,"''"),
+            [firstName||null,middleName||null,lastName||null,normalizedPhone,purok||null,barangay||null,municipality||null,zipCode||null,classificationId||null,address||null,accountId]);
+          const { rows: cRows } = await client.query('SELECT consumer_id FROM consumer WHERE login_id=$1 LIMIT 1', [accountId]);
+          if (!cRows[0]) throw new Error('Consumer record not found.');
+          await client.query("INSERT INTO connection_ticket (consumer_id,account_id,ticket_number,connection_type,requirements_submitted,status) VALUES ($1,$2,$3,$4,$5,'Pending')",
+            [cRows[0].consumer_id,accountId,ticketNumber,connectionType||'New Connection',normalizedSedula]);
+          if (fullName) await client.query("UPDATE accounts SET full_name=$1 WHERE account_id=$2 AND (full_name IS NULL OR full_name='')", [fullName, accountId]);
+          await client.query('COMMIT');
+        } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+      },
+      async () => {
+        const { data: cData } = await supabase.from('consumer').select('consumer_id').eq('login_id', accountId).maybeSingle();
+        if (!cData?.consumer_id) throw new Error('Consumer record not found.');
+        await supabase.from('consumer').update({ first_name: firstName, middle_name: middleName, last_name: lastName, contact_number: normalizedPhone, purok, barangay, municipality, zip_code: zipCode, classification_id: classificationId, address, status: 'Pending' }).eq('login_id', accountId);
+        await insertSupabaseRowWithPrimaryKeyRetry('connection_ticket', 'ticket_id', { consumer_id: cData.consumer_id, account_id: accountId, ticket_number: ticketNumber, connection_type: connectionType||'New Connection', requirements_submitted: normalizedSedula, status: 'Pending' }, 'ticket_id');
+      }
+    );
+    scheduleImmediateSync('consumer-apply');    return res.json({ success: true, ticketNumber, message: 'Application submitted successfully.' });
+  } catch (error) {
+    await logRequestError(req, 'consumer.apply', error);
+    console.error('Consumer apply error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error during application.' });
+  }
+});
+
+app.post('/api/consumer/report-concern', async (req, res) => {
+  const { accountId, category, subject, description, priority } = req.body;
+  if (!accountId || !category || !subject || !description) {
+    return res.status(400).json({ success: false, message: 'All required fields must be provided.' });
+  }
+
+  try {
+    const consumerData = await withPostgresPrimary(
+      'consumer.concern.getConsumer',
+      async () => {
+        const { rows } = await pool.query("SELECT consumer_id FROM consumer WHERE login_id = $1 LIMIT 1", [accountId]);
+        return rows[0] || null;
+      },
+      async () => {
+        const { data } = await supabase.from('consumer').select('consumer_id').eq('login_id', accountId).maybeSingle();
+        return data || null;
+      }
+    );
+
+    if (!consumerData) {
+      return res.status(404).json({ success: false, message: 'Consumer account not found.' });
+    }
+
+    const consumerId = consumerData.consumer_id;
+
+    await withPostgresPrimary(
+      'consumer.concern.create',
+      async () => {
+        await pool.query(
+          "INSERT INTO consumer_concerns (consumer_id, account_id, category, subject, description, priority, status) VALUES ($1, $2, $3, $4, $5, $6, 'Pending')",
+          [consumerId, accountId, category, subject, description, priority || 'Normal']
+        );
+      },
+      async () => {
+        await supabase.from('consumer_concerns').insert({
+          consumer_id: consumerId,
+          account_id: accountId,
+          category,
+          subject,
+          description,
+          priority: priority || 'Normal',
+          status: 'Pending'
+        });
+      }
+    );
+
+    scheduleImmediateSync('consumer-concern-report');
+    return res.json({ success: true, message: 'Problem reported successfully.' });
+  } catch (error) {
+    await logRequestError(req, 'consumer.report-concern', error);
+    console.error('Consumer report concern error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit report.' });
+  }
+});
+
+app.get('/api/consumer/concerns/:accountId', async (req, res) => {
+  const { accountId } = req.params;
+  try {
+    const concerns = await withPostgresPrimary(
+      'consumer.concerns.list',
+      async () => {
+        const { rows } = await pool.query(
+          "SELECT * FROM consumer_concerns WHERE account_id = $1 ORDER BY created_at DESC",
+          [accountId]
+        );
+        return rows;
+      },
+      async () => {
+        const { data } = await supabase
+          .from('consumer_concerns')
+          .select('*')
+          .eq('account_id', accountId)
+          .order('created_at', { ascending: false });
+        return data || [];
+      }
+    );
+    return res.json({ success: true, concerns });
+  } catch (error) {
+    await logRequestError(req, 'consumer.concerns.list', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch concerns history.' });
   }
 });
 
@@ -6506,6 +6719,187 @@ app.post('/api/register', async (req, res) => {
     await logRequestError(req, 'auth.register', error);
     console.error('Registration error:', error);
     return res.status(500).json({ success: false, message: getRegisterErrorMessage(error) });
+  }
+});
+
+// --- GOOGLE OAUTH ---
+app.post('/api/auth/google', async (req, res) => {
+  const { access_token } = req.body;
+
+  if (!access_token) {
+    return res.status(400).json({ success: false, message: 'Access token is required.' });
+  }
+
+  if (!supabase) {
+    return res.status(500).json({ success: false, message: 'Supabase is not configured on this server.' });
+  }
+
+  try {
+    // Verify the access token with Supabase Auth
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(access_token);
+    if (authError || !authUser) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired Google token.' });
+    }
+
+    const googleEmail = String(authUser.email || '').trim().toLowerCase();
+    const googleName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || '';
+    const googleAvatar = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null;
+    const authUserId = authUser.id;
+
+    if (!googleEmail) {
+      return res.status(400).json({ success: false, message: 'Google account does not have an email address.' });
+    }
+
+    // Check if an account with this email already exists
+    let existingAccount = await findAccountByEmail(googleEmail);
+
+    if (existingAccount) {
+      // Existing Google user — update auth_user_id if needed and return session
+      if (!existingAccount.auth_user_id && authUserId) {
+        await persistAccountAuthUserId(existingAccount.account_id, authUserId);
+      }
+
+      // Update avatar if available and not already set
+      if (googleAvatar && !existingAccount.profile_picture_url) {
+        try {
+          await withPostgresPrimary(
+            'auth.google.updateAvatar',
+            async () => {
+              await pool.query('UPDATE accounts SET profile_picture_url = $1 WHERE account_id = $2', [googleAvatar, existingAccount.account_id]);
+            },
+            async () => {
+              await supabase.from('accounts').update({ profile_picture_url: googleAvatar }).eq('account_id', existingAccount.account_id);
+            }
+          );
+        } catch (avatarError) {
+          console.warn('Failed to update Google avatar:', avatarError.message);
+        }
+      }
+
+      if (existingAccount.account_status === 'Inactive') {
+        return res.status(401).json({ success: false, message: 'Your account is inactive. Please contact the office for assistance.' });
+      }
+
+      return res.json({
+        success: true,
+        user: {
+          id: existingAccount.account_id,
+          username: existingAccount.username,
+          fullName: existingAccount.full_name || googleName || existingAccount.username,
+          email: googleEmail,
+          auth_user_id: authUserId || existingAccount.auth_user_id || null,
+          profile_picture_url: existingAccount.profile_picture_url || googleAvatar || null,
+          role_id: existingAccount.role_id,
+          role_name: existingAccount.role_name || 'Consumer',
+        },
+      });
+    }
+
+    // New Google user — create account + consumer with Active status
+    const [firstName = '', ...restName] = googleName.split(' ');
+    const lastName = restName.join(' ') || firstName;
+    const generatedUsername = googleEmail.split('@')[0] || `google_${Date.now()}`;
+    const generatedPassword = `google_${crypto.randomUUID()}`;
+
+    const createdAccount = await withPostgresPrimary(
+      'auth.google.createAccount',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await synchronizePostgresSequences(client, [
+            { tableName: 'accounts', primaryKey: 'account_id' },
+            { tableName: 'consumer', primaryKey: 'consumer_id' },
+          ]);
+
+          const { rows: accountRows } = await client.query(`
+            INSERT INTO accounts (username, password, email, full_name, role_id, account_status, auth_user_id, profile_picture_url)
+            VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8)
+            RETURNING account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url
+          `, [generatedUsername, generatedPassword, googleEmail, googleName || generatedUsername, 5, 'Active', authUserId, googleAvatar]);
+
+          const accountId = accountRows[0].account_id;
+
+          await client.query(`
+            INSERT INTO consumer (first_name, last_name, login_id, status, municipality, zip_code)
+            VALUES ($1, $2, $3, $4, $5, $6)
+          `, [firstName || generatedUsername, lastName || '', accountId, 'Active', 'San Lorenzo Ruiz', '4610']);
+
+          await client.query('COMMIT');
+          return accountRows[0];
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { data: accountData, error: accountError } = await supabase
+          .from('accounts')
+          .insert([{
+            username: generatedUsername,
+            password: generatedPassword,
+            email: googleEmail,
+            full_name: googleName || generatedUsername,
+            role_id: 5,
+            account_status: 'Active',
+            auth_user_id: authUserId,
+            profile_picture_url: googleAvatar,
+          }])
+          .select('account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url')
+          .single();
+        if (accountError) throw accountError;
+
+        const { error: consumerError } = await supabase
+          .from('consumer')
+          .insert([{
+            first_name: firstName || generatedUsername,
+            last_name: lastName || '',
+            login_id: accountData.account_id,
+            status: 'Active',
+            municipality: 'San Lorenzo Ruiz',
+            zip_code: '4610',
+          }]);
+        if (consumerError) throw consumerError;
+
+        return accountData;
+      }
+    );
+
+    scheduleImmediateSync('google-auth-register');
+
+    await writeSystemLog(
+      `[auth] Google sign-up: account #${createdAccount.account_id} created for ${googleEmail}.`,
+      { userId: createdAccount.account_id, role: 'Consumer' }
+    );
+
+    return res.json({
+      success: true,
+      user: {
+        id: createdAccount.account_id,
+        username: createdAccount.username,
+        fullName: createdAccount.full_name || googleName || createdAccount.username,
+        email: googleEmail,
+        auth_user_id: authUserId,
+        profile_picture_url: createdAccount.profile_picture_url || googleAvatar || null,
+        role_id: 5,
+        role_name: 'Consumer',
+      },
+    });
+  } catch (error) {
+    await logRequestError(req, 'auth.google', error);
+    console.error('Google auth error:', error);
+
+    const isDuplicate = error?.code === '23505';
+    if (isDuplicate) {
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this email or username already exists. Try logging in instead.',
+      });
+    }
+
+    return res.status(500).json({ success: false, message: error.message || 'Google authentication failed.' });
   }
 });
 

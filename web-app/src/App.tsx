@@ -24,6 +24,7 @@ import ProcessPayment from './pages/treasurer/ProcessPayment';
 import TreasurerLedger from './pages/treasurer/Ledger';
 import ForgotPassword from './pages/login/ForgotPassword';
 import SignUp from './pages/login/SignUp';
+import AuthCallback from './pages/login/AuthCallback';
 import LandingPage from './pages/landing/LandingPage';
 import ConsumerMain from './pages/consumer/ConsumerMain';
 import ConsumerProfile from './pages/consumer/ConsumerProfile';
@@ -95,6 +96,7 @@ const AppContent: React.FC = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/signup" element={<SignUp />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/consumer"
         element={

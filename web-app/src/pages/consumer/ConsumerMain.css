@@ -247,6 +247,42 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
+.cm-report-btn,
+.cm-history-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 18px;
+  border-radius: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: all 0.18s ease;
+}
+
+.cm-report-btn {
+  background: rgba(220, 38, 38, 0.24);
+  color: #ffffff;
+}
+
+.cm-report-btn:hover {
+  background: rgba(220, 38, 38, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+}
+
+.cm-history-btn {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.cm-history-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-1px);
+}
+
 .cm-logout-btn {
   border: none;
   background: #ffffff;
@@ -299,7 +335,7 @@
 }
 
 .cm-stat-card-highlight {
-  background: linear-gradient(145deg, #1b1b63, #0b0e23);
+  background: linear-gradient(145deg, #dc2626, #991b1b);
   color: #ffffff;
 }
 
@@ -1472,5 +1508,226 @@
 
   .cm-detail-item {
     padding: 12px;
+  }
+}
+
+/* ── Water Connection Application Banner ─────────────────────────── */
+.cm-application-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 24px;
+  border-radius: 24px;
+  background: var(--cm-surface);
+  border: 1.5px solid rgba(37, 99, 235, 0.18);
+  box-shadow: var(--cm-shadow-soft);
+  backdrop-filter: blur(14px);
+  transition: box-shadow 0.2s;
+}
+
+.cm-application-banner--none {
+  border-color: rgba(148, 163, 184, 0.26);
+  background: linear-gradient(135deg, #f8fafc, #ffffff);
+}
+
+.cm-application-banner--pending {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, #fffbeb, #ffffff);
+}
+
+.cm-application-banner--approved,
+.cm-application-banner--active {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, #ecfdf5, #ffffff);
+}
+
+.cm-application-banner--rejected {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, #fef2f2, #ffffff);
+}
+
+.cm-application-banner-icon {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(14, 165, 233, 0.16));
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  color: var(--cm-blue);
+}
+
+.cm-application-banner--none .cm-application-banner-icon {
+  background: linear-gradient(135deg, rgba(100, 116, 139, 0.1), rgba(148, 163, 184, 0.14));
+  color: #64748b;
+}
+
+.cm-application-banner--pending .cm-application-banner-icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.cm-application-banner--approved .cm-application-banner-icon,
+.cm-application-banner--active .cm-application-banner-icon {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.cm-application-banner--rejected .cm-application-banner-icon {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.cm-application-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cm-application-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--cm-ink);
+  margin-bottom: 6px;
+}
+
+.cm-application-banner-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 0.88rem;
+  color: var(--cm-slate);
+}
+
+.cm-application-banner-meta strong {
+  color: var(--cm-ink);
+}
+
+.cm-application-banner-remarks {
+  margin: 8px 0 0;
+  font-size: 0.87rem;
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.08);
+  padding: 7px 12px;
+  border-radius: 10px;
+}
+
+.cm-application-banner-download {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(37, 99, 235, 0.22);
+  background: #eff6ff;
+  color: var(--cm-blue);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s, transform 0.16s;
+}
+
+.cm-application-banner-download:hover {
+  background: var(--cm-blue);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.cm-application-banner-apply {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 22px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, var(--cm-blue), var(--cm-cyan));
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.26);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.cm-application-banner-apply:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(37, 99, 235, 0.32);
+}
+
+/* Apply form inside modal */
+.cm-apply-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cm-apply-field label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--cm-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.cm-apply-field input {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(148, 163, 184, 0.28);
+  background: #f8fafc;
+  color: var(--cm-ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.cm-apply-field input:focus {
+  border-color: var(--cm-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  background: #ffffff;
+}
+
+.cm-apply-error {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fef2f2;
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cm-application-ticket-number {
+  display: inline-block;
+  padding: 14px 28px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+  border: 2px dashed rgba(37, 99, 235, 0.3);
+  color: var(--cm-navy);
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  font-family: 'Courier New', monospace;
+}
+
+@media (max-width: 640px) {
+  .cm-application-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .cm-application-banner-apply,
+  .cm-application-banner-download {
+    width: 100%;
+    justify-content: center;
   }
 }
