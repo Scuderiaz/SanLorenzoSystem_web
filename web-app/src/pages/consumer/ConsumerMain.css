@@ -190,27 +190,28 @@
   grid-area: meta;
   margin-top: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-wrap: nowrap;
+  gap: 10px;
 }
 
 .cm-meta-item {
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 11px 14px;
-  border-radius: 16px;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.18);
   color: rgba(255, 255, 255, 0.88);
-  font-size: 0.92rem;
+  font-size: 0.85rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .cm-meta-item strong {
   color: #ffffff;
   min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 .cm-header-actions {

@@ -22,12 +22,12 @@ const menuItems: MenuItem[] = [
   { path: '/close-day',     icon: 'fas fa-lock',                label: 'Close Day',           roles: [1] },
   // --- Billing Officer (Role 2) ---
   { path: '/consumers',     icon: 'fas fa-users',               label: 'Consumer Management', roles: [2] },
+  { path: '/meter-reading', icon: 'fas fa-calendar-alt',        label: 'Reading Schedule',    roles: [2] },
   { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Bills Registry',      roles: [2] },
   { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Billing Reports',     roles: [2] },
   { path: '/ledger',        icon: 'fas fa-book',                label: 'Account Ledger',      roles: [2] },
   // --- Meter Reader (Role 3) ---
   { path: '/consumers',     icon: 'fas fa-users',               label: 'Consumer Management', roles: [3] },
-  { path: '/meter-reading', icon: 'fas fa-calendar-alt',        label: 'Reading Schedule',    roles: [3] },
   { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Bills Review',        roles: [3] },
   // --- Treasurer (Role 4) ---
   { path: '/payments',      icon: 'fas fa-money-bill-wave',     label: 'Process Payment',     roles: [4] },
