@@ -53,7 +53,7 @@
 .nav-links {
   display: flex;
   list-style: none;
-  gap:98px;
+  gap:68px;
   margin: 0;
   padding: 0;
 }
@@ -390,6 +390,132 @@
   font-size: 14px;
   font-weight: 600;
   text-align: center;
+}
+
+/* ─── Services Offered Section ─── */
+.services-section {
+  padding: 100px 0;
+  background: #fff;
+}
+
+.services-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.services-header .section-subtitle {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.services-slider-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.services-slider {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  padding: 20px 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.services-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.service-card {
+  flex: 0 0 280px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.service-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #000;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  line-height: 1.3;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.service-image {
+  width: 100%;
+  height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.service-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.service-card:hover .service-image img {
+  transform: scale(1.05);
+}
+
+.service-description {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.slider-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1e40af;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+}
+
+.slider-btn:hover {
+  background: #1e3a8a;
+  transform: scale(1.1);
+}
+
+.slider-btn:active {
+  transform: scale(0.95);
 }
 
 /* ─── Application Process Section ─── */
@@ -1047,6 +1173,20 @@
   .location-map iframe {
     height: 100%;
   }
+
+  .services-slider-container {
+    padding: 0 10px;
+  }
+
+  .service-card {
+    flex: 0 0 260px;
+  }
+
+  .slider-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1070,5 +1210,27 @@
 
   .step-number {
     font-size: 56px;
+  }
+
+  .service-card {
+    flex: 0 0 240px;
+    padding: 16px;
+  }
+
+  .service-title {
+    font-size: 14px;
+  }
+
+  .service-image {
+    height: 140px;
+  }
+
+  .slider-btn {
+    display: none;
+  }
+
+  .services-slider {
+    gap: 16px;
+    padding: 10px 5px;
   }
 }

@@ -6561,3 +6561,6 @@
 [2026-04-25T05:52:13.520Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
 [2026-04-25T05:52:16.720Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
 [2026-04-26T01:58:41.156Z] [server.start] AggregateError
+[2026-04-27T03:13:47.500Z] [server.start] AggregateError
+[2026-04-27T03:26:15.662Z] [server.start] AggregateError
+[2026-04-27T03:30:51.551Z] [server.start] AggregateError

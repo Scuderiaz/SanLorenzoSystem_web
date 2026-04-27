@@ -60,6 +60,7 @@ const LandingPage: React.FC = () => {
           <div className="nav-links-wrapper">
             <ul className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
               <li><button onClick={() => scrollToSection('about')}>About</button></li>
+              <li><button onClick={() => scrollToSection('services')}>Services</button></li>
               <li><button onClick={() => scrollToSection('apply')}>How to Apply</button></li>
               <li><button onClick={() => scrollToSection('location')}>Location</button></li>
               <li><button onClick={() => scrollToSection('schedule')}>Office Hours</button></li>
@@ -139,6 +140,87 @@ const LandingPage: React.FC = () => {
             <div className="about-image">
               <img src="/images/meters.png" alt="Water meters" />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Services Offered Section ─── */}
+      <section id="services" className="services-section">
+        <div className="section-container">
+          <div className="services-header">
+            <span className="section-label blue">What We Offer</span>
+            <h2 className="section-title dark">SERVICES OFFERED</h2>
+            <p className="section-subtitle dark">
+              We provide essential water services to households, businesses, and institutions across San Lorenzo Ruiz.
+            </p>
+          </div>
+
+          <div className="services-slider-container">
+            <button className="slider-btn slider-prev" onClick={() => {
+              const slider = document.querySelector('.services-slider');
+              if (slider) slider.scrollBy({ left: -320, behavior: 'smooth' });
+            }}>
+              <i className="fas fa-chevron-left"></i>
+            </button>
+
+            <div className="services-slider">
+              <div className="service-card">
+                <h3 className="service-title">WATER SUPPLY</h3>
+                <div className="service-image">
+                  <img src="/images/water-supply.png" alt="Water Supply" />
+                </div>
+                <p className="service-description">
+                  Provision of potable water to residential, commercial, and institutional concessionaires within the service area.
+                </p>
+              </div>
+
+              <div className="service-card">
+                <h3 className="service-title">MONTHLY BILLING</h3>
+                <div className="service-image">
+                  <img src="/images/billing.png" alt="Monthly Billing" />
+                </div>
+                <p className="service-description">
+                  Monthly meter reading and billing for all registered concessionaires based on actual consumption.
+                </p>
+              </div>
+
+              <div className="service-card">
+                <h3 className="service-title">NEW WATER CONNECTION</h3>
+                <div className="service-image">
+                  <img src="/images/connection.png" alt="New Water Connection" />
+                </div>
+                <p className="service-description">
+                  Processing of applications for new water connections including site inspection and installation.
+                </p>
+              </div>
+
+              <div className="service-card">
+                <h3 className="service-title">DISCONNECTION & RECONNECTION</h3>
+                <div className="service-image">
+                  <img src="/images/disconnection.png" alt="Disconnection and Reconnection" />
+                </div>
+                <p className="service-description">
+                  Processing of water disconnection for delinquent accounts and reconnection upon settlement of outstanding balance.
+                </p>
+              </div>
+
+              <div className="service-card">
+                <h3 className="service-title">REPAIR SERVICES</h3>
+                <div className="service-image">
+                  <img src="/images/repair.png" alt="Repair Services" />
+                </div>
+                <p className="service-description">
+                  Addressing reported water line issues such as leakages and main line problems within the service area.
+                </p>
+              </div>
+            </div>
+
+            <button className="slider-btn slider-next" onClick={() => {
+              const slider = document.querySelector('.services-slider');
+              if (slider) slider.scrollBy({ left: 320, behavior: 'smooth' });
+            }}>
+              <i className="fas fa-chevron-right"></i>
+            </button>
           </div>
         </div>
       </section>
