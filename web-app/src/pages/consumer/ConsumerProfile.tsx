@@ -392,7 +392,7 @@ const ConsumerProfile: React.FC = () => {
         username: payload.Username,
         fullName: formatConsumerName(payload.First_Name, payload.Middle_Name, payload.Last_Name),
       });
-      const nextAddress = composeAddress(payload);
+      const nextAddress = composeAddress({ purok: payload.Purok, barangay: payload.Barangay, municipality: payload.Municipality, zipCode: payload.Zip_Code });
       await syncConsumerDashboardFallback(user?.id || profile.Consumer_ID, {
         Consumer_ID: profile.Consumer_ID,
         consumer_id: profile.Consumer_ID,
@@ -511,7 +511,7 @@ const ConsumerProfile: React.FC = () => {
 
   const displayName = formatConsumerName(profile.First_Name, profile.Middle_Name, profile.Last_Name);
   const profileImage = profile.Profile_Picture_URL || user?.profile_picture_url || null;
-  const serviceAddress = profile.Address || composeAddress(profile) || 'No service address saved';
+  const serviceAddress = profile.Address || composeAddress({ purok: profile.Purok, barangay: profile.Barangay, municipality: profile.Municipality, zipCode: profile.Zip_Code }) || 'No service address saved';
   const loginUsername = profile.Username || user?.username || 'N/A';
   const accountStatus = profile.Account_Status || profile.Status || 'Unknown';
   const editAddressPreview = composeAddress(formData) || 'Select your service location details';

@@ -7910,6 +7910,142 @@ app.post('/api/admin/close-day', async (req, res) => {
   }
 });
 
+app.get('/api/reading-schedules', async (req, res) => {
+  try {
+    const rows = await withPostgresPrimary(
+      'readingSchedules.fetch',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT 
+            r.schedule_id AS "Schedule_ID",
+            TO_CHAR(r.schedule_date, 'YYYY-MM-DD') AS "Schedule_Date",
+            r.zone_id AS "Zone_ID",
+            z."Zone_Name" AS "Zone_Name",
+            r.meter_reader_id AS "Meter_Reader_ID",
+            COALESCE(NULLIF(a.full_name, ''), a.username) AS "Meter_Reader_Name",
+            r.status AS "Status"
+          FROM reading_schedule r
+          LEFT JOIN zones z ON r.zone_id = z."Zone_ID"
+          LEFT JOIN accounts a ON r.meter_reader_id = a.account_id
+          ORDER BY r.schedule_date DESC
+        `);
+        return rows;
+      },
+      async () => {
+        const [{ data: schedules, error: scheduleError }, { data: zones, error: zoneError }, { data: accounts, error: accountError }] = await Promise.all([
+          supabase.from('reading_schedule').select('*').order('schedule_date', { ascending: false }),
+          supabase.from('zone').select('zone_id, zone_name'),
+          supabase.from('accounts').select('account_id, username, full_name')
+        ]);
+        if (scheduleError) {
+           if (scheduleError.code === '42P01') return []; // table doesn't exist yet in supabase
+           throw scheduleError;
+        }
+        const zoneMap = new Map((zones || []).map(z => [z.zone_id, z.zone_name]));
+        const accountMap = new Map((accounts || []).map(a => [a.account_id, a.full_name || a.username]));
+
+        return (schedules || []).map(s => ({
+          Schedule_ID: s.schedule_id,
+          Schedule_Date: s.schedule_date,
+          Zone_ID: s.zone_id,
+          Zone_Name: zoneMap.get(s.zone_id) || `Zone ${s.zone_id}`,
+          Meter_Reader_ID: s.meter_reader_id,
+          Meter_Reader_Name: s.meter_reader_id ? (accountMap.get(s.meter_reader_id) || 'Unknown') : null,
+          Status: s.status || 'Scheduled'
+        }));
+      }
+    );
+    return res.json(rows);
+  } catch (error) {
+    await logRequestError(req, 'readingSchedules.fetch', error);
+    console.error('Error fetching schedules:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/reading-schedules', async (req, res) => {
+  try {
+    const schedule = req.body;
+    const payload = {
+      schedule_date: schedule.Schedule_Date || schedule.schedule_date,
+      zone_id: schedule.Zone_ID || schedule.zone_id,
+      meter_reader_id: schedule.Meter_Reader_ID || schedule.meter_reader_id || null,
+      status: schedule.Status || schedule.status || 'Scheduled'
+    };
+
+    const row = await withPostgresPrimary(
+      'readingSchedules.create',
+      async () => {
+        const { rows } = await pool.query(`
+          INSERT INTO reading_schedule (schedule_date, zone_id, meter_reader_id, status)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (schedule_date, zone_id) DO UPDATE 
+          SET meter_reader_id = EXCLUDED.meter_reader_id, status = EXCLUDED.status, updated_at = NOW()
+          RETURNING schedule_id AS "Schedule_ID"
+        `, [payload.schedule_date, payload.zone_id, payload.meter_reader_id, payload.status]);
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase.from('reading_schedule').upsert([payload], { onConflict: 'schedule_date,zone_id' }).select('schedule_id').single();
+        if (error) {
+          if (error.code === '42P01') return { Schedule_ID: Date.now() }; 
+          throw error;
+        }
+        return { Schedule_ID: data.schedule_id };
+      }
+    );
+    return res.json({ success: true, ...row });
+  } catch (error) {
+    await logRequestError(req, 'readingSchedules.create', error);
+    console.error('Error creating schedule:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/reading-schedules/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await withPostgresPrimary(
+      'readingSchedules.delete',
+      async () => {
+        await pool.query('DELETE FROM reading_schedule WHERE schedule_id = $1', [id]);
+      },
+      async () => {
+        const { error } = await supabase.from('reading_schedule').delete().eq('schedule_id', id);
+        if (error && error.code !== '42P01') throw error;
+      }
+    );
+    return res.json({ success: true, message: 'Schedule deleted successfully' });
+  } catch (error) {
+    await logRequestError(req, 'readingSchedules.delete', error);
+    console.error('Error deleting schedule:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/reading-schedules/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    await withPostgresPrimary(
+      'readingSchedules.updateStatus',
+      async () => {
+        await pool.query('UPDATE reading_schedule SET status = $1, updated_at = NOW() WHERE schedule_id = $2', [status, id]);
+      },
+      async () => {
+        const { error } = await supabase.from('reading_schedule').update({ status }).eq('schedule_id', id);
+        if (error && error.code !== '42P01') throw error;
+      }
+    );
+    return res.json({ success: true, message: 'Schedule status updated' });
+  } catch (error) {
+    await logRequestError(req, 'readingSchedules.updateStatus', error);
+    console.error('Error updating schedule status:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

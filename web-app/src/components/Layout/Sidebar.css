@@ -45,7 +45,8 @@
   margin-bottom: 6px;
 }
 
-.menu-item a {
+.menu-item a,
+.menu-item button {
   display: flex;
   align-items: center;
   padding: 13px 16px;
@@ -56,6 +57,11 @@
   border-radius: 12px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   gap: 14px;
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
 }
 
 .menu-icon-wrapper {
@@ -92,7 +98,8 @@
   100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
-.menu-item:hover a {
+.menu-item:hover a,
+.menu-item:hover button {
   background-color: #f8fafc;
   color: #1B1B63;
 }
@@ -101,7 +108,8 @@
   color: #1B1B63;
 }
 
-.menu-item.active a {
+.menu-item.active a,
+.menu-item.active button {
   background: var(--sidebar-active-bg);
   color: var(--sidebar-active-text);
   box-shadow: 0 10px 20px rgba(27, 27, 99, 0.15);
@@ -118,7 +126,8 @@
   padding-top: 10px;
 }
 
-.menu-item.logout a:hover {
+.menu-item.logout a:hover,
+.menu-item.logout button:hover {
   background-color: #fff5f5;
   color: #dc2626;
 }

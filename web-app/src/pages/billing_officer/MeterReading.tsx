@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
-import { getErrorMessage, loadZonesWithFallback } from '../../services/userManagementApi';
+import { getErrorMessage, loadZonesWithFallback, requestJson } from '../../services/userManagementApi';
 import './MeterReading.css';
 
 interface Schedule {
@@ -26,27 +26,19 @@ const MeterReading: React.FC = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [zones, setZones] = useState<any[]>([]);
   const [meterReaders, setMeterReaders] = useState<any[]>([]);
-  const [selectedZone, setSelectedZone] = useState('');
+  const [selectedZones, setSelectedZones] = useState<string[]>([]);
   const [selectedReader, setSelectedReader] = useState('');
   const [showPanel, setShowPanel] = useState(false);
 
   const loadSchedules = useCallback(async () => {
     try {
-      const mockSchedules: Schedule[] = [
-        {
-          Schedule_ID: 1,
-          Schedule_Date: '2026-03-20',
-          Zone_ID: 1,
-          Meter_Reader_ID: 1,
-          Meter_Reader_Name: 'John Doe',
-          Status: 'Scheduled',
-        },
-      ];
-      setSchedules(mockSchedules);
+      const response = await requestJson('/reading-schedules');
+      setSchedules(response || []);
     } catch (error) {
       console.error('Error loading schedules:', error);
+      showToast(getErrorMessage(error, 'Failed to load schedules.'), 'error');
     }
-  }, []);
+  }, [showToast]);
 
   const loadZones = useCallback(async () => {
     try {
@@ -63,15 +55,16 @@ const MeterReading: React.FC = () => {
 
   const loadMeterReaders = useCallback(async () => {
     try {
-      const mockReaders = [
-        { AccountID: 1, Full_Name: 'John Doe', Username: 'john' },
-        { AccountID: 2, Full_Name: 'Jane Smith', Username: 'jane' },
-      ];
-      setMeterReaders(mockReaders);
+      const response = await requestJson('/users/staff');
+      if (response.success && Array.isArray(response.data)) {
+        const readers = response.data.filter((u: any) => u.Role_ID === 3);
+        setMeterReaders(readers);
+      }
     } catch (error) {
       console.error('Error loading meter readers:', error);
+      showToast(getErrorMessage(error, 'Failed to load meter readers.'), 'error');
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     loadSchedules();
@@ -88,8 +81,8 @@ const MeterReading: React.FC = () => {
     return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   };
 
-  const getScheduleForDate = (dateKey: string) => {
-    return schedules.find((s) => s.Schedule_Date === dateKey);
+  const getSchedulesForDate = (dateKey: string) => {
+    return schedules.filter((s) => s.Schedule_Date === dateKey);
   };
 
   const handlePrevMonth = () => {
@@ -124,31 +117,59 @@ const MeterReading: React.FC = () => {
   };
 
   const handleSaveSchedule = async () => {
-    if (!selectedZone) {
-      showToast('Please select a zone', 'error');
+    if (selectedZones.length === 0) {
+      showToast('Please select at least one zone', 'error');
       return;
     }
 
     try {
-      showToast('Schedule saved successfully', 'success');
+      await Promise.all(selectedZones.map(zoneId => 
+        requestJson('/reading-schedules', {
+          method: 'POST',
+          body: JSON.stringify({
+            schedule_date: selectedDate,
+            zone_id: parseInt(zoneId, 10),
+            meter_reader_id: selectedReader ? parseInt(selectedReader, 10) : null,
+            status: 'Scheduled',
+          }),
+        })
+      ));
+      showToast('Schedules saved successfully', 'success');
       loadSchedules();
-      setShowPanel(false);
+      setSelectedZones([]);
+      // Don't close panel so user can see the created schedules
     } catch (error) {
-      console.error('Error saving schedule:', error);
-      showToast('Failed to save schedule', 'error');
+      console.error('Error saving schedules:', error);
+      showToast(getErrorMessage(error, 'Failed to save one or more schedules'), 'error');
     }
   };
 
-  const handleDeleteSchedule = async () => {
-    if (!window.confirm('Delete this schedule?')) return;
+  const handleDeleteSchedule = async (scheduleId: number) => {
+    if (!window.confirm('Are you sure you want to permanently delete this schedule?')) return;
 
     try {
+      await requestJson(`/reading-schedules/${scheduleId}`, { method: 'DELETE' });
       showToast('Schedule deleted successfully', 'success');
       loadSchedules();
-      setShowPanel(false);
     } catch (error) {
       console.error('Error deleting schedule:', error);
-      showToast('Failed to delete schedule', 'error');
+      showToast(getErrorMessage(error, 'Failed to delete schedule'), 'error');
+    }
+  };
+
+  const handleCancelSchedule = async (scheduleId: number) => {
+    if (!window.confirm('Are you sure you want to cancel this schedule?')) return;
+
+    try {
+      await requestJson(`/reading-schedules/${scheduleId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'Cancelled' }),
+      });
+      showToast('Schedule cancelled successfully', 'success');
+      loadSchedules();
+    } catch (error) {
+      console.error('Error cancelling schedule:', error);
+      showToast(getErrorMessage(error, 'Failed to cancel schedule'), 'error');
     }
   };
 
@@ -240,7 +261,7 @@ const MeterReading: React.FC = () => {
     );
   };
 
-  const currentSchedule = selectedDate ? getScheduleForDate(selectedDate) : null;
+  const currentSchedules = selectedDate ? getSchedulesForDate(selectedDate) : [];
   const zoneOptions = zones.map((z) => ({ value: z.Zone_ID, label: z.Zone_Name }));
   const readerOptions = meterReaders.map((r) => ({
     value: r.AccountID,
@@ -276,51 +297,70 @@ const MeterReading: React.FC = () => {
                   </button>
                 </div>
 
-                {currentSchedule ? (
-                  <div className="existing-schedule">
-                    <div className="schedule-info">
-                      <div className="info-row">
-                        <span className="label">Zone:</span>
-                        <span className="value">{formatZoneLabel(currentSchedule.Zone_Name, currentSchedule.Zone_ID)}</span>
+                {currentSchedules.length > 0 && (
+                  <div className="existing-schedules-list">
+                    <h4 style={{ marginBottom: '15px', color: '#1B1B63', fontSize: '14px', fontWeight: 'bold' }}>Existing Assignments</h4>
+                    {currentSchedules.map((schedule) => (
+                      <div key={schedule.Schedule_ID} className="existing-schedule" style={{ marginBottom: '15px' }}>
+                        <div className="schedule-info">
+                          <div className="info-row">
+                            <span className="label">Zone:</span>
+                            <span className="value">{formatZoneLabel(schedule.Zone_Name, schedule.Zone_ID)}</span>
+                          </div>
+                          <div className="info-row">
+                            <span className="label">Meter Reader:</span>
+                            <span className="value">
+                              {schedule.Meter_Reader_Name || 'Unassigned'}
+                            </span>
+                          </div>
+                          <div className="info-row">
+                            <span className="label">Status:</span>
+                            <span className={`status-${schedule.Status?.toLowerCase()}`}>
+                              {schedule.Status || 'Scheduled'}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                          {schedule.Status !== 'Cancelled' && (
+                            <button className="btn btn-warning btn-block" style={{ flex: 1, marginTop: 0 }} onClick={() => handleCancelSchedule(schedule.Schedule_ID!)}>
+                              <i className="fas fa-times-circle"></i> Cancel
+                            </button>
+                          )}
+                          <button className="btn btn-danger btn-block" style={{ flex: 1, marginTop: 0 }} onClick={() => handleDeleteSchedule(schedule.Schedule_ID!)}>
+                            <i className="fas fa-trash"></i> Delete
+                          </button>
+                        </div>
                       </div>
-                      <div className="info-row">
-                        <span className="label">Meter Reader:</span>
-                        <span className="value">
-                          {currentSchedule.Meter_Reader_Name || 'Unassigned'}
-                        </span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Status:</span>
-                        <span className={`status-${currentSchedule.Status?.toLowerCase()}`}>
-                          {currentSchedule.Status || 'Scheduled'}
-                        </span>
-                      </div>
-                    </div>
-                    <button className="btn btn-danger btn-block" onClick={handleDeleteSchedule}>
-                      <i className="fas fa-trash"></i> Delete Schedule
-                    </button>
-                  </div>
-                ) : (
-                  <div className="new-schedule-form">
-                    <FormSelect
-                      label="Zone *"
-                      value={selectedZone}
-                      onChange={setSelectedZone}
-                      options={zoneOptions}
-                      placeholder="Select Zone"
-                    />
-                    <FormSelect
-                      label="Meter Reader (Optional)"
-                      value={selectedReader}
-                      onChange={setSelectedReader}
-                      options={readerOptions}
-                      placeholder="Select Meter Reader"
-                    />
-                    <button className="btn btn-primary btn-block" onClick={handleSaveSchedule}>
-                      <i className="fas fa-save"></i> Save Schedule
-                    </button>
+                    ))}
                   </div>
                 )}
+
+                <div className="new-schedule-form" style={{ marginTop: currentSchedules.length > 0 ? '30px' : '0' }}>
+                  <h4 style={{ marginBottom: '15px', color: '#1B1B63', fontSize: '14px', fontWeight: 'bold' }}>Assign Zones</h4>
+                  
+                  <div className="zone-selection-grid">
+                    {zoneOptions.map(z => (
+                      <div 
+                        key={z.value} 
+                        className={`zone-pill ${selectedZones.includes(z.value.toString()) ? 'active' : ''}`}
+                        onClick={() => toggleZoneSelection(z.value.toString())}
+                      >
+                        {z.label}
+                      </div>
+                    ))}
+                  </div>
+
+                  <FormSelect
+                    label="Meter Reader (Optional)"
+                    value={selectedReader}
+                    onChange={setSelectedReader}
+                    options={readerOptions}
+                    placeholder="Select Meter Reader"
+                  />
+                  <button className="btn btn-primary btn-block" onClick={handleSaveSchedule} style={{ marginTop: '20px' }}>
+                    <i className="fas fa-save"></i> Save Assignments
+                  </button>
+                </div>
               </div>
             )}
           </div>

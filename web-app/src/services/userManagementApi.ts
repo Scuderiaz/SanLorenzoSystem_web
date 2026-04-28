@@ -870,7 +870,10 @@ export const loadZonesWithFallback = async () => requestWithSupabaseFallback(
       Zone_Name: zone.zone_name,
     }));
   },
-  (payload) => payload?.data || [],
+  (payload) => (payload?.data || []).map((zone: any) => ({
+    Zone_ID: zone.Zone_ID ?? zone.zone_id,
+    Zone_Name: zone.Zone_Name ?? zone.zone_name,
+  })),
   'Failed to load zones.',
   'dataset.zones'
 );

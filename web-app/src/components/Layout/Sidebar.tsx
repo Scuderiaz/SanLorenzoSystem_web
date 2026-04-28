@@ -42,15 +42,7 @@ const Sidebar: React.FC = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-  React.useEffect(() => {
-    if (user?.role_id === 1 || user?.role_id === 2) {
-      loadPendingCount();
-      const interval = setInterval(loadPendingCount, 30000); // Check every 30s
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  const loadPendingCount = async () => {
+  const loadPendingCount = React.useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/applications/pending`);
       const result = await response.json();
@@ -60,7 +52,15 @@ const Sidebar: React.FC = () => {
     } catch (error) {
       console.error('Error loading pending count:', error);
     }
-  };
+  }, [API_URL]);
+
+  React.useEffect(() => {
+    if (user?.role_id === 1 || user?.role_id === 2) {
+      void loadPendingCount();
+      const interval = setInterval(() => void loadPendingCount(), 30000); // Check every 30s
+      return () => clearInterval(interval);
+    }
+  }, [user, loadPendingCount]);
 
   const filteredMenuItems = menuItems.filter(item => 
     user && item.roles.includes(user.role_id)
@@ -97,9 +97,9 @@ const Sidebar: React.FC = () => {
           </li>
         ))}
         <li className="menu-item logout">
-          <a href="#" onClick={(e) => { e.preventDefault(); logout(); }}>
+          <button type="button" onClick={logout}>
             <i className="fas fa-sign-out-alt"></i> <span>Logout</span>
-          </a>
+          </button>
         </li>
       </ul>
     </div>
