@@ -7,6 +7,9 @@ const LandingPage: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Service modal state
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+
   // Contact form state
   const [formData, setFormData] = useState({
     fullName: '',
@@ -18,6 +21,110 @@ const LandingPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  // Service data with full details
+  const servicesData = {
+    'water-supply': {
+      title: 'Water Supply',
+      image: '/images/water-supply.png',
+      description: 'Provision of potable water to residential, commercial, and institutional concessionaires within the service area.',
+      details: [
+        '24/7 continuous water supply for all registered consumers',
+        'Regular water quality testing and monitoring',
+        'Pressure maintenance for consistent flow',
+        'Emergency backup supply during maintenance',
+        'Service coverage across all 12 barangays',
+        'Minimum pressure standards compliance'
+      ],
+      requirements: [
+        'Valid ID (Barangay Clearance or Government ID)',
+        'Proof of residence or business ownership',
+        'Completed application form'
+      ],
+      fees: 'Connection fee based on classification'
+    },
+    'monthly-billing': {
+      title: 'Monthly Billing',
+      image: '/images/billing.png',
+      description: 'Monthly meter reading and billing for all registered concessionaires based on actual consumption.',
+      details: [
+        'Accurate monthly meter reading by trained personnel',
+        'Online bill viewing through consumer portal',
+        'Multiple payment options (office, online, mobile)',
+        'Detailed billing breakdown and usage history',
+        'SMS/email notifications for bill generation',
+        'Dispute resolution for billing concerns'
+      ],
+      requirements: [
+        'Active water service connection',
+        'Updated contact information',
+        'Accessible meter location'
+      ],
+      fees: 'Monthly consumption-based billing'
+    },
+    'new-connection': {
+      title: 'New Water Connection',
+      image: '/images/connection.png',
+      description: 'Processing of applications for new water connections including site inspection and installation.',
+      details: [
+        'Site inspection and feasibility assessment',
+        'Professional meter installation by trained technicians',
+        'Connection to nearest water main line',
+        'Water quality testing before activation',
+        'Consumer orientation on proper water usage',
+        ' issuance of official receipt and contract'
+      ],
+      requirements: [
+        'Barangay Clearance',
+        'Valid ID (Passport, Driver\'s License, etc.)',
+        'Proof of property ownership or lease',
+        'Sedula or Tax Certificate',
+        '2x2 ID photo (2 copies)',
+        'Completed application form with classification'
+      ],
+      fees: 'Connection Fee: PHP 300, Membership Fee: PHP 50, Meter Deposit: PHP 1,500'
+    },
+    'reconnection': {
+      title: 'Reconnection Service',
+      image: '/images/disconnection.png',
+      description: 'Processing of water reconnection upon settlement of outstanding balance.',
+      details: [
+        'Quick reconnection within 24-48 hours after payment',
+        'Online payment verification system',
+        'Flexible payment arrangements for large balances',
+        'Automatic reconnection scheduling',
+        'Clearance issuance after reconnection',
+        'Prevention of future disconnection advice'
+      ],
+      requirements: [
+        'Full payment of outstanding balance',
+        'Valid ID for verification',
+        'Updated contact information',
+        'Cleared previous violations (if any)'
+      ],
+      fees: 'Reconnection fee may apply based on disconnection duration'
+    },
+    'repair-services': {
+      title: 'Repair Services',
+      image: '/images/repair.png',
+      description: 'Addressing reported water line issues such as leakages and main line problems within the service area.',
+      details: [
+        '24/7 emergency repair hotline',
+        'Rapid response team for major leaks',
+        'Scheduled maintenance of main lines',
+        'Free repair for system-owned infrastructure',
+        'Consumer education on leak prevention',
+        'Water conservation tips and assistance'
+      ],
+      requirements: [
+        'Detailed report of the issue/location',
+        'Contact information for coordination',
+        'Accessibility to the repair site',
+        'For private lines: authorization letter'
+      ],
+      fees: 'Free for main line issues; Private line repairs may incur costs'
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
@@ -25,6 +132,18 @@ const LandingPage: React.FC = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Lock body scroll when service modal is open
+  useEffect(() => {
+    if (selectedService) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedService]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -69,7 +188,7 @@ const LandingPage: React.FC = () => {
           </div>
 
           <div className="nav-auth">
-            <button className="btn-signin" onClick={() => navigate('/signup')}>Sign In</button>
+            <button className="btn-signin" onClick={() => navigate('/signup')}>Sign Up</button>
             <button className="btn-login" onClick={() => navigate('/login')}>Log In</button>
           </div>
 
@@ -164,7 +283,7 @@ const LandingPage: React.FC = () => {
             </button>
 
             <div className="services-slider">
-              <div className="service-card">
+              <div className="service-card" onClick={() => setSelectedService('water-supply')} role="button" tabIndex={0}>
                 <h3 className="service-title">WATER SUPPLY</h3>
                 <div className="service-image">
                   <img src="/images/water-supply.png" alt="Water Supply" />
@@ -174,7 +293,7 @@ const LandingPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="service-card">
+              <div className="service-card" onClick={() => setSelectedService('monthly-billing')} role="button" tabIndex={0}>
                 <h3 className="service-title">MONTHLY BILLING</h3>
                 <div className="service-image">
                   <img src="/images/billing.png" alt="Monthly Billing" />
@@ -184,7 +303,7 @@ const LandingPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="service-card">
+              <div className="service-card" onClick={() => setSelectedService('new-connection')} role="button" tabIndex={0}>
                 <h3 className="service-title">NEW WATER CONNECTION</h3>
                 <div className="service-image">
                   <img src="/images/connection.png" alt="New Water Connection" />
@@ -194,17 +313,17 @@ const LandingPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="service-card">
-                <h3 className="service-title">DISCONNECTION & RECONNECTION</h3>
+              <div className="service-card" onClick={() => setSelectedService('reconnection')} role="button" tabIndex={0}>
+                <h3 className="service-title">RECONNECTION</h3>
                 <div className="service-image">
-                  <img src="/images/disconnection.png" alt="Disconnection and Reconnection" />
+                  <img src="/images/disconnection.png" alt="Reconnection" />
                 </div>
                 <p className="service-description">
-                  Processing of water disconnection for delinquent accounts and reconnection upon settlement of outstanding balance.
+                  Processing of water reconnection upon settlement of outstanding balance.
                 </p>
               </div>
 
-              <div className="service-card">
+              <div className="service-card" onClick={() => setSelectedService('repair-services')} role="button" tabIndex={0}>
                 <h3 className="service-title">REPAIR SERVICES</h3>
                 <div className="service-image">
                   <img src="/images/repair.png" alt="Repair Services" />
@@ -222,6 +341,54 @@ const LandingPage: React.FC = () => {
               <i className="fas fa-chevron-right"></i>
             </button>
           </div>
+
+          {/* Service Detail Modal */}
+          {selectedService && (
+            <div className="service-modal-overlay" onClick={() => setSelectedService(null)}>
+              <div className="service-modal" onClick={(e) => e.stopPropagation()}>
+                <button className="service-modal-close" onClick={() => setSelectedService(null)}>
+                  <i className="fas fa-times"></i>
+                </button>
+                
+                {(() => {
+                  const service = servicesData[selectedService as keyof typeof servicesData];
+                  return (
+                    <div className="service-modal-content">
+                      <div className="service-modal-header">
+                        <img src={service.image} alt={service.title} />
+                        <h2>{service.title}</h2>
+                      </div>
+                      
+                      <p className="service-modal-description">{service.description}</p>
+                      
+                      <div className="service-modal-section">
+                        <h3><i className="fas fa-check-circle"></i> Service Details</h3>
+                        <ul>
+                          {service.details.map((detail, idx) => (
+                            <li key={idx}>{detail}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="service-modal-section">
+                        <h3><i className="fas fa-file-alt"></i> Requirements</h3>
+                        <ul>
+                          {service.requirements.map((req, idx) => (
+                            <li key={idx}>{req}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="service-modal-fees">
+                        <h3><i className="fas fa-money-bill-wave"></i> Fees</h3>
+                        <p>{service.fees}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

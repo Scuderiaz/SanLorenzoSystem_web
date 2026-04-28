@@ -264,19 +264,26 @@ const SignUp: React.FC = () => {
           <h2>San Lorenzo Ruiz Water System</h2>
         </div>
 
-        <div className="signup-subheader">
-          <p>Register using your email details or continue with Google.</p>
-          <button type="button" className="signup-google" onClick={handleGoogleSignUp}>
+        <div className="signup-social">
+          <button type="button" className="signup-google-btn" onClick={handleGoogleSignUp}>
             <span className="google-icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                 <path fill="#EA4335" d="M24 9.5c3.35 0 6.36 1.15 8.73 3.41l6.46-6.46C35.27 2.71 30.05 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.52 5.84C12.08 13.33 17.55 9.5 24 9.5z"/>
                 <path fill="#4285F4" d="M46.98 24.55c0-1.58-.14-3.09-.41-4.55H24v8.61h12.94c-.56 3.02-2.25 5.58-4.8 7.31l7.39 5.73c4.32-3.99 6.45-9.87 6.45-17.1z"/>
                 <path fill="#FBBC05" d="M10.08 28.94A14.5 14.5 0 0 1 9.3 24c0-1.71.3-3.36.78-4.94l-7.52-5.84A23.92 23.92 0 0 0 0 24c0 3.88.93 7.56 2.56 10.78l7.52-5.84z"/>
                 <path fill="#34A853" d="M24 48c6.05 0 11.27-1.99 15.04-5.39l-7.39-5.73c-2.05 1.38-4.69 2.19-7.65 2.19-6.45 0-11.92-3.83-13.92-9.56l-7.52 5.84C6.51 42.62 14.62 48 24 48z"/>
               </svg>
             </span>
-            <span className="signup-google-label">Continue with Google</span>
+            <span>Sign up with Google</span>
           </button>
+
+          <div className="signup-divider">
+            <span className="divider-line"></span>
+            <span className="divider-text">or</span>
+            <span className="divider-line"></span>
+          </div>
+
+          <p className="signup-hint">Fill in your details below to create an account</p>
         </div>
 
         {error && (
