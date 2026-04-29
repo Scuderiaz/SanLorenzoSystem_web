@@ -35,7 +35,7 @@ const postgresConfig = process.env.DATABASE_URL
       host: process.env.DB_HOST || 'localhost',
       port: Number(process.env.DB_PORT || 5432),
       user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'Miswa1211',
+      password: process.env.DB_PASSWORD || undefined,
       database: process.env.DB_NAME || 'SLRWs',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       options: `-c search_path=${supabaseSchema},public`,
@@ -228,6 +228,7 @@ const syncTableColumns = {
   ],
   waterrates: [
     'rate_id',
+    'classification_id',
     'minimum_cubic',
     'minimum_rate',
     'excess_rate_per_cubic',
@@ -1799,6 +1800,278 @@ function createHttpError(message, statusCode = 400) {
   return error;
 }
 
+const PASSWORD_HASH_PREFIX = 'scrypt';
+const PASSWORD_RESET_EXPIRATION_MINUTES = Number(process.env.PASSWORD_RESET_EXPIRATION_MINUTES || 10);
+
+function validatePasswordStrength(password, fieldLabel = 'Password') {
+  const normalizedPassword = String(password || '');
+  if (normalizedPassword.length < 8) {
+    throw createHttpError(`${fieldLabel} must be at least 8 characters long.`);
+  }
+
+  return normalizedPassword;
+}
+
+function hashPassword(password) {
+  const normalizedPassword = validatePasswordStrength(password);
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = crypto.scryptSync(normalizedPassword, salt, 64).toString('hex');
+  return `${PASSWORD_HASH_PREFIX}$${salt}$${derivedKey}`;
+}
+
+function isPasswordHash(value) {
+  return typeof value === 'string' && value.startsWith(`${PASSWORD_HASH_PREFIX}$`);
+}
+
+function verifyPassword(password, storedPassword) {
+  const normalizedPassword = String(password || '');
+  const normalizedStoredPassword = String(storedPassword || '');
+
+  if (!normalizedStoredPassword) {
+    return false;
+  }
+
+  if (!isPasswordHash(normalizedStoredPassword)) {
+    return normalizedPassword === normalizedStoredPassword;
+  }
+
+  const [, salt, storedDigest] = normalizedStoredPassword.split('$');
+  if (!salt || !storedDigest) {
+    return false;
+  }
+
+  const computedDigest = crypto.scryptSync(normalizedPassword, salt, 64).toString('hex');
+  const left = Buffer.from(computedDigest, 'hex');
+  const right = Buffer.from(storedDigest, 'hex');
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(left, right);
+}
+
+async function persistAccountPasswordHash(accountId, passwordHash) {
+  if (!accountId || !passwordHash) {
+    return;
+  }
+
+  const updates = [];
+
+  if (isPostgresAvailable) {
+    updates.push(
+      pool.query('UPDATE accounts SET password = $1 WHERE account_id = $2', [passwordHash, accountId])
+        .catch((error) => {
+          console.warn(`Failed to persist password hash in PostgreSQL for account ${accountId}: ${error.message}`);
+        })
+    );
+  }
+
+  if (supabase) {
+    updates.push(
+      supabase.from('accounts').update({ password: passwordHash }).eq('account_id', accountId)
+        .then(({ error }) => {
+          if (error) {
+            throw error;
+          }
+        })
+        .catch((error) => {
+          console.warn(`Failed to persist password hash in Supabase for account ${accountId}: ${error.message}`);
+        })
+    );
+  }
+
+  await Promise.all(updates);
+}
+
+async function upgradeLegacyAccountPassword(accountId, plaintextPassword) {
+  if (!accountId || !plaintextPassword) {
+    return null;
+  }
+
+  const passwordHash = hashPassword(plaintextPassword);
+  await persistAccountPasswordHash(accountId, passwordHash);
+  scheduleImmediateSync('password-upgrade');
+  return passwordHash;
+}
+
+function generatePasswordResetCode() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
+function buildPasswordResetExpiration() {
+  const expiration = new Date();
+  expiration.setMinutes(expiration.getMinutes() + PASSWORD_RESET_EXPIRATION_MINUTES);
+  return expiration.toISOString();
+}
+
+function parseRequiredWaterRateClassificationId(value) {
+  const classificationId = normalizeRequiredForeignKeyId(value);
+  if (!classificationId) {
+    throw createHttpError('Classification is required for each water rate.');
+  }
+  return classificationId;
+}
+
+function normalizeWaterRateNumericValue(value, label, parser = Number) {
+  const parsedValue = parser(value);
+  if (!Number.isFinite(parsedValue)) {
+    throw createHttpError(`${label} must be a valid number.`);
+  }
+  return parsedValue;
+}
+
+function computeWaterChargeFromRate(consumption, rate) {
+  const normalizedConsumption = Number(consumption);
+  if (!Number.isFinite(normalizedConsumption) || normalizedConsumption < 0) {
+    return 0;
+  }
+
+  if (!rate) {
+    throw createHttpError('No active water rate is configured for this consumer classification.');
+  }
+
+  const minimumCubic = Number(rate.minimum_cubic || 0);
+  const minimumRate = Number(rate.minimum_rate || 0);
+  const excessRate = Number(rate.excess_rate_per_cubic || 0);
+
+  if (normalizedConsumption <= minimumCubic) {
+    return minimumRate;
+  }
+
+  return minimumRate + ((normalizedConsumption - minimumCubic) * excessRate);
+}
+
+async function validateClassificationExists(classificationId) {
+  const normalizedClassificationId = normalizeRequiredForeignKeyId(classificationId);
+  if (!normalizedClassificationId) {
+    throw createHttpError('Classification is required for each water rate.');
+  }
+
+  const result = await withPostgresPrimary(
+    'waterRates.validateClassification',
+    async () => {
+      const { rows } = await pool.query(
+        'SELECT classification_id, classification_name FROM classification WHERE classification_id = $1 LIMIT 1',
+        [normalizedClassificationId]
+      );
+      return rows[0] || null;
+    },
+    async () => {
+      const { data, error } = await supabase
+        .from('classification')
+        .select('classification_id, classification_name')
+        .eq('classification_id', normalizedClassificationId)
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    }
+  );
+
+  if (!result) {
+    throw createHttpError('Selected classification is invalid.');
+  }
+
+  return result;
+}
+
+async function resolveConsumerClassificationId(consumerId) {
+  const normalizedConsumerId = normalizeRequiredForeignKeyId(consumerId);
+  if (!normalizedConsumerId) {
+    throw createHttpError('A consumer must be selected before saving a bill.');
+  }
+
+  const result = await withPostgresPrimary(
+    'waterRates.resolveConsumerClassification',
+    async () => {
+      const { rows } = await pool.query(
+        'SELECT classification_id FROM consumer WHERE consumer_id = $1 LIMIT 1',
+        [normalizedConsumerId]
+      );
+      return rows[0] || null;
+    },
+    async () => {
+      const { data, error } = await supabase
+        .from('consumer')
+        .select('classification_id')
+        .eq('consumer_id', normalizedConsumerId)
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    }
+  );
+
+  const classificationId = normalizeRequiredForeignKeyId(result?.classification_id);
+  if (!classificationId) {
+    throw createHttpError('The selected consumer has no classification assigned.');
+  }
+
+  return classificationId;
+}
+
+async function resolveApplicableWaterRate(classificationId, effectiveOn = new Date().toISOString()) {
+  const normalizedClassificationId = normalizeRequiredForeignKeyId(classificationId);
+  if (!normalizedClassificationId) {
+    throw createHttpError('Classification is required to resolve the water rate.');
+  }
+
+  const effectiveDate = effectiveOn || new Date().toISOString();
+  const rate = await withPostgresPrimary(
+    'waterRates.resolveApplicable',
+    async () => {
+      const { rows } = await pool.query(`
+        SELECT
+          wr.rate_id,
+          wr.classification_id,
+          cl.classification_name,
+          wr.minimum_cubic,
+          wr.minimum_rate,
+          wr.excess_rate_per_cubic,
+          wr.effective_date,
+          wr.modified_by,
+          wr.modified_date
+        FROM waterrates wr
+        JOIN classification cl ON cl.classification_id = wr.classification_id
+        WHERE wr.classification_id = $1
+          AND wr.effective_date <= $2
+        ORDER BY wr.effective_date DESC, wr.rate_id DESC
+        LIMIT 1
+      `, [normalizedClassificationId, effectiveDate]);
+      return rows[0] || null;
+    },
+    async () => {
+      const [rateResult, classificationResult] = await Promise.all([
+        supabase
+          .from('waterrates')
+          .select('rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date')
+          .eq('classification_id', normalizedClassificationId)
+          .lte('effective_date', effectiveDate)
+          .order('effective_date', { ascending: false })
+          .order('rate_id', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('classification')
+          .select('classification_name')
+          .eq('classification_id', normalizedClassificationId)
+          .maybeSingle(),
+      ]);
+
+      if (rateResult.error) throw rateResult.error;
+      if (classificationResult.error) throw classificationResult.error;
+      if (!rateResult.data) {
+        return null;
+      }
+
+      return {
+        ...rateResult.data,
+        classification_name: classificationResult.data?.classification_name || null,
+      };
+    }
+  );
+
+  return rate || null;
+}
+
 async function getLatestPostgresMeterIdForConsumer(queryable, consumerId) {
   const normalizedConsumerId = normalizeRequiredForeignKeyId(consumerId);
   if (!normalizedConsumerId) {
@@ -2305,6 +2578,18 @@ async function initDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_consumer_concerns_account_id ON consumer_concerns(account_id);
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_reset (
+      reset_id SERIAL PRIMARY KEY,
+      account_id INTEGER NOT NULL,
+      reset_token VARCHAR(20) NOT NULL,
+      expiration_time TIMESTAMP NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT password_reset_status_check CHECK (status IN ('Pending', 'Used', 'Expired', 'Cancelled'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_password_reset_account_id ON password_reset(account_id);
+  `);
 
   await pool.query(`
     ALTER TABLE accounts
@@ -2327,6 +2612,24 @@ async function initDb() {
   await ensureTableColumn('accounts', 'profile_picture_url', 'TEXT');
   await ensureTableColumn('accounts', 'full_name', 'TEXT');
   await ensureTableColumn('accounts', 'email', 'VARCHAR(255)');
+  await ensureTableColumn('waterrates', 'classification_id', 'INTEGER');
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_waterrates_classification'
+      ) THEN
+        ALTER TABLE waterrates
+          ADD CONSTRAINT fk_waterrates_classification
+          FOREIGN KEY (classification_id) REFERENCES classification(classification_id)
+          ON UPDATE CASCADE
+          ON DELETE RESTRICT;
+      END IF;
+    END
+    $$;
+  `);
 
   for (const tableName of durableSyncTables) {
     await ensureTableColumn(tableName, 'sync_id', 'UUID DEFAULT gen_random_uuid()');
@@ -2367,6 +2670,7 @@ async function initDb() {
 
   const seedRes = await pool.query('SELECT COUNT(*)::int AS count FROM roles');
   if (seedRes.rows[0].count === 0) {
+    const seededAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || `Admin#${crypto.randomBytes(6).toString('hex')}`;
     await pool.query('INSERT INTO roles (role_name) VALUES ($1), ($2), ($3), ($4)', [
       'Admin',
       'Meter Reader',
@@ -2376,8 +2680,11 @@ async function initDb() {
 
     await pool.query(
       'INSERT INTO accounts (username, password, role_id) VALUES ($1, $2, $3)',
-      ['admin', 'admin123', 1]
+      ['admin', hashPassword(seededAdminPassword), 1]
     );
+    if (!process.env.DEFAULT_ADMIN_PASSWORD) {
+      console.warn(`Seeded default admin password generated for first boot: ${seededAdminPassword}`);
+    }
 
     await pool.query('INSERT INTO zone (zone_name) VALUES ($1), ($2)', [
       'Zone 1',
@@ -3823,6 +4130,7 @@ app.post('/api/users', async (req, res) => {
   }
   
   try {
+    const passwordHash = hashPassword(password);
     const numericRoleId = Number(roleId);
     if (!Number.isInteger(numericRoleId) || numericRoleId <= 0) {
       return res.status(400).json({ success: false, message: 'A valid role is required.' });
@@ -3847,7 +4155,7 @@ app.post('/api/users', async (req, res) => {
 
           const { rows } = await client.query(
             'INSERT INTO accounts (username, password, full_name, role_id, account_status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [username, password, normalizedFullName, numericRoleId, initialAccountStatus]
+            [username, passwordHash, normalizedFullName, numericRoleId, initialAccountStatus]
           );
           const createdUser = rows[0];
 
@@ -3883,7 +4191,7 @@ app.post('/api/users', async (req, res) => {
       async () => {
         const { data, error } = await supabase
           .from('accounts')
-          .insert([{ username, password, full_name: normalizedFullName, role_id: numericRoleId, account_status: initialAccountStatus }])
+          .insert([{ username, password: passwordHash, full_name: normalizedFullName, role_id: numericRoleId, account_status: initialAccountStatus }])
           .select()
           .single();
         if (error) throw error;
@@ -3952,6 +4260,7 @@ app.put('/api/users/:id', async (req, res) => {
     const isConsumerRole = numericRoleId === 5;
     const normalizedFullName = String(fullName || '').trim() || username;
     const { firstName, lastName } = splitConsumerName(fullName, username);
+    const passwordHash = password ? hashPassword(password) : null;
 
     await withPostgresPrimary(
       'users.update',
@@ -3965,7 +4274,7 @@ app.put('/api/users/:id', async (req, res) => {
           
           if (password) {
             query += ', password = $4';
-            params.push(password);
+            params.push(passwordHash);
           }
 
           if (isConsumerRole) {
@@ -4028,7 +4337,7 @@ app.put('/api/users/:id', async (req, res) => {
       async () => {
         const payload = { username, full_name: normalizedFullName, role_id: numericRoleId };
         if (password) {
-          payload.password = password;
+          payload.password = passwordHash;
         }
         if (isConsumerRole) {
           payload.account_status = 'Pending';
@@ -4345,8 +4654,12 @@ app.post('/api/login', async (req, res) => {
     if (user.account_status === 'Inactive') {
       return res.status(401).json({ success: false, message: 'Your account is inactive. Please contact the office for assistance.' });
     }
-    if (user.password !== password) {
+    if (!verifyPassword(password, user.password)) {
       return res.status(401).json({ success: false, message: 'Invalid password' });
+    }
+
+    if (!isPasswordHash(user.password)) {
+      user.password = await upgradeLegacyAccountPassword(user.account_id, password);
     }
 
     user.auth_user_id = await ensureAccountAuthUser({
@@ -4422,49 +4735,223 @@ app.get('/api/classifications', async (req, res) => {
 });
 
 // --- WATER RATES ---
-// Get latest water rates
+app.get('/api/water-rates', async (req, res) => {
+  try {
+    const classificationId = normalizeRequiredForeignKeyId(req.query.classification_id);
+    const latestOnly = String(req.query.latest_only || '').toLowerCase() === 'true';
+    const activeOnly = req.query.active_only === undefined
+      ? true
+      : String(req.query.active_only).toLowerCase() !== 'false';
+    const effectiveOn = req.query.effective_on || new Date().toISOString();
+
+    const rows = await withPostgresPrimary(
+      'waterRates.fetchAll',
+      async () => {
+        const values = [];
+        const whereConditions = [];
+
+        if (classificationId) {
+          values.push(classificationId);
+          whereConditions.push(`wr.classification_id = $${values.length}`);
+        }
+
+        if (activeOnly) {
+          values.push(effectiveOn);
+          whereConditions.push(`wr.effective_date <= $${values.length}`);
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        const query = latestOnly
+          ? `
+            WITH ranked_rates AS (
+              SELECT
+                wr.rate_id,
+                wr.classification_id,
+                cl.classification_name,
+                wr.minimum_cubic,
+                wr.minimum_rate,
+                wr.excess_rate_per_cubic,
+                wr.effective_date,
+                wr.modified_by,
+                wr.modified_date,
+                ROW_NUMBER() OVER (
+                  PARTITION BY wr.classification_id
+                  ORDER BY wr.effective_date DESC, wr.rate_id DESC
+                ) AS rate_rank
+              FROM waterrates wr
+              JOIN classification cl ON cl.classification_id = wr.classification_id
+              ${whereClause}
+            )
+            SELECT rate_id, classification_id, classification_name, minimum_cubic, minimum_rate,
+                   excess_rate_per_cubic, effective_date, modified_by, modified_date
+            FROM ranked_rates
+            WHERE rate_rank = 1
+            ORDER BY classification_name ASC, effective_date DESC, rate_id DESC
+          `
+          : `
+            SELECT
+              wr.rate_id,
+              wr.classification_id,
+              cl.classification_name,
+              wr.minimum_cubic,
+              wr.minimum_rate,
+              wr.excess_rate_per_cubic,
+              wr.effective_date,
+              wr.modified_by,
+              wr.modified_date
+            FROM waterrates wr
+            JOIN classification cl ON cl.classification_id = wr.classification_id
+            ${whereClause}
+            ORDER BY cl.classification_name ASC, wr.effective_date DESC, wr.rate_id DESC
+          `;
+
+        const { rows } = await pool.query(query, values);
+        return rows;
+      },
+      async () => {
+        const [ratesResult, classificationsResult] = await Promise.all([
+          (() => {
+            let query = supabase
+              .from('waterrates')
+              .select('rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date')
+              .order('effective_date', { ascending: false })
+              .order('rate_id', { ascending: false });
+
+            if (classificationId) {
+              query = query.eq('classification_id', classificationId);
+            }
+
+            if (activeOnly) {
+              query = query.lte('effective_date', effectiveOn);
+            }
+
+            return query;
+          })(),
+          supabase.from('classification').select('classification_id, classification_name'),
+        ]);
+
+        if (ratesResult.error) throw ratesResult.error;
+        if (classificationsResult.error) throw classificationsResult.error;
+
+        const classificationMap = new Map((classificationsResult.data || []).map((row) => [row.classification_id, row.classification_name]));
+        const mappedRows = (ratesResult.data || [])
+          .filter((row) => normalizeRequiredForeignKeyId(row.classification_id))
+          .map((row) => ({
+            ...row,
+            classification_name: classificationMap.get(row.classification_id) || null,
+          }))
+          .filter((row) => row.classification_name);
+
+        if (!latestOnly) {
+          return mappedRows.sort((left, right) =>
+            String(left.classification_name || '').localeCompare(String(right.classification_name || '')) ||
+            new Date(right.effective_date || 0).getTime() - new Date(left.effective_date || 0).getTime() ||
+            Number(right.rate_id || 0) - Number(left.rate_id || 0)
+          );
+        }
+
+        const latestRateMap = new Map();
+        for (const row of mappedRows) {
+          if (!latestRateMap.has(row.classification_id)) {
+            latestRateMap.set(row.classification_id, row);
+          }
+        }
+
+        return Array.from(latestRateMap.values()).sort((left, right) =>
+          String(left.classification_name || '').localeCompare(String(right.classification_name || ''))
+        );
+      }
+    );
+
+    return res.json({ success: true, data: rows });
+  } catch (error) {
+    await logRequestError(req, 'waterRates.fetchAll', error);
+    console.error('Error fetching water rates:', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+// Get the latest active water rate, optionally for a specific classification.
 app.get('/api/water-rates/latest', async (req, res) => {
   try {
+    const classificationId = normalizeRequiredForeignKeyId(req.query.classification_id);
+    const effectiveOn = req.query.effective_on || new Date().toISOString();
+
+    if (classificationId) {
+      const rate = await resolveApplicableWaterRate(classificationId, effectiveOn);
+      return res.json({ success: true, data: rate });
+    }
+
     const row = await withPostgresPrimary(
       'waterRates.fetchLatest',
       async () => {
-        const { rows } = await pool.query(
-          'SELECT * FROM waterrates ORDER BY effective_date DESC LIMIT 1'
-        );
+        const { rows } = await pool.query(`
+          SELECT
+            wr.rate_id,
+            wr.classification_id,
+            cl.classification_name,
+            wr.minimum_cubic,
+            wr.minimum_rate,
+            wr.excess_rate_per_cubic,
+            wr.effective_date,
+            wr.modified_by,
+            wr.modified_date
+          FROM waterrates wr
+          JOIN classification cl ON cl.classification_id = wr.classification_id
+          WHERE wr.effective_date <= $1
+          ORDER BY wr.effective_date DESC, wr.rate_id DESC
+          LIMIT 1
+        `, [effectiveOn]);
         return rows[0] || null;
       },
       async () => {
-        const { data, error } = await supabase
-          .from('waterrates')
-          .select('*')
-          .order('effective_date', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (error) throw error;
-        return data || null;
+        const [rateResult, classificationsResult] = await Promise.all([
+          supabase
+            .from('waterrates')
+            .select('rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date')
+            .lte('effective_date', effectiveOn)
+            .order('effective_date', { ascending: false })
+            .order('rate_id', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase.from('classification').select('classification_id, classification_name'),
+        ]);
+
+        if (rateResult.error) throw rateResult.error;
+        if (classificationsResult.error) throw classificationsResult.error;
+        if (!rateResult.data) {
+          return null;
+        }
+
+        const classificationMap = new Map((classificationsResult.data || []).map((row) => [row.classification_id, row.classification_name]));
+        return {
+          ...rateResult.data,
+          classification_name: classificationMap.get(rateResult.data.classification_id) || null,
+        };
       }
     );
+
     return res.json({ success: true, data: row });
   } catch (error) {
     await logRequestError(req, 'waterRates.fetchLatest', error);
     console.error('Error fetching latest water rates:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
 // Create new water rate entry
 app.post('/api/water-rates', async (req, res) => {
-  const { minimum_cubic, minimum_rate, excess_rate_per_cubic, modified_by } = req.body;
-  const effective_date = new Date().toISOString();
-
   try {
+    const classification = await validateClassificationExists(req.body.classification_id || req.body.classificationId);
+    const effectiveDate = req.body.effective_date || req.body.effectiveDate || new Date().toISOString();
     const payload = {
-      minimum_cubic: parseInt(minimum_cubic),
-      minimum_rate: parseFloat(minimum_rate),
-      excess_rate_per_cubic: parseFloat(excess_rate_per_cubic),
-      effective_date,
-      modified_by: modified_by ? parseInt(modified_by) : null,
-      modified_date: effective_date,
+      classification_id: parseRequiredWaterRateClassificationId(req.body.classification_id || req.body.classificationId),
+      minimum_cubic: normalizeWaterRateNumericValue(req.body.minimum_cubic, 'Minimum cubic', parseInt),
+      minimum_rate: normalizeWaterRateNumericValue(req.body.minimum_rate, 'Minimum rate', parseFloat),
+      excess_rate_per_cubic: normalizeWaterRateNumericValue(req.body.excess_rate_per_cubic, 'Excess rate per cubic', parseFloat),
+      effective_date: effectiveDate,
+      modified_by: normalizeRequiredForeignKeyId(req.body.modified_by || req.body.modifiedBy),
+      modified_date: new Date().toISOString(),
     };
 
     const row = await withPostgresPrimary(
@@ -4473,15 +4960,17 @@ app.post('/api/water-rates', async (req, res) => {
         const { rows } = await insertWithSequenceRetry(
           'waterrates',
           'rate_id',
-          `INSERT INTO waterrates (minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
-           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+          `INSERT INTO waterrates (classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date`,
           [
+            payload.classification_id,
             payload.minimum_cubic,
             payload.minimum_rate,
             payload.excess_rate_per_cubic,
             payload.effective_date,
             payload.modified_by,
-            payload.modified_date
+            payload.modified_date,
           ]
         );
         return rows[0];
@@ -4492,12 +4981,135 @@ app.post('/api/water-rates', async (req, res) => {
         return data;
       }
     );
+
     scheduleImmediateSync('water-rates-create');
-    return res.json({ success: true, data: row });
+    return res.json({
+      success: true,
+      data: {
+        ...row,
+        classification_name: classification.classification_name || null,
+      },
+    });
   } catch (error) {
     await logRequestError(req, 'waterRates.create', error);
     console.error('Error creating water rate:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/water-rates/:id', async (req, res) => {
+  try {
+    const rateId = Number(req.params.id);
+    if (!Number.isFinite(rateId)) {
+      return res.status(400).json({ success: false, message: 'Invalid water rate ID.' });
+    }
+
+    const classification = await validateClassificationExists(req.body.classification_id || req.body.classificationId);
+    const payload = {
+      classification_id: parseRequiredWaterRateClassificationId(req.body.classification_id || req.body.classificationId),
+      minimum_cubic: normalizeWaterRateNumericValue(req.body.minimum_cubic, 'Minimum cubic', parseInt),
+      minimum_rate: normalizeWaterRateNumericValue(req.body.minimum_rate, 'Minimum rate', parseFloat),
+      excess_rate_per_cubic: normalizeWaterRateNumericValue(req.body.excess_rate_per_cubic, 'Excess rate per cubic', parseFloat),
+      effective_date: req.body.effective_date || req.body.effectiveDate || new Date().toISOString(),
+      modified_by: normalizeRequiredForeignKeyId(req.body.modified_by || req.body.modifiedBy),
+      modified_date: new Date().toISOString(),
+    };
+
+    const row = await withPostgresPrimary(
+      'waterRates.update',
+      async () => {
+        const { rows } = await pool.query(`
+          UPDATE waterrates
+          SET classification_id = $1,
+              minimum_cubic = $2,
+              minimum_rate = $3,
+              excess_rate_per_cubic = $4,
+              effective_date = $5,
+              modified_by = $6,
+              modified_date = $7
+          WHERE rate_id = $8
+          RETURNING rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date
+        `, [
+          payload.classification_id,
+          payload.minimum_cubic,
+          payload.minimum_rate,
+          payload.excess_rate_per_cubic,
+          payload.effective_date,
+          payload.modified_by,
+          payload.modified_date,
+          rateId,
+        ]);
+
+        if (!rows[0]) {
+          throw createHttpError('Water rate not found.', 404);
+        }
+
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('waterrates')
+          .update(payload)
+          .eq('rate_id', rateId)
+          .select()
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) {
+          throw createHttpError('Water rate not found.', 404);
+        }
+        return data;
+      }
+    );
+
+    scheduleImmediateSync('water-rates-update');
+    return res.json({
+      success: true,
+      data: {
+        ...row,
+        classification_name: classification.classification_name || null,
+      },
+    });
+  } catch (error) {
+    await logRequestError(req, 'waterRates.update', error);
+    console.error('Error updating water rate:', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/water-rates/:id', async (req, res) => {
+  try {
+    const rateId = Number(req.params.id);
+    if (!Number.isFinite(rateId)) {
+      return res.status(400).json({ success: false, message: 'Invalid water rate ID.' });
+    }
+
+    await withPostgresPrimary(
+      'waterRates.delete',
+      async () => {
+        const { rowCount } = await pool.query('DELETE FROM waterrates WHERE rate_id = $1', [rateId]);
+        if (!rowCount) {
+          throw createHttpError('Water rate not found.', 404);
+        }
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('waterrates')
+          .delete()
+          .eq('rate_id', rateId)
+          .select('rate_id');
+        if (error) throw error;
+        if (!(data || []).length) {
+          throw createHttpError('Water rate not found.', 404);
+        }
+      }
+    );
+
+    scheduleImmediateSync('water-rates-delete');
+    return res.json({ success: true, message: 'Water rate deleted successfully.' });
+  } catch (error) {
+    await logRequestError(req, 'waterRates.delete', error);
+    console.error('Error deleting water rate:', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
@@ -4607,12 +5219,17 @@ app.post('/api/consumers', async (req, res) => {
         : consumerStatus === 'Pending'
           ? 'Pending'
           : 'Active';
+    let accountPasswordHash = null;
 
     if (!providedLoginId && (!accountUsername || !accountPassword)) {
       return res.status(400).json({
         success: false,
         message: 'Username and password are required when creating a new consumer account.',
       });
+    }
+
+    if (!providedLoginId) {
+      accountPasswordHash = hashPassword(accountPassword);
     }
 
     if (normalizedAccountNumber && !isValidConsumerAccountNumber(normalizedAccountNumber)) {
@@ -4662,7 +5279,7 @@ app.post('/api/consumers', async (req, res) => {
               INSERT INTO accounts (username, password, role_id, account_status)
               VALUES ($1, $2, $3, $4)
               RETURNING account_id
-            `, [accountUsername, accountPassword, 5, accountStatus]);
+            `, [accountUsername, accountPasswordHash, 5, accountStatus]);
             loginId = accountInsert.rows[0].account_id;
           }
 
@@ -4725,7 +5342,7 @@ app.post('/api/consumers', async (req, res) => {
             .from('accounts')
             .insert([{
               username: accountUsername,
-              password: accountPassword,
+              password: accountPasswordHash,
               role_id: 5,
               account_status: accountStatus,
             }])
@@ -5470,16 +6087,24 @@ app.post('/api/bills', async (req, res) => {
     const billDate = bill.Bill_Date || new Date().toISOString();
     const dueDate = bill.Due_Date || billDate;
     const readingDate = bill.Reading_Date || billDate;
-    const totalAmount = Number(bill.Total_Amount ?? bill.Amount_Due ?? 0);
     const penalty = Number(bill.Penalty ?? bill.Penalties ?? 0);
     const previousBalance = Number(bill.Previous_Balance ?? 0);
     const previousPenalty = Number(bill.Previous_Penalty ?? 0);
-    const currentCharge = Number(bill.Water_Charge ?? bill.Basic_Charge ?? totalAmount);
     const maintenanceFee = Number(bill.Environmental_Fee ?? bill.Meter_Fee ?? 0);
     const connectionFee = Number(bill.Connection_Fee ?? 0);
     const previousReading = Number(bill.Previous_Reading ?? 0);
     const currentReading = Number(bill.Current_Reading ?? previousReading);
     const consumption = Number(bill.Consumption ?? Math.max(0, currentReading - previousReading));
+    const classificationId = await resolveConsumerClassificationId(consumerId);
+    const applicableRate = await resolveApplicableWaterRate(classificationId, billDate);
+    const currentChargeOverride = bill.Current_Charge_Override ?? bill.current_charge_override;
+    const hasCurrentChargeOverride = currentChargeOverride !== undefined && currentChargeOverride !== null && currentChargeOverride !== '';
+    const computedCurrentCharge = computeWaterChargeFromRate(consumption, applicableRate);
+    const currentCharge = hasCurrentChargeOverride
+      ? Number(currentChargeOverride)
+      : Number(bill.Water_Charge ?? bill.Basic_Charge ?? computedCurrentCharge);
+    const computedTotalAmount = currentCharge + maintenanceFee + connectionFee + previousBalance + previousPenalty;
+    const totalAmount = Number(bill.Total_Amount ?? bill.Amount_Due ?? computedTotalAmount);
     const totalAfterDueDate = Number(
       bill.Total_After_Due_Date ??
       (totalAmount + penalty)
@@ -5658,16 +6283,24 @@ app.put('/api/bills/:id', async (req, res) => {
     const billDate = bill.Bill_Date || new Date().toISOString();
     const dueDate = bill.Due_Date || billDate;
     const readingDate = bill.Reading_Date || billDate;
-    const totalAmount = Number(bill.Total_Amount ?? bill.Amount_Due ?? 0);
     const penalty = Number(bill.Penalty ?? bill.Penalties ?? 0);
     const previousBalance = Number(bill.Previous_Balance ?? 0);
     const previousPenalty = Number(bill.Previous_Penalty ?? 0);
-    const currentCharge = Number(bill.Water_Charge ?? bill.Basic_Charge ?? totalAmount);
     const maintenanceFee = Number(bill.Environmental_Fee ?? bill.Meter_Fee ?? 0);
     const connectionFee = Number(bill.Connection_Fee ?? 0);
     const previousReading = Number(bill.Previous_Reading ?? 0);
     const currentReading = Number(bill.Current_Reading ?? previousReading);
     const consumption = Number(bill.Consumption ?? Math.max(0, currentReading - previousReading));
+    const classificationId = await resolveConsumerClassificationId(consumerId);
+    const applicableRate = await resolveApplicableWaterRate(classificationId, billDate);
+    const currentChargeOverride = bill.Current_Charge_Override ?? bill.current_charge_override;
+    const hasCurrentChargeOverride = currentChargeOverride !== undefined && currentChargeOverride !== null && currentChargeOverride !== '';
+    const computedCurrentCharge = computeWaterChargeFromRate(consumption, applicableRate);
+    const currentCharge = hasCurrentChargeOverride
+      ? Number(currentChargeOverride)
+      : Number(bill.Water_Charge ?? bill.Basic_Charge ?? computedCurrentCharge);
+    const computedTotalAmount = currentCharge + maintenanceFee + connectionFee + previousBalance + previousPenalty;
+    const totalAmount = Number(bill.Total_Amount ?? bill.Amount_Due ?? computedTotalAmount);
     const totalAfterDueDate = Number(
       bill.Total_After_Due_Date ??
       (totalAmount + penalty)
@@ -6481,66 +7114,269 @@ const sendSMS = async (phone, message) => {
 };
 
 // --- FORGOT PASSWORD ENDPOINTS ---
-
-// Placeholder for Forgot Password flow
-// NOTE: These require an 'otp_verifications' table which is missing from the new schema
 app.post('/api/forgot-password/request', async (req, res) => {
-  const { username } = req.body;
+  const username = String(req.body?.username || '').trim();
+  if (!username) {
+    return res.status(400).json({ success: false, message: 'Username is required.' });
+  }
+
   try {
     const user = await withPostgresPrimary(
       'forgotPassword.request',
       async () => {
         const { rows } = await pool.query('SELECT account_id, username FROM accounts WHERE username = $1', [username]);
-        return rows[0];
+        return rows[0] || null;
       },
       async () => {
-        const { data, error } = await supabase.from('accounts').select('account_id, username').eq('username', username).single();
+        const { data, error } = await supabase.from('accounts').select('account_id, username').eq('username', username).maybeSingle();
         if (error) throw error;
+        return data || null;
+      }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const resetCode = generatePasswordResetCode();
+    const expirationTime = buildPasswordResetExpiration();
+
+    await withPostgresPrimary(
+      'forgotPassword.request.store',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query(
+            `UPDATE password_reset
+             SET status = CASE WHEN expiration_time < NOW() THEN 'Expired' ELSE 'Cancelled' END
+             WHERE account_id = $1 AND status = 'Pending'`,
+            [user.account_id]
+          );
+          await client.query(
+            `INSERT INTO password_reset (account_id, reset_token, expiration_time, status)
+             VALUES ($1, $2, $3, 'Pending')`,
+            [user.account_id, resetCode, expirationTime]
+          );
+          await client.query('COMMIT');
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { error: cancelError } = await supabase
+          .from('password_reset')
+          .update({ status: 'Cancelled' })
+          .eq('account_id', user.account_id)
+          .eq('status', 'Pending');
+        if (cancelError) throw cancelError;
+
+        const { error: insertError } = await supabase
+          .from('password_reset')
+          .insert([{
+            account_id: user.account_id,
+            reset_token: resetCode,
+            expiration_time: expirationTime,
+            status: 'Pending',
+          }]);
+        if (insertError) throw insertError;
+      }
+    );
+
+    await sendSMS(null, `Password reset code for ${username}: ${resetCode}`);
+    return res.json({
+      success: true,
+      message: 'Password reset code generated successfully.',
+      ...(process.env.NODE_ENV === 'production' ? {} : { debugCode: resetCode }),
+    });
+  } catch (error) {
+    await logRequestError(req, 'forgotPassword.request', error);
+    console.error('Forgot password request error:', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/forgot-password/verify-otp', async (req, res) => {
+  const username = String(req.body?.username || '').trim();
+  const code = String(req.body?.code || '').trim();
+
+  if (!username || !code) {
+    return res.status(400).json({ success: false, message: 'Username and reset code are required.' });
+  }
+
+  try {
+    const user = await withPostgresPrimary(
+      'forgotPassword.verify.lookupUser',
+      async () => {
+        const { rows } = await pool.query('SELECT account_id FROM accounts WHERE username = $1 LIMIT 1', [username]);
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase.from('accounts').select('account_id').eq('username', username).maybeSingle();
+        if (error) throw error;
+        return data || null;
+      }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const resetEntry = await withPostgresPrimary(
+      'forgotPassword.verify.lookupCode',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT reset_id
+          FROM password_reset
+          WHERE account_id = $1
+            AND reset_token = $2
+            AND status = 'Pending'
+            AND expiration_time >= NOW()
+          ORDER BY created_at DESC
+          LIMIT 1
+        `, [user.account_id, code]);
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('password_reset')
+          .select('reset_id, expiration_time')
+          .eq('account_id', user.account_id)
+          .eq('reset_token', code)
+          .eq('status', 'Pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        if (!data || new Date(data.expiration_time).getTime() < Date.now()) {
+          return null;
+        }
         return data;
       }
     );
 
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!resetEntry) {
+      return res.status(400).json({ success: false, message: 'Reset code is invalid or expired.' });
+    }
 
-    // In a real scenario, you'd insert into otp_verifications here. 
-    // Since the table is missing, we will just simulate success for now.
-    return res.json({ success: true, message: 'OTP sent (Simulated). Original code assumes otp_verifications table exists.' });
+    return res.json({ success: true, message: 'Reset code verified successfully.' });
   } catch (error) {
-    console.error('Forgot password request error:', error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Verify OTP
-app.post('/api/forgot-password/verify-otp', async (req, res) => {
-  const { username, code } = req.body;
-  try {
-    return res.json({ success: true, message: 'OTP verification simulated (Table missing in new schema)' });
-  } catch (error) {
+    await logRequestError(req, 'forgotPassword.verify', error);
     console.error('Verify OTP error:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
-// Reset Password
 app.post('/api/forgot-password/reset', async (req, res) => {
-  const { username, code, newPassword } = req.body;
+  const username = String(req.body?.username || '').trim();
+  const code = String(req.body?.code || '').trim();
+  const newPassword = String(req.body?.newPassword || '');
+
+  if (!username || !code || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Username, reset code, and new password are required.' });
+  }
+
+  let passwordHash = null;
   try {
+    passwordHash = hashPassword(newPassword);
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+
+  try {
+    const user = await withPostgresPrimary(
+      'forgotPassword.reset.lookupUser',
+      async () => findPostgresAccountByUsername(username),
+      async () => findSupabaseAccountByUsername(username)
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
     await withPostgresPrimary(
       'forgotPassword.reset',
       async () => {
-        await pool.query('UPDATE accounts SET password = $1 WHERE username = $2', [newPassword, username]);
-        scheduleImmediateSync('forgot-password-reset');
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const { rows } = await client.query(`
+            SELECT reset_id
+            FROM password_reset
+            WHERE account_id = $1
+              AND reset_token = $2
+              AND status = 'Pending'
+              AND expiration_time >= NOW()
+            ORDER BY created_at DESC
+            LIMIT 1
+            FOR UPDATE
+          `, [user.account_id, code]);
+
+          if (!rows[0]) {
+            throw createHttpError('Reset code is invalid or expired.');
+          }
+
+          await client.query('UPDATE accounts SET password = $1 WHERE account_id = $2', [passwordHash, user.account_id]);
+          await client.query('UPDATE password_reset SET status = $1 WHERE reset_id = $2', ['Used', rows[0].reset_id]);
+          await client.query(
+            `UPDATE password_reset
+             SET status = CASE WHEN expiration_time < NOW() THEN 'Expired' ELSE 'Cancelled' END
+             WHERE account_id = $1 AND status = 'Pending' AND reset_id <> $2`,
+            [user.account_id, rows[0].reset_id]
+          );
+          await client.query('COMMIT');
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
       },
       async () => {
-        const { error } = await supabase.from('accounts').update({ password: newPassword }).eq('username', username);
-        if (error) throw error;
+        const { data: resetEntry, error: lookupError } = await supabase
+          .from('password_reset')
+          .select('reset_id, expiration_time')
+          .eq('account_id', user.account_id)
+          .eq('reset_token', code)
+          .eq('status', 'Pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (!resetEntry || new Date(resetEntry.expiration_time).getTime() < Date.now()) {
+          throw createHttpError('Reset code is invalid or expired.');
+        }
+
+        const { error: accountError } = await supabase.from('accounts').update({ password: passwordHash }).eq('account_id', user.account_id);
+        if (accountError) throw accountError;
+
+        const { error: usedError } = await supabase.from('password_reset').update({ status: 'Used' }).eq('reset_id', resetEntry.reset_id);
+        if (usedError) throw usedError;
+
+        const { error: cancelError } = await supabase
+          .from('password_reset')
+          .update({ status: 'Cancelled' })
+          .eq('account_id', user.account_id)
+          .eq('status', 'Pending');
+        if (cancelError) throw cancelError;
       }
     );
+
+    await syncAccountAuthCredentials({
+      accountId: user.account_id,
+      username: user.username,
+      password: newPassword,
+      authUserId: user.auth_user_id || null,
+    });
+    scheduleImmediateSync('forgot-password-reset');
     return res.json({ success: true, message: 'Password reset successful' });
   } catch (error) {
+    await logRequestError(req, 'forgotPassword.reset', error);
     console.error('Reset password error:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
@@ -6556,6 +7392,7 @@ app.post('/api/register', async (req, res) => {
   const normalizedAccountNumber = String(accountNumber || '').trim() || generatePendingAccountNumber(zoneId);
   const normalizedPhoneNumber = normalizePhilippinePhoneNumber(phone);
   let normalizedRequirementsSubmitted = null;
+  let passwordHash = null;
 
   if (!username || !password) {
     return res.status(400).json({ success: false, message: 'Username and password are required.' });
@@ -6566,6 +7403,7 @@ app.post('/api/register', async (req, res) => {
   }
 
   try {
+    passwordHash = hashPassword(password);
     normalizedRequirementsSubmitted = normalizeRequirementSubmission(req.body.sedulaImage || req.body.requirementsSubmitted, { allowText: false });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
@@ -6596,7 +7434,7 @@ app.post('/api/register', async (req, res) => {
             try {
               const { rows } = await client.query(
                 'INSERT INTO accounts (username, password, role_id, account_status) VALUES ($1, $2, $3, $4) RETURNING account_id',
-                [username, password, 5, 'Pending']
+                [username, passwordHash, 5, 'Pending']
               );
               const accountId = rows[0].account_id;
               createdAccountId = accountId;
@@ -6638,7 +7476,7 @@ app.post('/api/register', async (req, res) => {
           'account_id',
           {
             username,
-            password,
+            password: passwordHash,
             role_id: 5,
             account_status: 'Pending',
           },
@@ -6800,6 +7638,7 @@ app.post('/api/auth/google', async (req, res) => {
     const lastName = restName.join(' ') || firstName;
     const generatedUsername = googleEmail.split('@')[0] || `google_${Date.now()}`;
     const generatedPassword = `google_${crypto.randomUUID()}`;
+    const generatedPasswordHash = hashPassword(generatedPassword);
 
     const createdAccount = await withPostgresPrimary(
       'auth.google.createAccount',
@@ -6816,7 +7655,7 @@ app.post('/api/auth/google', async (req, res) => {
             INSERT INTO accounts (username, password, email, full_name, role_id, account_status, auth_user_id, profile_picture_url)
             VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8)
             RETURNING account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url
-          `, [generatedUsername, generatedPassword, googleEmail, googleName || generatedUsername, 5, 'Active', authUserId, googleAvatar]);
+          `, [generatedUsername, generatedPasswordHash, googleEmail, googleName || generatedUsername, 5, 'Active', authUserId, googleAvatar]);
 
           const accountId = accountRows[0].account_id;
 
@@ -6839,7 +7678,7 @@ app.post('/api/auth/google', async (req, res) => {
           .from('accounts')
           .insert([{
             username: generatedUsername,
-            password: generatedPassword,
+            password: generatedPasswordHash,
             email: googleEmail,
             full_name: googleName || generatedUsername,
             role_id: 5,
@@ -7559,23 +8398,46 @@ app.get('/api/admin/settings', async (req, res) => {
         'admin.settings.latestRates',
         async () => {
           const { rows } = await pool.query(`
-            SELECT rate_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date
-            FROM waterrates
-            ORDER BY effective_date DESC, rate_id DESC
+            SELECT
+              wr.rate_id,
+              wr.classification_id,
+              cl.classification_name,
+              wr.minimum_cubic,
+              wr.minimum_rate,
+              wr.excess_rate_per_cubic,
+              wr.effective_date,
+              wr.modified_by,
+              wr.modified_date
+            FROM waterrates wr
+            LEFT JOIN classification cl ON cl.classification_id = wr.classification_id
+            WHERE wr.effective_date <= CURRENT_TIMESTAMP
+            ORDER BY wr.effective_date DESC, wr.rate_id DESC
             LIMIT 1
           `);
           return rows[0] || null;
         },
         async () => {
-          const { data, error } = await supabase
-            .from('waterrates')
-            .select('rate_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date')
-            .order('effective_date', { ascending: false })
-            .order('rate_id', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (error) throw error;
-          return data || null;
+          const [rateResult, classificationsResult] = await Promise.all([
+            supabase
+              .from('waterrates')
+              .select('rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date')
+              .lte('effective_date', new Date().toISOString())
+              .order('effective_date', { ascending: false })
+              .order('rate_id', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase.from('classification').select('classification_id, classification_name'),
+          ]);
+          if (rateResult.error) throw rateResult.error;
+          if (classificationsResult.error) throw classificationsResult.error;
+          if (!rateResult.data) {
+            return null;
+          }
+          const classificationMap = new Map((classificationsResult.data || []).map((row) => [row.classification_id, row.classification_name]));
+          return {
+            ...rateResult.data,
+            classification_name: classificationMap.get(rateResult.data.classification_id) || null,
+          };
         }
       ),
     ]);
@@ -8117,6 +8979,84 @@ app.get('/api/admin/sync/status', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'admin.sync.status', error);
     return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==========================================
+// METER READING SCHEDULES ENDPOINTS
+// ==========================================
+
+app.get('/api/reading-schedules', async (req, res) => {
+  try {
+    const query = `
+      SELECT rs.schedule_id, rs.schedule_date, rs.zone_id, z.zone_name, 
+             rs.meter_reader_id, u.full_name as meter_reader_name, rs.status
+      FROM reading_schedule rs
+      LEFT JOIN zones z ON rs.zone_id = z.zone_id
+      LEFT JOIN users u ON rs.meter_reader_id = u.account_id
+    `;
+    const result = await withPostgresPrimary(query, [], 'Failed to fetch schedules');
+    
+    // Map to PascalCase for the frontend
+    const mapped = (result || []).map(row => ({
+      Schedule_ID: row.schedule_id,
+      Schedule_Date: row.schedule_date,
+      Zone_ID: row.zone_id,
+      Zone_Name: row.zone_name,
+      Meter_Reader_ID: row.meter_reader_id,
+      Meter_Reader_Name: row.meter_reader_name,
+      Status: row.status
+    }));
+    
+    res.json(mapped);
+  } catch (error) {
+    console.error('Error fetching schedules:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.post('/api/reading-schedules', async (req, res) => {
+  try {
+    const { schedule_date, zone_id, meter_reader_id, status } = req.body;
+    const query = `
+      INSERT INTO reading_schedule (schedule_date, zone_id, meter_reader_id, status)
+      VALUES ($1, $2, $3, $4)
+      RETURNING schedule_id
+    `;
+    const result = await withPostgresPrimary(
+      query, 
+      [schedule_date, zone_id, meter_reader_id, status || 'Scheduled'], 
+      'Failed to create schedule'
+    );
+    res.json({ success: true, data: result[0] });
+  } catch (error) {
+    console.error('Error creating schedule:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.delete('/api/reading-schedules/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = 'DELETE FROM reading_schedule WHERE schedule_id = $1 RETURNING schedule_id';
+    const result = await withPostgresPrimary(query, [id], 'Failed to delete schedule');
+    res.json({ success: true, data: result[0] });
+  } catch (error) {
+    console.error('Error deleting schedule:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.put('/api/reading-schedules/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const query = 'UPDATE reading_schedule SET status = $1 WHERE schedule_id = $2 RETURNING schedule_id';
+    const result = await withPostgresPrimary(query, [status, id], 'Failed to update schedule status');
+    res.json({ success: true, data: result[0] });
+  } catch (error) {
+    console.error('Error updating schedule status:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

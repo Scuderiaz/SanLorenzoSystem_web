@@ -6880,3 +6880,292 @@
 [2026-04-28T14:22:06.913Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
 [2026-04-28T14:22:07.279Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
 [2026-04-28T14:22:10.758Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:36:02.600Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:36:04.577Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:36:07.662Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:36:08.072Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:36:11.236Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:37:02.606Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:37:04.443Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:37:10.662Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:37:10.954Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:37:12.571Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:38:02.619Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:38:03.602Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:38:07.532Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:38:07.882Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:38:10.514Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:39:02.629Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:39:03.776Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:39:08.316Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:39:08.602Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:39:11.497Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:40:02.636Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:40:03.667Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:40:07.665Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:40:08.302Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:40:11.506Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:41:02.639Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:41:03.674Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:41:07.443Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:41:07.790Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:41:10.964Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:42:02.639Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:42:03.625Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:42:07.422Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:42:07.770Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:42:10.852Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:43:02.642Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:43:03.873Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:43:07.261Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:43:07.629Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:43:11.624Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:44:02.655Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:44:04.408Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:44:07.489Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:44:07.719Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:44:11.121Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:45:02.656Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:45:03.594Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:45:06.829Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:45:07.431Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:45:10.670Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:46:02.666Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:46:03.505Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:46:06.640Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:46:06.857Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:46:10.229Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:47:02.674Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:47:04.475Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:47:07.486Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:47:07.718Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:47:10.713Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:48:02.687Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:48:03.778Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:48:07.079Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:48:07.302Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:48:10.231Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:49:02.701Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:49:03.531Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:49:06.799Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:49:07.150Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:49:10.347Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:50:02.713Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:50:04.038Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:50:08.573Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:50:09.336Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:50:11.986Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:51:02.718Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:51:04.175Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:51:07.637Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:51:07.860Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:51:09.328Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:52:02.731Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:52:03.563Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:52:06.750Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:52:07.200Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:52:10.421Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:53:02.733Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:53:04.061Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:53:07.250Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:53:07.501Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:53:11.833Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:54:02.740Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:54:03.903Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:54:07.303Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:54:07.785Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:54:10.985Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:55:02.742Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:55:03.969Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:55:07.249Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:55:07.478Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:55:10.596Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:56:02.752Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:56:04.299Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:56:08.454Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:56:09.130Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:56:12.156Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:57:02.765Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:57:04.104Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:57:07.812Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:57:08.464Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:57:10.964Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:58:02.777Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:58:03.687Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:58:07.272Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:58:07.594Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:58:10.842Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T00:59:02.777Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T00:59:04.227Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:59:07.419Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T00:59:07.824Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T00:59:11.020Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:00:02.781Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:00:03.734Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:00:07.027Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:00:07.636Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:00:11.148Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:18:27.510Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:18:31.697Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:18:32.383Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:18:35.990Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:19:00.059Z] [sync.cycle] Hybrid sync cycle started via api.
+[2026-04-29T01:19:04.105Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:19:10.209Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:19:10.515Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:19:12.576Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:19:37.060Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:19:38.110Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:19:41.336Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:19:41.594Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:19:44.942Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:19:57.782Z] [sync.cycle] Hybrid sync cycle started via immediate:water-rates-create.
+[2026-04-29T01:19:58.703Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:20:02.469Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:20:02.732Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:20:04.651Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:20:08.736Z] [sync.cycle] Hybrid sync cycle started via immediate:water-rates-create.
+[2026-04-29T01:20:10.012Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:20:15.283Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:20:15.560Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:20:17.212Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:20:37.066Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:20:38.454Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:20:41.737Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:20:42.348Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:20:45.432Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:21:37.070Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:21:38.601Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:21:42.309Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:21:42.601Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:21:45.813Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:22:37.071Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:22:38.759Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:22:42.096Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:22:42.590Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:22:45.713Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:23:37.074Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:23:38.304Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:23:41.421Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:23:41.682Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:23:44.947Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:24:37.084Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:24:38.592Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:24:42.357Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:24:42.708Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:24:45.913Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:25:37.090Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:25:39.412Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:25:44.709Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:25:44.943Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:25:46.647Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:26:37.096Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:26:38.309Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:26:41.602Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:26:41.842Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:26:45.020Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:27:37.100Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:27:38.110Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:27:41.439Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:27:41.690Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:27:44.969Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:28:37.109Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:28:38.075Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:28:41.269Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:28:41.649Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:28:45.068Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:29:37.117Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:29:38.434Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:29:41.818Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:29:42.434Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:29:45.590Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:30:37.128Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:30:38.071Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:30:41.843Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:30:42.073Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:30:43.658Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:31:37.136Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:31:39.654Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:31:43.430Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:31:44.068Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:31:47.370Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:32:37.133Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:32:38.021Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:32:41.353Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:32:41.928Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:32:45.067Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:33:37.142Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:33:38.038Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:33:41.210Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:33:41.629Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:33:45.052Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:34:37.150Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:34:38.510Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:34:41.736Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:34:42.199Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:34:45.398Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:35:37.156Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:35:38.292Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:35:41.583Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:35:41.850Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:35:45.232Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:36:01.096Z] [sync.cycle] Hybrid sync cycle started via immediate:water-rates-create.
+[2026-04-29T01:36:02.584Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:36:06.984Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:36:07.278Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:36:09.625Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:36:37.160Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:36:38.417Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:36:42.726Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:36:43.068Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:36:44.991Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:37:03.607Z] [sync.cycle] Hybrid sync cycle started via immediate:water-rates-update.
+[2026-04-29T01:37:04.740Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:37:08.268Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:37:08.781Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:37:12.896Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:37:22.028Z] [sync.cycle] Hybrid sync cycle started via immediate:water-rates-update.
+[2026-04-29T01:37:22.871Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:37:26.751Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:37:27.406Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:37:30.338Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:37:37.163Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:37:37.909Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:37:41.215Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:37:41.652Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:37:44.777Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:38:37.168Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:38:38.174Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:38:41.960Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:38:42.308Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:38:45.605Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:39:37.177Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:39:38.048Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:39:41.959Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:39:42.265Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:39:45.334Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:40:37.179Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:40:38.517Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:40:41.522Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:40:41.743Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:40:44.615Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:41:37.186Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:41:38.435Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:41:41.860Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:41:42.205Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:41:45.347Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:42:37.197Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:42:38.137Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:42:41.959Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:42:42.257Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:42:45.330Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:43:37.209Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:43:38.490Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:43:41.675Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:43:41.902Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:43:45.090Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-04-29T01:44:37.216Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-04-29T01:44:38.136Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:44:41.181Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-04-29T01:44:41.413Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
+[2026-04-29T01:44:44.517Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"

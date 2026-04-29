@@ -1608,6 +1608,13 @@
   color: var(--cm-ink);
 }
 
+.cm-application-banner-message {
+  margin: 10px 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #9a6700;
+}
+
 .cm-application-banner-remarks {
   margin: 8px 0 0;
   font-size: 0.87rem;

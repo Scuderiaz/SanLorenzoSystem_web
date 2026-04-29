@@ -11,8 +11,8 @@ import {
   loadAdminSettingsWithFallback,
   loadBillsWithFallback,
   loadConsumersWithFallback,
-  loadLatestWaterRateWithFallback,
   loadMeterReadingsWithFallback,
+  loadWaterRatesWithFallback,
   loadZonesWithFallback,
   requestJson,
 } from '../../services/userManagementApi';
@@ -54,6 +54,7 @@ interface ConsumerRow {
   Account_Number?: string;
   Zone_ID: number;
   Zone_Name?: string;
+  Classification_ID?: number | null;
   Classification_Name?: string;
 }
 
@@ -63,9 +64,13 @@ interface ZoneRow {
 }
 
 interface WaterRateRow {
+  rate_id?: number;
+  classification_id: number;
+  classification_name?: string | null;
   minimum_cubic: number;
   minimum_rate: number;
   excess_rate_per_cubic: number;
+  effective_date?: string;
 }
 
 interface AdminSettingsRow {
@@ -150,7 +155,7 @@ const GenerateBills: React.FC = () => {
   const [consumers, setConsumers] = useState<ConsumerRow[]>([]);
   const [zones, setZones] = useState<ZoneRow[]>([]);
   const [meterReadings, setMeterReadings] = useState<MeterReadingRow[]>([]);
-  const [waterRate, setWaterRate] = useState<WaterRateRow | null>(null);
+  const [waterRates, setWaterRates] = useState<WaterRateRow[]>([]);
   const [adminSettings, setAdminSettings] = useState<AdminSettingsRow>({ lateFee: 10, dueDateDays: 15 });
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -182,13 +187,13 @@ const GenerateBills: React.FC = () => {
   const loadBills = useCallback(async () => {
     setLoading(true);
     try {
-      const [billsResult, consumersResult, zonesResult, settingsResult, readingsResult, waterRateResult] = await Promise.all([
+      const [billsResult, consumersResult, zonesResult, settingsResult, readingsResult, waterRatesResult] = await Promise.all([
         loadBillsWithFallback(),
         loadConsumersWithFallback(),
         loadZonesWithFallback(),
         loadAdminSettingsWithFallback(),
         loadMeterReadingsWithFallback(),
-        loadLatestWaterRateWithFallback(),
+        loadWaterRatesWithFallback({ latestOnly: true, activeOnly: true }),
       ]);
 
       setBills(billsResult.data || []);
@@ -196,7 +201,7 @@ const GenerateBills: React.FC = () => {
       setZones(zonesResult.data || []);
       setAdminSettings(settingsResult.data?.systemSettings || { lateFee: 10, dueDateDays: 15 });
       setMeterReadings(readingsResult.data || []);
-      setWaterRate(waterRateResult.data || settingsResult.data?.waterRates || null);
+      setWaterRates(waterRatesResult.data || []);
 
       const sources = [
         billsResult.source,
@@ -204,7 +209,7 @@ const GenerateBills: React.FC = () => {
         zonesResult.source,
         settingsResult.source,
         readingsResult.source,
-        waterRateResult.source,
+        waterRatesResult.source,
       ];
       if (sources.includes('supabase')) {
         showToast('Bills loaded using Supabase fallback for part of the data.', 'warning');
@@ -222,10 +227,18 @@ const GenerateBills: React.FC = () => {
   }, [loadBills]);
 
   const consumerMap = useMemo(() => new Map(consumers.map((consumer) => [consumer.Consumer_ID, consumer])), [consumers]);
+  const waterRateMap = useMemo(
+    () => new Map(waterRates.map((rate) => [Number(rate.classification_id), rate])),
+    [waterRates]
+  );
   const selectedManualConsumer = useMemo(
     () => consumers.find((consumer) => String(consumer.Consumer_ID) === manualForm.consumerId) || null,
     [consumers, manualForm.consumerId]
   );
+  const selectedManualRate = useMemo(() => {
+    const classificationId = Number(selectedManualConsumer?.Classification_ID || 0);
+    return classificationId ? waterRateMap.get(classificationId) || null : null;
+  }, [selectedManualConsumer?.Classification_ID, waterRateMap]);
   const selectedConsumerReading = useMemo(() => {
     if (!manualForm.consumerId) return null;
     return meterReadings
@@ -280,7 +293,7 @@ const GenerateBills: React.FC = () => {
   const manualBillSummary = useMemo(() => {
     const hasValidReadingPair = readingValues.hasPrevious && readingValues.hasCurrent && !readingValues.readingError;
     const computedCurrentCharge = hasValidReadingPair
-      ? computeChargeFromRate(readingValues.consumption, waterRate)
+      ? computeChargeFromRate(readingValues.consumption, selectedManualRate)
       : 0;
     const currentCharge = manualForm.currentChargeOverride !== ''
       ? toAmount(manualForm.currentChargeOverride)
@@ -323,7 +336,7 @@ const GenerateBills: React.FC = () => {
     readingValues.hasCurrent,
     readingValues.hasPrevious,
     readingValues.readingError,
-    waterRate,
+    selectedManualRate,
   ]);
 
   const filteredBills = useMemo(() => {
@@ -536,6 +549,11 @@ const GenerateBills: React.FC = () => {
       return;
     }
 
+    if (!hasChargeOverride && !selectedManualRate) {
+      showToast('No active water rate is configured for the selected consumer classification.', 'error');
+      return;
+    }
+
     if (!editingBill && !selectedConsumerReading?.Reading_ID && !selectedManualConsumer?.Meter_ID) {
       showToast('The selected consumer has no meter assigned yet. Add or sync the meter before saving a manual bill.', 'error');
       return;
@@ -543,36 +561,40 @@ const GenerateBills: React.FC = () => {
 
     try {
       setSavingManualBill(true);
+      const billPayload: Record<string, unknown> = {
+        Consumer_ID: Number(manualForm.consumerId),
+        Meter_ID: selectedManualConsumer?.Meter_ID ?? selectedConsumerReading?.Meter_ID ?? null,
+        Reading_ID: editingBill?.Reading_ID || selectedConsumerReading?.Reading_ID || null,
+        Reading_Date: manualForm.readingDate,
+        Previous_Reading: Number(manualForm.previousReading || 0),
+        Current_Reading: Number(manualForm.currentReading || manualForm.previousReading || 0),
+        Consumption: readingValues.consumption,
+        Bill_Date: manualForm.readingDate,
+        Due_Date: manualForm.dueDate,
+        Billing_Month: manualForm.billingMonth,
+        Date_Covered_From: manualForm.dateCovered || manualForm.readingDate,
+        Date_Covered_To: manualForm.dateCovered || manualForm.readingDate,
+        Environmental_Fee: Number(manualForm.meterFee || 0),
+        Meter_Fee: Number(manualForm.meterFee || 0),
+        Connection_Fee: Number(manualForm.connectionFee || 0),
+        Previous_Balance: Number(manualForm.previousBalance || 0),
+        Previous_Penalty: Number(manualForm.previousPenalty || 0),
+        Penalty: manualBillSummary.penalty,
+        Amount_Due: manualBillSummary.totalAmount,
+        Total_Amount: manualBillSummary.totalAmount,
+        Total_After_Due_Date: manualBillSummary.totalAfterDueDate,
+        Status: manualForm.status,
+      };
+
+      if (manualForm.currentChargeOverride !== '') {
+        billPayload.Current_Charge_Override = manualBillSummary.currentCharge;
+      }
+
       await requestJson(
         editingBill ? `/bills/${editingBill.Bill_ID}` : '/bills',
         {
           method: editingBill ? 'PUT' : 'POST',
-          body: JSON.stringify({
-          Consumer_ID: Number(manualForm.consumerId),
-          Meter_ID: selectedManualConsumer?.Meter_ID ?? selectedConsumerReading?.Meter_ID ?? null,
-          Reading_ID: editingBill?.Reading_ID || selectedConsumerReading?.Reading_ID || null,
-          Reading_Date: manualForm.readingDate,
-          Previous_Reading: Number(manualForm.previousReading || 0),
-          Current_Reading: Number(manualForm.currentReading || manualForm.previousReading || 0),
-          Consumption: readingValues.consumption,
-          Bill_Date: manualForm.readingDate,
-          Due_Date: manualForm.dueDate,
-          Billing_Month: manualForm.billingMonth,
-          Date_Covered_From: manualForm.dateCovered || manualForm.readingDate,
-          Date_Covered_To: manualForm.dateCovered || manualForm.readingDate,
-          Water_Charge: manualBillSummary.currentCharge,
-          Basic_Charge: manualBillSummary.currentCharge,
-          Environmental_Fee: Number(manualForm.meterFee || 0),
-          Meter_Fee: Number(manualForm.meterFee || 0),
-          Connection_Fee: Number(manualForm.connectionFee || 0),
-          Previous_Balance: Number(manualForm.previousBalance || 0),
-          Previous_Penalty: Number(manualForm.previousPenalty || 0),
-          Penalty: manualBillSummary.penalty,
-          Amount_Due: manualBillSummary.totalAmount,
-          Total_Amount: manualBillSummary.totalAmount,
-          Total_After_Due_Date: manualBillSummary.totalAfterDueDate,
-          Status: manualForm.status,
-          }),
+          body: JSON.stringify(billPayload),
         },
         'Failed to save manual bill.'
       );
@@ -808,7 +830,7 @@ const GenerateBills: React.FC = () => {
             />
             <FormInput
               label="Excess"
-              value={waterRate && readingValues.hasPrevious && readingValues.hasCurrent && !readingValues.readingError ? String(Math.max(0, readingValues.consumption - Number(waterRate.minimum_cubic || 0))) : ''}
+              value={selectedManualRate && readingValues.hasPrevious && readingValues.hasCurrent && !readingValues.readingError ? String(Math.max(0, readingValues.consumption - Number(selectedManualRate.minimum_cubic || 0))) : ''}
               onChange={() => {}}
               placeholder="Auto-computed"
               disabled
@@ -889,11 +911,11 @@ const GenerateBills: React.FC = () => {
             <div>
               <h4>Bill Summary</h4>
               <p><strong>Consumption:</strong> {readingValues.hasPrevious && readingValues.hasCurrent && !readingValues.readingError ? `${readingValues.consumption} m3` : 'N/A'}</p>
-              <p><strong>Excess:</strong> {waterRate && readingValues.hasPrevious && readingValues.hasCurrent && !readingValues.readingError ? `${Math.max(0, readingValues.consumption - Number(waterRate.minimum_cubic || 0))} m3` : 'N/A'}</p>
+              <p><strong>Excess:</strong> {selectedManualRate && readingValues.hasPrevious && readingValues.hasCurrent && !readingValues.readingError ? `${Math.max(0, readingValues.consumption - Number(selectedManualRate.minimum_cubic || 0))} m3` : 'N/A'}</p>
               <p><strong>Computed Charge:</strong> {formatCurrency(manualBillSummary.computedCurrentCharge)}</p>
               <p><strong>Applied Current Charge:</strong> {formatCurrency(manualBillSummary.currentCharge)}</p>
-              {waterRate && (
-                <p><strong>Rate Basis:</strong> {Number(waterRate.minimum_cubic || 0)} m3 minimum / {formatCurrency(Number(waterRate.minimum_rate || 0))} + {formatCurrency(Number(waterRate.excess_rate_per_cubic || 0))} per excess m3</p>
+              {selectedManualRate && (
+                <p><strong>Rate Basis:</strong> {selectedManualConsumer?.Classification_Name || selectedManualRate.classification_name || 'Selected classification'}: {Number(selectedManualRate.minimum_cubic || 0)} m3 minimum / {formatCurrency(Number(selectedManualRate.minimum_rate || 0))} + {formatCurrency(Number(selectedManualRate.excess_rate_per_cubic || 0))} per excess m3</p>
               )}
               <p><strong>Subtotal Before Penalty:</strong> {formatCurrency(manualBillSummary.subtotalBeforePenalty)}</p>
               <p><strong>Computed Late Penalty:</strong> {formatCurrency(manualBillSummary.computedPenalty)} ({manualBillSummary.lateFeePercent}%)</p>

@@ -456,6 +456,9 @@ const ConsumerMain: React.FC = () => {
   const accountNumber = consumer?.Account_Number ?? consumer?.account_number ?? 'Pending';
   const serviceStatus = consumer?.Status ?? consumer?.status ?? 'Unknown';
   const accountStatus = consumer?.Account_Status ?? consumer?.account_status ?? 'Unknown';
+  const accountApprovalPending = normalizeStatus(accountStatus) === 'pending';
+  const ticketApprovalPending = normalizeStatus(ticket?.Status) === 'pending';
+  const showApprovalPendingMessage = accountApprovalPending || ticketApprovalPending;
   const dueDate = currentBill?.Due_Date ? formatDate(currentBill.Due_Date) : 'No due date';
   const profileImage = consumer?.Profile_Picture_URL ?? consumer?.profile_picture_url ?? user?.profile_picture_url ?? null;
   const serviceAddress = (
@@ -647,6 +650,11 @@ const ConsumerMain: React.FC = () => {
                 {ticket.Approved_Date && <span><strong>Approved:</strong> {formatDate(ticket.Approved_Date)}</span>}
                 {ticket.Connection_Type && <span><strong>Type:</strong> {ticket.Connection_Type}</span>}
               </div>
+              {showApprovalPendingMessage && (
+                <p className="cm-application-banner-message">
+                  Your account is waiting for approval. You can still access your dashboard while the office reviews your application.
+                </p>
+              )}
               {ticket.Remarks && (
                 <p className="cm-application-banner-remarks"><i className="fas fa-comment-alt" /> {ticket.Remarks}</p>
               )}

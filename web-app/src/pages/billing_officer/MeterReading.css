@@ -26,6 +26,23 @@
   border: 1px solid #f1f5f9;
 }
 
+.section-intro {
+  margin-bottom: 25px;
+}
+
+.section-intro-title {
+  margin: 0;
+  color: #1B1B63;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.section-intro-copy {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
 .calendar-header {
   display: flex;
   justify-content: space-between;
@@ -86,6 +103,9 @@
   flex-direction: column;
   justify-content: space-between;
   border: 1px solid transparent;
+  width: 100%;
+  text-align: left;
+  font: inherit;
 }
 
 .day:hover:not(.empty) {
@@ -215,23 +235,46 @@
   font-size: 14px;
 }
 
-.label {
+.schedule-label {
   color: #94a3b8;
   font-weight: 600;
 }
 
-.value {
+.schedule-value {
   color: #1e293b;
   font-weight: 800;
+  text-align: right;
 }
 
 .status-scheduled {
+  display: inline-flex;
+  align-items: center;
   color: #059669;
   background: #ecfdf5;
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 800;
+}
+
+.status-cancelled,
+.status-default {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status-cancelled {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.status-default {
+  color: #475569;
+  background: #f1f5f9;
 }
 
 .calendar-legend {
@@ -250,6 +293,10 @@
   .side-panel {
     width: 100%;
     position: static;
+  }
+
+  .schedule-actions {
+    flex-direction: column;
   }
 }
 
@@ -272,6 +319,7 @@
   border: 2px solid transparent;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
+  font: inherit;
 }
 
 .zone-pill:hover {
@@ -292,4 +340,37 @@
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 16px;
+  margin-bottom: 15px;
+}
+
+.existing-schedules-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.new-schedule-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.new-schedule-form-spaced {
+  margin-top: 30px;
+}
+
+.panel-section-title {
+  margin: 0 0 15px;
+  color: #1B1B63;
+  font-size: 14px;
+  font-weight: 700;
 }

@@ -570,19 +570,89 @@ const loadApplicationsFromSupabase = async () => {
     .sort((left, right) => toDateTime(right.Application_Date) - toDateTime(left.Application_Date));
 };
 
-const loadLatestWaterRateFromSupabase = async () => {
-  const { data, error } = await supabase!
-    .from('waterrates')
-    .select('*')
-    .order('effective_date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+const loadWaterRatesFromSupabase = async (options: {
+  classificationId?: number | string | null;
+  latestOnly?: boolean;
+  activeOnly?: boolean;
+  effectiveOn?: string;
+} = {}) => {
+  const {
+    classificationId,
+    latestOnly = false,
+    activeOnly = true,
+    effectiveOn = new Date().toISOString(),
+  } = options;
 
-  if (error) {
-    throw error;
+  let ratesQuery = supabase!
+    .from('waterrates')
+    .select('rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date')
+    .order('effective_date', { ascending: false })
+    .order('rate_id', { ascending: false });
+
+  if (classificationId) {
+    ratesQuery = ratesQuery.eq('classification_id', Number(classificationId));
   }
 
-  return data || null;
+  if (activeOnly) {
+    ratesQuery = ratesQuery.lte('effective_date', effectiveOn);
+  }
+
+  const [{ data: rates, error: rateError }, { data: classifications, error: classificationError }] = await Promise.all([
+    ratesQuery,
+    supabase!.from('classification').select('classification_id, classification_name'),
+  ]);
+
+  if (rateError) throw rateError;
+  if (classificationError) throw classificationError;
+
+  const classificationMap = new Map((classifications || []).map((row) => [row.classification_id, row.classification_name]));
+  const mappedRates = (rates || [])
+    .filter((row) => row.classification_id)
+    .map((row) => ({
+      ...row,
+      classification_name: classificationMap.get(row.classification_id) || null,
+    }))
+    .filter((row) => row.classification_name);
+
+  if (!latestOnly) {
+    return mappedRates.sort((left, right) =>
+      String(left.classification_name || '').localeCompare(String(right.classification_name || '')) ||
+      toDateTime(right.effective_date) - toDateTime(left.effective_date) ||
+      Number(right.rate_id || 0) - Number(left.rate_id || 0)
+    );
+  }
+
+  const latestRateMap = new Map<number, any>();
+  for (const row of mappedRates) {
+    if (!latestRateMap.has(row.classification_id)) {
+      latestRateMap.set(row.classification_id, row);
+    }
+  }
+
+  return Array.from(latestRateMap.values()).sort((left, right) =>
+    String(left.classification_name || '').localeCompare(String(right.classification_name || ''))
+  );
+};
+
+const loadLatestWaterRateFromSupabase = async (classificationId?: number | string | null) => {
+  if (classificationId) {
+    const rates = await loadWaterRatesFromSupabase({
+      classificationId,
+      latestOnly: true,
+      activeOnly: true,
+    });
+    return rates[0] || null;
+  }
+
+  const rates = await loadWaterRatesFromSupabase({
+    latestOnly: false,
+    activeOnly: true,
+  });
+
+  return rates
+    .slice()
+    .sort((left, right) => toDateTime(right.effective_date) - toDateTime(left.effective_date))
+    [0] || null;
 };
 
 const buildAccountLookupFallback = async (query: string) => {
@@ -985,12 +1055,42 @@ export const loadPendingApplicationsWithFallback = async () => requestWithSupaba
   'dataset.pendingApplications'
 );
 
-export const loadLatestWaterRateWithFallback = async () => requestWithSupabaseFallback(
-  '/water-rates/latest',
-  loadLatestWaterRateFromSupabase,
+export const loadWaterRatesWithFallback = async (options: {
+  classificationId?: number | string | null;
+  latestOnly?: boolean;
+  activeOnly?: boolean;
+  effectiveOn?: string;
+} = {}) => {
+  const query = new URLSearchParams();
+  if (options.classificationId) {
+    query.set('classification_id', String(options.classificationId));
+  }
+  if (options.latestOnly !== undefined) {
+    query.set('latest_only', String(options.latestOnly));
+  }
+  if (options.activeOnly !== undefined) {
+    query.set('active_only', String(options.activeOnly));
+  }
+  if (options.effectiveOn) {
+    query.set('effective_on', options.effectiveOn);
+  }
+
+  const path = `/water-rates${query.toString() ? `?${query.toString()}` : ''}`;
+  return requestWithSupabaseFallback(
+    path,
+    async () => loadWaterRatesFromSupabase(options),
+    (payload) => payload?.data || [],
+    'Failed to load water rates.',
+    `dataset.waterRates.${options.classificationId || 'all'}.${options.latestOnly ? 'latest' : 'full'}.${options.activeOnly === false ? 'any' : 'active'}`
+  );
+};
+
+export const loadLatestWaterRateWithFallback = async (classificationId?: number | string | null) => requestWithSupabaseFallback(
+  `/water-rates/latest${classificationId ? `?classification_id=${encodeURIComponent(String(classificationId))}` : ''}`,
+  async () => loadLatestWaterRateFromSupabase(classificationId),
   (payload) => payload?.data || null,
   'Failed to load the latest water rate.',
-  'dataset.latestWaterRate'
+  `dataset.latestWaterRate.${classificationId || 'all'}`
 );
 
 export const loadAdminSettingsWithFallback = async () => requestWithSupabaseFallback(

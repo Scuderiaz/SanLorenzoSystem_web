@@ -18,6 +18,17 @@ interface Schedule {
 const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
   zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
 
+const scheduleStatusClassName = (status?: string) => {
+  const normalizedStatus = String(status || 'Scheduled').trim().toLowerCase();
+  if (normalizedStatus === 'scheduled') {
+    return 'status-scheduled';
+  }
+  if (normalizedStatus === 'cancelled') {
+    return 'status-cancelled';
+  }
+  return 'status-default';
+};
+
 const MeterReading: React.FC = () => {
   const { showToast } = useToast();
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -106,14 +117,14 @@ const MeterReading: React.FC = () => {
   const handleSelectDate = (dateKey: string) => {
     setSelectedDate(dateKey);
     setShowPanel(true);
-    const schedule = getScheduleForDate(dateKey);
-    if (schedule) {
-      setSelectedZone(schedule.Zone_ID.toString());
-      setSelectedReader(schedule.Meter_Reader_ID?.toString() || '');
-    } else {
-      setSelectedZone('');
-      setSelectedReader('');
-    }
+    setSelectedZones([]);
+    setSelectedReader('');
+  };
+
+  const toggleZoneSelection = (zoneId: string) => {
+    setSelectedZones((prev) => 
+      prev.includes(zoneId) ? prev.filter(id => id !== zoneId) : [...prev, zoneId]
+    );
   };
 
   const handleSaveSchedule = async () => {
@@ -201,8 +212,8 @@ const MeterReading: React.FC = () => {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateKey = formatDateKey(currentYear, currentMonth, day);
-      const schedule = getScheduleForDate(dateKey);
-      const isScheduled = !!schedule;
+      const daySchedules = getSchedulesForDate(dateKey);
+      const isScheduled = daySchedules.length > 0;
       const isSelected = selectedDate === dateKey;
       const isToday = dateKey === today;
 
@@ -212,30 +223,35 @@ const MeterReading: React.FC = () => {
       if (isToday) classes += ' today';
 
       days.push(
-        <div key={dateKey} className={classes} onClick={() => handleSelectDate(dateKey)}>
+        <button
+          key={dateKey}
+          type="button"
+          className={classes}
+          onClick={() => handleSelectDate(dateKey)}
+          aria-pressed={isSelected}
+          aria-label={`${formatDateDisplay(dateKey)}${isScheduled ? `, ${daySchedules.length} scheduled zone${daySchedules.length > 1 ? 's' : ''}` : ''}`}
+        >
           <span className="day-number">{day}</span>
           {isScheduled && (
             <div className="day-info">
-              <span className="day-zone">{formatZoneLabel(schedule.Zone_Name, schedule.Zone_ID)}</span>
-              <span className="day-reader">
-                {schedule.Meter_Reader_Name?.split(' ')[0] || 'Unassigned'}
-              </span>
+              <span className="day-zone">{daySchedules.length} Zone{daySchedules.length > 1 ? 's' : ''}</span>
+              <span className="day-reader">Scheduled</span>
             </div>
           )}
-        </div>
+        </button>
       );
     }
 
     return (
       <>
         <div className="calendar-header">
-          <button className="nav-btn" onClick={handlePrevMonth}>
+          <button type="button" className="nav-btn" onClick={handlePrevMonth} aria-label="Go to previous month">
             <i className="fas fa-chevron-left"></i>
           </button>
           <h2>
             {monthNames[currentMonth]} {currentYear}
           </h2>
-          <button className="nav-btn" onClick={handleNextMonth}>
+          <button type="button" className="nav-btn" onClick={handleNextMonth} aria-label="Go to next month">
             <i className="fas fa-chevron-right"></i>
           </button>
         </div>
@@ -274,9 +290,9 @@ const MeterReading: React.FC = () => {
         <div className="scheduler-container">
           {/* Main Visual Calendar */}
           <div className="calendar-section">
-            <div className="section-intro" style={{ marginBottom: '25px' }}>
-                <h3 style={{ color: '#1B1B63', fontSize: '18px', fontWeight: '800' }}>Active Operations Calendar</h3>
-                <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Select an operational date to assign reading zones and field personnel.</p>
+            <div className="section-intro">
+                <h3 className="section-intro-title">Active Operations Calendar</h3>
+                <p className="section-intro-copy">Select an operational date to assign reading zones and field personnel.</p>
             </div>
             {renderCalendar()}
           </div>
@@ -292,41 +308,41 @@ const MeterReading: React.FC = () => {
               <div className="panel-content">
                 <div className="panel-header">
                   <h3>{selectedDate && formatDateDisplay(selectedDate)}</h3>
-                  <button className="close-panel-btn" onClick={() => setShowPanel(false)}>
+                  <button type="button" className="close-panel-btn" onClick={() => setShowPanel(false)}>
                     <i className="fas fa-times"></i>
                   </button>
                 </div>
 
                 {currentSchedules.length > 0 && (
                   <div className="existing-schedules-list">
-                    <h4 style={{ marginBottom: '15px', color: '#1B1B63', fontSize: '14px', fontWeight: 'bold' }}>Existing Assignments</h4>
+                    <h4 className="panel-section-title">Existing Assignments</h4>
                     {currentSchedules.map((schedule) => (
-                      <div key={schedule.Schedule_ID} className="existing-schedule" style={{ marginBottom: '15px' }}>
+                      <div key={schedule.Schedule_ID} className="existing-schedule">
                         <div className="schedule-info">
                           <div className="info-row">
-                            <span className="label">Zone:</span>
-                            <span className="value">{formatZoneLabel(schedule.Zone_Name, schedule.Zone_ID)}</span>
+                            <span className="schedule-label">Zone:</span>
+                            <span className="schedule-value">{formatZoneLabel(schedule.Zone_Name, schedule.Zone_ID)}</span>
                           </div>
                           <div className="info-row">
-                            <span className="label">Meter Reader:</span>
-                            <span className="value">
+                            <span className="schedule-label">Meter Reader:</span>
+                            <span className="schedule-value">
                               {schedule.Meter_Reader_Name || 'Unassigned'}
                             </span>
                           </div>
                           <div className="info-row">
-                            <span className="label">Status:</span>
-                            <span className={`status-${schedule.Status?.toLowerCase()}`}>
+                            <span className="schedule-label">Status:</span>
+                            <span className={scheduleStatusClassName(schedule.Status)}>
                               {schedule.Status || 'Scheduled'}
                             </span>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                        <div className="schedule-actions">
                           {schedule.Status !== 'Cancelled' && (
-                            <button className="btn btn-warning btn-block" style={{ flex: 1, marginTop: 0 }} onClick={() => handleCancelSchedule(schedule.Schedule_ID!)}>
+                            <button type="button" className="btn btn-warning btn-block" style={{ flex: 1, marginTop: 0 }} onClick={() => handleCancelSchedule(schedule.Schedule_ID!)}>
                               <i className="fas fa-times-circle"></i> Cancel
                             </button>
                           )}
-                          <button className="btn btn-danger btn-block" style={{ flex: 1, marginTop: 0 }} onClick={() => handleDeleteSchedule(schedule.Schedule_ID!)}>
+                          <button type="button" className="btn btn-danger btn-block" style={{ flex: 1, marginTop: 0 }} onClick={() => handleDeleteSchedule(schedule.Schedule_ID!)}>
                             <i className="fas fa-trash"></i> Delete
                           </button>
                         </div>
@@ -335,18 +351,20 @@ const MeterReading: React.FC = () => {
                   </div>
                 )}
 
-                <div className="new-schedule-form" style={{ marginTop: currentSchedules.length > 0 ? '30px' : '0' }}>
-                  <h4 style={{ marginBottom: '15px', color: '#1B1B63', fontSize: '14px', fontWeight: 'bold' }}>Assign Zones</h4>
+                <div className={`new-schedule-form ${currentSchedules.length > 0 ? 'new-schedule-form-spaced' : ''}`}>
+                  <h4 className="panel-section-title">Assign Zones</h4>
                   
                   <div className="zone-selection-grid">
                     {zoneOptions.map(z => (
-                      <div 
+                      <button
                         key={z.value} 
+                        type="button"
                         className={`zone-pill ${selectedZones.includes(z.value.toString()) ? 'active' : ''}`}
                         onClick={() => toggleZoneSelection(z.value.toString())}
+                        aria-pressed={selectedZones.includes(z.value.toString())}
                       >
                         {z.label}
-                      </div>
+                      </button>
                     ))}
                   </div>
 
@@ -357,7 +375,7 @@ const MeterReading: React.FC = () => {
                     options={readerOptions}
                     placeholder="Select Meter Reader"
                   />
-                  <button className="btn btn-primary btn-block" onClick={handleSaveSchedule} style={{ marginTop: '20px' }}>
+                  <button type="button" className="btn btn-primary btn-block" onClick={handleSaveSchedule} style={{ marginTop: '20px' }}>
                     <i className="fas fa-save"></i> Save Assignments
                   </button>
                 </div>
