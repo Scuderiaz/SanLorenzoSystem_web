@@ -29,6 +29,7 @@ import LandingPage from './pages/landing/LandingPage';
 import ConsumerMain from './pages/consumer/ConsumerMain';
 import ConsumerProfile from './pages/consumer/ConsumerProfile';
 import './App.css';
+import PipelineMap from './pages/assessor_admin/PipelineMap';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -93,6 +94,7 @@ const AppContent: React.FC = () => {
 
   return (
     <Routes>
+      <Route path="/pipeline-map" element={<ProtectedRoute><PipelineMap /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/signup" element={<SignUp />} />
