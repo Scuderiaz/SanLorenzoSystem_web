@@ -5219,6 +5219,7 @@ app.post('/api/zone-coverage-config', async (req, res) => {
         };
       }
     );
+    scheduleImmediateSync('zone-coverage-config-upsert');
     return res.json({ success: true, data: row });
   } catch (error) {
     await logRequestError(req, 'zoneCoverageConfig.upsert', error);
@@ -5240,6 +5241,7 @@ app.delete('/api/zone-coverage-config/:id', async (req, res) => {
         if (error && error.code !== '42P01') throw error;
       }
     );
+    scheduleImmediateSync('zone-coverage-config-delete');
     return res.json({ success: true });
   } catch (error) {
     await logRequestError(req, 'zoneCoverageConfig.delete', error);
@@ -9375,6 +9377,7 @@ app.post('/api/reading-schedules', async (req, res) => {
         return { Schedule_ID: data.schedule_id };
       }
     );
+    scheduleImmediateSync('reading-schedules-create');
     return res.json({ success: true, ...row });
   } catch (error) {
     await logRequestError(req, 'readingSchedules.create', error);
@@ -9446,6 +9449,7 @@ app.post('/api/reading-schedules/bulk-upsert', async (req, res) => {
         return (data || []).map((row) => ({ Schedule_ID: row.schedule_id }));
       }
     );
+    scheduleImmediateSync('reading-schedules-bulk-upsert');
     return res.json({ success: true, data: rows });
   } catch (error) {
     await logRequestError(req, 'readingSchedules.bulkUpsert', error);
@@ -9470,6 +9474,7 @@ app.delete('/api/reading-schedules/:id', async (req, res) => {
         if (error && error.code !== '42P01') throw error;
       }
     );
+    scheduleImmediateSync('reading-schedules-delete');
     return res.json({ success: true, message: 'Schedule deleted successfully' });
   } catch (error) {
     await logRequestError(req, 'readingSchedules.delete', error);
@@ -9495,6 +9500,7 @@ app.put('/api/reading-schedules/:id/status', async (req, res) => {
         if (error && error.code !== '42P01') throw error;
       }
     );
+    scheduleImmediateSync(`reading-schedules-status-${normalizedStatus.toLowerCase()}`);
     return res.json({ success: true, message: 'Schedule status updated' });
   } catch (error) {
     await logRequestError(req, 'readingSchedules.updateStatus', error);

@@ -34,11 +34,19 @@
 .modal-portrait { max-width: 900px; }
 
 .modal-header {
-  padding: 28px 36px;
+  padding: 20px 30px 16px;
   border-bottom: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 850;
+  color: #102347;
+  letter-spacing: 0.01em;
 }
 
 .modal-title {
@@ -64,8 +72,40 @@
   color: #1B1B63;
 }
 
+/* Actual button class used by Modal.tsx */
+.close-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  border: 2px solid #1d4ed8;
+  background: #eff6ff;
+  color: #0b2a73;
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(30, 64, 175, 0.2);
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #dbeafe;
+  border-color: #1e40af;
+  color: #0b2a73;
+  box-shadow: 0 12px 22px rgba(30, 64, 175, 0.35);
+  transform: translateY(-1px);
+}
+
+.close-btn:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 2px;
+}
+
 .modal-body {
-  padding: 36px;
+  padding: 16px 30px 24px;
   overflow-y: auto;
   max-height: 72vh;
 }

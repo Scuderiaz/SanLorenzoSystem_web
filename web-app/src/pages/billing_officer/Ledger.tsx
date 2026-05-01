@@ -68,6 +68,9 @@ interface LedgerEntry {
   Last_Payment: string;
   Status: string;
   Consumer_ID: number;
+  UnpaidBills: number;
+  MaxMonthsOverdue: number;
+  IsDelinquent: boolean;
 }
 
 interface TransactionRow {
@@ -98,6 +101,18 @@ const formatDate = (value?: string) => {
 const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
   zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
 
+const getMonthsOverdue = (dateValue?: string) => {
+  if (!dateValue) return 0;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return 0;
+  const now = new Date();
+  let months = (now.getFullYear() - date.getFullYear()) * 12 + (now.getMonth() - date.getMonth());
+  if (now.getDate() < date.getDate()) {
+    months -= 1;
+  }
+  return Math.max(0, months);
+};
+
 const BillingLedger: React.FC = () => {
   const { showToast } = useToast();
 
@@ -109,6 +124,9 @@ const BillingLedger: React.FC = () => {
   const [zoneFilter, setZoneFilter] = useState('');
   const [classificationFilter, setClassificationFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [activeTab, setActiveTab] = useState<'ledger' | 'delinquents'>('ledger');
+  const [delinquentScope, setDelinquentScope] = useState<'all' | 'delinquents'>('all');
+  const [monthsOverdueFilter, setMonthsOverdueFilter] = useState('');
   const [selectedConsumer, setSelectedConsumer] = useState<LedgerEntry | null>(null);
 
   const loadLedgerData = useCallback(async () => {
@@ -153,6 +171,14 @@ const BillingLedger: React.FC = () => {
     return consumers.map((consumer) => {
       const consumerBills = bills.filter((bill) => bill.Consumer_ID === consumer.Consumer_ID);
       const consumerPayments = paymentMap.get(consumer.Consumer_ID) || [];
+      const unpaidBills = consumerBills.filter((bill) => {
+        const normalized = String(bill.Status || '').trim().toLowerCase();
+        return normalized !== 'paid';
+      });
+      const maxMonthsOverdue = unpaidBills.reduce((max, bill) => {
+        const sourceDate = bill.Due_Date || bill.Billing_Month || bill.Bill_Date;
+        return Math.max(max, getMonthsOverdue(sourceDate));
+      }, 0);
       const currentBalance = consumerBills
         .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
         .reduce((sum, bill) => sum + toAmount(bill.Total_Amount), 0);
@@ -174,6 +200,9 @@ const BillingLedger: React.FC = () => {
         Last_Payment: lastPayment,
         Status: consumer.Status,
         Consumer_ID: consumer.Consumer_ID,
+        UnpaidBills: unpaidBills.length,
+        MaxMonthsOverdue: maxMonthsOverdue,
+        IsDelinquent: unpaidBills.length >= 3,
       };
     });
   }, [bills, consumers, payments]);
@@ -187,9 +216,19 @@ const BillingLedger: React.FC = () => {
       const matchesZone = !zoneFilter || entry.Zone === zoneFilter;
       const matchesClassification = !classificationFilter || entry.Classification === classificationFilter;
       const matchesStatus = !statusFilter || entry.Status === statusFilter;
-      return matchesSearch && matchesZone && matchesClassification && matchesStatus;
+      const matchesTab = activeTab === 'ledger' || entry.UnpaidBills > 0;
+      const matchesDelinquentScope = delinquentScope === 'all' || entry.IsDelinquent;
+      const monthsThreshold = Number(monthsOverdueFilter || 0);
+      const matchesMonthsOverdue = !monthsThreshold || entry.MaxMonthsOverdue >= monthsThreshold;
+      return matchesSearch &&
+        matchesZone &&
+        matchesClassification &&
+        matchesStatus &&
+        matchesTab &&
+        matchesDelinquentScope &&
+        matchesMonthsOverdue;
     });
-  }, [classificationFilter, ledgerData, searchTerm, statusFilter, zoneFilter]);
+  }, [activeTab, classificationFilter, delinquentScope, ledgerData, monthsOverdueFilter, searchTerm, statusFilter, zoneFilter]);
 
   const zoneOptions = useMemo(
     () => Array.from(new Set(ledgerData.map((entry) => entry.Zone).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
@@ -269,6 +308,18 @@ const BillingLedger: React.FC = () => {
       sortable: true,
       render: (value: string) => formatDate(value),
     },
+    ...(activeTab === 'delinquents' ? [
+      {
+        key: 'UnpaidBills',
+        label: 'Unpaid Bills',
+        sortable: true,
+      },
+      {
+        key: 'MaxMonthsOverdue',
+        label: 'Months Overdue',
+        sortable: true,
+      },
+    ] : []),
     {
       key: 'actions',
       label: 'Ledger',
@@ -283,6 +334,24 @@ const BillingLedger: React.FC = () => {
   return (
     <MainLayout title="Account Ledger">
       <div className="ledger-page">
+        <div className="ledger-tabs">
+          <button
+            className={`ledger-tab-btn ${activeTab === 'ledger' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('ledger');
+              setDelinquentScope('all');
+              setMonthsOverdueFilter('');
+            }}
+          >
+            Ledger
+          </button>
+          <button
+            className={`ledger-tab-btn ${activeTab === 'delinquents' ? 'active' : ''}`}
+            onClick={() => setActiveTab('delinquents')}
+          >
+            Delinquents
+          </button>
+        </div>
         <div className="registry-control-hub card shadow-sm border-0 mb-4" style={{ borderRadius: '20px' }}>
           <div className="card-body p-4">
             <div className="hub-layout">
@@ -314,6 +383,32 @@ const BillingLedger: React.FC = () => {
                     <option value="">All Statuses</option>
                     {statusOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                   </select>
+                  {activeTab === 'delinquents' ? (
+                    <>
+                      <select
+                        className="form-control"
+                        style={{ minWidth: '190px' }}
+                        value={delinquentScope}
+                        onChange={(e) => setDelinquentScope(e.target.value as 'all' | 'delinquents')}
+                      >
+                        <option value="all">All Unpaid Accounts</option>
+                        <option value="delinquents">Delinquents (3+ Unpaid)</option>
+                      </select>
+                      <select
+                        className="form-control"
+                        style={{ minWidth: '190px' }}
+                        value={monthsOverdueFilter}
+                        onChange={(e) => setMonthsOverdueFilter(e.target.value)}
+                      >
+                        <option value="">All Months Overdue</option>
+                        <option value="1">1+ Month</option>
+                        <option value="2">2+ Months</option>
+                        <option value="3">3+ Months</option>
+                        <option value="6">6+ Months</option>
+                        <option value="12">12+ Months</option>
+                      </select>
+                    </>
+                  ) : null}
                 </div>
                 <button className="btn-sync-registry" onClick={loadLedgerData} title="Refresh Registry">
                   <i className="fas fa-sync-alt"></i>
@@ -325,7 +420,9 @@ const BillingLedger: React.FC = () => {
 
         <div className="card shadow-sm border-0" style={{ borderRadius: '24px', overflow: 'hidden' }}>
           <div className="card-header bg-white py-4 border-light">
-            <h2 className="card-title" style={{ fontSize: '18px', fontWeight: '800', color: '#1B1B63' }}>Consumer Account Ledger</h2>
+            <h2 className="card-title" style={{ fontSize: '18px', fontWeight: '800', color: '#1B1B63' }}>
+              {activeTab === 'delinquents' ? 'Delinquent Accounts Overview' : 'Consumer Account Ledger'}
+            </h2>
           </div>
           <div className="card-body p-0">
             <div style={{ padding: '24px' }}>

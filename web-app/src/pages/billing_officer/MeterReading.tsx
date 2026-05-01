@@ -54,8 +54,6 @@ interface ZoneCoverage {
   splitBarangays: string[];
 }
 
-type ScheduleModalMode = 'overview' | 'assign';
-
 interface ZoneCoverageConfigRow {
   Config_ID: number;
   Zone_ID: number;
@@ -90,7 +88,20 @@ const formatDateDisplay = (dateStr: string) => {
 };
 
 const isScheduledStatus = (status?: string | null) => normalizeStatus(status) !== 'cancelled';
-const BARANGAY_PREVIEW_LIMIT = 3;
+const HOLIDAYS_MM_DD = new Set([
+  '01-01', // New Year
+  '04-09', // Araw ng Kagitingan
+  '05-01', // Labor Day
+  '06-12', // Independence Day
+  '08-21', // Ninoy Aquino Day
+  '08-26', // National Heroes Day (observed placeholder)
+  '11-01', // All Saints' Day
+  '11-30', // Bonifacio Day
+  '12-08', // Immaculate Conception
+  '12-25', // Christmas Day
+  '12-30', // Rizal Day
+  '12-31', // New Year's Eve
+]);
 
 const scheduleStatusClassName = (status?: string) => {
   const normalizedStatus = normalizeStatus(status || 'Scheduled');
@@ -98,6 +109,11 @@ const scheduleStatusClassName = (status?: string) => {
     return 'status-cancelled';
   }
   return 'status-scheduled';
+};
+const getInitials = (name?: string | null) => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'MR';
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('');
 };
 
 const MeterReading: React.FC = () => {
@@ -110,9 +126,9 @@ const MeterReading: React.FC = () => {
   const [consumers, setConsumers] = useState<ConsumerRow[]>([]);
   const [meterReaders, setMeterReaders] = useState<MeterReader[]>([]);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<ScheduleModalMode>('overview');
   const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
-  const [selectedReaderIds, setSelectedReaderIds] = useState<string[]>([]);
+  const [newAssignmentReaderId, setNewAssignmentReaderId] = useState('');
+  const [selectedReaderId, setSelectedReaderId] = useState('');
   const [draftAssignments, setDraftAssignments] = useState<Record<number, string>>({});
   const [assignmentSaving, setAssignmentSaving] = useState(false);
   const [isAddReaderModalOpen, setIsAddReaderModalOpen] = useState(false);
@@ -132,6 +148,14 @@ const MeterReading: React.FC = () => {
     contactNumber: '',
     password: '',
   });
+
+  const toggleReaderSelection = (readerId: string) => {
+    setSelectedReaderId((current) => {
+      const next = current === readerId ? '' : readerId;
+      setNewAssignmentReaderId(next);
+      return next;
+    });
+  };
 
   const loadSchedules = useCallback(async () => {
     try {
@@ -355,18 +379,29 @@ const MeterReading: React.FC = () => {
     rows.filter((schedule) => schedule.Schedule_Date === dateKey)
   ), [schedules]);
 
+  const isMonthFullyAssigned = useCallback((dateKey: string, rows: Schedule[] = schedules) => {
+    const targetDate = new Date(`${dateKey}T00:00:00`);
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth();
+
+    const assignedZoneIds = new Set<number>();
+    rows.forEach((schedule) => {
+      if (!isScheduledStatus(schedule.Status)) return;
+      const scheduleDate = new Date(`${schedule.Schedule_Date}T00:00:00`);
+      if (scheduleDate.getFullYear() === year && scheduleDate.getMonth() === month) {
+        assignedZoneIds.add(schedule.Zone_ID);
+      }
+    });
+
+    const zoneIds = zones.map((zone) => zone.Zone_ID).filter((zoneId) => zoneId > 0);
+    if (zoneIds.length === 0) return false;
+    return zoneIds.every((zoneId) => assignedZoneIds.has(zoneId));
+  }, [schedules, zones]);
+
   const syncModalStateForDate = useCallback((dateKey: string, rows: Schedule[]) => {
     const dateSchedules = rows.filter((schedule) => schedule.Schedule_Date === dateKey);
     const activeDateSchedules = dateSchedules.filter((schedule) => isScheduledStatus(schedule.Status));
     const zoneIds = Array.from(new Set(activeDateSchedules.map((schedule) => String(schedule.Zone_ID))));
-    const readerIds = Array.from(
-      new Set(
-        activeDateSchedules
-          .map((schedule) => String(schedule.Meter_Reader_ID || ''))
-          .filter(Boolean)
-      )
-    );
-
     const nextDraftAssignments = activeDateSchedules.reduce<Record<number, string>>((accumulator, schedule) => {
       accumulator[schedule.Zone_ID] = schedule.Meter_Reader_ID ? String(schedule.Meter_Reader_ID) : '';
       return accumulator;
@@ -374,15 +409,18 @@ const MeterReading: React.FC = () => {
 
     setSelectedDate(dateKey);
     setSelectedZoneIds(zoneIds);
-    setSelectedReaderIds(readerIds);
     setDraftAssignments(nextDraftAssignments);
-    setModalMode(dateSchedules.length > 0 ? 'overview' : 'assign');
   }, []);
 
   const openDateModal = useCallback((dateKey: string) => {
+    const hasSchedulesForDate = getSchedulesForDate(dateKey).length > 0;
+    if (!hasSchedulesForDate && isMonthFullyAssigned(dateKey)) {
+      showToast('All zones are already assigned for reading this month.', 'warning');
+      return;
+    }
     syncModalStateForDate(dateKey, schedules);
     setIsScheduleModalOpen(true);
-  }, [schedules, syncModalStateForDate]);
+  }, [getSchedulesForDate, isMonthFullyAssigned, schedules, showToast, syncModalStateForDate]);
 
   const closeScheduleModal = () => {
     if (assignmentSaving) {
@@ -391,9 +429,9 @@ const MeterReading: React.FC = () => {
     setIsScheduleModalOpen(false);
     setSelectedDate(null);
     setSelectedZoneIds([]);
-    setSelectedReaderIds([]);
+    setNewAssignmentReaderId('');
+    setSelectedReaderId('');
     setDraftAssignments({});
-    setModalMode('overview');
   };
 
   const handlePrevMonth = () => {
@@ -412,135 +450,6 @@ const MeterReading: React.FC = () => {
       return;
     }
     setCurrentMonth((value) => value + 1);
-  };
-
-  const toggleZoneSelection = (zoneId: string) => {
-    setSelectedZoneIds((current) => {
-      const exists = current.includes(zoneId);
-      const next = exists
-        ? current.filter((entry) => entry !== zoneId)
-        : [...current, zoneId];
-
-      if (exists) {
-        setDraftAssignments((draft) => {
-          const updated = { ...draft };
-          delete updated[Number(zoneId)];
-          return updated;
-        });
-      } else {
-        setDraftAssignments((draft) => ({
-          ...draft,
-          [Number(zoneId)]: draft[Number(zoneId)] || '',
-        }));
-      }
-
-      return next;
-    });
-  };
-
-  const toggleReaderSelection = (readerId: string) => {
-    setSelectedReaderIds((current) =>
-      current.includes(readerId)
-        ? current.filter((entry) => entry !== readerId)
-        : [...current, readerId]
-    );
-  };
-
-  const buildZoneGroups = useCallback((zoneIds: number[]) => {
-    const selectedSet = new Set(zoneIds);
-    const adjacency = new Map<number, Set<number>>();
-    zoneIds.forEach((zoneId) => adjacency.set(zoneId, new Set<number>()));
-
-    for (const [, sharedZoneIds] of zoneCoverageData.sharedBarangayMap.entries()) {
-      const participatingZones = sharedZoneIds.filter((zoneId) => selectedSet.has(zoneId));
-      if (participatingZones.length < 2) {
-        continue;
-      }
-      participatingZones.forEach((zoneId) => {
-        const adjacencySet = adjacency.get(zoneId);
-        participatingZones.forEach((peerZoneId) => {
-          if (peerZoneId !== zoneId) {
-            adjacencySet?.add(peerZoneId);
-          }
-        });
-      });
-    }
-
-    const visited = new Set<number>();
-    const groups: number[][] = [];
-
-    zoneIds.forEach((zoneId) => {
-      if (visited.has(zoneId)) {
-        return;
-      }
-
-      const queue = [zoneId];
-      const group: number[] = [];
-      visited.add(zoneId);
-
-      while (queue.length > 0) {
-        const current = queue.shift()!;
-        group.push(current);
-        (adjacency.get(current) || new Set<number>()).forEach((neighbor) => {
-          if (!visited.has(neighbor)) {
-            visited.add(neighbor);
-            queue.push(neighbor);
-          }
-        });
-      }
-
-      groups.push(group.sort((left, right) => left - right));
-    });
-
-    return groups;
-  }, [zoneCoverageData.sharedBarangayMap]);
-
-  const autoAssignReaders = () => {
-    if (selectedZoneIds.length === 0) {
-      showToast('Select at least one zone before distributing assignments.', 'error');
-      return;
-    }
-    if (selectedReaderIds.length === 0) {
-      showToast('Select at least one available meter reader for auto-distribution.', 'error');
-      return;
-    }
-
-    const numericZoneIds = selectedZoneIds.map((zoneId) => Number(zoneId));
-    const zoneGroups = buildZoneGroups(numericZoneIds)
-      .map((group) => ({
-        zoneIds: group,
-        weight: group.reduce((total, zoneId) => total + (zoneCoverageData.coverageByZone.get(zoneId)?.consumerCount || 1), 0),
-      }))
-      .sort((left, right) => right.weight - left.weight);
-
-    const readerLoads = selectedReaderIds.map((readerId) => ({
-      readerId,
-      load: 0,
-      zoneCount: 0,
-    }));
-
-    const nextAssignments: Record<number, string> = {};
-
-    zoneGroups.forEach((group) => {
-      readerLoads.sort((left, right) => {
-        if (left.load === right.load) {
-          return left.zoneCount - right.zoneCount;
-        }
-        return left.load - right.load;
-      });
-      const targetReader = readerLoads[0];
-      group.zoneIds.forEach((zoneId) => {
-        nextAssignments[zoneId] = targetReader.readerId;
-      });
-      targetReader.load += group.weight;
-      targetReader.zoneCount += group.zoneIds.length;
-    });
-
-    setDraftAssignments((current) => ({
-      ...current,
-      ...nextAssignments,
-    }));
-    showToast('Assignments distributed fairly across the selected meter readers.', 'success');
   };
 
   const currentSchedules = useMemo(
@@ -567,14 +476,7 @@ const MeterReading: React.FC = () => {
       effectiveAssignments.set(Number(zoneId), draftAssignments[Number(zoneId)] || '');
     });
 
-    const warnings: string[] = [];
     const conflicts: string[] = [];
-
-    selectedZoneIds.forEach((zoneId) => {
-      if (!draftAssignments[Number(zoneId)]) {
-        warnings.push(`${formatZoneLabel(zoneLookup.get(Number(zoneId)), zoneId)} still needs a meter reader assignment.`);
-      }
-    });
 
     zoneCoverageData.sharedBarangayMap.forEach((zoneIds, barangay) => {
       const relevantZoneIds = zoneIds.filter((zoneId) => effectiveAssignments.has(zoneId));
@@ -601,46 +503,8 @@ const MeterReading: React.FC = () => {
       }
     });
 
-    return { warnings, conflicts };
+    return { conflicts };
   }, [activeCurrentSchedules, activeMeterReaders, draftAssignments, selectedZoneIds, zoneCoverageData.sharedBarangayMap, zoneLookup]);
-
-  const assignmentSummary = useMemo(() => {
-    const grouped = new Map<string, { label: string; contact: string | null; zones: ZoneCoverage[] }>();
-
-    selectedZoneIds.forEach((zoneId) => {
-      const numericZoneId = Number(zoneId);
-      const readerId = draftAssignments[numericZoneId] || '';
-      const reader = activeMeterReaders.find((entry) => String(entry.AccountID) === readerId);
-      const summaryKey = readerId || 'unassigned';
-      const summaryLabel = reader?.Full_Name || 'Unassigned';
-      const summaryContact = reader?.Contact_Number || null;
-      if (!grouped.has(summaryKey)) {
-        grouped.set(summaryKey, {
-          label: summaryLabel,
-          contact: summaryContact,
-          zones: [],
-        });
-      }
-      grouped.get(summaryKey)?.zones.push(zoneCoverageData.coverageByZone.get(numericZoneId) || {
-        zoneId: numericZoneId,
-        zoneName: formatZoneLabel(zoneLookup.get(numericZoneId), numericZoneId),
-        consumerCount: 0,
-        barangays: [],
-        splitBarangays: [],
-      });
-    });
-
-    return Array.from(grouped.values())
-      .map((group) => ({
-        ...group,
-        zones: group.zones.sort((left, right) => left.zoneId - right.zoneId),
-      }))
-      .sort((left, right) => {
-        if (left.label === 'Unassigned') return 1;
-        if (right.label === 'Unassigned') return -1;
-        return left.label.localeCompare(right.label);
-      });
-  }, [activeMeterReaders, draftAssignments, selectedZoneIds, zoneCoverageData.coverageByZone, zoneLookup]);
 
   const handleSaveAssignments = async () => {
     if (!selectedDate) {
@@ -679,7 +543,6 @@ const MeterReading: React.FC = () => {
       showToast('Assignments saved successfully.', 'success');
       const refreshedSchedules = await loadSchedules();
       syncModalStateForDate(selectedDate, refreshedSchedules);
-      setModalMode('overview');
     } catch (error) {
       console.error('Error saving assignments:', error);
       showToast(getErrorMessage(error, 'Failed to save assignments.'), 'error');
@@ -688,22 +551,39 @@ const MeterReading: React.FC = () => {
     }
   };
 
+  const handleEditSchedule = (schedule: Schedule) => {
+    const zoneId = String(schedule.Zone_ID);
+    const readerId = String(schedule.Meter_Reader_ID || '');
+    setSelectedZoneIds((current) => (current.includes(zoneId) ? current : [...current, zoneId]));
+    if (readerId) {
+      setDraftAssignments((current) => ({
+        ...current,
+        [Number(zoneId)]: readerId,
+      }));
+    }
+  };
+
   const handleDeleteSchedule = async (scheduleId: number) => {
     if (!window.confirm('Delete this assignment permanently?')) {
       return;
     }
 
+    const targetSchedule = currentSchedules.find((schedule) => schedule.Schedule_ID === scheduleId);
+    const targetZoneLabel = targetSchedule
+      ? formatZoneLabel(targetSchedule.Zone_Name, targetSchedule.Zone_ID)
+      : 'the selected zone';
+
     setAssignmentSaving(true);
     try {
       await requestJson(`/reading-schedules/${scheduleId}`, { method: 'DELETE' });
-      showToast('Assignment deleted successfully.', 'success');
+      showToast(`Assignment removed for ${targetZoneLabel}.`, 'success');
       const refreshedSchedules = await loadSchedules();
       if (selectedDate) {
         syncModalStateForDate(selectedDate, refreshedSchedules);
       }
     } catch (error) {
       console.error('Error deleting schedule:', error);
-      showToast(getErrorMessage(error, 'Failed to delete assignment.'), 'error');
+      showToast(getErrorMessage(error, `Failed to remove assignment for ${targetZoneLabel}.`), 'error');
     } finally {
       setAssignmentSaving(false);
     }
@@ -714,20 +594,25 @@ const MeterReading: React.FC = () => {
       return;
     }
 
+    const targetSchedule = currentSchedules.find((schedule) => schedule.Schedule_ID === scheduleId);
+    const targetZoneLabel = targetSchedule
+      ? formatZoneLabel(targetSchedule.Zone_Name, targetSchedule.Zone_ID)
+      : 'the selected zone';
+
     setAssignmentSaving(true);
     try {
       await requestJson(`/reading-schedules/${scheduleId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status: 'Cancelled' }),
       });
-      showToast('Assignment cancelled successfully.', 'success');
+      showToast(`Assignment cancelled for ${targetZoneLabel}.`, 'success');
       const refreshedSchedules = await loadSchedules();
       if (selectedDate) {
         syncModalStateForDate(selectedDate, refreshedSchedules);
       }
     } catch (error) {
       console.error('Error cancelling schedule:', error);
-      showToast(getErrorMessage(error, 'Failed to cancel assignment.'), 'error');
+      showToast(getErrorMessage(error, `Failed to cancel assignment for ${targetZoneLabel}.`), 'error');
     } finally {
       setAssignmentSaving(false);
     }
@@ -751,7 +636,7 @@ const MeterReading: React.FC = () => {
           body: JSON.stringify({ status: 'Cancelled' }),
         })
       ));
-      showToast('All active assignments were cancelled.', 'success');
+      showToast(`${activeSchedules.length} assignment${activeSchedules.length === 1 ? '' : 's'} cancelled for this date.`, 'success');
       const refreshedSchedules = await loadSchedules();
       if (selectedDate) {
         syncModalStateForDate(selectedDate, refreshedSchedules);
@@ -814,17 +699,19 @@ const MeterReading: React.FC = () => {
       'July', 'August', 'September', 'October', 'November', 'December',
     ];
 
-    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
     const today = formatDateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
     const dayCells: React.ReactNode[] = [];
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    for (let index = 0; index < firstDay; index += 1) {
-      dayCells.push(<div key={`empty-${index}`} className="day empty"></div>);
-    }
-
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const dateKey = formatDateKey(currentYear, currentMonth, day);
+    const buildDayCell = (year: number, month: number, day: number, isOutsideMonth: boolean) => {
+      const weekday = new Date(year, month, day).getDay();
+      const isSaturday = weekday === 6;
+      const isSunday = weekday === 0;
+      const dateKey = formatDateKey(year, month, day);
+      const mmdd = `${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isHoliday = HOLIDAYS_MM_DD.has(mmdd);
       const daySchedules = getSchedulesForDate(dateKey);
       const activeDaySchedules = daySchedules.filter((schedule) => isScheduledStatus(schedule.Status));
       const scheduledReaderCount = new Set(
@@ -843,16 +730,20 @@ const MeterReading: React.FC = () => {
         hasCancelledAssignments ? 'cancelled' : '',
         isSelected ? 'selected' : '',
         isToday ? 'today' : '',
+        isSaturday ? 'weekend-sat' : '',
+        isSunday ? 'weekend-sun' : '',
+        isHoliday ? 'holiday' : '',
+        isOutsideMonth ? 'outside-month' : '',
       ].filter(Boolean).join(' ');
 
-      dayCells.push(
+      return (
         <button
-          key={dateKey}
+          key={`${dateKey}-${isOutsideMonth ? 'outside' : 'current'}`}
           type="button"
           className={classes}
           onClick={() => openDateModal(dateKey)}
           aria-pressed={isSelected}
-          aria-label={`${formatDateDisplay(dateKey)}${daySchedules.length ? `, ${daySchedules.length} total assignment${daySchedules.length > 1 ? 's' : ''}` : ''}`}
+          aria-label={`${formatDateDisplay(dateKey)} (${weekDays[weekday]})${isHoliday ? ', Holiday' : ''}${daySchedules.length ? `, ${daySchedules.length} total assignment${daySchedules.length > 1 ? 's' : ''}` : ''}`}
         >
           <span className="day-number">{day}</span>
           {daySchedules.length > 0 && (
@@ -867,6 +758,24 @@ const MeterReading: React.FC = () => {
           )}
         </button>
       );
+    };
+
+    const firstDayWeekday = new Date(currentYear, currentMonth, 1).getDay(); // 0 = Sun
+    for (let index = 0; index < firstDayWeekday; index += 1) {
+      const prevDay = daysInPrevMonth - firstDayWeekday + index + 1;
+      const prevMonthDate = new Date(currentYear, currentMonth - 1, prevDay);
+      dayCells.push(buildDayCell(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), prevMonthDate.getDate(), true));
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      dayCells.push(buildDayCell(currentYear, currentMonth, day, false));
+    }
+
+    let trailingDay = 1;
+    while (dayCells.length % 7 !== 0) {
+      const nextMonthDate = new Date(currentYear, currentMonth + 1, trailingDay);
+      dayCells.push(buildDayCell(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), nextMonthDate.getDate(), true));
+      trailingDay += 1;
     }
 
     return (
@@ -881,7 +790,7 @@ const MeterReading: React.FC = () => {
           </button>
         </div>
         <div className="calendar-grid">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((weekday) => (
+          {weekDays.map((weekday) => (
             <div key={weekday} className="weekday">{weekday}</div>
           ))}
           {dayCells}
@@ -908,6 +817,43 @@ const MeterReading: React.FC = () => {
     [zoneCoverageData.coverageByZone, zones]
   );
 
+  const monthAssignedZoneMap = useMemo(() => {
+    const map = new Map<number, { readerId: string; scheduleDate: string }>();
+    const baseDate = selectedDate ? new Date(`${selectedDate}T00:00:00`) : new Date(currentYear, currentMonth, 1);
+    const targetYear = baseDate.getFullYear();
+    const targetMonth = baseDate.getMonth();
+
+    schedules.forEach((schedule) => {
+      if (!isScheduledStatus(schedule.Status)) return;
+      const scheduleDate = new Date(`${schedule.Schedule_Date}T00:00:00`);
+      if (
+        scheduleDate.getFullYear() === targetYear &&
+        scheduleDate.getMonth() === targetMonth &&
+        schedule.Meter_Reader_ID
+      ) {
+        map.set(schedule.Zone_ID, {
+          readerId: String(schedule.Meter_Reader_ID),
+          scheduleDate: schedule.Schedule_Date,
+        });
+      }
+    });
+    return map;
+  }, [currentMonth, currentYear, schedules, selectedDate]);
+
+  const splitBarangaySummary = useMemo(
+    () => Array.from(zoneCoverageData.sharedBarangayMap.entries()).sort((left, right) => left[0].localeCompare(right[0])),
+    [zoneCoverageData.sharedBarangayMap]
+  );
+
+  const areAllZonesAssignedForSelectedDate = useMemo(() => {
+    if (!selectedDate || modalZoneCards.length === 0) return false;
+    return modalZoneCards.every((zone) => {
+      const monthAssignment = monthAssignedZoneMap.get(zone.zoneId);
+      const assignedScheduleDate = monthAssignment?.scheduleDate || '';
+      return Boolean(assignedScheduleDate && assignedScheduleDate !== selectedDate);
+    });
+  }, [modalZoneCards, monthAssignedZoneMap, selectedDate]);
+
   return (
     <MainLayout title="Meter Reading Management Control">
       <div className="meter-reading-page">
@@ -915,16 +861,23 @@ const MeterReading: React.FC = () => {
           <div className="scheduler-hero">
             <div>
               <p className="scheduler-eyebrow">Field Scheduling Desk</p>
-              <h1 className="scheduler-title">Plan meter-reader coverage by date, zone, and barangay.</h1>
+              <h1 className="scheduler-title">Meter Reader Scheduling</h1>
               <p className="scheduler-copy">
-                Click any date on the calendar to assign readers, review zone coverage, and keep split-barangay schedules coordinated.
+                Select a date, assign zones, and save reader coverage.
               </p>
             </div>
             <div className="scheduler-hero-actions">
               <button type="button" className="btn btn-secondary" onClick={() => setIsAddReaderModalOpen(true)}>
                 <i className="fas fa-user-plus"></i> Add Meter Reader
               </button>
-              <button type="button" className="btn btn-secondary" onClick={() => setIsCoverageConfigModalOpen(true)}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  loadCoverageConfig();
+                  setIsCoverageConfigModalOpen(true);
+                }}
+              >
                 <i className="fas fa-map-marked-alt"></i> Configure Zone Coverage
               </button>
               <button type="button" className="btn btn-primary" onClick={() => openDateModal(formatDateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()))}>
@@ -937,22 +890,22 @@ const MeterReading: React.FC = () => {
             <article className="scheduler-summary-card">
               <span className="scheduler-summary-label">Active Meter Readers</span>
               <strong className="scheduler-summary-value">{activeMeterReaders.length}</strong>
-              <span className="scheduler-summary-meta">Only active readers can be assigned to zones.</span>
+              <span className="scheduler-summary-meta">Readers available for assignment.</span>
             </article>
             <article className="scheduler-summary-card">
               <span className="scheduler-summary-label">Tracked Zones</span>
               <strong className="scheduler-summary-value">{zones.length}</strong>
-              <span className="scheduler-summary-meta">Each zone shows barangays and shared-boundary warnings.</span>
+              <span className="scheduler-summary-meta">Zones included in scheduling.</span>
             </article>
             <article className="scheduler-summary-card">
               <span className="scheduler-summary-label">Scheduled Dates</span>
               <strong className="scheduler-summary-value">{new Set(schedules.map((schedule) => schedule.Schedule_Date)).size}</strong>
-              <span className="scheduler-summary-meta">Dates with saved assignments stay highlighted on the calendar.</span>
+              <span className="scheduler-summary-meta">Dates with saved assignments.</span>
             </article>
             <article className="scheduler-summary-card">
               <span className="scheduler-summary-label">Split Barangays</span>
               <strong className="scheduler-summary-value">{zoneCoverageData.sharedBarangayMap.size}</strong>
-              <span className="scheduler-summary-meta">From admin-configured coverage rules.</span>
+              <span className="scheduler-summary-meta">Barangays shared by multiple zones.</span>
             </article>
           </div>
 
@@ -991,410 +944,272 @@ const MeterReading: React.FC = () => {
         <Modal
           isOpen={isScheduleModalOpen}
           onClose={closeScheduleModal}
-          title={selectedDate ? `Meter Reader Scheduling - ${formatDateDisplay(selectedDate)}` : 'Meter Reader Scheduling'}
+          title="Meter Reader Scheduling"
           size="xlarge"
           closeOnOverlayClick={!assignmentSaving}
         >
-          <div className="scheduler-modal">
-            <div className="scheduler-modal-actions">
-              <button
-                type="button"
-                className={`scheduler-action-card ${modalMode === 'assign' ? 'active' : ''}`}
-                onClick={() => setModalMode('assign')}
-              >
-                <span className="scheduler-action-icon"><i className="fas fa-user-check"></i></span>
-                <span className="scheduler-action-copy">
-                  <strong>Assign Meter Reader</strong>
-                  <small>Choose zones, distribute readers fairly, and review split barangays.</small>
-                </span>
-              </button>
-              <button
-                type="button"
-                className={`scheduler-action-card ${modalMode === 'overview' ? 'active' : ''}`}
-                onClick={() => setModalMode('overview')}
-              >
-                <span className="scheduler-action-icon"><i className="fas fa-list-check"></i></span>
-                <span className="scheduler-action-copy">
-                  <strong>View Assignments</strong>
-                  <small>Inspect saved assignments, statuses, and reader coverage for this date.</small>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="scheduler-action-card danger"
-                onClick={handleCancelAllSchedules}
-                disabled={assignmentSaving || activeCurrentSchedules.length === 0}
-              >
-                <span className="scheduler-action-icon"><i className="fas fa-ban"></i></span>
-                <span className="scheduler-action-copy">
-                  <strong>Cancel Schedule</strong>
-                  <small>Cancel all active assignments for this business date without deleting history.</small>
-                </span>
-              </button>
-            </div>
+          <div className="scheduler-modal modern-modal">
+            <header className="schedule-modal-header">
+              <div>
+                <h2>{selectedDate ? formatDateDisplay(selectedDate) : 'Schedule Date'}</h2>
+                <p>Manage assignments and save coverage for the selected date.</p>
+              </div>
+            </header>
 
-            {modalMode === 'overview' ? (
-              <div className="scheduler-modal-grid">
-                <section className="scheduler-panel">
-                  <div className="scheduler-panel-head">
-                    <div>
-                      <h3 className="scheduler-panel-title">Assignments For The Date</h3>
-                      <p className="scheduler-panel-copy">Each saved zone assignment shows the assigned reader, included barangays, and cancellation controls.</p>
-                    </div>
-                    <button type="button" className="btn btn-secondary" onClick={() => setModalMode('assign')}>
-                      <i className="fas fa-edit"></i> Edit Assignments
-                    </button>
+            <div className="modern-modal-body">
+              <section className="modern-panel modern-panel-builder">
+                <div className="modern-panel-head">
+                  <h3>Add Assignment</h3>
+                </div>
+                {areAllZonesAssignedForSelectedDate ? (
+                  <div className="summary-empty">
+                    All zones have been assigned for reading for this month.
                   </div>
+                ) : null}
 
-                  {currentSchedules.length > 0 ? (
-                    <div className="schedule-card-list">
-                      {currentSchedules.map((schedule) => {
-                        const coverage = zoneCoverageData.coverageByZone.get(schedule.Zone_ID);
-                        return (
-                          <article key={schedule.Schedule_ID || `${schedule.Schedule_Date}-${schedule.Zone_ID}`} className="schedule-card">
-                            <div className="schedule-card-top">
-                              <div>
-                                <p className="schedule-card-zone">{formatZoneLabel(schedule.Zone_Name, schedule.Zone_ID)}</p>
-                                <h4 className="schedule-card-reader">{schedule.Meter_Reader_Name || 'Unassigned Meter Reader'}</h4>
-                                {schedule.Meter_Reader_Contact && (
-                                  <p className="schedule-card-contact"><i className="fas fa-phone-alt"></i> {schedule.Meter_Reader_Contact}</p>
+                <div className="modern-form-grid">
+                  <div className="assignment-select-row">
+                    <label>Meter Readers</label>
+                    <div className="selected-readers-container">
+                      {activeMeterReaders.map((reader) => {
+                          const readerId = String(reader.AccountID);
+                          const assignedZones = selectedZoneIds
+                            .map((zoneId) => Number(zoneId))
+                            .filter((zoneId) => String(draftAssignments[zoneId] || '') === readerId)
+                            .map((zoneId) => zoneCoverageData.coverageByZone.get(zoneId))
+                            .filter(Boolean);
+                          return (
+                            <article
+                              key={`selected-reader-${readerId}`}
+                              className={`selected-reader-box ${selectedReaderId === readerId ? 'selected' : ''} ${newAssignmentReaderId === readerId ? 'active' : ''}`}
+                              role="button"
+                              tabIndex={0}
+                          onClick={() => toggleReaderSelection(readerId)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              toggleReaderSelection(readerId);
+                            }
+                          }}
+                            >
+                              <div className="selected-reader-head">
+                                <strong>{reader.Full_Name}</strong>
+                                <span>{assignedZones.length} zone{assignedZones.length === 1 ? '' : 's'}</span>
+                              </div>
+                              <div className="selected-reader-zones">
+                                {assignedZones.length > 0 ? assignedZones.map((zone) => (
+                                  <span key={`selected-reader-${readerId}-zone-${zone!.zoneId}`} className="selected-reader-zone-chip">
+                                    {zone!.zoneName}
+                                  </span>
+                                )) : (
+                                  <span className="selected-reader-empty">No zones assigned yet.</span>
                                 )}
                               </div>
-                              <span className={scheduleStatusClassName(schedule.Status)}>{schedule.Status || 'Scheduled'}</span>
-                            </div>
-
-                            <div className="schedule-card-meta">
-                              <span><strong>Consumers:</strong> {coverage?.consumerCount || 0}</span>
-                              <span><strong>Barangays:</strong> {coverage?.barangays.length || 0}</span>
-                            </div>
-
-                            <div className="barangay-chip-list">
-                              {(coverage?.barangays || []).length > 0 ? (
-                                coverage?.barangays.map((barangay) => (
-                                  <span
-                                    key={`${schedule.Schedule_ID}-${barangay}`}
-                                    className={`barangay-chip ${coverage.splitBarangays.includes(barangay) ? 'shared' : ''}`}
-                                  >
-                                    {barangay}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="barangay-empty">No barangay coverage found for this zone yet.</span>
-                              )}
-                            </div>
-
-                            {coverage?.splitBarangays.length ? (
-                              <p className="schedule-warning">
-                                <i className="fas fa-exclamation-triangle"></i>
-                                Shared barangay coverage: {coverage.splitBarangays.join(', ')}
-                              </p>
-                            ) : null}
-
-                            <div className="schedule-actions">
-                              {schedule.Status !== 'Cancelled' && schedule.Schedule_ID ? (
-                                <button type="button" className="btn btn-secondary" onClick={() => handleCancelSchedule(schedule.Schedule_ID!)}>
-                                  <i className="fas fa-times-circle"></i> Cancel Assignment
-                                </button>
-                              ) : null}
-                              {schedule.Schedule_ID ? (
-                                <button type="button" className="btn btn-danger" onClick={() => handleDeleteSchedule(schedule.Schedule_ID!)}>
-                                  <i className="fas fa-trash"></i> Delete
-                                </button>
-                              ) : null}
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="schedule-empty-state">
-                      <i className="fas fa-calendar-check"></i>
-                      <h4>No assignments saved yet</h4>
-                      <p>Select zones and assign meter readers to build the first schedule for this date.</p>
-                      <button type="button" className="btn btn-primary" onClick={() => setModalMode('assign')}>
-                        <i className="fas fa-user-check"></i> Start Assigning
-                      </button>
-                    </div>
-                  )}
-                </section>
-
-                <section className="scheduler-panel compact">
-                  <div className="scheduler-panel-head">
-                    <div>
-                      <h3 className="scheduler-panel-title">Reader Coverage Summary</h3>
-                      <p className="scheduler-panel-copy">A quick view of who covers which zones on the selected date.</p>
-                    </div>
-                  </div>
-                  <div className="summary-stack">
-                    {assignmentSummary.length > 0 ? (
-                      assignmentSummary.map((group) => (
-                        <article key={`${group.label}-${group.contact || 'none'}`} className="summary-card">
-                          <div className="summary-card-top">
-                            <div>
-                              <h4>{group.label}</h4>
-                              {group.contact ? <p>{group.contact}</p> : null}
-                            </div>
-                            <span>{group.zones.length} zone{group.zones.length === 1 ? '' : 's'}</span>
-                          </div>
-                          <div className="summary-zone-list">
-                            {group.zones.map((zone) => (
-                              <span key={`${group.label}-${zone.zoneId}`} className="summary-zone-chip">{zone.zoneName}</span>
-                            ))}
-                          </div>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="summary-empty">No zone assignments are selected yet for this date.</div>
-                    )}
-                  </div>
-                </section>
-              </div>
-            ) : (
-              <div className="scheduler-modal-grid">
-                <section className="scheduler-panel">
-                  <div className="scheduler-panel-head">
-                    <div>
-                      <h3 className="scheduler-panel-title">Zone & Reader Assignment Builder</h3>
-                      <p className="scheduler-panel-copy">Select zones, review barangays in each zone, then distribute one or more active meter readers fairly.</p>
-                    </div>
-                    <div className="scheduler-panel-actions">
-                      <button type="button" className="btn btn-secondary" onClick={() => setIsAddReaderModalOpen(true)}>
-                        <i className="fas fa-user-plus"></i> Add Meter Reader
-                      </button>
-                      <button type="button" className="btn btn-primary" onClick={autoAssignReaders}>
-                        <i className="fas fa-random"></i> Auto Distribute
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="assignment-builder-grid">
-                    <div className="assignment-column">
-                      {coverageConfig.length === 0 ? (
-                        <div className="coverage-config-warning">
-                          Barangay coverage is not configured yet. Use <strong>Configure Zone Coverage</strong> first so assignments follow your exact zone plan.
-                        </div>
-                      ) : null}
-                      <div className="assignment-section-head">
-                        <h4>Select Zones</h4>
-                        <span>{selectedZoneIds.length} selected</span>
-                      </div>
-                      <div className="zone-selection-list" role="group" aria-label="Select zones">
-                        {modalZoneCards.map((zone) => {
-                          const isSelected = selectedZoneIds.includes(String(zone.zoneId));
-                          return (
-                            <label key={zone.zoneId} className={`zone-selection-item ${isSelected ? 'selected' : ''}`}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => toggleZoneSelection(String(zone.zoneId))}
-                              />
-                              <div className="zone-selection-main">
-                                <strong>{zone.zoneName}</strong>
-                                <span>{zone.consumerCount} consumers</span>
-                              </div>
-                              <div className="zone-selection-meta">
-                                <span>{zone.barangays.length} barangays</span>
-                              </div>
-                            </label>
+                            </article>
                           );
                         })}
-                      </div>
-                      {selectedZoneIds.length > 0 ? (
-                        <div className="selected-zone-preview">
-                          {selectedZoneIds
-                            .map((zoneId) => zoneCoverageData.coverageByZone.get(Number(zoneId)))
-                            .filter(Boolean)
-                            .sort((left, right) => (left?.zoneId || 0) - (right?.zoneId || 0))
-                            .map((zone) => (
-                              <article key={`zone-preview-${zone!.zoneId}`} className="selected-zone-preview-card">
-                                <div className="selected-zone-preview-head">
-                                  <h5>{zone!.zoneName}</h5>
-                                  <span>{zone!.consumerCount} consumers</span>
-                                </div>
-                                <p className="selected-zone-preview-count">{zone!.barangays.length} barangays</p>
-                                <div className="barangay-chip-list compact">
-                                  {zone!.barangays.length > 0 ? zone!.barangays.map((barangay) => (
-                                    <span key={`zone-preview-${zone!.zoneId}-${barangay}`} className={`barangay-chip ${zone!.splitBarangays.includes(barangay) ? 'shared' : ''}`}>
-                                      {barangay}
-                                    </span>
-                                  )) : (
-                                    <span className="barangay-empty">No configured barangays yet.</span>
-                                  )}
-                                </div>
-                              </article>
-                            ))}
-                        </div>
-                      ) : null}
                     </div>
-
-                    <div className="assignment-column">
-                      <div className="assignment-section-head">
-                        <h4>Select Available Meter Readers</h4>
-                        <span>{selectedReaderIds.length} chosen for auto-distribution</span>
-                      </div>
-                      <div className="reader-card-grid">
-                        {activeMeterReaders.length > 0 ? activeMeterReaders.map((reader) => {
-                          const isSelected = selectedReaderIds.includes(String(reader.AccountID));
-                          return (
-                            <button
-                              key={reader.AccountID}
-                              type="button"
-                              className={`reader-card ${isSelected ? 'selected' : ''}`}
-                              onClick={() => toggleReaderSelection(String(reader.AccountID))}
-                              aria-pressed={isSelected}
-                            >
-                              <div className="reader-card-top">
-                                <strong>{reader.Full_Name}</strong>
-                                <span>{reader.Username}</span>
-                              </div>
-                              <div className="reader-card-bottom">
-                                <span>{reader.Contact_Number || 'No contact saved'}</span>
-                                <span className="reader-card-status">Active</span>
-                              </div>
-                            </button>
+                  </div>
+                  {newAssignmentReaderId ? (
+                    <div className="assignment-select-row">
+                      <label>Zones For {activeMeterReaders.find((reader) => String(reader.AccountID) === newAssignmentReaderId)?.Full_Name || 'Selected Reader'}</label>
+                      {(() => {
+                        const availableZones = modalZoneCards.filter((zone) => {
+                          const zoneKey = String(zone.zoneId);
+                          const monthAssignment = monthAssignedZoneMap.get(zone.zoneId);
+                          const assignedReaderId = monthAssignment?.readerId || '';
+                          const assignedScheduleDate = monthAssignment?.scheduleDate || '';
+                          const draftAssignedReaderId = String(draftAssignments[zone.zoneId] || '');
+                          const lockedByMonthSchedule = Boolean(
+                            assignedReaderId &&
+                            assignedScheduleDate &&
+                            assignedScheduleDate !== selectedDate
                           );
-                        }) : (
-                          <div className="summary-empty">No active meter readers are available yet. Add one to continue scheduling.</div>
-                        )}
-                      </div>
+                          const lockedByDraftSelection = Boolean(
+                            draftAssignedReaderId &&
+                            draftAssignedReaderId !== String(newAssignmentReaderId)
+                          );
+                          const lockedToOtherReader = Boolean(
+                            (assignedReaderId &&
+                              assignedReaderId !== String(newAssignmentReaderId) &&
+                              !selectedZoneIds.includes(zoneKey)) ||
+                            lockedByMonthSchedule ||
+                            lockedByDraftSelection
+                          );
+                          return !lockedToOtherReader;
+                        });
 
-                      <div className="assignment-section-head">
-                        <h4>Zone-Level Assignment</h4>
-                        <span>Manual overrides are allowed after auto-distribution.</span>
-                      </div>
-                      <div className="assignment-list">
-                        {selectedZoneIds.length > 0 ? selectedZoneIds
-                          .map((zoneId) => zoneCoverageData.coverageByZone.get(Number(zoneId)))
-                          .filter(Boolean)
-                          .sort((left, right) => (left?.zoneId || 0) - (right?.zoneId || 0))
-                          .map((zone) => (
-                            <article key={`assignment-${zone!.zoneId}`} className="assignment-card">
-                              <div className="assignment-card-head">
-                                <div>
-                                  <h4>{zone!.zoneName}</h4>
-                                  <p>{zone!.consumerCount} consumers and {zone!.barangays.length} barangays</p>
-                                </div>
-                                {zone!.splitBarangays.length > 0 ? (
-                                  <span className="assignment-badge shared">Split Barangay</span>
-                                ) : (
-                                  <span className="assignment-badge">Single Coverage</span>
-                                )}
-                              </div>
-                              <div className="barangay-chip-list compact">
-                                {zone!.barangays.length > 0 ? zone!.barangays.slice(0, BARANGAY_PREVIEW_LIMIT).map((barangay) => (
-                                  <span key={`assignment-${zone!.zoneId}-${barangay}`} className={`barangay-chip ${zone!.splitBarangays.includes(barangay) ? 'shared' : ''}`}>
+                        if (availableZones.length === 0) {
+                          return <div className="summary-empty">All zones have been assigned for reading.</div>;
+                        }
+
+                        return (
+                          <div className="zone-bubble-list compact">
+                            {modalZoneCards.map((zone) => {
+                          const zoneKey = String(zone.zoneId);
+                          const selected = String(draftAssignments[zone.zoneId] || '') === String(newAssignmentReaderId);
+                          const monthAssignment = monthAssignedZoneMap.get(zone.zoneId);
+                          const assignedReaderId = monthAssignment?.readerId || '';
+                          const assignedScheduleDate = monthAssignment?.scheduleDate || '';
+                          const draftAssignedReaderId = String(draftAssignments[zone.zoneId] || '');
+                          const lockedByMonthSchedule = Boolean(
+                            assignedReaderId &&
+                            assignedScheduleDate &&
+                            assignedScheduleDate !== selectedDate
+                          );
+                          const lockedByDraftSelection = Boolean(
+                            draftAssignedReaderId &&
+                            draftAssignedReaderId !== String(newAssignmentReaderId)
+                          );
+                          const lockedToOtherReader = Boolean(
+                            (assignedReaderId &&
+                              assignedReaderId !== String(newAssignmentReaderId) &&
+                              !selectedZoneIds.includes(zoneKey)) ||
+                            lockedByMonthSchedule ||
+                            lockedByDraftSelection
+                          );
+
+                          return (
+                            <div key={`batch-zone-${zone.zoneId}`} className="zone-bubble-wrap">
+                              <button
+                                type="button"
+                                className={`zone-pill-btn ${selected ? 'selected' : ''} ${lockedToOtherReader ? 'disabled' : ''}`}
+                                disabled={lockedToOtherReader}
+                                onClick={() => {
+                                  setSelectedZoneIds((current) => {
+                                    const next = new Set(current);
+                                    if (selected) {
+                                      next.delete(zoneKey);
+                                    } else {
+                                      next.add(zoneKey);
+                                    }
+                                    return Array.from(next);
+                                  });
+                                  setDraftAssignments((current) => {
+                                    const next = { ...current };
+                                    if (selected) {
+                                      delete next[Number(zoneKey)];
+                                    } else {
+                                      next[Number(zoneKey)] = String(newAssignmentReaderId);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <strong>{zone.zoneName}</strong>
+                                <span>{zone.consumerCount} consumers</span>
+                              </button>
+                              <div className="zone-detail-panel">
+                                {zone.barangays.length > 0 ? zone.barangays.map((barangay) => (
+                                  <span
+                                    key={`zone-detail-${zone.zoneId}-${barangay}`}
+                                    className={`barangay-chip ${zone.splitBarangays.includes(barangay) ? 'shared' : ''}`}
+                                  >
                                     {barangay}
                                   </span>
                                 )) : (
                                   <span className="barangay-empty">No configured barangays yet.</span>
                                 )}
-                                {zone!.barangays.length > BARANGAY_PREVIEW_LIMIT ? (
-                                  <span className="barangay-chip more">+{zone!.barangays.length - BARANGAY_PREVIEW_LIMIT} more</span>
-                                ) : null}
                               </div>
-                              <div className="assignment-select-row">
-                                <label htmlFor={`reader-assignment-${zone!.zoneId}`}>Assigned Meter Reader</label>
-                                <select
-                                  id={`reader-assignment-${zone!.zoneId}`}
-                                  value={draftAssignments[zone!.zoneId] || ''}
-                                  onChange={(event) => setDraftAssignments((current) => ({
-                                    ...current,
-                                    [zone!.zoneId]: event.target.value,
-                                  }))}
-                                  className="assignment-select"
-                                >
-                                  <option value="">Select a meter reader</option>
-                                  {activeMeterReaders.map((reader) => (
-                                    <option key={`reader-option-${reader.AccountID}`} value={reader.AccountID}>
-                                      {reader.Full_Name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            </article>
-                          )) : (
-                            <div className="summary-empty">Select one or more zones to start building assignments.</div>
-                          )}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="scheduler-panel compact">
-                  <div className="scheduler-panel-head">
-                    <div>
-                      <h3 className="scheduler-panel-title">Assignment Summary</h3>
-                      <p className="scheduler-panel-copy">Review the final split before saving to avoid confusing boundary coverage.</p>
-                    </div>
-                  </div>
-
-                  <div className="summary-stack">
-                    {assignmentSummary.length > 0 ? assignmentSummary.map((group) => (
-                      <article key={`draft-${group.label}-${group.contact || 'none'}`} className="summary-card">
-                        <div className="summary-card-top">
-                          <div>
-                            <h4>{group.label}</h4>
-                            {group.contact ? <p>{group.contact}</p> : null}
+                            </div>
+                          );
+                        })}
                           </div>
-                          <span>{group.zones.length} zone{group.zones.length === 1 ? '' : 's'}</span>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="assignment-select-row">
+                      <label>Zones</label>
+                      <div className="summary-empty">Select a meter reader first to load available zones for assignment.</div>
+                    </div>
+                  )}
+                </div>
+                <div className="assignment-footer">
+                  <button type="button" className="btn btn-primary" onClick={handleSaveAssignments} disabled={assignmentSaving}>
+                    <i className="fas fa-save"></i> {assignmentSaving ? 'Saving...' : 'Save Assignments'}
+                  </button>
+                </div>
+              </section>
+
+              <section className="modern-panel modern-panel-assignments">
+                <div className="modern-panel-head">
+                  <h3>Assignments For This Date</h3>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleCancelAllSchedules}
+                    disabled={assignmentSaving || activeCurrentSchedules.length === 0}
+                  >
+                    <i className="fas fa-ban"></i> Cancel All
+                  </button>
+                </div>
+                <div className="assignment-card-list-modern">
+                  {currentSchedules.length > 0 ? currentSchedules.map((schedule) => {
+                    const coverage = zoneCoverageData.coverageByZone.get(schedule.Zone_ID);
+                    const readerName = schedule.Meter_Reader_Name || 'Unassigned';
+                    return (
+                      <article key={schedule.Schedule_ID || `${schedule.Schedule_Date}-${schedule.Zone_ID}`} className="assignment-card-modern">
+                        <div className="assignment-card-modern-top">
+                          <div>
+                            <h4>{formatZoneLabel(schedule.Zone_Name, schedule.Zone_ID)}</h4>
+                            <p className="assignment-card-modern-sub">
+                              {(coverage?.barangays || []).slice(0, 4).join(', ') || 'No configured barangays'}
+                            </p>
+                            {coverage?.splitBarangays.length ? (
+                              <p className="split-note">
+                                <i className="fas fa-link"></i> Split: {coverage.splitBarangays.join(', ')}
+                              </p>
+                            ) : null}
+                          </div>
+                          <span className={scheduleStatusClassName(schedule.Status)}>{schedule.Status || 'Scheduled'}</span>
                         </div>
-                        <div className="summary-zone-list">
-                          {group.zones.map((zone) => (
-                            <span key={`summary-${group.label}-${zone.zoneId}`} className="summary-zone-chip">
-                              {zone.zoneName}
-                            </span>
-                          ))}
+                        <div className="assignment-card-modern-reader">
+                          <span className="reader-avatar">{getInitials(readerName)}</span>
+                          <div>
+                            <strong>{readerName}</strong>
+                            <p>{schedule.Meter_Reader_Contact || 'No contact'} - Any time</p>
+                          </div>
+                        </div>
+                        <div className="assignment-card-modern-actions">
+                          <button type="button" className="btn btn-secondary" onClick={() => handleEditSchedule(schedule)}>
+                            <i className="fas fa-pen"></i> Edit
+                          </button>
+                          {schedule.Status !== 'Cancelled' && schedule.Schedule_ID ? (
+                            <button type="button" className="btn btn-secondary" onClick={() => handleCancelSchedule(schedule.Schedule_ID!)}>
+                              <i className="fas fa-times-circle"></i> Cancel
+                            </button>
+                          ) : null}
+                          {schedule.Schedule_ID ? (
+                            <button type="button" className="btn btn-danger" onClick={() => handleDeleteSchedule(schedule.Schedule_ID!)}>
+                              <i className="fas fa-trash"></i> Remove
+                            </button>
+                          ) : null}
                         </div>
                       </article>
-                    )) : (
-                      <div className="summary-empty">Assignments will appear here as soon as zones and readers are selected.</div>
-                    )}
-                  </div>
-
-                  <div className="validation-panel">
-                    <div className="validation-panel-head">
-                      <h4>Validation & Warnings</h4>
-                      <span>{validationState.conflicts.length} blocking conflict{validationState.conflicts.length === 1 ? '' : 's'}</span>
+                    );
+                  }) : (
+                    <div className="summary-empty">No assignments for this date yet.</div>
+                  )}
+                </div>
+                <div className="split-summary-panel">
+                  <h4>Split Barangays (Coverage Rule)</h4>
+                  {splitBarangaySummary.length > 0 ? (
+                    <div className="split-summary-list">
+                      {splitBarangaySummary.map(([barangay, zoneIds]) => (
+                        <div key={`split-summary-${barangay}`} className="split-summary-item">
+                          <strong>{barangay}</strong>
+                          <span>{zoneIds.map((zoneId) => formatZoneLabel(zoneLookup.get(zoneId), zoneId)).join(', ')}</span>
+                        </div>
+                      ))}
                     </div>
-                    {validationState.conflicts.length > 0 ? (
-                      <div className="validation-list error">
-                        {validationState.conflicts.map((message) => (
-                          <div key={message} className="validation-item">
-                            <i className="fas fa-exclamation-circle"></i>
-                            <span>{message}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="validation-empty success">
-                        <i className="fas fa-check-circle"></i>
-                        <span>No split-barangay conflicts were detected in the current draft.</span>
-                      </div>
-                    )}
+                  ) : (
+                    <p className="coverage-empty">No split barangays configured.</p>
+                  )}
+                </div>
+              </section>
+            </div>
 
-                    {validationState.warnings.length > 0 ? (
-                      <div className="validation-list warning">
-                        {validationState.warnings.map((message) => (
-                          <div key={message} className="validation-item">
-                            <i className="fas fa-info-circle"></i>
-                            <span>{message}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="assignment-footer">
-                    <button type="button" className="btn btn-secondary" onClick={() => setModalMode('overview')} disabled={assignmentSaving}>
-                      <i className="fas fa-list"></i> Back To Overview
-                    </button>
-                    <button type="button" className="btn btn-primary" onClick={handleSaveAssignments} disabled={assignmentSaving}>
-                      <i className="fas fa-save"></i> {assignmentSaving ? 'Saving...' : 'Save Assignments'}
-                    </button>
-                  </div>
-                </section>
-              </div>
-            )}
           </div>
         </Modal>
 
@@ -1409,6 +1224,9 @@ const MeterReading: React.FC = () => {
           closeOnOverlayClick={!coverageConfigSaving}
         >
           <div className="scheduler-panel">
+            <p className="scheduler-panel-copy">
+              Configure which barangays belong to each zone, set purok count, and mark split coverage for future scheduling.
+            </p>
             <div className="meter-reader-form-grid">
               <div className="assignment-select-row">
                 <label htmlFor="coverage-zone">Zone</label>
@@ -1446,6 +1264,9 @@ const MeterReading: React.FC = () => {
               </label>
             </div>
             <div className="assignment-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setIsCoverageConfigModalOpen(false)} disabled={coverageConfigSaving}>
+                Close
+              </button>
               <button type="button" className="btn btn-primary" onClick={handleSaveCoverageConfig} disabled={coverageConfigSaving}>
                 {coverageConfigSaving ? 'Saving...' : 'Save Rule'}
               </button>
@@ -1485,16 +1306,6 @@ const MeterReading: React.FC = () => {
           title="Add Meter Reader"
           size="medium"
           closeOnOverlayClick={!addReaderSaving}
-          footer={
-            <>
-              <button type="button" className="btn btn-secondary" onClick={() => setIsAddReaderModalOpen(false)} disabled={addReaderSaving}>
-                Cancel
-              </button>
-              <button type="button" className="btn btn-primary" onClick={handleCreateMeterReader} disabled={addReaderSaving}>
-                <i className="fas fa-user-plus"></i> {addReaderSaving ? 'Saving...' : 'Create Meter Reader'}
-              </button>
-            </>
-          }
         >
           <div className="meter-reader-form">
             <div className="meter-reader-form-intro">
@@ -1527,6 +1338,14 @@ const MeterReading: React.FC = () => {
                 onChange={(value) => setReaderFormData((current) => ({ ...current, password: value }))}
                 required
               />
+            </div>
+            <div className="assignment-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setIsAddReaderModalOpen(false)} disabled={addReaderSaving}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleCreateMeterReader} disabled={addReaderSaving}>
+                <i className="fas fa-user-plus"></i> {addReaderSaving ? 'Saving...' : 'Create Meter Reader'}
+              </button>
             </div>
           </div>
         </Modal>
