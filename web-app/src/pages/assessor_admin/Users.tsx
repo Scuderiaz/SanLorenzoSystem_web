@@ -15,7 +15,7 @@ interface User {
   Full_Name: string;
   Role_ID: number;
   Role_Name: string;
-  Status: 'Active' | 'Pending' | 'Inactive';
+  Status: 'Active' | 'Pending' | 'Inactive' | 'Rejected';
   Phone_Number?: string;
   Created_At?: string | null;
 }
@@ -46,6 +46,9 @@ const Users: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<User | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     fullName: '',
@@ -101,15 +104,21 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleReject = async (accountId: number) => {
-    if (!window.confirm('Are you sure you want to reject this registration? This will delete the account.')) return;
+  const handleReject = async (accountId: number, reason: string) => {
+    const normalizedReason = reason.trim();
+    if (!normalizedReason) {
+      showToast('A rejection reason is required before rejecting this registration.', 'error');
+      return;
+    }
     try {
       const result = await requestJson<{ success: boolean; message?: string }>('/admin/reject-user', {
         method: 'POST',
-        body: JSON.stringify({ accountId, approvedBy: currentUser?.id }),
+        body: JSON.stringify({ accountId, approvedBy: currentUser?.id, remarks: normalizedReason }),
       }, 'Failed to reject account.');
       if (result.success) {
-        showToast(result.message || 'Account rejected and deleted', 'success');
+        showToast(result.message || 'Account rejected successfully', 'success');
+        setRejectTarget(null);
+        setRejectionReason('');
         loadUsers();
       } else {
         showToast(result.message || 'Failed to reject account', 'error');
@@ -216,7 +225,7 @@ const Users: React.FC = () => {
               <button className="btn-icon btn-success" title="Approve Registration" onClick={() => handleApprove(row.AccountID)}>
                 <i className="fas fa-check"></i>
               </button>
-              <button className="btn-icon btn-danger" title="Reject Registration" onClick={() => handleReject(row.AccountID)}>
+              <button className="btn-icon btn-danger" title="Reject Registration" onClick={() => { setRejectTarget(row); setRejectionReason(''); }}>
                 <i className="fas fa-times"></i>
               </button>
             </>
@@ -264,6 +273,7 @@ const Users: React.FC = () => {
               <option value="Active">Active</option>
               <option value="Pending">Pending</option>
               <option value="Inactive">Inactive</option>
+              <option value="Rejected">Rejected</option>
             </select>
           </div>
           <div className="main-actions">
@@ -331,6 +341,62 @@ const Users: React.FC = () => {
             onChange={(v) => setFormData({ ...formData, password: v })}
             required={!editingUser}
           />
+        </Modal>
+        <Modal
+          isOpen={Boolean(rejectTarget)}
+          onClose={() => {
+            if (rejectSubmitting) return;
+            setRejectTarget(null);
+            setRejectionReason('');
+          }}
+          title="Reject Registration"
+          size="small"
+          footer={
+            <>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setRejectTarget(null);
+                  setRejectionReason('');
+                }}
+                disabled={rejectSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  if (!rejectTarget) return;
+                  setRejectSubmitting(true);
+                  try {
+                    await handleReject(rejectTarget.AccountID, rejectionReason);
+                  } finally {
+                    setRejectSubmitting(false);
+                  }
+                }}
+                disabled={rejectSubmitting || !rejectionReason.trim()}
+              >
+                {rejectSubmitting ? 'Saving...' : 'Reject'}
+              </button>
+            </>
+          }
+        >
+          {rejectTarget && (
+            <>
+              <p><strong>Username:</strong> {rejectTarget.Username}</p>
+              <p><strong>Name:</strong> {rejectTarget.Full_Name || 'N/A'}</p>
+              <p>This account will remain in the system with a <strong>Rejected</strong> status.</p>
+              <label className="pending-app-reject-label" htmlFor="users-rejection-reason">Rejection Reason</label>
+              <textarea
+                id="users-rejection-reason"
+                className="application-textarea pending-app-reject-textarea"
+                value={rejectionReason}
+                onChange={(event) => setRejectionReason(event.target.value)}
+                placeholder="Explain why this registration is being rejected."
+                rows={4}
+              />
+            </>
+          )}
         </Modal>
       </div>
     </MainLayout>

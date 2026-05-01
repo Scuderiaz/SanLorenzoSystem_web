@@ -19,6 +19,7 @@ interface PendingApplication {
   Application_Date: string;
   Connection_Type: string;
   Requirements_Submitted: string;
+  Remarks?: string | null;
   Account_ID: number;
   Username: string;
   Account_Status: string;
@@ -79,6 +80,8 @@ const PendingApplications: React.FC = () => {
   const [returnToDetailsAfterEdit, setReturnToDetailsAfterEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmActionState | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [actionSubmitting, setActionSubmitting] = useState(false);
   const [zones, setZones] = useState<OptionRow[]>([]);
   const [classifications, setClassifications] = useState<OptionRow[]>([]);
   const [formData, setFormData] = useState({
@@ -187,6 +190,19 @@ const PendingApplications: React.FC = () => {
     }
   };
 
+  const openConfirmAction = (type: ConfirmActionState['type'], application: PendingApplication) => {
+    setConfirmAction({ type, application });
+    setRejectionReason('');
+  };
+
+  const closeConfirmAction = (force = false) => {
+    if (actionSubmitting && !force) {
+      return;
+    }
+    setConfirmAction(null);
+    setRejectionReason('');
+  };
+
   const handleApprove = async (accountId: number) => {
     try {
       const result = await requestJson<{ success: boolean; message?: string }>('/admin/approve-user', {
@@ -195,6 +211,7 @@ const PendingApplications: React.FC = () => {
       }, 'Failed to approve application.');
       if (result.success) {
         showToast(result.message || 'Application approved successfully', 'success');
+        closeConfirmAction(true);
         setSelectedApplication(null);
         loadApplications();
       } else {
@@ -239,14 +256,21 @@ const PendingApplications: React.FC = () => {
     }
   };
 
-  const handleReject = async (accountId: number) => {
+  const handleReject = async (accountId: number, reason: string) => {
+    const normalizedReason = reason.trim();
+    if (!normalizedReason) {
+      showToast('A rejection reason is required before rejecting an application.', 'error');
+      return;
+    }
+
     try {
       const result = await requestJson<{ success: boolean; message?: string }>('/admin/reject-user', {
         method: 'POST',
-        body: JSON.stringify({ accountId, approvedBy: user?.id }),
+        body: JSON.stringify({ accountId, approvedBy: user?.id, remarks: normalizedReason }),
       }, 'Failed to reject application.');
       if (result.success) {
-        showToast(result.message || 'Application rejected and deleted successfully', 'success');
+        showToast(result.message || 'Application rejected successfully', 'success');
+        closeConfirmAction(true);
         setSelectedApplication(null);
         loadApplications();
       } else {
@@ -261,7 +285,7 @@ const PendingApplications: React.FC = () => {
     const query = searchQuery.trim().toLowerCase();
     return applications.filter((application) => {
       const matchesStatus = statusFilter === 'active'
-        ? true
+        ? application.Application_Status !== 'Rejected'
         : statusFilter === 'all' || application.Application_Status === statusFilter;
       const matchesZone = !zoneFilter || String(application.Zone_ID || '') === zoneFilter;
       const matchesClassification = !classificationFilter || String(application.Classification_ID || '') === classificationFilter;
@@ -272,6 +296,7 @@ const PendingApplications: React.FC = () => {
         application.Barangay,
         application.Purok,
         application.Classification_Name,
+        application.Remarks,
         ...(canViewUsername ? [application.Username] : []),
       ]
         .filter(Boolean)
@@ -309,10 +334,10 @@ const PendingApplications: React.FC = () => {
           </button>
           {row.Application_Status === 'Pending' && (
             <>
-              <button className="btn-icon btn-success" title="Approve" onClick={(event) => { event.stopPropagation(); setConfirmAction({ type: 'approve', application: row }); }}>
+              <button className="btn-icon btn-success" title="Approve" onClick={(event) => { event.stopPropagation(); openConfirmAction('approve', row); }}>
                 <i className="fas fa-check"></i>
               </button>
-              <button className="btn-icon btn-danger" title="Reject" onClick={(event) => { event.stopPropagation(); setConfirmAction({ type: 'reject', application: row }); }}>
+              <button className="btn-icon btn-danger" title="Reject" onClick={(event) => { event.stopPropagation(); openConfirmAction('reject', row); }}>
                 <i className="fas fa-times"></i>
               </button>
             </>
@@ -328,7 +353,7 @@ const PendingApplications: React.FC = () => {
 
   const confirmActionMessage = confirmAction?.type === 'approve'
     ? 'Approve this consumer application and move it forward for activation?'
-    : 'Reject this application and permanently delete the pending account and ticket?';
+    : 'Reject this application and mark its status as Rejected. The rejection reason will be saved with the application record.';
 
   const accountNumberDisplay = (application: PendingApplication | null) => {
     if (!application) {
@@ -348,6 +373,23 @@ const PendingApplications: React.FC = () => {
 
   const requirementPreviewImage = isImageDataUrl(formData.requirementsSubmitted) ? formData.requirementsSubmitted : '';
   const selectedRequirementImage = isImageDataUrl(selectedApplication?.Requirements_Submitted) ? selectedApplication?.Requirements_Submitted : '';
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) {
+      return;
+    }
+
+    setActionSubmitting(true);
+    try {
+      if (confirmAction.type === 'approve') {
+        await handleApprove(confirmAction.application.Account_ID);
+      } else {
+        await handleReject(confirmAction.application.Account_ID, rejectionReason);
+      }
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
 
   return (
     <MainLayout title="Applications">
@@ -381,6 +423,7 @@ const PendingApplications: React.FC = () => {
               <option value="all">All Application Status</option>
               <option value="Pending">Pending</option>
               <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
               </select>
             </div>
             <div className="main-actions">
@@ -401,7 +444,7 @@ const PendingApplications: React.FC = () => {
               data={filteredApplications}
               loading={loading}
               onRowClick={(row) => setSelectedApplication(row)}
-              emptyMessage="No pending applications found."
+              emptyMessage="No applications found."
             />
           </div>
         </div>
@@ -421,10 +464,10 @@ const PendingApplications: React.FC = () => {
                 </button>
                 {selectedApplication.Application_Status === 'Pending' && (
                   <>
-                    <button className="btn btn-danger" onClick={() => setConfirmAction({ type: 'reject', application: selectedApplication })}>
+                    <button className="btn btn-danger" onClick={() => openConfirmAction('reject', selectedApplication)}>
                       <i className="fas fa-times"></i> Reject
                     </button>
-                    <button className="btn btn-primary" onClick={() => setConfirmAction({ type: 'approve', application: selectedApplication })}>
+                    <button className="btn btn-primary" onClick={() => openConfirmAction('approve', selectedApplication)}>
                       <i className="fas fa-check"></i> Approve
                     </button>
                   </>
@@ -448,6 +491,16 @@ const PendingApplications: React.FC = () => {
                 </span>
               </div>
 
+              {selectedApplication.Remarks && (
+                <div className="pending-app-rejection-note">
+                  <i className="fas fa-comment-alt"></i>
+                  <div>
+                    <strong>Saved Rejection Reason</strong>
+                    <p>{selectedApplication.Remarks}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="pending-app-details-meta">
                 <div className="pending-app-meta-row">
                   <span className="pending-app-meta-label">Ticket Number</span>
@@ -463,6 +516,12 @@ const PendingApplications: React.FC = () => {
                     {selectedApplication.Application_Date ? new Date(selectedApplication.Application_Date).toLocaleString() : 'N/A'}
                   </span>
                 </div>
+                {selectedApplication.Remarks && (
+                  <div className="pending-app-meta-row pending-app-meta-row-remarks">
+                    <span className="pending-app-meta-label">Rejection Reason</span>
+                    <span className="pending-app-meta-value">{selectedApplication.Remarks}</span>
+                  </div>
+                )}
               </div>
 
               <div className="pending-app-panels">
@@ -692,28 +751,21 @@ const PendingApplications: React.FC = () => {
 
         <Modal
           isOpen={Boolean(confirmAction)}
-          onClose={() => setConfirmAction(null)}
+          onClose={closeConfirmAction}
           title={confirmAction?.type === 'approve' ? 'Approve Application' : 'Reject Application'}
           size="small"
           footer={
             confirmAction ? (
               <>
-                <button className="btn btn-secondary" onClick={() => setConfirmAction(null)}>
+                <button className="btn btn-secondary" onClick={closeConfirmAction} disabled={actionSubmitting}>
                   Cancel
                 </button>
                 <button
                   className={`btn ${confirmAction.type === 'approve' ? 'btn-primary' : 'btn-danger'}`}
-                  onClick={async () => {
-                    const pendingAction = confirmAction;
-                    setConfirmAction(null);
-                    if (pendingAction.type === 'approve') {
-                      await handleApprove(pendingAction.application.Account_ID);
-                    } else {
-                      await handleReject(pendingAction.application.Account_ID);
-                    }
-                  }}
+                  onClick={handleConfirmAction}
+                  disabled={actionSubmitting || (confirmAction.type === 'reject' && !rejectionReason.trim())}
                 >
-                  {confirmAction.type === 'approve' ? 'Approve' : 'Reject'}
+                  {actionSubmitting ? 'Saving...' : confirmAction.type === 'approve' ? 'Approve' : 'Reject'}
                 </button>
               </>
             ) : undefined
@@ -724,6 +776,22 @@ const PendingApplications: React.FC = () => {
               <p><strong>Applicant:</strong> {confirmAction.application.Consumer_Name || 'N/A'}</p>
               <p><strong>Ticket Number:</strong> {confirmAction.application.Ticket_Number}</p>
               <p>{confirmActionMessage}</p>
+              {confirmAction.type === 'reject' && (
+                <div className="pending-app-reject-form">
+                  <label className="pending-app-reject-label" htmlFor="pending-app-rejection-reason">
+                    Rejection Reason
+                  </label>
+                  <textarea
+                    id="pending-app-rejection-reason"
+                    className="application-textarea pending-app-reject-textarea"
+                    value={rejectionReason}
+                    onChange={(event) => setRejectionReason(event.target.value)}
+                    placeholder="Explain why this application is being rejected."
+                    rows={4}
+                  />
+                  <p className="pending-app-reject-hint">A reason is required and will stay attached to the rejected application.</p>
+                </div>
+              )}
             </div>
           )}
         </Modal>

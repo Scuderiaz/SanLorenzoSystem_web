@@ -341,6 +341,20 @@
   box-shadow: 0 0 0 4px rgba(27, 27, 99, 0.05);
 }
 
+.pending-app-reject-label {
+  display: inline-flex;
+  margin: 12px 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f1d1d;
+}
+
+.pending-app-reject-textarea {
+  min-height: 120px;
+}
+
 /* Responsive Table */
 @media (max-width: 768px) {
   .filter-bar {

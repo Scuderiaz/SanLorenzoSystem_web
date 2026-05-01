@@ -3122,12 +3122,10 @@ function sanitizeApplicationRecord(row) {
 }
 
 function isDeletedApplicationRecord(row) {
-  const applicationStatus = String(row?.Application_Status || '').toLowerCase();
-  const accountStatus = String(row?.Account_Status || '').toLowerCase();
-  return applicationStatus === 'rejected' || accountStatus === 'rejected';
+  return false;
 }
 
-function buildPendingApplicationRow({ ticketId = null, ticketNumber, applicationDate, connectionType = 'Added by Staff', requirementsSubmitted = null, account, consumer, zoneName = null, classificationName = null }) {
+function buildPendingApplicationRow({ ticketId = null, ticketNumber, applicationDate, connectionType = 'Added by Staff', requirementsSubmitted = null, remarks = null, account, consumer, zoneName = null, classificationName = null }) {
   return sanitizeApplicationRecord({
     Ticket_ID: ticketId,
     Ticket_Number: ticketNumber || consumer?.account_number || `PENDING-${account?.account_id ?? consumer?.consumer_id ?? Date.now()}`,
@@ -3135,6 +3133,7 @@ function buildPendingApplicationRow({ ticketId = null, ticketNumber, application
     Application_Date: applicationDate || consumer?.connection_date || account?.created_at || null,
     Connection_Type: connectionType,
     Requirements_Submitted: requirementsSubmitted,
+    Remarks: remarks,
     Account_ID: account?.account_id ?? consumer?.login_id ?? null,
     Username: account?.username ?? null,
     Account_Status: account?.account_status ?? consumer?.status ?? 'Pending',
@@ -3237,7 +3236,7 @@ async function loadSupabaseApplicationRows({ pendingOnly = false } = {}) {
   ] = await Promise.all([
     supabase
       .from('connection_ticket')
-      .select('ticket_id, ticket_number, status, application_date, connection_type, requirements_submitted, account_id, consumer_id')
+      .select('ticket_id, ticket_number, status, application_date, connection_type, requirements_submitted, remarks, account_id, consumer_id')
       .order('application_date', { ascending: false }),
     supabase
       .from('accounts')
@@ -3283,6 +3282,7 @@ async function loadSupabaseApplicationRows({ pendingOnly = false } = {}) {
         Application_Date: ticket.application_date,
         Connection_Type: ticket.connection_type,
         Requirements_Submitted: ticket.requirements_submitted,
+        Remarks: ticket.remarks || null,
         Account_ID: account?.account_id ?? ticket.account_id,
         Username: account?.username ?? null,
         Account_Status: account?.account_status ?? null,
@@ -3330,11 +3330,9 @@ async function loadSupabaseApplicationRows({ pendingOnly = false } = {}) {
   const combined = [...mapped, ...orphanPendingApplications]
     .sort((a, b) => new Date(b.Application_Date || 0).getTime() - new Date(a.Application_Date || 0).getTime());
 
-  const visibleRows = combined.filter((row) => !isDeletedApplicationRecord(row));
-
   return pendingOnly
-    ? visibleRows.filter((row) => row.Application_Status === 'Pending')
-    : visibleRows;
+    ? combined.filter((row) => row.Application_Status === 'Pending')
+    : combined;
 }
 
 function mapMeterReadingRecord(reading, consumerMap = new Map()) {
@@ -3607,6 +3605,7 @@ app.get('/api/applications/pending', async (req, res) => {
             ct.application_date AS "Application_Date",
             ct.connection_type AS "Connection_Type",
             ct.requirements_submitted AS "Requirements_Submitted",
+            ct.remarks AS "Remarks",
             a.account_id AS "Account_ID",
             a.username AS "Username",
             a.account_status AS "Account_Status",
@@ -3641,6 +3640,7 @@ app.get('/api/applications/pending', async (req, res) => {
             COALESCE(c.connection_date, a.created_at) AS "Application_Date",
             'Added by Staff' AS "Connection_Type",
             NULL::text AS "Requirements_Submitted",
+            NULL::text AS "Remarks",
             a.account_id AS "Account_ID",
             a.username AS "Username",
             a.account_status AS "Account_Status",
@@ -3695,6 +3695,7 @@ app.get('/api/applications', async (req, res) => {
             ct.application_date AS "Application_Date",
             ct.connection_type AS "Connection_Type",
             ct.requirements_submitted AS "Requirements_Submitted",
+            ct.remarks AS "Remarks",
             a.account_id AS "Account_ID",
             a.username AS "Username",
             a.account_status AS "Account_Status",
@@ -3717,8 +3718,6 @@ app.get('/api/applications', async (req, res) => {
           LEFT JOIN consumer c ON c.consumer_id = ct.consumer_id
           LEFT JOIN zone z ON z.zone_id = c.zone_id
           LEFT JOIN classification cl ON cl.classification_id = c.classification_id
-          WHERE LOWER(COALESCE(ct.status, '')) <> 'rejected'
-            AND LOWER(COALESCE(a.account_status, '')) <> 'rejected'
           ORDER BY ct.application_date DESC NULLS LAST, ct.ticket_id DESC
         `);
         const { rows: orphanRows } = await pool.query(`
@@ -3729,6 +3728,7 @@ app.get('/api/applications', async (req, res) => {
             COALESCE(c.connection_date, a.created_at) AS "Application_Date",
             'Added by Staff' AS "Connection_Type",
             NULL::text AS "Requirements_Submitted",
+            NULL::text AS "Remarks",
             a.account_id AS "Account_ID",
             a.username AS "Username",
             a.account_status AS "Account_Status",
@@ -4063,13 +4063,17 @@ app.post('/api/admin/approve-user', async (req, res) => {
   }
 });
 
-// Reject Pending Account (Delete)
+// Reject Pending Account
 app.post('/api/admin/reject-user', async (req, res) => {
   const { accountId, approvedBy, remarks } = req.body;
   const approverId = Number(approvedBy);
+  const normalizedRemarks = String(remarks || '').trim();
   try {
     if (!accountId || !Number.isInteger(approverId) || approverId <= 0) {
       return res.status(400).json({ success: false, message: 'Approver information is required.' });
+    }
+    if (!normalizedRemarks) {
+      return res.status(400).json({ success: false, message: 'A rejection reason is required.' });
     }
 
     await withPostgresPrimary(
@@ -4078,10 +4082,84 @@ app.post('/api/admin/reject-user', async (req, res) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
-          await client.query('DELETE FROM connection_ticket WHERE account_id = $1', [accountId]);
-          await client.query('DELETE FROM account_review_log WHERE account_id = $1', [accountId]);
-          await client.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
-          await client.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
+          const { rows: accountRows } = await client.query(
+            'SELECT account_id, created_at FROM accounts WHERE account_id = $1 LIMIT 1',
+            [accountId]
+          );
+          if (!accountRows[0]) {
+            throw createHttpError(404, 'Account not found.');
+          }
+
+          const { rows: consumerRows } = await client.query(
+            `SELECT consumer_id, account_number, connection_date
+             FROM consumer
+             WHERE login_id = $1
+             ORDER BY consumer_id DESC
+             LIMIT 1`,
+            [accountId]
+          );
+          const consumer = consumerRows[0] || null;
+
+          await client.query(
+            'UPDATE accounts SET account_status = $1 WHERE account_id = $2',
+            ['Rejected', accountId]
+          );
+          await client.query(
+            'UPDATE consumer SET status = $1 WHERE login_id = $2',
+            ['Rejected', accountId]
+          );
+
+          const { rows: ticketRows } = await client.query(
+            `SELECT ticket_id, ticket_number
+             FROM connection_ticket
+             WHERE account_id = $1
+             ORDER BY ticket_id DESC
+             LIMIT 1`,
+            [accountId]
+          );
+          const existingTicket = ticketRows[0] || null;
+
+          if (existingTicket) {
+            await client.query(
+              `UPDATE connection_ticket
+               SET status = $1,
+                   remarks = $2
+               WHERE account_id = $3`,
+              ['Rejected', normalizedRemarks, accountId]
+            );
+          } else if (consumer) {
+            const fallbackTicketNumber = consumer.account_number || `PENDING-STAFF-${consumer.consumer_id}`;
+            const applicationDate = consumer.connection_date || accountRows[0].created_at || new Date().toISOString();
+            await client.query(
+              `INSERT INTO connection_ticket (
+                consumer_id,
+                account_id,
+                ticket_number,
+                application_date,
+                connection_type,
+                requirements_submitted,
+                status,
+                remarks
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+              [
+                consumer.consumer_id,
+                accountId,
+                fallbackTicketNumber,
+                applicationDate,
+                'Added by Staff',
+                null,
+                'Rejected',
+                normalizedRemarks,
+              ]
+            );
+          }
+
+          await client.query(
+            `INSERT INTO account_review_log (account_id, reviewed_by, review_status, review_date, remarks)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [accountId, approverId, 'Rejected', new Date().toISOString(), normalizedRemarks]
+          );
           await client.query('COMMIT');
         } catch (error) {
           await client.query('ROLLBACK');
@@ -4091,29 +4169,165 @@ app.post('/api/admin/reject-user', async (req, res) => {
         }
 
         if (supabase) {
-          const { error: mirroredTicketError } = await supabase.from('connection_ticket').delete().eq('account_id', accountId);
-          if (mirroredTicketError) throw mirroredTicketError;
-          const { error: mirroredApprovalError } = await supabase.from('account_review_log').delete().eq('account_id', accountId);
-          if (mirroredApprovalError) throw mirroredApprovalError;
-          const { error: mirroredConsumerError } = await supabase.from('consumer').delete().eq('login_id', accountId);
-          if (mirroredConsumerError) throw mirroredConsumerError;
-          const { error: mirroredAccountError } = await supabase.from('accounts').delete().eq('account_id', accountId);
+          const { data: mirroredConsumer, error: mirroredConsumerLookupError } = await supabase
+            .from('consumer')
+            .select('consumer_id, account_number, connection_date')
+            .eq('login_id', accountId)
+            .order('consumer_id', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (mirroredConsumerLookupError) throw mirroredConsumerLookupError;
+
+          const { data: mirroredAccount, error: mirroredAccountLookupError } = await supabase
+            .from('accounts')
+            .select('account_id, created_at')
+            .eq('account_id', accountId)
+            .maybeSingle();
+          if (mirroredAccountLookupError) throw mirroredAccountLookupError;
+          if (!mirroredAccount) {
+            throw createHttpError(404, 'Account not found.');
+          }
+
+          const { error: mirroredAccountError } = await supabase
+            .from('accounts')
+            .update({ account_status: 'Rejected' })
+            .eq('account_id', accountId);
           if (mirroredAccountError) throw mirroredAccountError;
+
+          const { error: mirroredConsumerError } = await supabase
+            .from('consumer')
+            .update({ status: 'Rejected' })
+            .eq('login_id', accountId);
+          if (mirroredConsumerError) throw mirroredConsumerError;
+
+          const { data: mirroredTicket, error: mirroredTicketLookupError } = await supabase
+            .from('connection_ticket')
+            .select('ticket_id')
+            .eq('account_id', accountId)
+            .order('ticket_id', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (mirroredTicketLookupError) throw mirroredTicketLookupError;
+
+          if (mirroredTicket) {
+            const { error: mirroredTicketError } = await supabase
+              .from('connection_ticket')
+              .update({ status: 'Rejected', remarks: normalizedRemarks })
+              .eq('account_id', accountId);
+            if (mirroredTicketError) throw mirroredTicketError;
+          } else if (mirroredConsumer) {
+            const fallbackTicketNumber = mirroredConsumer.account_number || `PENDING-STAFF-${mirroredConsumer.consumer_id}`;
+            const applicationDate = mirroredConsumer.connection_date || mirroredAccount.created_at || new Date().toISOString();
+            await insertSupabaseRowWithPrimaryKeyRetry(
+              'connection_ticket',
+              'ticket_id',
+              {
+                consumer_id: mirroredConsumer.consumer_id,
+                account_id: accountId,
+                ticket_number: fallbackTicketNumber,
+                application_date: applicationDate,
+                connection_type: 'Added by Staff',
+                requirements_submitted: null,
+                status: 'Rejected',
+                remarks: normalizedRemarks,
+              },
+              'ticket_id'
+            );
+          }
+
+          const { error: mirroredApprovalError } = await supabase
+            .from('account_review_log')
+            .insert([{
+              account_id: accountId,
+              reviewed_by: approverId,
+              review_status: 'Rejected',
+              review_date: new Date().toISOString(),
+              remarks: normalizedRemarks,
+            }]);
+          if (mirroredApprovalError) throw mirroredApprovalError;
         }
       },
       async () => {
-        const { error: ticketError } = await supabase.from('connection_ticket').delete().eq('account_id', accountId);
-        if (ticketError) throw ticketError;
-        const { error: approvalError } = await supabase.from('account_review_log').delete().eq('account_id', accountId);
-        if (approvalError) throw approvalError;
-        const { error: consumerError } = await supabase.from('consumer').delete().eq('login_id', accountId);
-        if (consumerError) throw consumerError;
-        const { error: accountError } = await supabase.from('accounts').delete().eq('account_id', accountId);
+        const { data: mirroredConsumer, error: mirroredConsumerLookupError } = await supabase
+          .from('consumer')
+          .select('consumer_id, account_number, connection_date')
+          .eq('login_id', accountId)
+          .order('consumer_id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (mirroredConsumerLookupError) throw mirroredConsumerLookupError;
+
+        const { data: mirroredAccount, error: mirroredAccountLookupError } = await supabase
+          .from('accounts')
+          .select('account_id, created_at')
+          .eq('account_id', accountId)
+          .maybeSingle();
+        if (mirroredAccountLookupError) throw mirroredAccountLookupError;
+        if (!mirroredAccount) {
+          throw createHttpError(404, 'Account not found.');
+        }
+
+        const { error: accountError } = await supabase
+          .from('accounts')
+          .update({ account_status: 'Rejected' })
+          .eq('account_id', accountId);
         if (accountError) throw accountError;
+
+        const { error: consumerError } = await supabase
+          .from('consumer')
+          .update({ status: 'Rejected' })
+          .eq('login_id', accountId);
+        if (consumerError) throw consumerError;
+
+        const { data: mirroredTicket, error: mirroredTicketLookupError } = await supabase
+          .from('connection_ticket')
+          .select('ticket_id')
+          .eq('account_id', accountId)
+          .order('ticket_id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (mirroredTicketLookupError) throw mirroredTicketLookupError;
+
+        if (mirroredTicket) {
+          const { error: ticketError } = await supabase
+            .from('connection_ticket')
+            .update({ status: 'Rejected', remarks: normalizedRemarks })
+            .eq('account_id', accountId);
+          if (ticketError) throw ticketError;
+        } else if (mirroredConsumer) {
+          const fallbackTicketNumber = mirroredConsumer.account_number || `PENDING-STAFF-${mirroredConsumer.consumer_id}`;
+          const applicationDate = mirroredConsumer.connection_date || mirroredAccount.created_at || new Date().toISOString();
+          await insertSupabaseRowWithPrimaryKeyRetry(
+            'connection_ticket',
+            'ticket_id',
+            {
+              consumer_id: mirroredConsumer.consumer_id,
+              account_id: accountId,
+              ticket_number: fallbackTicketNumber,
+              application_date: applicationDate,
+              connection_type: 'Added by Staff',
+              requirements_submitted: null,
+              status: 'Rejected',
+              remarks: normalizedRemarks,
+            },
+            'ticket_id'
+          );
+        }
+
+        const { error: approvalError } = await supabase
+          .from('account_review_log')
+          .insert([{
+            account_id: accountId,
+            reviewed_by: approverId,
+            review_status: 'Rejected',
+            review_date: new Date().toISOString(),
+            remarks: normalizedRemarks,
+          }]);
+        if (approvalError) throw approvalError;
       }
     );
     scheduleImmediateSync('admin-reject-user');
-    return res.json({ success: true, message: 'Application rejected and deleted successfully' });
+    return res.json({ success: true, message: 'Application rejected successfully.' });
   } catch (error) {
     await logRequestError(req, 'users.reject', error);
     console.error('Rejection error:', error);

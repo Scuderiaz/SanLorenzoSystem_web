@@ -157,8 +157,7 @@ const loadOfflineSnapshot = async <T>(datasetKey: string | undefined): Promise<T
 };
 
 const buildConsumerName = (...parts: Array<unknown>) => parts.filter(Boolean).map(String).join(' ').replace(/\s+/g, ' ').trim();
-const isDeletedApplicationRecord = (row: Record<string, any> | null | undefined) =>
-  normalizeStatus(row?.Application_Status) === 'rejected' || normalizeStatus(row?.Account_Status) === 'rejected';
+const isDeletedApplicationRecord = (_row: Record<string, any> | null | undefined) => false;
 
 const normalizeStatus = (value: unknown) => String(value || '').trim().toLowerCase();
 
@@ -493,7 +492,7 @@ const loadApplicationsFromSupabase = async () => {
     { data: zones, error: zoneError },
     { data: classifications, error: classificationError },
   ] = await Promise.all([
-    supabase!.from('connection_ticket').select('ticket_id, ticket_number, status, application_date, connection_type, requirements_submitted, account_id, consumer_id').order('application_date', { ascending: false }),
+    supabase!.from('connection_ticket').select('ticket_id, ticket_number, status, application_date, connection_type, requirements_submitted, remarks, account_id, consumer_id').order('application_date', { ascending: false }),
     supabase!.from('accounts').select('account_id, username, account_status, created_at'),
     supabase!.from('consumer').select('consumer_id, first_name, middle_name, last_name, contact_number, address, purok, barangay, municipality, zip_code, account_number, status, zone_id, classification_id, login_id, connection_date'),
     supabase!.from('zone').select('zone_id, zone_name'),
@@ -523,6 +522,7 @@ const loadApplicationsFromSupabase = async () => {
       Application_Date: ticket.application_date,
       Connection_Type: ticket.connection_type,
       Requirements_Submitted: ticket.requirements_submitted,
+      Remarks: ticket.remarks || null,
       Account_ID: account?.account_id ?? ticket.account_id,
       Username: account?.username ?? null,
       Account_Status: account?.account_status ?? null,
@@ -563,6 +563,7 @@ const loadApplicationsFromSupabase = async () => {
         Application_Date: consumer.connection_date || account?.created_at || null,
         Connection_Type: 'Added by Staff',
         Requirements_Submitted: null,
+        Remarks: null,
         Account_ID: account?.account_id ?? consumer.login_id,
         Username: account?.username ?? null,
         Account_Status: account?.account_status ?? consumer.status ?? 'Pending',

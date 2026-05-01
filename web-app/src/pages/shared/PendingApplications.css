@@ -272,6 +272,61 @@
   color: #b91c1c;
 }
 
+.pending-app-rejection-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid #fecaca;
+  background: linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%);
+  color: #991b1b;
+}
+
+.pending-app-rejection-note i {
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.pending-app-rejection-note strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.pending-app-rejection-note p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.pending-app-meta-row-remarks {
+  grid-column: 1 / -1;
+}
+
+.pending-app-reject-form {
+  margin-top: 16px;
+}
+
+.pending-app-reject-label {
+  display: inline-flex;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f1d1d;
+}
+
+.pending-app-reject-textarea {
+  min-height: 120px;
+}
+
+.pending-app-reject-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
 .pending-app-panels {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

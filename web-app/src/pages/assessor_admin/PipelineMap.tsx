@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useReducer } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import './PipelineMap.css';
 
@@ -67,11 +67,10 @@ const PipelineMap: React.FC = () => {
   const [mode, setMode]             = useState<Mode>('grab');
   const [status, setStatus]         = useState('Select a tool from the toolbar to begin.');
   const [activeZone, setActiveZone] = useState('All');
-  const [tick, setTick]             = useState(0);
   const [showConsumerModal, setShowConsumerModal] = useState(false);
   const [selectedConsumerType, setSelectedConsumerType] = useState<ConsumerType>('Residential');
 
-  const forceUpdate = () => setTick(t => t + 1);
+  const [, forceUpdate] = useReducer((value: number) => value + 1, 0);
 
   // ── Change mode ──────────────────────────────────────────────────────────
   const changeMode = useCallback((m: Mode) => {
