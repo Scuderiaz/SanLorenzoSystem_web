@@ -1044,6 +1044,7 @@ export const loadUnifiedUsersWithFallback = async () => requestWithSupabaseFallb
       AccountID: account.account_id,
       Username: account.username,
       Full_Name: account.full_name || account.username || 'N/A',
+      Contact_Number: account.contact_number || null,
       Role_ID: account.role_id,
       Role_Name: roleMap.get(account.role_id) || null,
       Status: account.account_status,
@@ -1054,6 +1055,35 @@ export const loadUnifiedUsersWithFallback = async () => requestWithSupabaseFallb
   (payload) => payload?.data || [],
   'Failed to load users.',
   'dataset.unifiedUsers'
+);
+
+export const loadStaffUsersWithFallback = async () => requestWithSupabaseFallback(
+  '/users/staff',
+  async () => {
+    const [{ data: accounts, error: accountError }, { data: roles, error: roleError }] = await Promise.all([
+      supabase!.from('accounts').select('*').in('role_id', [1, 2, 3, 4]).order('account_id', { ascending: false }),
+      supabase!.from('roles').select('role_id, role_name'),
+    ]);
+
+    if (accountError) throw accountError;
+    if (roleError) throw roleError;
+
+    const roleMap = new Map((roles || []).map((role) => [role.role_id, role.role_name]));
+    return (accounts || []).map((account) => ({
+      AccountID: account.account_id,
+      Username: account.username,
+      Full_Name: account.full_name || account.username || 'N/A',
+      Contact_Number: account.contact_number || null,
+      Role_ID: account.role_id,
+      Role_Name: roleMap.get(account.role_id) || null,
+      Status: account.account_status,
+      Created_At: account.created_at || null,
+      Profile_Picture_URL: account.profile_picture_url || null,
+    }));
+  },
+  (payload) => payload?.data || [],
+  'Failed to load staff users.',
+  'dataset.staffUsers'
 );
 
 export const loadApplicationsWithFallback = async () => requestWithSupabaseFallback(

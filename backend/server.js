@@ -112,7 +112,7 @@ const syncTableColumns = {
   zone: ['zone_id', 'zone_name'],
   classification: ['classification_id', 'classification_name'],
   admin_settings: ['settings_id', 'system_name', 'currency', 'due_date_days', 'late_fee', 'modified_by', 'modified_date'],
-  accounts: ['account_id', 'username', 'password', 'full_name', 'email', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
+  accounts: ['account_id', 'username', 'password', 'full_name', 'email', 'contact_number', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
   consumer: [
     'consumer_id',
     'first_name',
@@ -2612,7 +2612,37 @@ async function initDb() {
   await ensureTableColumn('accounts', 'profile_picture_url', 'TEXT');
   await ensureTableColumn('accounts', 'full_name', 'TEXT');
   await ensureTableColumn('accounts', 'email', 'VARCHAR(255)');
+  await ensureTableColumn('accounts', 'contact_number', 'VARCHAR(20)');
   await ensureTableColumn('waterrates', 'classification_id', 'INTEGER');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS zone_coverage_config (
+      config_id SERIAL PRIMARY KEY,
+      zone_id INTEGER NOT NULL REFERENCES zone(zone_id) ON UPDATE CASCADE ON DELETE CASCADE,
+      barangay VARCHAR(120) NOT NULL,
+      purok_count INTEGER NOT NULL DEFAULT 0,
+      is_split BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      CONSTRAINT zone_coverage_config_unique UNIQUE (zone_id, barangay)
+    );
+    CREATE INDEX IF NOT EXISTS idx_zone_coverage_config_zone_id ON zone_coverage_config(zone_id);
+    CREATE INDEX IF NOT EXISTS idx_zone_coverage_config_barangay ON zone_coverage_config(barangay);
+  `);
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION set_zone_coverage_config_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+  await pool.query(`
+    DROP TRIGGER IF EXISTS trg_zone_coverage_config_updated_at ON zone_coverage_config;
+    CREATE TRIGGER trg_zone_coverage_config_updated_at
+    BEFORE UPDATE ON zone_coverage_config
+    FOR EACH ROW EXECUTE FUNCTION set_zone_coverage_config_updated_at();
+  `);
   await pool.query(`
     DO $$
     BEGIN
@@ -3392,7 +3422,7 @@ app.get('/api/users/type/:type', async (req, res) => {
       async () => {
         const { rows } = await pool.query(`
           SELECT a.account_id AS "AccountID", a.username AS "Username", a.password AS "Password", 
-                 COALESCE(NULLIF(a.full_name, ''), a.username) AS "Full_Name", a.role_id AS "Role_ID", a.account_status AS "Status", a.profile_picture_url AS "Profile_Picture_URL", r.role_name AS "Role_Name"
+                 COALESCE(NULLIF(a.full_name, ''), a.username) AS "Full_Name", a.contact_number AS "Contact_Number", a.role_id AS "Role_ID", a.account_status AS "Status", a.profile_picture_url AS "Profile_Picture_URL", r.role_name AS "Role_Name"
           FROM accounts a
           JOIN roles r ON a.role_id = r.role_id
           WHERE a.role_id = ANY($1)
@@ -3413,6 +3443,7 @@ app.get('/api/users/type/:type', async (req, res) => {
             Username: u.username,
             Password: u.password,
             Full_Name: u.full_name || u.username || 'N/A',
+            Contact_Number: u.contact_number || null,
             Role_ID: u.role_id,
             Status: u.account_status,
             Profile_Picture_URL: u.profile_picture_url || null,
@@ -3438,7 +3469,7 @@ app.get('/api/users/staff', async (req, res) => {
       async () => {
         const { rows } = await pool.query(`
           SELECT a.account_id AS "AccountID", a.username AS "Username", 
-                 COALESCE(NULLIF(a.full_name, ''), a.username) AS "Full_Name", a.role_id AS "Role_ID", a.profile_picture_url AS "Profile_Picture_URL",
+                 COALESCE(NULLIF(a.full_name, ''), a.username) AS "Full_Name", a.contact_number AS "Contact_Number", a.role_id AS "Role_ID", a.profile_picture_url AS "Profile_Picture_URL",
                  a.account_status AS "Status", a.created_at AS "Created_At", r.role_name AS "Role_Name"
           FROM accounts a
           LEFT JOIN roles r ON a.role_id = r.role_id
@@ -3461,6 +3492,7 @@ app.get('/api/users/staff', async (req, res) => {
             AccountID: u.account_id,
             Username: u.username,
             Full_Name: u.full_name || u.username || 'N/A',
+            Contact_Number: u.contact_number || null,
             Role_ID: u.role_id,
             Status: u.account_status,
             Created_At: u.created_at || null,
@@ -4087,7 +4119,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
             [accountId]
           );
           if (!accountRows[0]) {
-            throw createHttpError(404, 'Account not found.');
+            throw createHttpError('Account not found.', 404);
           }
 
           const { rows: consumerRows } = await client.query(
@@ -4185,7 +4217,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
             .maybeSingle();
           if (mirroredAccountLookupError) throw mirroredAccountLookupError;
           if (!mirroredAccount) {
-            throw createHttpError(404, 'Account not found.');
+            throw createHttpError('Account not found.', 404);
           }
 
           const { error: mirroredAccountError } = await supabase
@@ -4264,7 +4296,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
           .maybeSingle();
         if (mirroredAccountLookupError) throw mirroredAccountLookupError;
         if (!mirroredAccount) {
-          throw createHttpError(404, 'Account not found.');
+          throw createHttpError('Account not found.', 404);
         }
 
         const { error: accountError } = await supabase
@@ -4337,7 +4369,7 @@ app.post('/api/admin/reject-user', async (req, res) => {
 
 // Create user
 app.post('/api/users', async (req, res) => {
-  const { username, fullName, password, roleId } = req.body;
+  const { username, fullName, password, roleId, contactNumber, contact_number } = req.body;
   
   if (!username || !password || !roleId) {
     return res.status(400).json({ success: false, message: 'Username, password, and role are required' });
@@ -4346,8 +4378,12 @@ app.post('/api/users', async (req, res) => {
   try {
     const passwordHash = hashPassword(password);
     const numericRoleId = Number(roleId);
+    const normalizedContactNumber = normalizePhilippinePhoneNumber(contactNumber || contact_number);
     if (!Number.isInteger(numericRoleId) || numericRoleId <= 0) {
       return res.status(400).json({ success: false, message: 'A valid role is required.' });
+    }
+    if ((contactNumber || contact_number) && !normalizedContactNumber) {
+      return res.status(400).json({ success: false, message: 'Contact number must be a valid Philippine mobile number.' });
     }
 
     const isConsumerRole = numericRoleId === 5;
@@ -4368,8 +4404,8 @@ app.post('/api/users', async (req, res) => {
           ]);
 
           const { rows } = await client.query(
-            'INSERT INTO accounts (username, password, full_name, role_id, account_status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [username, passwordHash, normalizedFullName, numericRoleId, initialAccountStatus]
+            'INSERT INTO accounts (username, password, full_name, contact_number, role_id, account_status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [username, passwordHash, normalizedFullName, normalizedContactNumber, numericRoleId, initialAccountStatus]
           );
           const createdUser = rows[0];
 
@@ -4405,7 +4441,7 @@ app.post('/api/users', async (req, res) => {
       async () => {
         const { data, error } = await supabase
           .from('accounts')
-          .insert([{ username, password: passwordHash, full_name: normalizedFullName, role_id: numericRoleId, account_status: initialAccountStatus }])
+          .insert([{ username, password: passwordHash, full_name: normalizedFullName, contact_number: normalizedContactNumber, role_id: numericRoleId, account_status: initialAccountStatus }])
           .select()
           .single();
         if (error) throw error;
@@ -4458,7 +4494,7 @@ app.post('/api/users', async (req, res) => {
 // Update user
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { username, fullName, password, roleId } = req.body;
+  const { username, fullName, password, roleId, contactNumber, contact_number } = req.body;
   
   try {
     const accountId = Number(id);
@@ -4475,6 +4511,10 @@ app.put('/api/users/:id', async (req, res) => {
     const normalizedFullName = String(fullName || '').trim() || username;
     const { firstName, lastName } = splitConsumerName(fullName, username);
     const passwordHash = password ? hashPassword(password) : null;
+    const normalizedContactNumber = normalizePhilippinePhoneNumber(contactNumber || contact_number);
+    if ((contactNumber || contact_number) && !normalizedContactNumber) {
+      return res.status(400).json({ success: false, message: 'Contact number must be a valid Philippine mobile number.' });
+    }
 
     await withPostgresPrimary(
       'users.update',
@@ -4483,11 +4523,11 @@ app.put('/api/users/:id', async (req, res) => {
         try {
           await client.query('BEGIN');
 
-          let query = 'UPDATE accounts SET username = $1, full_name = $2, role_id = $3';
-          const params = [username, normalizedFullName, numericRoleId];
+          let query = 'UPDATE accounts SET username = $1, full_name = $2, contact_number = $3, role_id = $4';
+          const params = [username, normalizedFullName, normalizedContactNumber, numericRoleId];
           
           if (password) {
-            query += ', password = $4';
+            query += ', password = $5';
             params.push(passwordHash);
           }
 
@@ -4549,7 +4589,7 @@ app.put('/api/users/:id', async (req, res) => {
         }
       },
       async () => {
-        const payload = { username, full_name: normalizedFullName, role_id: numericRoleId };
+        const payload = { username, full_name: normalizedFullName, contact_number: normalizedContactNumber, role_id: numericRoleId };
         if (password) {
           payload.password = passwordHash;
         }
@@ -5081,6 +5121,128 @@ app.get('/api/water-rates', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'waterRates.fetchAll', error);
     console.error('Error fetching water rates:', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/zone-coverage-config', async (req, res) => {
+  try {
+    const rows = await withPostgresPrimary(
+      'zoneCoverageConfig.fetch',
+      async () => {
+        const { rows } = await pool.query(`
+          SELECT
+            zcc.config_id AS "Config_ID",
+            zcc.zone_id AS "Zone_ID",
+            z.zone_name AS "Zone_Name",
+            zcc.barangay AS "Barangay",
+            zcc.purok_count AS "Purok_Count",
+            zcc.is_split AS "Is_Split"
+          FROM zone_coverage_config zcc
+          JOIN zone z ON z.zone_id = zcc.zone_id
+          ORDER BY zcc.zone_id ASC, zcc.barangay ASC
+        `);
+        return rows;
+      },
+      async () => {
+        const [configResult, zoneResult] = await Promise.all([
+          supabase.from('zone_coverage_config').select('config_id, zone_id, barangay, purok_count, is_split'),
+          supabase.from('zone').select('zone_id, zone_name'),
+        ]);
+        if (configResult.error) {
+          if (configResult.error.code === '42P01') return [];
+          throw configResult.error;
+        }
+        if (zoneResult.error) throw zoneResult.error;
+        const zoneMap = new Map((zoneResult.data || []).map((zone) => [zone.zone_id, zone.zone_name]));
+        return (configResult.data || []).map((row) => ({
+          Config_ID: row.config_id,
+          Zone_ID: row.zone_id,
+          Zone_Name: zoneMap.get(row.zone_id) || null,
+          Barangay: row.barangay,
+          Purok_Count: Number(row.purok_count || 0),
+          Is_Split: Boolean(row.is_split),
+        }));
+      }
+    );
+    return res.json({ success: true, data: rows });
+  } catch (error) {
+    await logRequestError(req, 'zoneCoverageConfig.fetch', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/zone-coverage-config', async (req, res) => {
+  const zoneId = normalizeRequiredForeignKeyId(req.body?.zone_id || req.body?.zoneId);
+  const barangay = String(req.body?.barangay || '').trim();
+  const purokCount = Number(req.body?.purok_count ?? req.body?.purokCount ?? 0);
+  const isSplit = Boolean(req.body?.is_split ?? req.body?.isSplit);
+  if (!zoneId) return res.status(400).json({ success: false, message: 'A valid zone is required.' });
+  if (!barangay) return res.status(400).json({ success: false, message: 'Barangay is required.' });
+  if (!Number.isInteger(purokCount) || purokCount < 0) {
+    return res.status(400).json({ success: false, message: 'Purok count must be a non-negative integer.' });
+  }
+
+  try {
+    const row = await withPostgresPrimary(
+      'zoneCoverageConfig.upsert',
+      async () => {
+        const { rows } = await pool.query(`
+          INSERT INTO zone_coverage_config (zone_id, barangay, purok_count, is_split)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (zone_id, barangay) DO UPDATE
+          SET purok_count = EXCLUDED.purok_count,
+              is_split = EXCLUDED.is_split,
+              updated_at = NOW()
+          RETURNING
+            config_id AS "Config_ID",
+            zone_id AS "Zone_ID",
+            barangay AS "Barangay",
+            purok_count AS "Purok_Count",
+            is_split AS "Is_Split"
+        `, [zoneId, barangay, purokCount, isSplit]);
+        return rows[0];
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('zone_coverage_config')
+          .upsert([{ zone_id: zoneId, barangay: barangay, purok_count: purokCount, is_split: isSplit }], { onConflict: 'zone_id,barangay' })
+          .select('config_id, zone_id, barangay, purok_count, is_split')
+          .single();
+        if (error) throw error;
+        return {
+          Config_ID: data.config_id,
+          Zone_ID: data.zone_id,
+          Barangay: data.barangay,
+          Purok_Count: Number(data.purok_count || 0),
+          Is_Split: Boolean(data.is_split),
+        };
+      }
+    );
+    return res.json({ success: true, data: row });
+  } catch (error) {
+    await logRequestError(req, 'zoneCoverageConfig.upsert', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/zone-coverage-config/:id', async (req, res) => {
+  const id = normalizeRequiredForeignKeyId(req.params.id);
+  if (!id) return res.status(400).json({ success: false, message: 'A valid config ID is required.' });
+  try {
+    await withPostgresPrimary(
+      'zoneCoverageConfig.delete',
+      async () => {
+        await pool.query('DELETE FROM zone_coverage_config WHERE config_id = $1', [id]);
+      },
+      async () => {
+        const { error } = await supabase.from('zone_coverage_config').delete().eq('config_id', id);
+        if (error && error.code !== '42P01') throw error;
+      }
+    );
+    return res.json({ success: true });
+  } catch (error) {
+    await logRequestError(req, 'zoneCoverageConfig.delete', error);
     return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
@@ -6895,6 +7057,12 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
 app.post('/api/consumer/apply', async (req, res) => {
   const { accountId, firstName, middleName, lastName, phone, purok, barangay, municipality, zipCode, classificationId, connectionType, sedulaImage } = req.body;
   if (!accountId) return res.status(400).json({ success: false, message: 'Account ID is required.' });
+  const normalizedClassificationId = classificationId === null || classificationId === undefined || classificationId === ''
+    ? null
+    : normalizeRequiredForeignKeyId(classificationId);
+  if (classificationId !== null && classificationId !== undefined && classificationId !== '' && !normalizedClassificationId) {
+    return res.status(400).json({ success: false, message: 'Classification must be a valid ID.' });
+  }
   let normalizedPhone = null;
   if (phone) {
     normalizedPhone = normalizePhilippinePhoneNumber(phone);
@@ -6906,6 +7074,9 @@ app.post('/api/consumer/apply', async (req, res) => {
     catch (error) { return res.status(400).json({ success: false, message: error.message }); }
   }
   try {
+    if (normalizedClassificationId) {
+      await validateClassificationExists(normalizedClassificationId);
+    }
     const existingTicket = await withPostgresPrimary(
       'consumer.apply.check',
       async () => { const { rows } = await pool.query("SELECT ticket_id, ticket_number FROM connection_ticket WHERE account_id = $1 AND status IN ('Pending','Active') LIMIT 1", [accountId]); return rows[0] || null; },
@@ -6921,8 +7092,22 @@ app.post('/api/consumer/apply', async (req, res) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
-          await client.query('UPDATE consumer SET first_name=COALESCE(NULLIF($1,$0::text),first_name),middle_name=COALESCE(NULLIF($2,$0::text),middle_name),last_name=COALESCE(NULLIF($3,$0::text),last_name),contact_number=COALESCE($4,contact_number),purok=COALESCE(NULLIF($5,$0::text),purok),barangay=COALESCE(NULLIF($6,$0::text),barangay),municipality=COALESCE(NULLIF($7,$0::text),municipality),zip_code=COALESCE(NULLIF($8,$0::text),zip_code),classification_id=COALESCE($9::int,classification_id),address=COALESCE(NULLIF($10,$0::text),address),status=$$Pending$$ WHERE login_id=$11'.replace(/\$0::text/g,"''"),
-            [firstName||null,middleName||null,lastName||null,normalizedPhone,purok||null,barangay||null,municipality||null,zipCode||null,classificationId||null,address||null,accountId]);
+          await client.query(
+            `UPDATE consumer
+             SET first_name = COALESCE(NULLIF($1, ''), first_name),
+                 middle_name = COALESCE(NULLIF($2, ''), middle_name),
+                 last_name = COALESCE(NULLIF($3, ''), last_name),
+                 contact_number = COALESCE($4, contact_number),
+                 purok = COALESCE(NULLIF($5, ''), purok),
+                 barangay = COALESCE(NULLIF($6, ''), barangay),
+                 municipality = COALESCE(NULLIF($7, ''), municipality),
+                 zip_code = COALESCE(NULLIF($8, ''), zip_code),
+                 classification_id = COALESCE($9::int, classification_id),
+                 address = COALESCE(NULLIF($10, ''), address),
+                 status = 'Pending'
+             WHERE login_id = $11`,
+            [firstName || null, middleName || null, lastName || null, normalizedPhone, purok || null, barangay || null, municipality || null, zipCode || null, normalizedClassificationId || null, address || null, accountId]
+          );
           const { rows: cRows } = await client.query('SELECT consumer_id FROM consumer WHERE login_id=$1 LIMIT 1', [accountId]);
           if (!cRows[0]) throw new Error('Consumer record not found.');
           await client.query("INSERT INTO connection_ticket (consumer_id,account_id,ticket_number,connection_type,requirements_submitted,status) VALUES ($1,$2,$3,$4,$5,'Pending')",
@@ -6934,7 +7119,7 @@ app.post('/api/consumer/apply', async (req, res) => {
       async () => {
         const { data: cData } = await supabase.from('consumer').select('consumer_id').eq('login_id', accountId).maybeSingle();
         if (!cData?.consumer_id) throw new Error('Consumer record not found.');
-        await supabase.from('consumer').update({ first_name: firstName, middle_name: middleName, last_name: lastName, contact_number: normalizedPhone, purok, barangay, municipality, zip_code: zipCode, classification_id: classificationId, address, status: 'Pending' }).eq('login_id', accountId);
+        await supabase.from('consumer').update({ first_name: firstName, middle_name: middleName, last_name: lastName, contact_number: normalizedPhone, purok, barangay, municipality, zip_code: zipCode, classification_id: normalizedClassificationId, address, status: 'Pending' }).eq('login_id', accountId);
         await insertSupabaseRowWithPrimaryKeyRetry('connection_ticket', 'ticket_id', { consumer_id: cData.consumer_id, account_id: accountId, ticket_number: ticketNumber, connection_type: connectionType||'New Connection', requirements_submitted: normalizedSedula, status: 'Pending' }, 'ticket_id');
       }
     );
@@ -7602,7 +7787,7 @@ app.post('/api/register', async (req, res) => {
     address, purok, barangay, municipality, zipCode, accountNumber
   } = req.body;
   const zoneId = req.body.zoneId || 1;
-  const classificationId = req.body.classificationId ? parseInt(req.body.classificationId) : 1;
+  const classificationId = req.body.classificationId ? parseInt(req.body.classificationId, 10) : 1;
   const normalizedAccountNumber = String(accountNumber || '').trim() || generatePendingAccountNumber(zoneId);
   const normalizedPhoneNumber = normalizePhilippinePhoneNumber(phone);
   let normalizedRequirementsSubmitted = null;
@@ -7619,6 +7804,7 @@ app.post('/api/register', async (req, res) => {
   try {
     passwordHash = hashPassword(password);
     normalizedRequirementsSubmitted = normalizeRequirementSubmission(req.body.sedulaImage || req.body.requirementsSubmitted, { allowText: false });
+    await validateClassificationExists(classificationId);
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }
@@ -8986,50 +9172,163 @@ app.post('/api/admin/close-day', async (req, res) => {
   }
 });
 
+const READING_SCHEDULE_ALLOWED_STATUSES = new Set(['Scheduled', 'Cancelled']);
+
+function normalizeReadingScheduleStatus(value) {
+  const normalized = String(value || 'Scheduled').trim().toLowerCase();
+  if (normalized === 'cancelled') {
+    return 'Cancelled';
+  }
+  return 'Scheduled';
+}
+
+function normalizeReadingSchedulePayload(rawSchedule, overrideDate = null) {
+  const scheduleDate = normalizeDateInput(overrideDate || rawSchedule?.Schedule_Date || rawSchedule?.schedule_date);
+  const zoneId = normalizeRequiredForeignKeyId(rawSchedule?.Zone_ID || rawSchedule?.zone_id);
+  const meterReaderId = rawSchedule?.Meter_Reader_ID || rawSchedule?.meter_reader_id;
+  const normalizedReaderId = meterReaderId === null || meterReaderId === undefined || meterReaderId === ''
+    ? null
+    : normalizeRequiredForeignKeyId(meterReaderId);
+  const status = normalizeReadingScheduleStatus(rawSchedule?.Status || rawSchedule?.status);
+
+  if (!scheduleDate) {
+    throw createHttpError('A valid schedule date is required.', 400);
+  }
+  if (!zoneId) {
+    throw createHttpError('A valid zone is required.', 400);
+  }
+  if (meterReaderId && !normalizedReaderId) {
+    throw createHttpError('A valid meter reader is required.', 400);
+  }
+  if (!READING_SCHEDULE_ALLOWED_STATUSES.has(status)) {
+    throw createHttpError('Invalid reading schedule status.', 400);
+  }
+
+  return {
+    schedule_date: scheduleDate,
+    zone_id: zoneId,
+    meter_reader_id: normalizedReaderId,
+    status,
+  };
+}
+
+async function validateReadingScheduleReferencesPostgres(client, assignments) {
+  const zoneIds = Array.from(new Set(assignments.map((assignment) => assignment.zone_id)));
+  if (zoneIds.length > 0) {
+    const { rows: zoneRows } = await client.query(
+      'SELECT zone_id FROM zone WHERE zone_id = ANY($1::int[])',
+      [zoneIds]
+    );
+    if (zoneRows.length !== zoneIds.length) {
+      throw createHttpError('One or more selected zones are invalid.', 400);
+    }
+  }
+
+  const readerIds = Array.from(new Set(
+    assignments
+      .map((assignment) => assignment.meter_reader_id)
+      .filter((value) => Number.isInteger(value) && value > 0)
+  ));
+  if (readerIds.length > 0) {
+    const { rows: readerRows } = await client.query(
+      `SELECT account_id
+       FROM accounts
+       WHERE account_id = ANY($1::int[])
+         AND role_id = 3
+         AND LOWER(COALESCE(account_status, 'active')) = 'active'`,
+      [readerIds]
+    );
+    if (readerRows.length !== readerIds.length) {
+      throw createHttpError('One or more selected meter readers are invalid or inactive.', 400);
+    }
+  }
+}
+
+async function validateReadingScheduleReferencesSupabase(assignments) {
+  const zoneIds = Array.from(new Set(assignments.map((assignment) => assignment.zone_id)));
+  if (zoneIds.length > 0) {
+    const { data: zoneRows, error: zoneError } = await supabase.from('zone').select('zone_id').in('zone_id', zoneIds);
+    if (zoneError) throw zoneError;
+    if ((zoneRows || []).length !== zoneIds.length) {
+      throw createHttpError('One or more selected zones are invalid.', 400);
+    }
+  }
+
+  const readerIds = Array.from(new Set(
+    assignments
+      .map((assignment) => assignment.meter_reader_id)
+      .filter((value) => Number.isInteger(value) && value > 0)
+  ));
+  if (readerIds.length > 0) {
+    const { data: readerRows, error: readerError } = await supabase
+      .from('accounts')
+      .select('account_id')
+      .in('account_id', readerIds)
+      .eq('role_id', 3)
+      .eq('account_status', 'Active');
+    if (readerError) throw readerError;
+    if ((readerRows || []).length !== readerIds.length) {
+      throw createHttpError('One or more selected meter readers are invalid or inactive.', 400);
+    }
+  }
+}
+
+async function fetchReadingSchedulesPostgres() {
+  const { rows } = await pool.query(`
+    SELECT 
+      r.schedule_id AS "Schedule_ID",
+      TO_CHAR(r.schedule_date, 'YYYY-MM-DD') AS "Schedule_Date",
+      r.zone_id AS "Zone_ID",
+      z.zone_name AS "Zone_Name",
+      r.meter_reader_id AS "Meter_Reader_ID",
+      COALESCE(NULLIF(a.full_name, ''), a.username) AS "Meter_Reader_Name",
+      a.contact_number AS "Meter_Reader_Contact",
+      r.status AS "Status"
+    FROM reading_schedule r
+    LEFT JOIN zone z ON r.zone_id = z.zone_id
+    LEFT JOIN accounts a ON r.meter_reader_id = a.account_id
+    ORDER BY r.schedule_date DESC, r.zone_id ASC
+  `);
+  return rows;
+}
+
+async function fetchReadingSchedulesSupabase() {
+  const [{ data: schedules, error: scheduleError }, { data: zones, error: zoneError }, { data: accounts, error: accountError }] = await Promise.all([
+    supabase.from('reading_schedule').select('*').order('schedule_date', { ascending: false }),
+    supabase.from('zone').select('zone_id, zone_name'),
+    supabase.from('accounts').select('account_id, username, full_name, contact_number'),
+  ]);
+  if (scheduleError) {
+    if (scheduleError.code === '42P01') return [];
+    throw scheduleError;
+  }
+  if (zoneError) throw zoneError;
+  if (accountError) throw accountError;
+
+  const zoneMap = new Map((zones || []).map((zone) => [zone.zone_id, zone.zone_name]));
+  const accountMap = new Map((accounts || []).map((account) => [account.account_id, account]));
+
+  return (schedules || []).map((schedule) => {
+    const reader = schedule.meter_reader_id ? accountMap.get(schedule.meter_reader_id) : null;
+    return {
+      Schedule_ID: schedule.schedule_id,
+      Schedule_Date: schedule.schedule_date,
+      Zone_ID: schedule.zone_id,
+      Zone_Name: zoneMap.get(schedule.zone_id) || `Zone ${schedule.zone_id}`,
+      Meter_Reader_ID: schedule.meter_reader_id,
+      Meter_Reader_Name: reader ? (reader.full_name || reader.username || 'Unknown') : null,
+      Meter_Reader_Contact: reader?.contact_number || null,
+      Status: normalizeReadingScheduleStatus(schedule.status),
+    };
+  });
+}
+
 app.get('/api/reading-schedules', async (req, res) => {
   try {
     const rows = await withPostgresPrimary(
       'readingSchedules.fetch',
-      async () => {
-        const { rows } = await pool.query(`
-          SELECT 
-            r.schedule_id AS "Schedule_ID",
-            TO_CHAR(r.schedule_date, 'YYYY-MM-DD') AS "Schedule_Date",
-            r.zone_id AS "Zone_ID",
-            z."Zone_Name" AS "Zone_Name",
-            r.meter_reader_id AS "Meter_Reader_ID",
-            COALESCE(NULLIF(a.full_name, ''), a.username) AS "Meter_Reader_Name",
-            r.status AS "Status"
-          FROM reading_schedule r
-          LEFT JOIN zones z ON r.zone_id = z."Zone_ID"
-          LEFT JOIN accounts a ON r.meter_reader_id = a.account_id
-          ORDER BY r.schedule_date DESC
-        `);
-        return rows;
-      },
-      async () => {
-        const [{ data: schedules, error: scheduleError }, { data: zones, error: zoneError }, { data: accounts, error: accountError }] = await Promise.all([
-          supabase.from('reading_schedule').select('*').order('schedule_date', { ascending: false }),
-          supabase.from('zone').select('zone_id, zone_name'),
-          supabase.from('accounts').select('account_id, username, full_name')
-        ]);
-        if (scheduleError) {
-           if (scheduleError.code === '42P01') return []; // table doesn't exist yet in supabase
-           throw scheduleError;
-        }
-        const zoneMap = new Map((zones || []).map(z => [z.zone_id, z.zone_name]));
-        const accountMap = new Map((accounts || []).map(a => [a.account_id, a.full_name || a.username]));
-
-        return (schedules || []).map(s => ({
-          Schedule_ID: s.schedule_id,
-          Schedule_Date: s.schedule_date,
-          Zone_ID: s.zone_id,
-          Zone_Name: zoneMap.get(s.zone_id) || `Zone ${s.zone_id}`,
-          Meter_Reader_ID: s.meter_reader_id,
-          Meter_Reader_Name: s.meter_reader_id ? (accountMap.get(s.meter_reader_id) || 'Unknown') : null,
-          Status: s.status || 'Scheduled'
-        }));
-      }
+      async () => fetchReadingSchedulesPostgres(),
+      async () => fetchReadingSchedulesSupabase()
     );
     return res.json(rows);
   } catch (error) {
@@ -9041,27 +9340,33 @@ app.get('/api/reading-schedules', async (req, res) => {
 
 app.post('/api/reading-schedules', async (req, res) => {
   try {
-    const schedule = req.body;
-    const payload = {
-      schedule_date: schedule.Schedule_Date || schedule.schedule_date,
-      zone_id: schedule.Zone_ID || schedule.zone_id,
-      meter_reader_id: schedule.Meter_Reader_ID || schedule.meter_reader_id || null,
-      status: schedule.Status || schedule.status || 'Scheduled'
-    };
+    const payload = normalizeReadingSchedulePayload(req.body);
 
     const row = await withPostgresPrimary(
       'readingSchedules.create',
       async () => {
-        const { rows } = await pool.query(`
-          INSERT INTO reading_schedule (schedule_date, zone_id, meter_reader_id, status)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (schedule_date, zone_id) DO UPDATE 
-          SET meter_reader_id = EXCLUDED.meter_reader_id, status = EXCLUDED.status, updated_at = NOW()
-          RETURNING schedule_id AS "Schedule_ID"
-        `, [payload.schedule_date, payload.zone_id, payload.meter_reader_id, payload.status]);
-        return rows[0];
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await validateReadingScheduleReferencesPostgres(client, [payload]);
+          const { rows } = await client.query(`
+            INSERT INTO reading_schedule (schedule_date, zone_id, meter_reader_id, status)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (schedule_date, zone_id) DO UPDATE 
+            SET meter_reader_id = EXCLUDED.meter_reader_id, status = EXCLUDED.status, updated_at = NOW()
+            RETURNING schedule_id AS "Schedule_ID"
+          `, [payload.schedule_date, payload.zone_id, payload.meter_reader_id, payload.status]);
+          await client.query('COMMIT');
+          return rows[0];
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
       },
       async () => {
+        await validateReadingScheduleReferencesSupabase([payload]);
         const { data, error } = await supabase.from('reading_schedule').upsert([payload], { onConflict: 'schedule_date,zone_id' }).select('schedule_id').single();
         if (error) {
           if (error.code === '42P01') return { Schedule_ID: Date.now() }; 
@@ -9074,12 +9379,86 @@ app.post('/api/reading-schedules', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'readingSchedules.create', error);
     console.error('Error creating schedule:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/reading-schedules/bulk-upsert', async (req, res) => {
+  try {
+    const scheduleDate = normalizeDateInput(req.body?.schedule_date || req.body?.scheduleDate);
+    const assignments = Array.isArray(req.body?.assignments) ? req.body.assignments : [];
+    if (!scheduleDate) {
+      return res.status(400).json({ success: false, message: 'A valid schedule date is required.' });
+    }
+    if (!assignments.length) {
+      return res.status(400).json({ success: false, message: 'At least one assignment is required.' });
+    }
+
+    const normalizedAssignments = assignments.map((assignment) => normalizeReadingSchedulePayload(assignment, scheduleDate));
+    const duplicateZoneIds = normalizedAssignments
+      .map((assignment) => assignment.zone_id)
+      .filter((zoneId, index, values) => values.indexOf(zoneId) !== index);
+    if (duplicateZoneIds.length > 0) {
+      return res.status(400).json({ success: false, message: 'A zone can only appear once per schedule date.' });
+    }
+
+    const rows = await withPostgresPrimary(
+      'readingSchedules.bulkUpsert',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await validateReadingScheduleReferencesPostgres(client, normalizedAssignments);
+          const savedRows = [];
+          for (const assignment of normalizedAssignments) {
+            const { rows } = await client.query(`
+              INSERT INTO reading_schedule (schedule_date, zone_id, meter_reader_id, status)
+              VALUES ($1, $2, $3, $4)
+              ON CONFLICT (schedule_date, zone_id) DO UPDATE
+              SET meter_reader_id = EXCLUDED.meter_reader_id,
+                  status = EXCLUDED.status,
+                  updated_at = NOW()
+              RETURNING schedule_id AS "Schedule_ID"
+            `, [assignment.schedule_date, assignment.zone_id, assignment.meter_reader_id, assignment.status]);
+            savedRows.push(rows[0]);
+          }
+          await client.query('COMMIT');
+          return savedRows;
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        await validateReadingScheduleReferencesSupabase(normalizedAssignments);
+        const { data, error } = await supabase
+          .from('reading_schedule')
+          .upsert(normalizedAssignments, { onConflict: 'schedule_date,zone_id' })
+          .select('schedule_id');
+        if (error) {
+          if (error.code === '42P01') {
+            return normalizedAssignments.map((_, index) => ({ Schedule_ID: Date.now() + index }));
+          }
+          throw error;
+        }
+        return (data || []).map((row) => ({ Schedule_ID: row.schedule_id }));
+      }
+    );
+    return res.json({ success: true, data: rows });
+  } catch (error) {
+    await logRequestError(req, 'readingSchedules.bulkUpsert', error);
+    console.error('Error saving bulk schedules:', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
 app.delete('/api/reading-schedules/:id', async (req, res) => {
-  const { id } = req.params;
+  const id = normalizeRequiredForeignKeyId(req.params.id);
+  if (!id) {
+    return res.status(400).json({ success: false, message: 'A valid schedule ID is required.' });
+  }
   try {
     await withPostgresPrimary(
       'readingSchedules.delete',
@@ -9095,21 +9474,24 @@ app.delete('/api/reading-schedules/:id', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'readingSchedules.delete', error);
     console.error('Error deleting schedule:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
 app.put('/api/reading-schedules/:id/status', async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
+  const id = normalizeRequiredForeignKeyId(req.params.id);
+  if (!id) {
+    return res.status(400).json({ success: false, message: 'A valid schedule ID is required.' });
+  }
+  const normalizedStatus = normalizeReadingScheduleStatus(req.body?.status);
   try {
     await withPostgresPrimary(
       'readingSchedules.updateStatus',
       async () => {
-        await pool.query('UPDATE reading_schedule SET status = $1, updated_at = NOW() WHERE schedule_id = $2', [status, id]);
+        await pool.query('UPDATE reading_schedule SET status = $1, updated_at = NOW() WHERE schedule_id = $2', [normalizedStatus, id]);
       },
       async () => {
-        const { error } = await supabase.from('reading_schedule').update({ status }).eq('schedule_id', id);
+        const { error } = await supabase.from('reading_schedule').update({ status: normalizedStatus }).eq('schedule_id', id);
         if (error && error.code !== '42P01') throw error;
       }
     );
@@ -9117,7 +9499,7 @@ app.put('/api/reading-schedules/:id/status', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'readingSchedules.updateStatus', error);
     console.error('Error updating schedule status:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
@@ -9193,84 +9575,6 @@ app.get('/api/admin/sync/status', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'admin.sync.status', error);
     return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// ==========================================
-// METER READING SCHEDULES ENDPOINTS
-// ==========================================
-
-app.get('/api/reading-schedules', async (req, res) => {
-  try {
-    const query = `
-      SELECT rs.schedule_id, rs.schedule_date, rs.zone_id, z.zone_name, 
-             rs.meter_reader_id, u.full_name as meter_reader_name, rs.status
-      FROM reading_schedule rs
-      LEFT JOIN zones z ON rs.zone_id = z.zone_id
-      LEFT JOIN users u ON rs.meter_reader_id = u.account_id
-    `;
-    const result = await withPostgresPrimary(query, [], 'Failed to fetch schedules');
-    
-    // Map to PascalCase for the frontend
-    const mapped = (result || []).map(row => ({
-      Schedule_ID: row.schedule_id,
-      Schedule_Date: row.schedule_date,
-      Zone_ID: row.zone_id,
-      Zone_Name: row.zone_name,
-      Meter_Reader_ID: row.meter_reader_id,
-      Meter_Reader_Name: row.meter_reader_name,
-      Status: row.status
-    }));
-    
-    res.json(mapped);
-  } catch (error) {
-    console.error('Error fetching schedules:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-app.post('/api/reading-schedules', async (req, res) => {
-  try {
-    const { schedule_date, zone_id, meter_reader_id, status } = req.body;
-    const query = `
-      INSERT INTO reading_schedule (schedule_date, zone_id, meter_reader_id, status)
-      VALUES ($1, $2, $3, $4)
-      RETURNING schedule_id
-    `;
-    const result = await withPostgresPrimary(
-      query, 
-      [schedule_date, zone_id, meter_reader_id, status || 'Scheduled'], 
-      'Failed to create schedule'
-    );
-    res.json({ success: true, data: result[0] });
-  } catch (error) {
-    console.error('Error creating schedule:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-app.delete('/api/reading-schedules/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const query = 'DELETE FROM reading_schedule WHERE schedule_id = $1 RETURNING schedule_id';
-    const result = await withPostgresPrimary(query, [id], 'Failed to delete schedule');
-    res.json({ success: true, data: result[0] });
-  } catch (error) {
-    console.error('Error deleting schedule:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-app.put('/api/reading-schedules/:id/status', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const query = 'UPDATE reading_schedule SET status = $1 WHERE schedule_id = $2 RETURNING schedule_id';
-    const result = await withPostgresPrimary(query, [status, id], 'Failed to update schedule status');
-    res.json({ success: true, data: result[0] });
-  } catch (error) {
-    console.error('Error updating schedule status:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
