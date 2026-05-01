@@ -184,6 +184,10 @@ const LandingPage: React.FC = () => {
               <li><button onClick={() => scrollToSection('location')}>Location</button></li>
               <li><button onClick={() => scrollToSection('schedule')}>Office Hours</button></li>
               <li><button onClick={() => scrollToSection('contact')}>Contact</button></li>
+              <li className="mobile-auth">
+                <button className="btn-mobile-signup" onClick={() => { navigate('/signup'); setMobileMenuOpen(false); }}>Sign Up</button>
+                <button className="btn-mobile-login" onClick={() => { navigate('/login'); setMobileMenuOpen(false); }}>Log In</button>
+              </li>
             </ul>
           </div>
 

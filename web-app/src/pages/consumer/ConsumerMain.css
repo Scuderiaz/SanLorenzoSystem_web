@@ -1531,6 +1531,10 @@
   background: linear-gradient(135deg, #f8fafc, #ffffff);
 }
 
+.cm-application-banner {
+  margin-bottom: 22px;
+}
+
 .cm-application-banner--pending {
   border-color: rgba(245, 158, 11, 0.3);
   background: linear-gradient(135deg, #fffbeb, #ffffff);
@@ -1647,6 +1651,36 @@
   transform: translateY(-1px);
 }
 
+.cm-ticket-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cm-application-banner-print {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(100, 116, 139, 0.22);
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s, transform 0.16s, color 0.18s;
+}
+
+.cm-application-banner-print:hover {
+  background: #64748b;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
 .cm-application-banner-apply {
   flex: 0 0 auto;
   display: inline-flex;
@@ -1726,6 +1760,126 @@
   font-family: 'Courier New', monospace;
 }
 
+/* ── Account Pending Banner ───────────────────────────────────────── */
+.cm-pending-banner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 24px;
+  margin: 0 0 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fffbeb 100%);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+}
+
+.cm-pending-icon {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.cm-pending-body {
+  flex: 1;
+}
+
+.cm-pending-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #92400e;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cm-pending-message {
+  font-size: 0.95rem;
+  color: #b45309;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Dashboard Locked State ─────────────────────────────────────── */
+.cm-dashboard-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.cm-dashboard-locked {
+  pointer-events: none;
+  filter: grayscale(0.6);
+  opacity: 0.7;
+  user-select: none;
+}
+
+.cm-pending-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: auto;
+  border-radius: 16px;
+}
+
+.cm-pending-overlay-content {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border: 2px solid rgba(245, 158, 11, 0.4);
+  border-radius: 16px;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 12px 40px rgba(245, 158, 11, 0.25);
+  color: #92400e;
+}
+
+.cm-pending-overlay-content i {
+  font-size: 32px;
+  color: #f59e0b;
+}
+
+.cm-pending-overlay-content span {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.cm-pending-overlay-content small {
+  font-size: 0.85rem;
+  color: #b45309;
+  opacity: 0.9;
+}
+
+/* Disabled button state */
+.cm-report-btn:disabled,
+.cm-report-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.cm-report-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 @media (max-width: 640px) {
   .cm-application-banner {
     flex-direction: column;
@@ -1733,9 +1887,38 @@
     gap: 16px;
   }
 
+  .cm-ticket-actions {
+    width: 100%;
+    flex-direction: row;
+  }
+
   .cm-application-banner-apply,
-  .cm-application-banner-download {
+  .cm-application-banner-download,
+  .cm-application-banner-print {
     width: 100%;
     justify-content: center;
+  }
+
+  .cm-pending-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 18px 16px;
+  }
+
+  .cm-pending-overlay-content {
+    padding: 18px 24px;
+    margin: 0 16px;
+  }
+
+  .cm-pending-overlay-content span {
+    font-size: 1rem;
+  }
+
+  .cm-dashboard-content {
+    gap: 16px;
+  }
+
+  .cm-application-banner {
+    margin-bottom: 16px;
   }
 }

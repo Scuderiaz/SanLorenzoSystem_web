@@ -5,6 +5,8 @@ import { getErrorMessage, loadConsumerDashboardWithFallback } from '../../servic
 import { api } from '../../services/api';
 import Modal from '../../components/Common/Modal';
 import { getUserInitials } from '../../utils/profileImage';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import {
   Area,
   AreaChart,
@@ -489,9 +491,127 @@ const ConsumerMain: React.FC = () => {
   const handlePrintTicket = (tkt: Ticket) => {
     const printDate = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
     const applicantName = displayName || user?.username || 'Consumer';
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ticket - ${tkt.Ticket_Number}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:40px;color:#111}.ticket{border:2px solid #1B1B63;border-radius:12px;padding:32px;max-width:480px;margin:0 auto}.ticket-header{text-align:center;border-bottom:1px dashed #ccc;padding-bottom:20px;margin-bottom:20px}.ticket-logo-title{font-size:15px;font-weight:700;color:#1B1B63}.ticket-number{font-size:22px;font-weight:900;color:#1B1B63;letter-spacing:1px;margin:14px 0 4px;text-align:center}.ticket-label{font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:1px}.ticket-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}.ticket-row span{color:#555}.ticket-row strong{color:#111}.status-badge{display:inline-block;padding:4px 14px;background:#FEF3C7;color:#92400E;border-radius:99px;font-size:12px;font-weight:700;margin:10px 0}.ticket-footer{margin-top:20px;text-align:center;font-size:11px;color:#888;line-height:1.6}</style></head><body><div class="ticket"><div class="ticket-header"><div class="ticket-logo-title">San Lorenzo Ruiz Waterworks System</div><div style="font-size:12px;color:#555;margin-top:4px">Water Connection Application Receipt</div></div><div class="ticket-label">Ticket Number</div><div class="ticket-number">${tkt.Ticket_Number}</div><div style="text-align:center"><span class="status-badge">${(tkt.Status || 'PENDING').toUpperCase()}</span></div><div class="ticket-row"><span>Applicant</span><strong>${applicantName}</strong></div><div class="ticket-row"><span>Connection Type</span><strong>${tkt.Connection_Type || 'New Connection'}</strong></div><div class="ticket-row"><span>Date Applied</span><strong>${tkt.Application_Date ? formatDate(tkt.Application_Date) : printDate}</strong></div>${tkt.Approved_Date ? `<div class="ticket-row"><span>Approved On</span><strong>${formatDate(tkt.Approved_Date)}</strong></div>` : ''}${tkt.Remarks ? `<div class="ticket-row"><span>Remarks</span><strong>${tkt.Remarks}</strong></div>` : ''}<div class="ticket-footer">Please bring this ticket to the Municipal Office.<br>Present this reference number during your visit.<br><br>San Lorenzo Ruiz, Camarines Norte &mdash; Water Billing System</div></div></body></html>`;
-    const win = window.open('', '_blank', 'width=600,height=700');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ticket - ${tkt.Ticket_Number}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px;color:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}.ticket{border:2px solid #1B1B63;border-radius:12px;padding:40px;width:680px;background:white;box-sizing:border-box}.ticket-header{text-align:center;border-bottom:1px dashed #ccc;padding-bottom:20px;margin-bottom:20px}.ticket-logo-title{font-size:15px;font-weight:700;color:#1B1B63}.ticket-number{font-size:22px;font-weight:900;color:#1B1B63;letter-spacing:1px;margin:18px 0 6px;text-align:center}.ticket-label{font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:1px}.ticket-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}.ticket-row span{color:#555}.ticket-row strong{color:#111}.status-badge{display:inline-block;padding:4px 14px;background:#FEF3C7;color:#92400E;border-radius:99px;font-size:12px;font-weight:700;margin:10px 0}.charges{margin-top:16px;background:#f9f9f9;border-radius:8px;padding:14px}.charges-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:10px}.charge-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}.charge-total{font-weight:700;border-top:1px solid #ddd;margin-top:6px;padding-top:8px}.ticket-footer{margin-top:20px;text-align:center;font-size:11px;color:#888;line-height:1.6}@media print{@page{margin:10mm}body{padding:0}}</style></head><body><div class="ticket"><div class="ticket-header"><div class="ticket-logo-title">San Lorenzo Ruiz Waterworks System</div><div style="font-size:12px;color:#555;margin-top:4px">Water Connection Application Receipt</div></div><div class="ticket-label">Ticket Number</div><div class="ticket-number">${tkt.Ticket_Number}</div><div style="text-align:center;margin-bottom:20px;"><span class="status-badge">${(tkt.Status || 'PENDING').toUpperCase()}</span></div><div class="ticket-row"><span>Applicant</span><strong>${applicantName}</strong></div><div class="ticket-row"><span>Connection Type</span><strong>${tkt.Connection_Type || 'New Connection'}</strong></div><div class="ticket-row"><span>Date Applied</span><strong>${tkt.Application_Date ? formatDate(tkt.Application_Date) : printDate}</strong></div>${tkt.Approved_Date ? `<div class="ticket-row"><span>Approved On</span><strong>${formatDate(tkt.Approved_Date)}</strong></div>` : ''}<div class="ticket-row"><span>Username</span><strong>${user?.username || 'N/A'}</strong></div><div class="charges"><div class="charges-title">Registration Charges</div><div class="charge-row"><span>Connection Fee</span><span>PHP 300.00</span></div><div class="charge-row"><span>Membership Fee</span><span>PHP 50.00</span></div><div class="charge-row"><span>Meter Full Deposit</span><span>PHP 1,500.00</span></div><div class="charge-row charge-total"><span>Total Amount</span><strong>PHP 1,850.00</strong></div></div><div class="ticket-footer">Please bring this ticket to the Municipal Office.<br>Present this reference number during your visit.<br><br>San Lorenzo Ruiz, Camarines Norte — Water Billing System</div></div></body></html>`;
+    const win = window.open('', '_blank', 'width=800,height=900');
     if (win) { win.document.write(html); win.document.close(); win.focus(); setTimeout(() => win.print(), 500); }
+  };
+
+  const handleDownloadTicket = async (tkt: Ticket) => {
+    const printDate = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const applicantName = displayName || user?.username || 'Consumer';
+
+    // Create a temporary container for the ticket
+    const container = document.createElement('div');
+    container.innerHTML = `
+      <div id="ticket-pdf" style="
+        width: 680px;
+        background: white;
+        padding: 40px;
+        font-family: Arial, sans-serif;
+        color: #111;
+        border: 2px solid #1B1B63;
+        border-radius: 12px;
+        box-sizing: border-box;
+        margin: 0 auto;
+      ">
+        <div style="text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px;">
+          <div style="font-size: 15px; font-weight: 700; color: #1B1B63;">San Lorenzo Ruiz Waterworks System</div>
+          <div style="font-size: 12px; color: #555; margin-top: 4px;">Water Connection Application Receipt</div>
+        </div>
+        <div style="font-size: 11px; color: #888; text-align: center; text-transform: uppercase; letter-spacing: 1px;">Ticket Number</div>
+        <div style="font-size: 22px; font-weight: 900; color: #1B1B63; letter-spacing: 1px; margin: 18px 0 6px; text-align: center;">${tkt.Ticket_Number}</div>
+        <div style="text-align: center; margin-bottom: 20px;">
+          <span style="display: inline-block; padding: 4px 14px; background: #FEF3C7; color: #92400E; border-radius: 99px; font-size: 12px; font-weight: 700;">${(tkt.Status || 'PENDING').toUpperCase()}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px;">
+          <span style="color: #555;">Applicant</span>
+          <strong style="color: #111;">${applicantName}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px;">
+          <span style="color: #555;">Connection Type</span>
+          <strong style="color: #111;">${tkt.Connection_Type || 'New Connection'}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px;">
+          <span style="color: #555;">Date Applied</span>
+          <strong style="color: #111;">${tkt.Application_Date ? formatDate(tkt.Application_Date) : printDate}</strong>
+        </div>
+        ${tkt.Approved_Date ? `<div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px;">
+          <span style="color: #555;">Approved On</span>
+          <strong style="color: #111;">${formatDate(tkt.Approved_Date)}</strong>
+        </div>` : ''}
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px;">
+          <span style="color: #555;">Username</span>
+          <strong style="color: #111;">${user?.username || 'N/A'}</strong>
+        </div>
+        <div style="margin-top: 16px; background: #f9f9f9; border-radius: 8px; padding: 14px;">
+          <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 10px;">Registration Charges</div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0;">
+            <span style="color: #555;">Connection Fee</span>
+            <span>PHP 300.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0;">
+            <span style="color: #555;">Membership Fee</span>
+            <span>PHP 50.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0;">
+            <span style="color: #555;">Meter Full Deposit</span>
+            <span>PHP 1,500.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0 4px; margin-top: 6px; border-top: 1px solid #ddd; font-weight: 700;">
+            <span style="color: #111;">Total Amount</span>
+            <strong style="color: #111;">PHP 1,850.00</strong>
+          </div>
+        </div>
+        <div style="margin-top: 20px; text-align: center; font-size: 11px; color: #888; line-height: 1.6;">
+          Please bring this ticket to the Municipal Office.<br>
+          Present this reference number during your visit.<br><br>
+          San Lorenzo Ruiz, Camarines Norte — Water Billing System
+        </div>
+      </div>
+    `;
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+
+    try {
+      const ticketElement = container.querySelector('#ticket-pdf') as HTMLElement;
+      const canvas = await html2canvas(ticketElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      // Convert canvas pixels to mm (72 DPI: 1mm = 2.83px, canvas is at scale 2)
+      const imgWidthMm = (canvas.width / 2) * 0.264583;
+      const imgHeightMm = (canvas.height / 2) * 0.264583;
+      // Fit to page width with minimal margins (5mm each side)
+      const maxWidth = pdfWidth - 10; // 5mm margin each side
+      const maxHeight = pdfHeight - 10; // 5mm margin top/bottom
+      // Scale to fill width, but don't exceed page height
+      const scale = Math.min(maxWidth / imgWidthMm, maxHeight / imgHeightMm);
+      const finalWidth = imgWidthMm * scale;
+      const finalHeight = imgHeightMm * scale;
+      const imgX = (pdfWidth - finalWidth) / 2;
+      const imgY = (pdfHeight - finalHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, finalWidth, finalHeight);
+      pdf.save(`Water-Connection-Ticket-${tkt.Ticket_Number}.pdf`);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      // Fallback to print if download fails
+      handlePrintTicket(tkt);
+    } finally {
+      document.body.removeChild(container);
+    }
   };
 
   const handleApplySubmit = async (e: React.FormEvent) => {
@@ -607,7 +727,12 @@ const ConsumerMain: React.FC = () => {
           </div>
 
           <div className="cm-header-actions">
-            <button className="cm-report-btn" onClick={() => { setConcernError(''); setConcernSuccess(''); setShowConcernModal(true); }}>
+            <button
+              className="cm-report-btn"
+              onClick={() => { setConcernError(''); setConcernSuccess(''); setShowConcernModal(true); }}
+              disabled={accountApprovalPending}
+              title={accountApprovalPending ? 'Available after account approval' : 'Report a problem'}
+            >
               <i className="fas fa-exclamation-triangle" /> Report Problem
             </button>
             <button className="cm-history-btn" onClick={() => setShowHistoryModal(true)} title="View my reports">
@@ -629,8 +754,8 @@ const ConsumerMain: React.FC = () => {
           </div>
         )}
 
-        {/* Water Connection Application Banner — shown prominently at the top */}
-        {ticket ? (
+        {/* Water Connection Application Banner — always accessible outside locked area */}
+        {ticket && normalizeStatus(ticket.Status) !== 'approved' ? (
           <div className={`cm-application-banner cm-application-banner--${statusClassName(ticket.Status)}`}>
             <div className="cm-application-banner-icon">
               <i className={`fas ${
@@ -659,16 +784,26 @@ const ConsumerMain: React.FC = () => {
                 <p className="cm-application-banner-remarks"><i className="fas fa-comment-alt" /> {ticket.Remarks}</p>
               )}
             </div>
-            <button
-              type="button"
-              className="cm-application-banner-download"
-              onClick={() => handlePrintTicket(ticket)}
-              title="Print or download ticket"
-            >
-              <i className="fas fa-print" /> Print Ticket
-            </button>
+            <div className="cm-ticket-actions">
+              <button
+                type="button"
+                className="cm-application-banner-download"
+                onClick={() => handleDownloadTicket(ticket)}
+                title="Download ticket as PDF"
+              >
+                <i className="fas fa-download" /> Download PDF
+              </button>
+              <button
+                type="button"
+                className="cm-application-banner-print"
+                onClick={() => handlePrintTicket(ticket)}
+                title="Print ticket"
+              >
+                <i className="fas fa-print" /> Print
+              </button>
+            </div>
           </div>
-        ) : normalizeStatus(serviceStatus) !== 'active' ? (
+        ) : !ticket && normalizeStatus(serviceStatus) !== 'active' ? (
           <div className="cm-application-banner cm-application-banner--none">
             <div className="cm-application-banner-icon">
               <i className="fas fa-tint" />
@@ -688,6 +823,17 @@ const ConsumerMain: React.FC = () => {
             </button>
           </div>
         ) : null}
+
+        <div className={`cm-dashboard-content ${accountApprovalPending ? 'cm-dashboard-locked' : ''}`}>
+          {accountApprovalPending && (
+            <div className="cm-pending-overlay">
+              <div className="cm-pending-overlay-content">
+                <i className="fas fa-lock" />
+                <span>Dashboard Locked</span>
+                <small>Available after account approval</small>
+              </div>
+            </div>
+          )}
 
         <section className="cm-stat-grid">
           <article className="cm-stat-card">
@@ -953,6 +1099,7 @@ const ConsumerMain: React.FC = () => {
             </div>
           )}
         </section>
+        </div>
 
         <Modal
           isOpen={Boolean(selectedBill)}

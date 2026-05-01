@@ -82,6 +82,10 @@
   color: #F59E0B;
 }
 
+.mobile-auth {
+  display: none;
+}
+
 .nav-auth {
   display: flex;
   gap: 12px;
@@ -1397,6 +1401,47 @@
 
   .mobile-menu-btn {
     display: block;
+  }
+
+  .mobile-auth {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-auth button {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-mobile-signup {
+    background: transparent;
+    border: 2px solid #F59E0B;
+    color: #333;
+  }
+
+  .btn-mobile-signup:hover {
+    background: #F59E0B;
+    color: #fff;
+  }
+
+  .btn-mobile-login {
+    background: linear-gradient(135deg, #1B1B63, #2d2d8a);
+    border: none;
+    color: #fff;
+  }
+
+  .btn-mobile-login:hover {
+    background: linear-gradient(135deg, #2d2d8a, #1B1B63);
+    transform: translateY(-2px);
   }
 
   .title-main {

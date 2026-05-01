@@ -7169,3 +7169,19 @@
 [2026-04-29T01:44:41.181Z] [supabase.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
 [2026-04-29T01:44:41.413Z] [supabase.sync.accounts] Could not find the 'full_name' column of 'accounts' in the schema cache
 [2026-04-29T01:44:44.517Z] [supabase.sync.payment] insert or update on table "payment" violates foreign key constraint "fk_payment_bill"
+[2026-05-01T02:26:32.832Z] [server.start] AggregateError
+[2026-05-01T03:29:55.495Z] [sync.cycle] Hybrid sync cycle started via immediate:password-upgrade.
+[2026-05-01T03:29:57.695Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-05-01T03:32:48.454Z] [sync.cycle] Hybrid sync cycle started via immediate:password-upgrade.
+[2026-05-01T03:32:50.706Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-05-01T04:08:43.999Z] [users.approve] duplicate key value violates unique constraint "account_review_log_pkey" | POST /api/admin/approve-user | params={} | query={} | body={"accountId":38,"approvedBy":3}
+[2026-05-01T04:08:55.121Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-approve-user.
+[2026-05-01T04:08:57.326Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-05-01T04:26:59.359Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-reject-user.
+[2026-05-01T04:27:00.905Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-05-01T04:43:05.827Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-reject-user.
+[2026-05-01T04:43:07.642Z] [postgres.sync.admin_settings] Could not find the table 'water_billing.admin_settings' in the schema cache
+[2026-05-01T04:49:47.545Z] [server.start] AggregateError
+[2026-05-01T04:53:04.527Z] [users.reject] new row for relation "consumer" violates check constraint "consumer_status_check" | POST /api/admin/reject-user | params={} | query={} | body={"accountId":39,"approvedBy":3,"remarks":"sabi mo eh"}
+[2026-05-01T04:53:10.797Z] [users.reject] new row for relation "consumer" violates check constraint "consumer_status_check" | POST /api/admin/reject-user | params={} | query={} | body={"accountId":39,"approvedBy":3,"remarks":"sabi mo eh"}
+[2026-05-01T04:53:22.807Z] [users.reject] new row for relation "consumer" violates check constraint "consumer_status_check" | POST /api/admin/reject-user | params={} | query={} | body={"accountId":39,"approvedBy":3,"remarks":"sabi mo eh"}

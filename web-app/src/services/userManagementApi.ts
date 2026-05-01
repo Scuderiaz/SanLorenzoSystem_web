@@ -18,6 +18,7 @@ export type ConsumerDashboardData = {
   consumer: Record<string, any> | null;
   bills: Record<string, any>[];
   payments: Record<string, any>[];
+  ticket: Record<string, any> | null;
   readings: Record<string, any>[];
 };
 
@@ -399,6 +400,7 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
     { data: account, error: accountError },
     { data: zone, error: zoneError },
     { data: classification, error: classificationError },
+    { data: ticket, error: ticketError },
   ] = await Promise.all([
     supabase!.from('bills').select('*').eq('consumer_id', consumerId).order('bill_date', { ascending: false }),
     supabase!.from('payment').select('*').eq('consumer_id', consumerId).order('payment_date', { ascending: false }),
@@ -407,6 +409,12 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
     supabase!.from('accounts').select('username, profile_picture_url, account_status').eq('account_id', accountId).maybeSingle(),
     supabase!.from('zone').select('zone_name').eq('zone_id', consumer.zone_id).maybeSingle(),
     supabase!.from('classification').select('classification_name').eq('classification_id', consumer.classification_id).maybeSingle(),
+    supabase!.from('connection_ticket')
+      .select('ticket_id, ticket_number, status, application_date, approved_date, connection_type, remarks')
+      .or(`consumer_id.eq.${consumerId},account_id.eq.${accountId}`)
+      .order('application_date', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (billsError) throw billsError;
@@ -416,6 +424,7 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
   if (accountError) throw accountError;
   if (zoneError) throw zoneError;
   if (classificationError) throw classificationError;
+  if (ticketError) throw ticketError;
 
   const billMap = new Map((bills || []).map((bill) => [bill.bill_id, bill]));
 
@@ -464,6 +473,15 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
       Reading_Date: reading.reading_date || reading.created_at || reading.created_date,
       Consumption: toNumber(reading.consumption),
     })).reverse(),
+    ticket: ticket ? {
+      Ticket_ID: ticket.ticket_id,
+      Ticket_Number: ticket.ticket_number,
+      Status: ticket.status,
+      Application_Date: ticket.application_date,
+      Approved_Date: ticket.approved_date,
+      Connection_Type: ticket.connection_type,
+      Remarks: ticket.remarks,
+    } : null,
   };
 };
 
@@ -1003,6 +1021,7 @@ export const loadConsumerDashboardWithFallback = async (accountId: number | stri
     bills: toArray(payload?.bills),
     payments: toArray(payload?.payments),
     readings: toArray(payload?.readings),
+    ticket: payload?.ticket || null,
   }),
   'Failed to load consumer dashboard.',
   `dataset.consumerDashboard.${accountId}`
