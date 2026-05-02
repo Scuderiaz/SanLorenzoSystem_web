@@ -29,11 +29,30 @@
   border-bottom: 2px solid #f1f5f9;
 }
 
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th.sortable:hover {
+  background-color: #f1f5f9;
+}
+
 .data-table-header-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.sort-icon {
+  color: #94a3b8;
+  font-size: 12px;
+  transition: color 0.2s ease;
+}
+
+.sort-icon.active {
+  color: #2563eb;
 }
 
 .data-table td {

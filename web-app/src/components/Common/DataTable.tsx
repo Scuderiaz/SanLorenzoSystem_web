@@ -12,6 +12,7 @@ export interface Column {
   key: string;
   label: string;
   sortable?: boolean;
+  getSortValue?: (row: any) => unknown;
   render?: (value: any, row: any) => React.ReactNode;
   filterable?: boolean;
   filterType?: 'text' | 'select';
@@ -29,6 +30,8 @@ interface DataTableProps {
   enableFiltering?: boolean;
   filterPlaceholder?: string;
   filterActions?: React.ReactNode;
+  initialSortColumn?: string | null;
+  initialSortDirection?: 'asc' | 'desc';
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -40,9 +43,11 @@ const DataTable: React.FC<DataTableProps> = ({
   enableFiltering = false,
   filterPlaceholder = 'Search table records...',
   filterActions,
+  initialSortColumn = null,
+  initialSortDirection = 'asc',
 }) => {
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortColumn, setSortColumn] = useState<string | null>(initialSortColumn);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(initialSortDirection);
   const [searchQuery, setSearchQuery] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
 
@@ -104,6 +109,11 @@ const DataTable: React.FC<DataTableProps> = ({
     ));
   }, [enableFiltering, selectFilters]);
 
+  useEffect(() => {
+    setSortColumn(initialSortColumn);
+    setSortDirection(initialSortDirection);
+  }, [initialSortColumn, initialSortDirection]);
+
   const handleSort = (columnKey: string) => {
     if (sortColumn === columnKey) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -141,17 +151,25 @@ const DataTable: React.FC<DataTableProps> = ({
 
   const sortedData = useMemo(() => {
     if (!sortColumn) return filteredData;
+    const sortColumnConfig = columns.find((column) => column.key === sortColumn);
 
     return [...filteredData].sort((a, b) => {
-      const aVal = a[sortColumn];
-      const bVal = b[sortColumn];
+      const aVal = sortColumnConfig?.getSortValue ? sortColumnConfig.getSortValue(a) : a[sortColumn];
+      const bVal = sortColumnConfig?.getSortValue ? sortColumnConfig.getSortValue(b) : b[sortColumn];
 
       if (aVal === bVal) return 0;
-      
-      const comparison = aVal < bVal ? -1 : 1;
+
+      if (aVal === null || aVal === undefined || aVal === '') return sortDirection === 'asc' ? -1 : 1;
+      if (bVal === null || bVal === undefined || bVal === '') return sortDirection === 'asc' ? 1 : -1;
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      const comparison = String(aVal).localeCompare(String(bVal), undefined, { numeric: true, sensitivity: 'base' });
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [filteredData, sortColumn, sortDirection]);
+  }, [columns, filteredData, sortColumn, sortDirection]);
 
   const hasActiveFilters = Boolean(
     searchQuery.trim() || Object.values(columnFilters).some((value) => value)
@@ -173,8 +191,14 @@ const DataTable: React.FC<DataTableProps> = ({
           >
             <div className="data-table-header-content">
               <span>{col.label}</span>
-              {col.sortable && sortColumn === col.key && (
-                <i className={`fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} sort-icon`}></i>
+              {col.sortable && (
+                <i
+                  className={`fas ${
+                    sortColumn === col.key
+                      ? `fa-sort-${sortDirection === 'asc' ? 'up' : 'down'}`
+                      : 'fa-sort'
+                  } sort-icon ${sortColumn === col.key ? 'active' : ''}`}
+                ></i>
               )}
             </div>
           </th>

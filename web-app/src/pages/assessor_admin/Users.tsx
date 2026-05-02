@@ -87,7 +87,7 @@ const Users: React.FC = () => {
   };
 
   const handleApprove = async (accountId: number) => {
-    if (!window.confirm('Are you sure you want to approve this consumer registration?')) return;
+    if (!window.confirm('Are you sure you want to approve this Consumer registration?')) return;
     try {
       const result = await requestJson<{ success: boolean; message?: string }>('/admin/approve-user', {
         method: 'POST',
@@ -404,3 +404,5 @@ const Users: React.FC = () => {
 };
 
 export default Users;
+
+

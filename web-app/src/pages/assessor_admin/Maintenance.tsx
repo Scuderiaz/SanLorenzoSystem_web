@@ -15,6 +15,118 @@ interface SystemLog {
   user: string;
 }
 
+const toFriendlyLog = (log: SystemLog): SystemLog => {
+  const raw = String(log.description || '').trim();
+  const normalized = raw.toLowerCase();
+
+  if (normalized.includes('consumers.disconnect') || normalized.includes('marked disconnected')) {
+    const reasonMatch = raw.match(/Reason:\s*(.*?)(?:\. Overdue:|$)/i);
+    const accountMatch = raw.match(/\((.*?)\)\s*marked/i);
+    const consumerMatch = raw.match(/\]\s*(.*?)\s*\((.*?)\)\s*marked/i);
+    const consumerName = consumerMatch?.[1] || 'A concessionaire';
+    const accountNumber = accountMatch?.[1] || 'N/A';
+    const reason = reasonMatch?.[1]?.trim() || 'No reason recorded';
+    return {
+      ...log,
+      action: 'Disconnection',
+      description: `${consumerName} (${accountNumber}) was disconnected. Reason: ${reason}.`,
+    };
+  }
+
+  if (normalized.includes('approved successfully') || normalized.includes('application approved') || normalized.includes('approve-user')) {
+    return {
+      ...log,
+      action: 'Application Approval',
+      description: 'A consumer application was approved and moved forward for activation.',
+    };
+  }
+
+  if (normalized.includes('rejected') && normalized.includes('application')) {
+    return {
+      ...log,
+      action: 'Application Rejection',
+      description: 'A consumer application was rejected with a provided review remark.',
+    };
+  }
+
+  if (normalized.includes('consumer.reconnectionrequest') || normalized.includes('reconnection request')) {
+    return {
+      ...log,
+      action: 'Reconnection Request',
+      description: 'A disconnected consumer submitted a reconnection request for review.',
+    };
+  }
+
+  if (normalized.includes('admin-settings') || normalized.includes('system configuration updated')) {
+    return {
+      ...log,
+      action: 'System Settings',
+      description: 'System settings were updated.',
+    };
+  }
+
+  if (normalized.includes('backup') && normalized.includes('created')) {
+    return {
+      ...log,
+      action: 'Backup',
+      description: 'A system backup was created.',
+    };
+  }
+
+  if (normalized.includes('[request]')) {
+    return {
+      ...log,
+      action: 'User Request',
+      description: 'A user request was processed by the system.',
+    };
+  }
+
+  if (normalized.includes('sync cycle complete')) {
+    return {
+      ...log,
+      action: 'Data Synchronization',
+      description: 'System data synchronization completed successfully.',
+    };
+  }
+
+  if (normalized.includes('preparing sync for table')) {
+    const match = raw.match(/preparing sync for table\s+([a-z0-9_]+)/i);
+    const tableName = (match?.[1] || 'records').replace(/_/g, ' ');
+    return {
+      ...log,
+      action: 'Data Synchronization',
+      description: `Synchronization started for ${tableName}.`,
+    };
+  }
+
+  if (normalized.includes('no rows to sync')) {
+    const match = raw.match(/table\s+([a-z0-9_]+):\s*no rows to sync/i);
+    const tableName = (match?.[1] || 'records').replace(/_/g, ' ');
+    return {
+      ...log,
+      action: 'Data Synchronization',
+      description: `No pending updates found for ${tableName}.`,
+    };
+  }
+
+  if (normalized.includes('synced') && normalized.includes('table')) {
+    const match = raw.match(/table\s+([a-z0-9_]+):\s*synced\s*([0-9]+)\s*row/i);
+    const tableName = (match?.[1] || 'records').replace(/_/g, ' ');
+    const rowCount = match?.[2] || '0';
+    return {
+      ...log,
+      action: 'Data Synchronization',
+      description: `${tableName} synchronized (${rowCount} updated record${rowCount === '1' ? '' : 's'}).`,
+    };
+  }
+
+  return {
+    ...log,
+    action: log.action || 'System Activity',
+    description: raw || 'A system process was completed.',
+  };
+};
+
 interface BackupLog {
   id: number;
   name: string;
@@ -45,7 +157,8 @@ const Maintenance: React.FC = () => {
 
       setDbStatus(result.data?.dbStatus || 'CONNECTED');
       setPrimaryEndpoint(result.data?.primaryEndpoint || '');
-      setLogs(result.data?.logs || []);
+      const friendlyLogs = (result.data?.logs || []).map((log: SystemLog) => toFriendlyLog(log));
+      setLogs(friendlyLogs);
       setBackups(result.data?.backups || []);
       if (result.source === 'offline') {
         showToast('Maintenance data loaded from the offline snapshot.', 'warning');
@@ -190,15 +303,15 @@ const Maintenance: React.FC = () => {
                   filterLabel: 'Severity',
                   render: (v: string) => <span className={`log-badge log-${v.toLowerCase()}`}>{v}</span>,
                 },
-                { key: 'action', label: 'PROTOCOL', sortable: true },
-                { key: 'description', label: 'EVENT DETAILS', sortable: true },
-                { key: 'user', label: 'RESPONSIBLE ENTITY', sortable: true }
+                { key: 'action', label: 'PROCESS', sortable: true },
+                { key: 'description', label: 'ACTIVITY SUMMARY', sortable: true },
+                { key: 'user', label: 'PERFORMED BY', sortable: true }
               ]}
               data={logs}
               loading={loading}
               emptyMessage="Current ledger environment is clear."
               enableFiltering
-              filterPlaceholder="Search logs by protocol, details, or responsible entity..."
+              filterPlaceholder="Search logs by process, summary, or user..."
               filterActions={(
                 <>
                   <button className="btn btn-secondary btn-sm" onClick={loadLogs}><i className="fas fa-sync"></i> Refresh</button>

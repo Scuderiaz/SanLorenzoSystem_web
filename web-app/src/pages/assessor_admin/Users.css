@@ -139,7 +139,11 @@
 }
 
 .applications-toolbar .filters select {
-  min-width: 150px;
+  min-width: 180px;
+  min-height: 46px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .applications-toolbar .main-actions {

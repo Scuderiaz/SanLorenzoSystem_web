@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import FormInput from '../../components/Common/FormInput';
@@ -9,7 +9,6 @@ import {
   getErrorMessage,
   loadAdminSettingsWithFallback,
   loadClassificationsWithFallback,
-  loadWaterRatesWithFallback,
   requestJson,
 } from '../../services/userManagementApi';
 import './Settings.css';
@@ -31,7 +30,47 @@ interface ClassificationOption {
   Classification_Name: string;
 }
 
-const todayDateValue = () => new Date().toISOString().split('T')[0];
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const AUTO_REFRESH_INTERVAL_MS = 30000;
+
+const formatDateToManilaKey = (date: Date) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) {
+    const fallback = new Date(date);
+    fallback.setMinutes(fallback.getMinutes() - fallback.getTimezoneOffset());
+    return fallback.toISOString().slice(0, 10);
+  }
+  return `${year}-${month}-${day}`;
+};
+
+const todayDateValue = () => formatDateToManilaKey(new Date());
+
+const toDateKey = (value?: string) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const dateOnlyMatch = raw.match(DATE_ONLY_PATTERN);
+  if (dateOnlyMatch) {
+    return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
+  }
+  const datePrefixMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (datePrefixMatch) {
+    return `${datePrefixMatch[1]}-${datePrefixMatch[2]}-${datePrefixMatch[3]}`;
+  }
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return formatDateToManilaKey(parsed);
+  }
+  return '';
+};
 
 const emptyRateForm = () => ({
   classificationId: '',
@@ -50,18 +89,31 @@ const formatCurrency = (value: unknown) =>
   `PHP ${toAmount(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const formatDate = (value?: string) => {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+  const dateKey = toDateKey(value);
+  if (!dateKey) return value || 'N/A';
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const safeDate = new Date(year, (month || 1) - 1, day || 1);
+  return safeDate.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
 const isActiveRate = (effectiveDate?: string) => {
-  if (!effectiveDate) return false;
-  const date = new Date(effectiveDate);
-  if (Number.isNaN(date.getTime())) return false;
-  return date.getTime() <= Date.now();
+  const dateKey = toDateKey(effectiveDate);
+  if (!dateKey) return false;
+  return dateKey <= todayDateValue();
+};
+
+const isFutureRate = (effectiveDate?: string) => {
+  const dateKey = toDateKey(effectiveDate);
+  if (!dateKey) return false;
+  return dateKey > todayDateValue();
+};
+
+const toClassificationTheme = (classificationName?: string) => {
+  const normalized = String(classificationName || '').trim().toLowerCase();
+  if (normalized.includes('commercial')) return 'theme-commercial';
+  if (normalized.includes('institutional')) return 'theme-institutional';
+  if (normalized.includes('residential')) return 'theme-residential';
+  return 'theme-default';
 };
 
 const Settings: React.FC = () => {
@@ -72,9 +124,12 @@ const Settings: React.FC = () => {
   const [classifications, setClassifications] = useState<ClassificationOption[]>([]);
   const [rateForm, setRateForm] = useState(emptyRateForm());
   const [editingRateId, setEditingRateId] = useState<number | null>(null);
+  const [rateToDelete, setRateToDelete] = useState<WaterRate | null>(null);
+  const [deletingRateId, setDeletingRateId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingRate, setSavingRate] = useState(false);
   const [savingSystem, setSavingSystem] = useState(false);
+  const hasShownSupabaseFallbackWarning = useRef(false);
 
   const [systemSettings, setSystemSettings] = useState({
     currency: 'PHP',
@@ -90,9 +145,18 @@ const Settings: React.FC = () => {
   const loadPageData = useCallback(async () => {
     setLoading(true);
     try {
+      const loadWaterRatesFromApi = async () => {
+        const payload = await requestJson<any>(
+          '/water-rates?active_only=false',
+          {},
+          'Failed to load water rates.'
+        );
+        return payload?.data || [];
+      };
+
       const [settingsResult, waterRatesResult, classificationsResult] = await Promise.all([
         loadAdminSettingsWithFallback(),
-        loadWaterRatesWithFallback({ activeOnly: false }),
+        loadWaterRatesFromApi(),
         loadClassificationsWithFallback(),
       ]);
 
@@ -103,24 +167,43 @@ const Settings: React.FC = () => {
         lateFee: String(system.lateFee || '10.0'),
       });
 
-      setWaterRates((waterRatesResult.data || []).map((rate: any) => ({
-        rate_id: Number(rate.rate_id ?? rate.Rate_ID),
-        classification_id: Number(rate.classification_id ?? rate.Classification_ID),
+      const normalizedRates = (waterRatesResult || []).map((rate: any) => ({
+        rate_id: Number(rate.rate_id ?? rate.Rate_ID ?? 0),
+        classification_id: Number(rate.classification_id ?? rate.Classification_ID ?? 0),
         classification_name: rate.classification_name ?? rate.Classification_Name ?? 'Unknown Classification',
         minimum_cubic: Number(rate.minimum_cubic ?? rate.Minimum_Cubic ?? 0),
         minimum_rate: Number(rate.minimum_rate ?? rate.Minimum_Rate ?? 0),
         excess_rate_per_cubic: Number(rate.excess_rate_per_cubic ?? rate.Excess_Rate_Per_Cubic ?? 0),
-        effective_date: rate.effective_date ?? rate.Effective_Date ?? '',
+        effective_date: toDateKey(rate.effective_date ?? rate.Effective_Date ?? ''),
         modified_by: rate.modified_by ?? rate.Modified_By ?? null,
         modified_date: rate.modified_date ?? rate.Modified_Date ?? '',
-      })));
+      }));
+
+      const dedupedRates: WaterRate[] = [];
+      const seenRateKeys = new Set<string>();
+      for (const rate of normalizedRates) {
+        const uniqueKey = rate.rate_id > 0
+          ? `id:${rate.rate_id}`
+          : `fallback:${rate.classification_id}:${rate.effective_date}:${rate.minimum_cubic}:${rate.minimum_rate}:${rate.excess_rate_per_cubic}`;
+        if (seenRateKeys.has(uniqueKey)) {
+          continue;
+        }
+        seenRateKeys.add(uniqueKey);
+        dedupedRates.push(rate);
+      }
+
+      setWaterRates(dedupedRates);
 
       setClassifications((classificationsResult.data || []).map((classification: any) => ({
         Classification_ID: Number(classification.Classification_ID ?? classification.classification_id),
         Classification_Name: classification.Classification_Name ?? classification.classification_name ?? 'Unnamed Classification',
       })));
 
-      if ([settingsResult.source, waterRatesResult.source, classificationsResult.source].includes('supabase')) {
+      if (
+        [settingsResult.source, classificationsResult.source].includes('supabase')
+        && !hasShownSupabaseFallbackWarning.current
+      ) {
+        hasShownSupabaseFallbackWarning.current = true;
         showToast('Some settings data loaded using Supabase fallback.', 'warning');
       }
     } catch (error) {
@@ -135,6 +218,16 @@ const Settings: React.FC = () => {
     loadPageData();
   }, [loadPageData]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadPageData();
+      }
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadPageData]);
+
   const classificationOptions = useMemo(
     () => classifications.map((classification) => ({
       value: classification.Classification_ID,
@@ -147,7 +240,7 @@ const Settings: React.FC = () => {
     const latestMap = new Map<number, WaterRate>();
     waterRates
       .filter((rate) => isActiveRate(rate.effective_date))
-      .sort((left, right) => new Date(right.effective_date).getTime() - new Date(left.effective_date).getTime() || right.rate_id - left.rate_id)
+      .sort((left, right) => toDateKey(right.effective_date).localeCompare(toDateKey(left.effective_date)) || right.rate_id - left.rate_id)
       .forEach((rate) => {
         if (!latestMap.has(rate.classification_id)) {
           latestMap.set(rate.classification_id, rate);
@@ -157,14 +250,49 @@ const Settings: React.FC = () => {
     return Array.from(latestMap.values()).sort((left, right) => left.classification_name.localeCompare(right.classification_name));
   }, [waterRates]);
 
+  const activeRateIdByClassification = useMemo(() => {
+    const activeMap = new Map<number, number>();
+    waterRates
+      .filter((rate) => isActiveRate(rate.effective_date))
+      .sort((left, right) => toDateKey(right.effective_date).localeCompare(toDateKey(left.effective_date)) || right.rate_id - left.rate_id)
+      .forEach((rate) => {
+        if (!activeMap.has(rate.classification_id)) {
+          activeMap.set(rate.classification_id, rate.rate_id);
+        }
+      });
+    return activeMap;
+  }, [waterRates]);
+
+  const getRateStatus = (rate: WaterRate): 'active' | 'upcoming' | 'historical' => {
+    const isCurrentActive = activeRateIdByClassification.get(rate.classification_id) === rate.rate_id;
+    if (isCurrentActive) {
+      return 'active';
+    }
+    if (isFutureRate(rate.effective_date)) {
+      return 'upcoming';
+    }
+    return 'historical';
+  };
+
+  const canEditRate = (rate: WaterRate) => {
+    return getRateStatus(rate) !== 'historical';
+  };
+
   const editRate = (rate: WaterRate) => {
+    const status = getRateStatus(rate);
+    if (status === 'historical') {
+      showToast('Historical water rates are locked and cannot be edited.', 'warning');
+      return;
+    }
     setEditingRateId(rate.rate_id);
+    const normalizedEffectiveDate = toDateKey(rate.effective_date);
+    const editableEffectiveDate = normalizedEffectiveDate || todayDateValue();
     setRateForm({
       classificationId: String(rate.classification_id),
       minimumCubic: String(rate.minimum_cubic),
       minimumRate: String(rate.minimum_rate),
       excessRatePerCubic: String(rate.excess_rate_per_cubic),
-      effectiveDate: String(rate.effective_date || '').split('T')[0] || todayDateValue(),
+      effectiveDate: editableEffectiveDate,
     });
   };
 
@@ -173,10 +301,22 @@ const Settings: React.FC = () => {
       showToast('Complete the classification and rate fields before saving.', 'error');
       return;
     }
+    if (rateForm.effectiveDate < todayDateValue()) {
+      showToast('Past effective dates are not allowed for water rates.', 'error');
+      return;
+    }
+
+    if (editingRateId) {
+      const currentEditingRate = waterRates.find((rate) => rate.rate_id === editingRateId);
+      if (currentEditingRate && getRateStatus(currentEditingRate) === 'historical') {
+        showToast('Historical water rates are locked and cannot be edited.', 'warning');
+        return;
+      }
+    }
 
     setSavingRate(true);
     try {
-      await requestJson(
+      const saveResult = await requestJson<any>(
         editingRateId ? `/water-rates/${editingRateId}` : '/water-rates',
         {
           method: editingRateId ? 'PUT' : 'POST',
@@ -185,12 +325,16 @@ const Settings: React.FC = () => {
             minimum_cubic: Number(rateForm.minimumCubic),
             minimum_rate: Number(rateForm.minimumRate),
             excess_rate_per_cubic: Number(rateForm.excessRatePerCubic),
-            effective_date: new Date(rateForm.effectiveDate).toISOString(),
+            effective_date: rateForm.effectiveDate,
             modified_by: Number(user?.id || 1),
           }),
         },
         editingRateId ? 'Failed to update water rate.' : 'Failed to create water rate.'
       );
+
+      if (saveResult?.queued || saveResult?.offline) {
+        throw new Error('Water rate was queued offline and not yet saved to the database. Please reconnect and try again.');
+      }
 
       showToast(editingRateId ? 'Water rate updated successfully.' : 'Classification water rate created successfully.', 'success');
       resetRateForm();
@@ -203,28 +347,44 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleDeleteRate = async (rate: WaterRate) => {
-    const confirmed = window.confirm(`Delete the ${rate.classification_name} rate effective ${formatDate(rate.effective_date)}?`);
-    if (!confirmed) {
+  const promptDeleteRate = (rate: WaterRate) => {
+    setRateToDelete(rate);
+  };
+
+  const handleDeleteRate = async () => {
+    if (!rateToDelete) {
       return;
     }
 
+    setDeletingRateId(rateToDelete.rate_id);
     try {
-      await requestJson(
-        `/water-rates/${rate.rate_id}`,
-        { method: 'DELETE' },
+      const deleteResult = await requestJson<any>(
+        `/water-rates/${rateToDelete.rate_id}`,
+        {
+          method: 'DELETE',
+          body: JSON.stringify({
+            modified_by: Number(user?.id || 1),
+          }),
+        },
         'Failed to delete water rate.'
       );
 
-      if (editingRateId === rate.rate_id) {
+      if (deleteResult?.queued || deleteResult?.offline) {
+        throw new Error('Water rate deletion was queued offline and not yet deleted from the database. Please reconnect and try again.');
+      }
+
+      if (editingRateId === rateToDelete.rate_id) {
         resetRateForm();
       }
 
       showToast('Water rate deleted successfully.', 'success');
+      setRateToDelete(null);
       loadPageData();
     } catch (error) {
       console.error('Error deleting water rate:', error);
       showToast(getErrorMessage(error, 'Failed to delete water rate.'), 'error');
+    } finally {
+      setDeletingRateId(null);
     }
   };
 
@@ -283,53 +443,51 @@ const Settings: React.FC = () => {
       key: 'effective_date',
       label: 'Effective Date',
       sortable: true,
-      render: (value: string, row: WaterRate) => (
-        <div className="rate-effective-cell">
-          <span>{formatDate(value)}</span>
-          <span className={`rate-status-pill ${isActiveRate(row.effective_date) ? 'active' : 'upcoming'}`}>
-            {isActiveRate(row.effective_date) ? 'Active' : 'Upcoming'}
-          </span>
-        </div>
-      ),
+      getSortValue: (row: WaterRate) => toDateKey(row.effective_date),
+      render: (value: string, row: WaterRate) => {
+        const status = getRateStatus(row);
+        const statusClass = status === 'active' ? 'active' : status === 'upcoming' ? 'upcoming' : 'inactive';
+        const statusLabel = status === 'active' ? 'Active' : status === 'upcoming' ? 'Upcoming' : 'Historical';
+
+        return (
+          <div className="rate-effective-cell">
+            <span>{formatDate(value)}</span>
+            <span className={`rate-status-pill ${statusClass}`}>
+              {statusLabel}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (_: unknown, row: WaterRate) => (
-        <div className="rate-row-actions">
-          <button className="btn btn-sm btn-secondary" onClick={() => editRate(row)}>
-            <i className="fas fa-pen"></i> Edit
-          </button>
-          <button className="btn btn-sm btn-danger" onClick={() => handleDeleteRate(row)}>
-            <i className="fas fa-trash"></i> Delete
-          </button>
-        </div>
-      ),
+      render: (_: unknown, row: WaterRate) => {
+        const canEdit = canEditRate(row);
+        return (
+          <div className="rate-row-actions">
+            {canEdit ? (
+              <button className="btn btn-sm btn-secondary" onClick={() => editRate(row)} title="Edit rate">
+                <i className="fas fa-pen"></i> Edit
+              </button>
+            ) : (
+              <span className="rate-action-placeholder" aria-hidden="true"></span>
+            )}
+            <button className="btn btn-sm btn-danger" onClick={() => promptDeleteRate(row)}>
+              <i className="fas fa-trash"></i> Delete
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
   return (
     <MainLayout title="System Configuration">
       <div className="settings-page settings-rates-page">
-        <section className="settings-hero">
-          <div>
-            <p className="settings-kicker">Water Rates Control Center</p>
-            <h2>Manage classification-based billing rates with a clear live registry.</h2>
-            <p className="settings-hero-copy">
-              Configure Residential, Commercial, Institutional, and future classifications separately so billing always uses the correct active rate.
-            </p>
-          </div>
-          <div className="settings-hero-actions">
-            <button className="btn btn-secondary" onClick={loadPageData} disabled={loading}>
-              <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-sync-alt'}`}></i>
-              {loading ? 'Refreshing...' : 'Refresh Data'}
-            </button>
-          </div>
-        </section>
-
         <section className="rate-snapshot-strip">
           {latestActiveRates.length > 0 ? latestActiveRates.map((rate) => (
-            <article key={rate.rate_id} className="rate-snapshot-card">
+            <article key={rate.rate_id} className={`rate-snapshot-card ${toClassificationTheme(rate.classification_name)}`}>
               <div className="rate-snapshot-head">
                 <span className="rate-snapshot-name">{rate.classification_name}</span>
                 <span className="rate-status-pill active">Live</span>
@@ -379,6 +537,7 @@ const Settings: React.FC = () => {
                   value={rateForm.effectiveDate}
                   onChange={(value) => setRateForm((current) => ({ ...current, effectiveDate: value }))}
                   icon="fa-calendar-day"
+                  min={todayDateValue()}
                 />
                 <FormInput
                   label="Minimum Cubic"
@@ -483,18 +642,41 @@ const Settings: React.FC = () => {
 
           <DataTable
             columns={columns}
-            data={waterRates}
-            loading={loading}
-            emptyMessage="No water rates found."
-            enableFiltering={true}
-            filterPlaceholder="Search classification, rate, or effective date..."
-            filterActions={
-              <button className="btn btn-secondary" onClick={loadPageData} title="Refresh water rates">
-                <i className="fas fa-sync-alt"></i>
-              </button>
-            }
-          />
+          data={waterRates}
+          loading={loading}
+          emptyMessage="No water rates found."
+          enableFiltering={true}
+          filterPlaceholder="Search classification, rate, or effective date..."
+          initialSortColumn="effective_date"
+          initialSortDirection="desc"
+        />
         </section>
+
+        {rateToDelete && (
+          <div className="delete-rate-card-backdrop" role="dialog" aria-modal="true" aria-labelledby="delete-rate-title">
+            <article className="delete-rate-card">
+              <div className="delete-rate-card-head">
+                <div className="delete-rate-card-icon" aria-hidden="true">
+                  <i className="fas fa-trash-alt"></i>
+                </div>
+                <h3 id="delete-rate-title">Delete Water Rates</h3>
+              </div>
+              <p>
+                You are about to remove the <strong>{rateToDelete.classification_name}</strong> rate effective{' '}
+                <strong>{formatDate(rateToDelete.effective_date)}</strong>. This action cannot be undone.
+              </p>
+              <div className="delete-rate-card-actions">
+                <button className="btn btn-secondary" onClick={() => setRateToDelete(null)} disabled={deletingRateId === rateToDelete.rate_id}>
+                  Cancel
+                </button>
+                <button className="btn btn-danger" onClick={handleDeleteRate} disabled={deletingRateId === rateToDelete.rate_id}>
+                  <i className={`fas ${deletingRateId === rateToDelete.rate_id ? 'fa-spinner fa-spin' : 'fa-trash'}`}></i>
+                  {deletingRateId === rateToDelete.rate_id ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </article>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

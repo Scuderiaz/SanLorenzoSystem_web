@@ -69,6 +69,7 @@ const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
   zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
 
 const normalizeStatus = (value?: string | null) => String(value || '').trim().toLowerCase();
+const normalizeBarangayName = (value?: string | null) => String(value || '').trim().replace(/\s+/g, ' ');
 
 const normalizePhoneInput = (value: string) => {
   const trimmed = value.trim();
@@ -190,21 +191,21 @@ const MeterReading: React.FC = () => {
   const loadConsumers = useCallback(async () => {
     try {
       const result = await loadConsumersWithFallback();
-      const mappedConsumers = (result.data || []).map((consumer: any) => ({
-        Consumer_ID: consumer.Consumer_ID ?? consumer.consumer_id,
-        Consumer_Name: consumer.Consumer_Name ?? consumer.consumer_name ?? null,
-        Zone_ID: Number(consumer.Zone_ID ?? consumer.zone_id ?? 0),
-        Zone_Name: consumer.Zone_Name ?? consumer.zone_name ?? null,
-        Barangay: consumer.Barangay ?? consumer.barangay ?? null,
-        Status: consumer.Status ?? consumer.status ?? null,
+      const mappedConsumers = (result.data || []).map((Consumer: any) => ({
+        Consumer_ID: Consumer.Consumer_ID ?? Consumer.consumer_id,
+        Consumer_Name: Consumer.Consumer_Name ?? Consumer.consumer_name ?? null,
+        Zone_ID: Number(Consumer.Zone_ID ?? Consumer.zone_id ?? 0),
+        Zone_Name: Consumer.Zone_Name ?? Consumer.zone_name ?? null,
+        Barangay: Consumer.Barangay ?? Consumer.barangay ?? null,
+        Status: Consumer.Status ?? Consumer.status ?? null,
       }));
-      setConsumers(mappedConsumers.filter((consumer: ConsumerRow) => consumer.Zone_ID > 0));
+      setConsumers(mappedConsumers.filter((Consumer: ConsumerRow) => Consumer.Zone_ID > 0));
       if (result.source === 'supabase') {
         showToast('Consumers loaded using Supabase fallback.', 'warning');
       }
     } catch (error) {
       console.error('Error loading consumers:', error);
-      showToast(getErrorMessage(error, 'Failed to load consumer coverage.'), 'error');
+      showToast(getErrorMessage(error, 'Failed to load Consumer coverage.'), 'error');
     }
   }, [showToast]);
 
@@ -263,53 +264,65 @@ const MeterReading: React.FC = () => {
   );
 
   const zoneCoverageData = useMemo(() => {
-    const zoneBarangayMap = new Map<number, Set<string>>();
+    const zoneBarangayMap = new Map<number, Map<string, { display: string; isSplit: boolean }>>();
     const zoneConsumerCountMap = new Map<number, number>();
     const barangayZoneMap = new Map<string, Set<number>>();
+    const splitOverrideSet = new Set<string>();
 
     zones.forEach((zone) => {
-      zoneBarangayMap.set(zone.Zone_ID, new Set<string>());
+      zoneBarangayMap.set(zone.Zone_ID, new Map<string, { display: string; isSplit: boolean }>());
       zoneConsumerCountMap.set(zone.Zone_ID, 0);
     });
 
-    consumers.forEach((consumer) => {
-      const zoneId = Number(consumer.Zone_ID || 0);
+    consumers.forEach((Consumer) => {
+      const zoneId = Number(Consumer.Zone_ID || 0);
       if (!zoneId) return;
       zoneConsumerCountMap.set(zoneId, (zoneConsumerCountMap.get(zoneId) || 0) + 1);
     });
 
     coverageConfig.forEach((entry) => {
       const zoneId = Number(entry.Zone_ID || 0);
-      const barangay = String(entry.Barangay || '').trim();
+      const barangay = normalizeBarangayName(entry.Barangay);
       if (!zoneId || !barangay) return;
       if (!zoneBarangayMap.has(zoneId)) {
-        zoneBarangayMap.set(zoneId, new Set<string>());
+        zoneBarangayMap.set(zoneId, new Map<string, { display: string; isSplit: boolean }>());
       }
       const formattedBarangay = entry.Purok_Count > 0 ? `${barangay} (${entry.Purok_Count} puroks)` : barangay;
-      zoneBarangayMap.get(zoneId)?.add(formattedBarangay);
+      const zoneBarangays = zoneBarangayMap.get(zoneId)!;
+      const existing = zoneBarangays.get(barangay);
+      zoneBarangays.set(barangay, {
+        display: formattedBarangay,
+        isSplit: Boolean(entry.Is_Split) || Boolean(existing?.isSplit),
+      });
       if (!barangayZoneMap.has(barangay)) {
         barangayZoneMap.set(barangay, new Set<number>());
       }
       barangayZoneMap.get(barangay)?.add(zoneId);
-      if (entry.Is_Split && !barangayZoneMap.has(`${barangay}__split`)) {
-        barangayZoneMap.set(`${barangay}__split`, new Set<number>());
+      if (entry.Is_Split) {
+        splitOverrideSet.add(barangay);
       }
     });
 
     const sharedBarangayMap = new Map<string, number[]>();
-    barangayZoneMap.forEach((zoneIds, barangayKey) => {
-      const barangay = barangayKey.replace(/__split$/, '');
-      const shouldForceSplit = barangayKey.endsWith('__split');
-      if (zoneIds.size > 1 || shouldForceSplit) {
-        sharedBarangayMap.set(barangay, Array.from(zoneIds).sort((left, right) => left - right));
+    const allBarangays = new Set<string>([
+      ...Array.from(barangayZoneMap.keys()),
+      ...Array.from(splitOverrideSet.values()),
+    ]);
+    allBarangays.forEach((barangay) => {
+      const zoneIds = Array.from(barangayZoneMap.get(barangay) || []).sort((left, right) => left - right);
+      if (zoneIds.length > 1 || splitOverrideSet.has(barangay)) {
+        sharedBarangayMap.set(barangay, zoneIds);
       }
     });
 
     const coverageByZone = new Map<number, ZoneCoverage>();
     zones.forEach((zone) => {
       const zoneId = zone.Zone_ID;
-      const barangays = Array.from(zoneBarangayMap.get(zoneId) || []).sort((left, right) => left.localeCompare(right));
-      const splitBarangays = barangays.filter((barangay) => (sharedBarangayMap.get(barangay) || []).length > 1);
+      const rawBarangays = Array.from(zoneBarangayMap.get(zoneId)?.entries() || []).sort(([left], [right]) => left.localeCompare(right));
+      const barangays = rawBarangays.map(([, entry]) => entry.display);
+      const splitBarangays = rawBarangays
+        .filter(([barangay, entry]) => entry.isSplit || (sharedBarangayMap.get(barangay) || []).length > 1)
+        .map(([, entry]) => entry.display);
       coverageByZone.set(zoneId, {
         zoneId,
         zoneName: formatZoneLabel(zone.Zone_Name, zone.Zone_ID),
@@ -322,20 +335,127 @@ const MeterReading: React.FC = () => {
     return { coverageByZone, sharedBarangayMap };
   }, [consumers, coverageConfig, zones]);
 
+  const coverageBarangaysByZone = useMemo(() => {
+    const map = new Map<number, string[]>();
+
+    consumers.forEach((Consumer) => {
+      const zoneId = Number(Consumer.Zone_ID || 0);
+      const barangay = normalizeBarangayName(Consumer.Barangay);
+      if (!zoneId || !barangay) return;
+      if (!map.has(zoneId)) {
+        map.set(zoneId, []);
+      }
+      const rows = map.get(zoneId)!;
+      if (!rows.some((value) => value.toLowerCase() === barangay.toLowerCase())) {
+        rows.push(barangay);
+      }
+    });
+
+    map.forEach((rows, zoneId) => {
+      map.set(zoneId, rows.sort((left, right) => left.localeCompare(right)));
+    });
+
+    return map;
+  }, [consumers]);
+
+  const selectedCoverageZoneId = Number(coverageConfigForm.zoneId || 0);
+
+  const coverageBarangayOptions = useMemo(() => {
+    const zoneBarangays = coverageBarangaysByZone.get(selectedCoverageZoneId) || [];
+    const assignmentMap = new Map<string, { zones: Set<number>; hasSplit: boolean }>();
+
+    coverageConfig.forEach((entry) => {
+      const barangay = normalizeBarangayName(entry.Barangay).toLowerCase();
+      const zoneId = Number(entry.Zone_ID || 0);
+      if (!barangay || !zoneId) return;
+      if (!assignmentMap.has(barangay)) {
+        assignmentMap.set(barangay, { zones: new Set<number>(), hasSplit: false });
+      }
+      const assignment = assignmentMap.get(barangay)!;
+      assignment.zones.add(zoneId);
+      assignment.hasSplit = assignment.hasSplit || Boolean(entry.Is_Split);
+    });
+
+    return zoneBarangays.map((barangay) => {
+      const key = normalizeBarangayName(barangay).toLowerCase();
+      const assignment = assignmentMap.get(key);
+      const assignedZoneIds = Array.from(assignment?.zones || []).sort((left, right) => left - right);
+      const totalAssignedZones = assignedZoneIds.length;
+      const assignedInCurrentZone = assignedZoneIds.includes(selectedCoverageZoneId);
+      const assignedInOtherZone = assignedZoneIds.some((zoneId) => zoneId !== selectedCoverageZoneId);
+      const hasSplit = Boolean(assignment?.hasSplit);
+      const disabled = !assignedInCurrentZone && (
+        totalAssignedZones >= 2 ||
+        (assignedInOtherZone && !hasSplit)
+      );
+      const assignedZoneLabels = assignedZoneIds
+        .map((zoneId) => formatZoneLabel(zoneLookup.get(zoneId), zoneId))
+        .join(', ');
+      let hint = '';
+      if (assignedInCurrentZone && totalAssignedZones >= 2) {
+        hint = 'Split 2/2';
+      } else if (assignedInCurrentZone) {
+        hint = hasSplit ? 'Split-enabled' : 'Assigned';
+      } else if (totalAssignedZones >= 2) {
+        hint = 'Max 2 zones reached';
+      } else if (assignedInOtherZone && hasSplit) {
+        hint = 'Split-enabled 1/2';
+      } else if (assignedInOtherZone) {
+        hint = `Locked to ${assignedZoneLabels}`;
+      }
+
+      return {
+        value: barangay,
+        disabled,
+        assignedInOtherZone,
+        assignedZoneIds,
+        hasSplit,
+        label: hint ? `${barangay} (${hint})` : barangay,
+      };
+    });
+  }, [coverageBarangaysByZone, coverageConfig, selectedCoverageZoneId, zoneLookup]);
+
+  useEffect(() => {
+    if (!coverageConfigForm.barangay) {
+      return;
+    }
+    const selectedOption = coverageBarangayOptions.find(
+      (option) => normalizeBarangayName(option.value).toLowerCase() === normalizeBarangayName(coverageConfigForm.barangay).toLowerCase()
+    );
+    if (selectedOption && selectedOption.disabled) {
+      setCoverageConfigForm((current) => ({ ...current, barangay: '' }));
+    }
+  }, [coverageBarangayOptions, coverageConfigForm.barangay]);
+
   const handleSaveCoverageConfig = async () => {
     const zoneId = Number(coverageConfigForm.zoneId || 0);
-    const barangay = coverageConfigForm.barangay.trim();
+    const barangay = normalizeBarangayName(coverageConfigForm.barangay);
     const purokCount = Number(coverageConfigForm.purokCount || 0);
     if (!zoneId) {
       showToast('Select a zone first.', 'error');
       return;
     }
     if (!barangay) {
-      showToast('Barangay is required.', 'error');
+      showToast('Select a barangay.', 'error');
       return;
     }
     if (!Number.isInteger(purokCount) || purokCount < 0) {
       showToast('Purok count must be a non-negative whole number.', 'error');
+      return;
+    }
+    const selectedOption = coverageBarangayOptions.find(
+      (option) => normalizeBarangayName(option.value).toLowerCase() === barangay.toLowerCase()
+    );
+    if (!selectedOption) {
+      showToast('Select a valid barangay from the selected zone.', 'error');
+      return;
+    }
+    if (selectedOption.disabled) {
+      if (selectedOption.assignedZoneIds?.length >= 2) {
+        showToast('This barangay already reached the max of 2 zones.', 'error');
+      } else {
+        showToast('This barangay is locked to another zone. Mark the original assignment as split first.', 'error');
+      }
       return;
     }
     setCoverageConfigSaving(true);
@@ -933,7 +1053,7 @@ const MeterReading: React.FC = () => {
                         </div>
                       ))
                   ) : (
-                    <div className="coverage-empty">No shared barangay boundaries were detected from the current consumer records.</div>
+                    <div className="coverage-empty">No shared barangay boundaries were detected from the current Consumer records.</div>
                   )}
                 </div>
               </div>
@@ -1218,23 +1338,38 @@ const MeterReading: React.FC = () => {
           onClose={() => {
             if (coverageConfigSaving) return;
             setIsCoverageConfigModalOpen(false);
+            setCoverageConfigForm({ zoneId: '', barangay: '', purokCount: '0', isSplit: false });
           }}
           title="Zone Coverage Configuration"
           size="large"
           closeOnOverlayClick={!coverageConfigSaving}
         >
-          <div className="scheduler-panel">
-            <p className="scheduler-panel-copy">
-              Configure which barangays belong to each zone, set purok count, and mark split coverage for future scheduling.
-            </p>
-            <div className="meter-reader-form-grid">
+          <div className="coverage-config-modal">
+            <div className="coverage-config-hero">
+              <p className="scheduler-panel-copy">
+                Step 1: Select a zone. Step 2: Pick one barangay. Split allows that barangay to be shared to one more zone only.
+              </p>
+              <div className="coverage-config-badges">
+                <span className="status-scheduled">Single Zone</span>
+                <span className="status-cancelled">Split (Max 2 Zones)</span>
+              </div>
+            </div>
+            <div className="coverage-config-grid">
+              <section className="scheduler-panel">
               <div className="assignment-select-row">
                 <label htmlFor="coverage-zone">Zone</label>
                 <select
                   id="coverage-zone"
                   className="assignment-select"
                   value={coverageConfigForm.zoneId}
-                  onChange={(event) => setCoverageConfigForm((current) => ({ ...current, zoneId: event.target.value }))}
+                  onChange={(event) => {
+                    const nextZoneId = event.target.value;
+                    setCoverageConfigForm((current) => ({
+                      ...current,
+                      zoneId: nextZoneId,
+                      barangay: '',
+                    }));
+                  }}
                 >
                   <option value="">Select zone</option>
                   {zones.map((zone) => (
@@ -1244,11 +1379,34 @@ const MeterReading: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <FormInput
-                label="Barangay"
-                value={coverageConfigForm.barangay}
-                onChange={(value) => setCoverageConfigForm((current) => ({ ...current, barangay: value }))}
-              />
+              <div className="assignment-select-row">
+                <label htmlFor="coverage-barangay">Barangay</label>
+                <select
+                  id="coverage-barangay"
+                  className="assignment-select"
+                  value={coverageConfigForm.barangay}
+                  disabled={!coverageConfigForm.zoneId}
+                  onChange={(event) => {
+                    setCoverageConfigForm((current) => ({ ...current, barangay: event.target.value }));
+                  }}
+                >
+                  <option value="">{coverageConfigForm.zoneId ? 'Select barangay' : 'Select a zone first'}</option>
+                  {coverageBarangayOptions.map((option) => (
+                    <option
+                      key={`coverage-barangay-option-${option.value}`}
+                      value={option.value}
+                      disabled={option.disabled}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {coverageConfigForm.zoneId && coverageBarangayOptions.some((option) => option.disabled) ? (
+                  <small className="coverage-config-warning">
+                    Locked barangays cannot be selected unless their first assignment was marked as split.
+                  </small>
+                ) : null}
+              </div>
               <FormInput
                 label="Purok Count"
                 value={coverageConfigForm.purokCount}
@@ -1262,16 +1420,40 @@ const MeterReading: React.FC = () => {
                 />
                 <span>Mark as split barangay</span>
               </label>
-            </div>
-            <div className="assignment-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => setIsCoverageConfigModalOpen(false)} disabled={coverageConfigSaving}>
+              <div className="assignment-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsCoverageConfigModalOpen(false);
+                  setCoverageConfigForm({ zoneId: '', barangay: '', purokCount: '0', isSplit: false });
+                }}
+                disabled={coverageConfigSaving}
+              >
                 Close
               </button>
               <button type="button" className="btn btn-primary" onClick={handleSaveCoverageConfig} disabled={coverageConfigSaving}>
                 {coverageConfigSaving ? 'Saving...' : 'Save Rule'}
               </button>
+              </div>
+              </section>
+
+              <aside className="scheduler-panel coverage-config-sidebar">
+                <h4 className="schedule-card-reader">Barangay Availability</h4>
+                <p className="schedule-card-contact">Preview whether each barangay is open, split-enabled, or already at max zones.</p>
+                <div className="coverage-config-option-list">
+                  {coverageBarangayOptions.length > 0 ? coverageBarangayOptions.map((option) => (
+                    <div key={`coverage-preview-${option.value}`} className={`coverage-config-option ${option.disabled ? 'locked' : 'open'}`}>
+                      <strong>{option.value}</strong>
+                      <span>{option.label.replace(`${option.value} `, '') || '(Available)'}</span>
+                    </div>
+                  )) : (
+                    <div className="summary-empty">Select a zone to load barangays.</div>
+                  )}
+                </div>
+              </aside>
             </div>
-            <div className="schedule-card-list">
+            <div className="schedule-card-list coverage-config-rules">
               {coverageConfig.length > 0 ? coverageConfig.map((entry) => (
                 <article key={`coverage-config-${entry.Config_ID}`} className="schedule-card">
                   <div className="schedule-card-top">
@@ -1355,3 +1537,5 @@ const MeterReading: React.FC = () => {
 };
 
 export default MeterReading;
+
+

@@ -111,14 +111,14 @@ const Dashboard: React.FC = () => {
   const performQuickLookup = useCallback(async (rawQuery: string) => {
     const query = rawQuery.trim();
     if (!query) {
-      showToast('Enter an account number or consumer name first.', 'error');
+      showToast('Enter an account number or Consumer name first.', 'error');
       return;
     }
 
     setLoading(true);
     try {
       const result = await loadAccountLookupWithFallback(query);
-      if (!result.data?.consumer) {
+      if (!result.data?.Consumer) {
         throw new Error('Account not found.');
       }
 
@@ -174,7 +174,7 @@ const Dashboard: React.FC = () => {
     },
     {
       key: 'Consumer_Name',
-      label: 'Consumer Name',
+      label: 'Concessionaire Name',
       sortable: true,
     },
     {
@@ -224,7 +224,7 @@ const Dashboard: React.FC = () => {
                 <div className="header-search quick-view-search">
                 <input
                   type="text"
-                  placeholder="Enter Account No. or Consumer Name..."
+                  placeholder="Enter Account No. or Concessionaire Name..."
                   className="quick-search-input"
                   value={quickSearch}
                   onChange={(e) => setQuickSearch(e.target.value)}
@@ -244,7 +244,7 @@ const Dashboard: React.FC = () => {
                       >
                         <div className="quick-search-suggestion-main">
                           <strong>{formatAccountNumberForDisplay(account.Account_Number, 'No account number')}</strong>
-                          <span>{account.Consumer_Name || 'Unnamed consumer'}</span>
+                          <span>{account.Consumer_Name || 'Unnamed Concessionaire'}</span>
                         </div>
                         <span className="quick-search-suggestion-address">{account.Address || 'No saved address'}</span>
                       </button>
@@ -289,7 +289,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="empty-quick-view-copy">
                   <h3>No account selected yet</h3>
-                  <p>Search an account number or consumer name to preview the latest quick bill summary.</p>
+                  <p>Search an account number or Consumer name to preview the latest quick bill summary.</p>
                 </div>
               </div>
             )}
@@ -344,7 +344,7 @@ const Dashboard: React.FC = () => {
                 loading={loading}
                 emptyMessage="No recent payment records found."
                 enableFiltering
-                filterPlaceholder="Search by receipt number, account, or consumer..."
+                filterPlaceholder="Search by receipt number, account, or Consumer..."
               />
             </div>
           </div>
@@ -366,3 +366,6 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+
+
+

@@ -74,7 +74,7 @@ const mapPaymentHistoryRow = (payment: any): PaymentHistoryRow => ({
   Payment_ID: payment.Payment_ID,
   Receipt_No: payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID}`,
   Account_Number: formatAccountNumberForDisplay(payment.Account_Number, 'N/A'),
-  Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
+  Consumer_Name: payment.Consumer_Name || 'Unknown Concessionaire',
   Amount: toAmount(payment.Amount_Paid),
   Payment_Date: payment.Payment_Date,
   Payment_Method: payment.Payment_Method || 'Cash',
@@ -159,7 +159,7 @@ const ProcessPayment: React.FC = () => {
   const performConsumerSearch = useCallback(async (rawQuery: string) => {
     const query = rawQuery.trim();
     if (!query) {
-      showToast('Please enter account number or consumer name', 'error');
+      showToast('Please enter account number or Consumer name', 'error');
       return;
     }
 
@@ -167,14 +167,14 @@ const ProcessPayment: React.FC = () => {
       setLoading(true);
       const result = await loadAccountLookupWithFallback(query);
       const lookup = result.data || {};
-      const consumer = lookup.consumer || null;
+      const Consumer = lookup.Consumer || null;
       const summary = lookup.summary || {};
       const currentBill = lookup.currentBill || null;
 
-      if (!consumer) {
+      if (!Consumer) {
         setSelectedConsumer(null);
         setConsumerProfile(null);
-        showToast('No consumer found for this account.', 'warning');
+        showToast('No Consumer found for this account.', 'warning');
         return;
       }
 
@@ -183,11 +183,11 @@ const ProcessPayment: React.FC = () => {
 
       const mappedConsumer: BillInfo = {
         Bill_ID: currentBill?.Bill_ID ?? 0,
-        Consumer_ID: currentBill?.Consumer_ID ?? consumer.Consumer_ID,
-        Account_Number: consumer.Account_Number,
-        Consumer_Name: consumer.Consumer_Name,
-        Address: consumer.Address,
-        Classification: consumer.Classification,
+        Consumer_ID: currentBill?.Consumer_ID ?? Consumer.Consumer_ID,
+        Account_Number: Consumer.Account_Number,
+        Consumer_Name: Consumer.Consumer_Name,
+        Address: Consumer.Address,
+        Classification: Consumer.Classification,
         Billing_Month: currentBill?.Billing_Month || summary.billingMonth || '—',
         Due_Date: currentBill?.Due_Date || summary.dueDate || null,
         Basic_Charge: toAmount(currentBill?.Basic_Charge),
@@ -202,7 +202,7 @@ const ProcessPayment: React.FC = () => {
         Status: isPaidOrNoBill ? 'Paid' : (currentBill?.Status || 'Unpaid'),
       };
 
-      setConsumerProfile(consumer);
+      setConsumerProfile(Consumer);
       setSelectedConsumer(mappedConsumer);
       setSearchTerm(query);
       setShowSearchSuggestions(false);
@@ -221,7 +221,7 @@ const ProcessPayment: React.FC = () => {
         showToast('Valid statement for settlement identified.', 'success');
       }
     } catch (error) {
-      console.error('Error searching consumer:', error);
+      console.error('Error searching Consumer:', error);
       setSelectedConsumer(null);
       setConsumerProfile(null);
       showToast(getErrorMessage(error, 'Account verification failed.'), 'error');
@@ -245,11 +245,11 @@ const ProcessPayment: React.FC = () => {
 
   const handleProcessPayment = useCallback(async () => {
     if (!selectedConsumer) {
-      showToast('Please search and select a consumer first', 'error');
+      showToast('Please search and select a Consumer first', 'error');
       return;
     }
     if (!selectedConsumer.Bill_ID) {
-      showToast('No active bill found for this consumer. Cannot record a collection.', 'error');
+      showToast('No active bill found for this Consumer. Cannot record a collection.', 'error');
       return;
     }
     if (!amountPaid || parseFloat(amountPaid) <= 0) {
@@ -360,7 +360,7 @@ const ProcessPayment: React.FC = () => {
       sortable: true,
       render: (value: string) => formatAccountNumberForDisplay(value, 'N/A'),
     },
-    { key: 'Consumer_Name', label: 'Consumer Name', sortable: true },
+    { key: 'Consumer_Name', label: 'Concessionaire Name', sortable: true },
     {
       key: 'Amount',
       label: 'Amount',
@@ -546,7 +546,7 @@ const ProcessPayment: React.FC = () => {
                             >
                               <div className="account-search-suggestion-main">
                                 <strong>{formatAccountNumberForDisplay(account.Account_Number, 'No account number')}</strong>
-                                <span>{consumerName || 'Unnamed consumer'}</span>
+                                <span>{consumerName || 'Unnamed Concessionaire'}</span>
                               </div>
                               <span className="account-search-suggestion-address">{account.Address || 'No saved address'}</span>
                             </button>
@@ -582,7 +582,7 @@ const ProcessPayment: React.FC = () => {
 
               <div className="payment-form-column">
                 <div className="payment-form-group">
-                  <label>Consumer Identity Verification</label>
+                  <label>Concessionaire Identity Verification</label>
                   <input
                     type="text"
                     className="form-control"
@@ -687,7 +687,7 @@ const ProcessPayment: React.FC = () => {
                 loading={loading}
                 emptyMessage="No payment history found."
                 enableFiltering
-                filterPlaceholder="Search by receipt number, account, or consumer..."
+                filterPlaceholder="Search by receipt number, account, or Consumer..."
               />
             </div>
           </div>
@@ -773,7 +773,7 @@ const ProcessPayment: React.FC = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '30px' }}>
                 <div>
-                  <h4 style={{ color: '#1B1B63', marginBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>Consumer Information</h4>
+                  <h4 style={{ color: '#1B1B63', marginBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>Concessionaire Information</h4>
                   <p><strong>Account:</strong> {formatAccountNumberForDisplay(consumerProfile.Account_Number)}</p>
                   <p><strong>Name:</strong> {consumerProfile.Consumer_Name}</p>
                   <p><strong>Address:</strong> {consumerProfile.Address}</p>
@@ -846,7 +846,7 @@ const ProcessPayment: React.FC = () => {
 
               <div className="quick-summary-sections">
                 <section className="quick-summary-panel">
-                  <h3>Consumer Profile</h3>
+                  <h3>Concessionaire Profile</h3>
                   <div className="quick-summary-list">
                     <div><span>Account</span><strong>{formatAccountNumberForDisplay(consumerProfile.Account_Number)}</strong></div>
                     <div><span>Name</span><strong>{consumerProfile.Consumer_Name}</strong></div>
@@ -973,3 +973,6 @@ const ProcessPayment: React.FC = () => {
 };
 
 export default ProcessPayment;
+
+
+

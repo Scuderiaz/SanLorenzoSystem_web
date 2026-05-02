@@ -100,12 +100,12 @@ const BillingReports: React.FC = () => {
     loadReports();
   }, [loadReports]);
 
-  const consumerMap = useMemo(() => new Map(consumers.map((consumer) => [consumer.Consumer_ID, consumer])), [consumers]);
+  const consumerMap = useMemo(() => new Map(consumers.map((Consumer) => [Consumer.Consumer_ID, Consumer])), [consumers]);
 
   const filteredBills = useMemo(() => {
     return bills.filter((bill) => {
-      const consumer = consumerMap.get(bill.Consumer_ID);
-      const matchesZone = !zoneFilter || String(consumer?.Zone_ID || '') === zoneFilter;
+      const Consumer = consumerMap.get(bill.Consumer_ID);
+      const matchesZone = !zoneFilter || String(Consumer?.Zone_ID || '') === zoneFilter;
       const billDate = bill.Bill_Date ? new Date(bill.Bill_Date) : null;
       const matchesFrom = !fromDate || !billDate || billDate >= new Date(fromDate);
       const matchesTo = !toDate || !billDate || billDate <= new Date(`${toDate}T23:59:59`);
@@ -115,8 +115,8 @@ const BillingReports: React.FC = () => {
 
   const filteredPayments = useMemo(() => {
     return payments.filter((payment) => {
-      const consumer = consumerMap.get(payment.Consumer_ID);
-      const matchesZone = !zoneFilter || String(consumer?.Zone_ID || '') === zoneFilter;
+      const Consumer = consumerMap.get(payment.Consumer_ID);
+      const matchesZone = !zoneFilter || String(Consumer?.Zone_ID || '') === zoneFilter;
       const paymentDate = payment.Payment_Date ? new Date(payment.Payment_Date) : null;
       const matchesFrom = !fromDate || !paymentDate || paymentDate >= new Date(fromDate);
       const matchesTo = !toDate || !paymentDate || paymentDate <= new Date(`${toDate}T23:59:59`);
@@ -125,7 +125,7 @@ const BillingReports: React.FC = () => {
   }, [payments, consumerMap, fromDate, toDate, zoneFilter]);
 
   const filteredConsumers = useMemo(() => {
-    return consumers.filter((consumer) => !zoneFilter || String(consumer.Zone_ID) === zoneFilter);
+    return consumers.filter((Consumer) => !zoneFilter || String(Consumer.Zone_ID) === zoneFilter);
   }, [consumers, zoneFilter]);
 
   const paymentTotalsByBill = useMemo(() => {
@@ -150,7 +150,7 @@ const BillingReports: React.FC = () => {
   );
 
   const totalConsumers = filteredConsumers.length;
-  const activeConsumers = filteredConsumers.filter((consumer) => String(consumer.Status || '').toLowerCase() === 'active').length;
+  const activeConsumers = filteredConsumers.filter((Consumer) => String(Consumer.Status || '').toLowerCase() === 'active').length;
   const totalBilled = filteredBills.reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
   const totalCollected = finalizedPayments.reduce((sum, payment) => sum + Number(payment.Amount_Paid || 0), 0);
   const totalOutstanding = filteredBills.reduce((sum, bill) => {
@@ -162,10 +162,10 @@ const BillingReports: React.FC = () => {
   const consumerReports = useMemo(() => {
     return zones
       .map((zone) => {
-        const zoneConsumers = consumers.filter((consumer) => consumer.Zone_ID === zone.Zone_ID);
+        const zoneConsumers = consumers.filter((Consumer) => Consumer.Zone_ID === zone.Zone_ID);
         const total = zoneConsumers.length;
-        const active = zoneConsumers.filter((consumer) => String(consumer.Status || '').toLowerCase() === 'active').length;
-        const inactive = zoneConsumers.filter((consumer) => String(consumer.Status || '').toLowerCase() === 'inactive').length;
+        const active = zoneConsumers.filter((Consumer) => String(Consumer.Status || '').toLowerCase() === 'active').length;
+        const inactive = zoneConsumers.filter((Consumer) => String(Consumer.Status || '').toLowerCase() === 'inactive').length;
         return {
           zoneId: zone.Zone_ID,
           zone: formatZoneLabel(zone.Zone_Name, zone.Zone_ID),
@@ -261,9 +261,9 @@ const BillingReports: React.FC = () => {
               columns={consumerReportColumns}
               data={consumerReports}
               loading={loading}
-              emptyMessage="No consumer data available."
+              emptyMessage="No Consumer data available."
               enableFiltering
-              filterPlaceholder="Search consumer report by zone or totals..."
+              filterPlaceholder="Search Consumer report by zone or totals..."
             />
           </div>
         </div>
@@ -358,3 +358,5 @@ const BillingReports: React.FC = () => {
 };
 
 export default BillingReports;
+
+

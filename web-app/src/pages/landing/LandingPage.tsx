@@ -48,7 +48,7 @@ const LandingPage: React.FC = () => {
       description: 'Monthly meter reading and billing for all registered concessionaires based on actual consumption.',
       details: [
         'Accurate monthly meter reading by trained personnel',
-        'Online bill viewing through consumer portal',
+        'Online bill viewing through Consumer portal',
         'Multiple payment options (office, online, mobile)',
         'Detailed billing breakdown and usage history',
         'SMS/email notifications for bill generation',
@@ -473,7 +473,7 @@ const LandingPage: React.FC = () => {
             <div className="note-card">
               <h3 className="note-title">NOTE:</h3>
               <p className="note-text">
-                Materials for the connection are to be purchased by the applicant (concessionaire). 
+                Materials for the connection are to be purchased by the applicant (Consumer). 
                 Please contact our office for more details on material requirements specific to your property.
               </p>
             </div>
@@ -692,3 +692,5 @@ const LandingPage: React.FC = () => {
 };
 
 export default LandingPage;
+
+

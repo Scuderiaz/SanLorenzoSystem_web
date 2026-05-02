@@ -738,6 +738,87 @@
   line-height: 1.5;
 }
 
+.coverage-config-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.coverage-config-hero {
+  border: 1px solid #dbe3f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(120deg, #f8fbff 0%, #eef6ff 100%);
+}
+
+.coverage-config-badges {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.coverage-config-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.coverage-config-sidebar {
+  min-height: 100%;
+}
+
+.coverage-config-option-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.coverage-config-option {
+  border-radius: 12px;
+  border: 1px solid #d7e1ef;
+  background: #f8fafc;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coverage-config-option strong {
+  font-size: 14px;
+  color: #102347;
+}
+
+.coverage-config-option span {
+  font-size: 13px;
+  color: #475569;
+}
+
+.coverage-config-option.open {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.coverage-config-option.locked {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.coverage-config-rules {
+  margin-top: 2px;
+}
+
+@media (max-width: 1080px) {
+  .coverage-config-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .zone-selection-list {
   display: flex;
   flex-direction: column;

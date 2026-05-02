@@ -36,7 +36,7 @@ const ViewBill: React.FC = () => {
 
   const handleSearchBill = async () => {
     if (!searchTerm.trim()) {
-      showToast('Please enter account number or consumer name', 'error');
+      showToast('Please enter account number or Consumer name', 'error');
       return;
     }
 
@@ -89,7 +89,7 @@ const ViewBill: React.FC = () => {
         <div className="search-section">
           <div className="card">
             <div className="card-header" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
-              <h2 className="card-title">Consumer Identity Filter</h2>
+              <h2 className="card-title">Concessionaire Identity Filter</h2>
             </div>
             <div className="card-body">
                 <div style={{ padding: '24px' }}>
@@ -152,7 +152,7 @@ const ViewBill: React.FC = () => {
               {/* Body: High-Hierarchy Information */}
               <div className="bill-info">
                 <div className="info-block">
-                  <h3>Consumer Profile</h3>
+                  <h3>Concessionaire Profile</h3>
                   <div className="info-row">
                     <span className="info-label">Account No.</span>
                     <span className="info-value">{selectedBill.Account_Number}</span>
@@ -280,3 +280,6 @@ const ViewBill: React.FC = () => {
 };
 
 export default ViewBill;
+
+
+

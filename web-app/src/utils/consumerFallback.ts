@@ -1,7 +1,7 @@
 import { loadOfflineDataset, saveOfflineDataset } from '../config/database';
 
 type ConsumerFallbackDataset = {
-  consumer?: Record<string, unknown> | null;
+  Consumer?: Record<string, unknown> | null;
   bills?: unknown[];
   payments?: unknown[];
   readings?: unknown[];
@@ -19,12 +19,12 @@ const asString = (value: unknown, fallback = '') => {
   return normalized || fallback;
 };
 
-const composeAddress = (consumer: Record<string, unknown>) => {
+const composeAddress = (Consumer: Record<string, unknown>) => {
   const parts = [
-    firstDefined(consumer.Purok, consumer.purok),
-    firstDefined(consumer.Barangay, consumer.barangay),
-    firstDefined(consumer.Municipality, consumer.municipality),
-    firstDefined(consumer.Zip_Code, consumer.zip_code),
+    firstDefined(Consumer.Purok, Consumer.purok),
+    firstDefined(Consumer.Barangay, Consumer.barangay),
+    firstDefined(Consumer.Municipality, Consumer.municipality),
+    firstDefined(Consumer.Zip_Code, Consumer.zip_code),
   ]
     .map((value) => asString(value))
     .filter(Boolean);
@@ -39,8 +39,8 @@ export const syncConsumerDashboardFallback = async (
   try {
     const datasetKey = `dataset.consumerDashboard.${accountId}`;
     const cachedDataset = await loadOfflineDataset<ConsumerFallbackDataset>(datasetKey);
-    const cachedConsumer = cachedDataset?.consumer && typeof cachedDataset.consumer === 'object'
-      ? cachedDataset.consumer
+    const cachedConsumer = cachedDataset?.Consumer && typeof cachedDataset.Consumer === 'object'
+      ? cachedDataset.Consumer
       : {};
 
     const mergedConsumer = {
@@ -70,7 +70,7 @@ export const syncConsumerDashboardFallback = async (
 
     await saveOfflineDataset(datasetKey, {
       ...(cachedDataset || {}),
-      consumer: {
+      Consumer: {
         ...mergedConsumer,
         Consumer_ID: consumerId,
         consumer_id: consumerId,
@@ -102,6 +102,8 @@ export const syncConsumerDashboardFallback = async (
       readings: Array.isArray(cachedDataset?.readings) ? cachedDataset.readings : [],
     });
   } catch (error) {
-    console.error('Failed to sync consumer fallback snapshot:', error);
+    console.error('Failed to sync Consumer fallback snapshot:', error);
   }
 };
+
+

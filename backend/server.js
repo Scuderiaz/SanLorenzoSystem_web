@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
-const { Pool } = require('pg');
+const pg = require('pg');
+const { Pool } = pg;
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -12,6 +13,10 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
+
+// Keep date/timestamp fields as raw strings to avoid timezone drift during JS Date parsing.
+pg.types.setTypeParser(1082, (value) => value); // DATE
+pg.types.setTypeParser(1114, (value) => value); // TIMESTAMP WITHOUT TIME ZONE
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey =
@@ -88,7 +93,7 @@ const syncTableConfigs = [
   { tableName: 'roles', primaryKey: 'role_id' },
   { tableName: 'zone', primaryKey: 'zone_id' },
   { tableName: 'classification', primaryKey: 'classification_id' },
-  { tableName: 'admin_settings', primaryKey: 'settings_id' },
+  { tableName: 'admin_settings', primaryKey: 'settings_id', syncWithSupabase: false },
   { tableName: 'accounts', primaryKey: 'account_id' },
   { tableName: 'consumer', primaryKey: 'consumer_id' },
   { tableName: 'meter', primaryKey: 'meter_id' },
@@ -112,7 +117,7 @@ const syncTableColumns = {
   zone: ['zone_id', 'zone_name'],
   classification: ['classification_id', 'classification_name'],
   admin_settings: ['settings_id', 'system_name', 'currency', 'due_date_days', 'late_fee', 'modified_by', 'modified_date'],
-  accounts: ['account_id', 'username', 'password', 'full_name', 'email', 'contact_number', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
+  accounts: ['account_id', 'username', 'password', 'full_name', 'email', 'role_id', 'account_status', 'created_at', 'auth_user_id', 'profile_picture_url'],
   consumer: [
     'consumer_id',
     'first_name',
@@ -273,7 +278,7 @@ const syncConflictPolicies = {
     ],
   },
   meterreadings: {
-    mode: 'strict',
+    mode: 'auto-merge',
     compareColumns: [
       'route_id',
       'consumer_id',
@@ -295,7 +300,7 @@ const syncConflictPolicies = {
     ],
   },
   bills: {
-    mode: 'strict',
+    mode: 'auto-merge',
     compareColumns: [
       'consumer_id',
       'reading_id',
@@ -324,7 +329,7 @@ const syncConflictPolicies = {
     ],
   },
   payment: {
-    mode: 'strict',
+    mode: 'auto-merge',
     compareColumns: [
       'consumer_id',
       'bill_id',
@@ -416,6 +421,29 @@ async function ensureUniqueConstraint(tableName, constraintName, columnName) {
       END IF;
     END
     $$;
+  `);
+}
+
+async function ensureWaterRatesEffectiveDateColumnIsDate() {
+  const result = await pool.query(
+    `SELECT data_type
+     FROM information_schema.columns
+     WHERE table_schema = $1
+       AND table_name = 'waterrates'
+       AND column_name = 'effective_date'
+     LIMIT 1`,
+    [supabaseSchema]
+  );
+
+  const currentType = String(result.rows[0]?.data_type || '').toLowerCase();
+  if (!currentType || currentType === 'date') {
+    return;
+  }
+
+  await pool.query(`
+    ALTER TABLE waterrates
+    ALTER COLUMN effective_date TYPE DATE
+    USING DATE(effective_date)
   `);
 }
 
@@ -866,6 +894,29 @@ function truncateLogValue(value, maxLength = 4000) {
   return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
 }
 
+function extractMissingSupabaseColumnError(message, expectedTableName) {
+  const normalizedMessage = String(message || '');
+  const match = normalizedMessage.match(/Could not find the '([^']+)' column of '([^']+)'/i);
+  if (!match) {
+    return null;
+  }
+
+  const columnName = String(match[1] || '').trim();
+  const tableName = String(match[2] || '').trim();
+  if (!columnName || !tableName) {
+    return null;
+  }
+
+  if (expectedTableName && tableName.toLowerCase() !== String(expectedTableName).toLowerCase()) {
+    return null;
+  }
+
+  return {
+    columnName,
+    tableName,
+  };
+}
+
 function isConnectivityFailureMessage(message) {
   const loweredMessage = String(message || '').toLowerCase();
   return (
@@ -983,7 +1034,7 @@ function appendFailureReport(kind, moduleName, message, context = {}) {
 }
 
 async function writeSystemLog(action, options = {}) {
-  const accountId = Number(options.accountId || defaultSystemLogAccountId);
+  const accountId = Number(options.accountId ?? options.userId ?? defaultSystemLogAccountId);
   const role = options.role || 'System';
 
   try {
@@ -1920,6 +1971,86 @@ function normalizeWaterRateNumericValue(value, label, parser = Number) {
   return parsedValue;
 }
 
+const WATER_RATE_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function formatDateInTimeZoneToKey(date, timeZone = 'Asia/Manila') {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) {
+    throw createHttpError('Unable to normalize effective date.', 500);
+  }
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeWaterRateEffectiveDate(value) {
+  const rawValue = String(value || '').trim();
+  if (!rawValue) {
+    throw createHttpError('Effective date is required for each water rate.');
+  }
+
+  const dateOnlyMatch = rawValue.match(WATER_RATE_DATE_PATTERN);
+  if (dateOnlyMatch) {
+    return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
+  }
+
+  const datePrefixMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (datePrefixMatch) {
+    return `${datePrefixMatch[1]}-${datePrefixMatch[2]}-${datePrefixMatch[3]}`;
+  }
+
+  const parsedDate = new Date(rawValue);
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw createHttpError('Effective date must be a valid date.');
+  }
+
+  // Use Asia/Manila business timezone to avoid UTC day rollbacks.
+  return formatDateInTimeZoneToKey(parsedDate, 'Asia/Manila');
+}
+
+function getTodayDateKey() {
+  return formatDateInTimeZoneToKey(new Date(), 'Asia/Manila');
+}
+
+function assertWaterRateDateIsNotPast(effectiveDate, actionLabel = 'Water rate') {
+  const todayDate = getTodayDateKey();
+  if (String(effectiveDate) < todayDate) {
+    throw createHttpError(`${actionLabel} cannot use a past effective date.`);
+  }
+}
+
+function normalizeWaterRateQueryDate(value, fallbackDateKey = getTodayDateKey()) {
+  const rawValue = String(value || '').trim();
+  if (!rawValue) {
+    return fallbackDateKey;
+  }
+  return normalizeWaterRateEffectiveDate(rawValue);
+}
+
+function normalizeWaterRateRowForResponse(row) {
+  if (!row) return row;
+  const rawEffectiveDate = row.effective_date;
+  let normalizedEffectiveDate = '';
+  if (rawEffectiveDate !== undefined && rawEffectiveDate !== null && String(rawEffectiveDate).trim()) {
+    try {
+      normalizedEffectiveDate = normalizeWaterRateEffectiveDate(rawEffectiveDate);
+    } catch (error) {
+      normalizedEffectiveDate = String(rawEffectiveDate);
+    }
+  }
+  return {
+    ...row,
+    effective_date: normalizedEffectiveDate,
+  };
+}
+
 function computeWaterChargeFromRate(consumption, rate) {
   const normalizedConsumption = Number(consumption);
   if (!Number.isFinite(normalizedConsumption) || normalizedConsumption < 0) {
@@ -1974,6 +2105,33 @@ async function validateClassificationExists(classificationId) {
   return result;
 }
 
+async function mirrorWaterRateRowToSupabase(row) {
+  if (!supabase || !row) return;
+  const payload = {
+    rate_id: Number(row.rate_id),
+    classification_id: Number(row.classification_id),
+    minimum_cubic: Number(row.minimum_cubic),
+    minimum_rate: Number(row.minimum_rate),
+    excess_rate_per_cubic: Number(row.excess_rate_per_cubic),
+    effective_date: normalizeWaterRateEffectiveDate(row.effective_date),
+    modified_by: normalizeRequiredForeignKeyId(row.modified_by) || null,
+    modified_date: row.modified_date || new Date().toISOString(),
+  };
+  const { error } = await supabase
+    .from('waterrates')
+    .upsert([payload], { onConflict: 'rate_id' });
+  if (error) throw error;
+}
+
+async function mirrorWaterRateDeleteToSupabase(rateId) {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('waterrates')
+    .delete()
+    .eq('rate_id', Number(rateId));
+  if (error) throw error;
+}
+
 async function resolveConsumerClassificationId(consumerId) {
   const normalizedConsumerId = normalizeRequiredForeignKeyId(consumerId);
   if (!normalizedConsumerId) {
@@ -2008,13 +2166,13 @@ async function resolveConsumerClassificationId(consumerId) {
   return classificationId;
 }
 
-async function resolveApplicableWaterRate(classificationId, effectiveOn = new Date().toISOString()) {
+async function resolveApplicableWaterRate(classificationId, effectiveOn = getTodayDateKey()) {
   const normalizedClassificationId = normalizeRequiredForeignKeyId(classificationId);
   if (!normalizedClassificationId) {
     throw createHttpError('Classification is required to resolve the water rate.');
   }
 
-  const effectiveDate = effectiveOn || new Date().toISOString();
+  const effectiveDate = normalizeWaterRateQueryDate(effectiveOn, getTodayDateKey());
   const rate = await withPostgresPrimary(
     'waterRates.resolveApplicable',
     async () => {
@@ -2026,14 +2184,14 @@ async function resolveApplicableWaterRate(classificationId, effectiveOn = new Da
           wr.minimum_cubic,
           wr.minimum_rate,
           wr.excess_rate_per_cubic,
-          wr.effective_date,
+          DATE(wr.effective_date) AS effective_date,
           wr.modified_by,
           wr.modified_date
         FROM waterrates wr
         JOIN classification cl ON cl.classification_id = wr.classification_id
         WHERE wr.classification_id = $1
-          AND wr.effective_date <= $2
-        ORDER BY wr.effective_date DESC, wr.rate_id DESC
+          AND DATE(wr.effective_date) <= $2::date
+        ORDER BY DATE(wr.effective_date) DESC, wr.rate_id DESC
         LIMIT 1
       `, [normalizedClassificationId, effectiveDate]);
       return rows[0] || null;
@@ -2062,14 +2220,14 @@ async function resolveApplicableWaterRate(classificationId, effectiveOn = new Da
         return null;
       }
 
-      return {
+      return normalizeWaterRateRowForResponse({
         ...rateResult.data,
         classification_name: classificationResult.data?.classification_name || null,
-      };
+      });
     }
   );
 
-  return rate || null;
+  return normalizeWaterRateRowForResponse(rate) || null;
 }
 
 async function getLatestPostgresMeterIdForConsumer(queryable, consumerId) {
@@ -2186,6 +2344,26 @@ function getActiveAccountStatus(consumer, accountStatus) {
   return normalized || 'Active';
 }
 
+function extractTaggedRemark(remarks, tag) {
+  const normalizedTag = String(tag || '').trim().toLowerCase();
+  if (!normalizedTag) return null;
+  const lines = String(remarks || '')
+    .split(/\r?\n/)
+    .map((line) => String(line || '').trim())
+    .filter(Boolean);
+
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index];
+    const match = line.match(/^\[([^\]]+)\]\s*(.*)$/);
+    if (!match) continue;
+    if (String(match[1] || '').trim().toLowerCase() !== normalizedTag) continue;
+    const value = String(match[2] || '').trim();
+    return value || null;
+  }
+
+  return null;
+}
+
 function mapAdminLogRow(row) {
   return {
     id: row.log_id ?? row.id,
@@ -2194,6 +2372,76 @@ function mapAdminLogRow(row) {
     operator: row.username || row.operator || `Account #${row.account_id ?? 'System'}`,
     description: row.action,
     severity: String(row.action || '').toLowerCase().includes('error') ? 'ERROR' : 'INFO',
+  };
+}
+
+function stripActionTags(action) {
+  let cleaned = String(action || '').trim();
+  while (/^\[[^\]]+\]\s*/.test(cleaned)) {
+    cleaned = cleaned.replace(/^\[[^\]]+\]\s*/, '').trim();
+  }
+  return cleaned;
+}
+
+function isTechnicalSystemAction(action) {
+  const normalized = String(action || '').trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+
+  if (
+    normalized.startsWith('[postgres]') ||
+    normalized.startsWith('[supabase]') ||
+    normalized.startsWith('[request]') ||
+    normalized.startsWith('[sync]')
+  ) {
+    return true;
+  }
+
+  return (
+    normalized.includes('starting supabase to postgresql sync cycle') ||
+    normalized.includes('starting postgresql to supabase sync cycle') ||
+    normalized.includes('supabase pull cycle complete') ||
+    normalized.includes('sync cycle complete') ||
+    normalized.includes('preparing sync for table') ||
+    normalized.includes('no rows to sync') ||
+    normalized.includes('no rows pulled from supabase') ||
+    normalized.includes('pulled ') && normalized.includes('from supabase') ||
+    normalized.includes('held for review')
+  );
+}
+
+function mapDashboardActivityLogRow(row) {
+  const action = String(row?.action || '').trim();
+  const normalized = action.toLowerCase();
+
+  let category = 'General';
+  if (normalized.includes('[applications.')) {
+    category = 'Applications';
+  } else if (normalized.includes('[water-rates.')) {
+    category = 'Water Rates';
+  } else if (normalized.includes('[profile')) {
+    category = 'Profile';
+  } else if (normalized.includes('[password.')) {
+    category = 'Security';
+  } else if (normalized.includes('[admin-settings]')) {
+    category = 'Settings';
+  } else if (normalized.includes('[consumer.reconnectionrequest]') || normalized.includes('[consumers.disconnect]')) {
+    category = 'Consumer Accounts';
+  } else if (normalized.includes('[close-day]')) {
+    category = 'Billing';
+  } else if (normalized.includes('[backup]')) {
+    category = 'Backup';
+  } else if (normalized.includes('[auth]')) {
+    category = 'Authentication';
+  }
+
+  return {
+    id: row.log_id ?? row.id,
+    timestamp: row.timestamp,
+    category,
+    operator: row.username || row.operator || `Account #${row.account_id ?? 'System'}`,
+    description: stripActionTags(action) || action || 'Activity recorded.',
   };
 }
 
@@ -2614,6 +2862,7 @@ async function initDb() {
   await ensureTableColumn('accounts', 'email', 'VARCHAR(255)');
   await ensureTableColumn('accounts', 'contact_number', 'VARCHAR(20)');
   await ensureTableColumn('waterrates', 'classification_id', 'INTEGER');
+  await ensureWaterRatesEffectiveDateColumnIsDate();
   await pool.query(`
     CREATE TABLE IF NOT EXISTS zone_coverage_config (
       config_id SERIAL PRIMARY KEY,
@@ -2736,6 +2985,13 @@ async function syncTableToSupabase(tableName, primaryKey) {
   let normalizedRows = normalizeSyncRows(tableName, rows);
   let conflictCount = 0;
 
+  if (tableName === 'waterrates') {
+    normalizedRows = normalizedRows.map((row) => ({
+      ...row,
+      effective_date: normalizeWaterRateEffectiveDate(row.effective_date),
+    }));
+  }
+
   if (tableName === 'consumer') {
     normalizedRows = await alignConsumerRowsForSupabase(normalizedRows);
   }
@@ -2772,18 +3028,79 @@ async function syncTableToSupabase(tableName, primaryKey) {
     return { tableName, synced: 0, conflicts: conflictCount };
   }
 
-  const { error } = await supabase.from(tableName).upsert(normalizedRows, {
-    onConflict: primaryKey,
-    ignoreDuplicates: false,
-  });
+  const columnsToSkip = new Set();
+  let syncedRows = normalizedRows;
+  while (true) {
+    const rowsForUpsert = columnsToSkip.size
+      ? normalizedRows.map((row) => {
+          const nextRow = { ...row };
+          for (const columnName of columnsToSkip) {
+            delete nextRow[columnName];
+          }
+          return nextRow;
+        })
+      : normalizedRows;
 
-  if (error) {
+    const { error } = await supabase.from(tableName).upsert(rowsForUpsert, {
+      onConflict: primaryKey,
+      ignoreDuplicates: false,
+    });
+
+    if (!error) {
+      syncedRows = rowsForUpsert;
+      break;
+    }
+
+    const missingColumn = extractMissingSupabaseColumnError(error.message, tableName);
+    if (missingColumn && !columnsToSkip.has(missingColumn.columnName)) {
+      columnsToSkip.add(missingColumn.columnName);
+      await logSupabaseEvent(
+        `Table ${tableName}: Supabase schema is missing column "${missingColumn.columnName}". Retrying sync without that column.`
+      );
+      continue;
+    }
+
     await logDatabaseError(`supabase.sync.${tableName}`, error);
     throw new Error(`${tableName}: ${error.message}`);
   }
 
-  await logSupabaseEvent(`Table ${tableName}: synced ${normalizedRows.length} row(s) with ${conflictCount} conflict(s) held for review.`);
-  return { tableName, synced: normalizedRows.length, conflicts: conflictCount };
+  // For water rates, propagate hard deletes from PostgreSQL to Supabase as well.
+  // The upsert sync keeps existing rows but cannot remove rows deleted in PostgreSQL.
+  if (tableName === 'waterrates') {
+    const postgresIds = new Set(
+      syncedRows
+        .map((row) => Number(row[primaryKey]))
+        .filter((value) => Number.isFinite(value))
+    );
+
+    const { data: supabaseIds, error: supabaseIdsError } = await supabase
+      .from(tableName)
+      .select(primaryKey);
+
+    if (supabaseIdsError) {
+      await logDatabaseError(`supabase.sync.${tableName}.fetchIds`, supabaseIdsError);
+      throw new Error(`${tableName}: ${supabaseIdsError.message}`);
+    }
+
+    const staleSupabaseIds = (supabaseIds || [])
+      .map((row) => Number(row?.[primaryKey]))
+      .filter((value) => Number.isFinite(value) && !postgresIds.has(value));
+
+    if (staleSupabaseIds.length > 0) {
+      const { error: pruneError } = await supabase
+        .from(tableName)
+        .delete()
+        .in(primaryKey, staleSupabaseIds);
+
+      if (pruneError) {
+        await logDatabaseError(`supabase.sync.${tableName}.prune`, pruneError);
+        throw new Error(`${tableName}: ${pruneError.message}`);
+      }
+    }
+  }
+
+  await logSupabaseEvent(`Table ${tableName}: synced ${syncedRows.length} row(s) with ${conflictCount} conflict(s) held for review.`);
+  return { tableName, synced: syncedRows.length, conflicts: conflictCount };
 }
 
 async function syncTableToPostgres(tableName, primaryKey) {
@@ -2797,6 +3114,13 @@ async function syncTableToPostgres(tableName, primaryKey) {
 
   let rows = normalizeSyncRows(tableName, data || []);
   let conflictCount = 0;
+
+  if (tableName === 'waterrates') {
+    rows = rows.map((row) => ({
+      ...row,
+      effective_date: normalizeWaterRateEffectiveDate(row.effective_date),
+    }));
+  }
   if (!rows.length) {
     await logPostgresEvent(`Table ${tableName}: no rows pulled from Supabase.`);
     return { tableName, synced: 0, conflicts: 0 };
@@ -2842,6 +3166,13 @@ async function syncPostgresToSupabase() {
 
     for (const { tableName, primaryKey, syncWithSupabase = true } of syncTableConfigs) {
       if (!syncWithSupabase) {
+        continue;
+      }
+
+      const skipReason = shouldSkipSupabaseSyncForDependency(tableName, results);
+      if (skipReason) {
+        await logSupabaseEvent(`Table ${tableName}: ${skipReason}`);
+        results.push({ tableName, synced: 0, skipped: true, reason: skipReason });
         continue;
       }
 
@@ -3042,6 +3373,27 @@ function startSupabaseSyncScheduler() {
         console.warn('Supabase sync skipped:', error.message);
       });
   }, syncIntervalMs);
+}
+
+function shouldSkipSupabaseSyncForDependency(tableName, priorResults = []) {
+  const resultByTable = new Map((priorResults || []).map((row) => [row.tableName, row]));
+  const hasBlockingIssue = (row) => Boolean(row && (row.error || Number(row.conflicts || 0) > 0));
+
+  if (tableName === 'payment') {
+    const billsResult = resultByTable.get('bills');
+    if (hasBlockingIssue(billsResult)) {
+      return 'Skipped payment sync because bills has unresolved sync conflicts/errors in this cycle.';
+    }
+  }
+
+  if (tableName === 'connection_ticket') {
+    const accountsResult = resultByTable.get('accounts');
+    if (hasBlockingIssue(accountsResult)) {
+      return 'Skipped connection_ticket sync because accounts has unresolved sync conflicts/errors in this cycle.';
+    }
+  }
+
+  return null;
 }
 
 function mapConsumerRecord(consumer, zoneMap = new Map(), classificationMap = new Map(), meterMap = new Map()) {
@@ -4026,6 +4378,7 @@ app.post('/api/update-application/:accountId', updatePendingApplicationHandler);
 app.post('/api/admin/approve-user', async (req, res) => {
   const { accountId, approvedBy, remarks } = req.body;
   const approverId = Number(approvedBy);
+  const normalizedRemarks = String(remarks || '').trim();
   try {
     if (!accountId || !Number.isInteger(approverId) || approverId <= 0) {
       return res.status(400).json({ success: false, message: 'Approver information is required.' });
@@ -4086,6 +4439,41 @@ app.post('/api/admin/approve-user', async (req, res) => {
         if (approvalError) throw approvalError;
       }
     );
+    const approvedSummary = await withPostgresPrimary(
+      'users.approve.summary',
+      async () => {
+        const { rows } = await pool.query(
+          `SELECT c.account_number, CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) AS consumer_name
+           FROM consumer c
+           WHERE c.login_id = $1
+           ORDER BY c.consumer_id DESC
+           LIMIT 1`,
+          [accountId]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('consumer')
+          .select('account_number, first_name, middle_name, last_name')
+          .eq('login_id', accountId)
+          .order('consumer_id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) return null;
+        return {
+          account_number: data.account_number,
+          consumer_name: [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ').trim() || null,
+        };
+      }
+    );
+
+    await writeSystemLog(
+      `[applications.approve] ${approvedSummary?.consumer_name || `Account #${accountId}`} (${approvedSummary?.account_number || 'N/A'}) approved.${normalizedRemarks ? ` Remarks: ${normalizedRemarks}` : ''}`,
+      { userId: approverId, role: 'Admin' }
+    );
+
     scheduleImmediateSync('admin-approve-user');
     return res.json({ success: true, message: 'Account approved successfully' });
   } catch (error) {
@@ -4358,6 +4746,41 @@ app.post('/api/admin/reject-user', async (req, res) => {
         if (approvalError) throw approvalError;
       }
     );
+    const rejectedSummary = await withPostgresPrimary(
+      'users.reject.summary',
+      async () => {
+        const { rows } = await pool.query(
+          `SELECT c.account_number, CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) AS consumer_name
+           FROM consumer c
+           WHERE c.login_id = $1
+           ORDER BY c.consumer_id DESC
+           LIMIT 1`,
+          [accountId]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('consumer')
+          .select('account_number, first_name, middle_name, last_name')
+          .eq('login_id', accountId)
+          .order('consumer_id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) return null;
+        return {
+          account_number: data.account_number,
+          consumer_name: [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ').trim() || null,
+        };
+      }
+    );
+
+    await writeSystemLog(
+      `[applications.reject] ${rejectedSummary?.consumer_name || `Account #${accountId}`} (${rejectedSummary?.account_number || 'N/A'}) rejected. Remarks: ${normalizedRemarks}`,
+      { userId: approverId, role: 'Admin' }
+    );
+
     scheduleImmediateSync('admin-reject-user');
     return res.json({ success: true, message: 'Application rejected successfully.' });
   } catch (error) {
@@ -4865,6 +5288,10 @@ app.delete('/api/users/:id', async (req, res) => {
         if (error) throw error;
       }
     );
+    await writeSystemLog(
+      `[applications.delete] Account #${accountId} was deleted from user management.`,
+      { userId: defaultSystemLogAccountId, role: 'Admin' }
+    );
     return res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     await logRequestError(req, 'users.delete', error);
@@ -4996,7 +5423,7 @@ app.get('/api/water-rates', async (req, res) => {
     const activeOnly = req.query.active_only === undefined
       ? true
       : String(req.query.active_only).toLowerCase() !== 'false';
-    const effectiveOn = req.query.effective_on || new Date().toISOString();
+    const effectiveOn = normalizeWaterRateQueryDate(req.query.effective_on, getTodayDateKey());
 
     const rows = await withPostgresPrimary(
       'waterRates.fetchAll',
@@ -5011,7 +5438,7 @@ app.get('/api/water-rates', async (req, res) => {
 
         if (activeOnly) {
           values.push(effectiveOn);
-          whereConditions.push(`wr.effective_date <= $${values.length}`);
+          whereConditions.push(`DATE(wr.effective_date) <= $${values.length}::date`);
         }
 
         const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -5025,12 +5452,12 @@ app.get('/api/water-rates', async (req, res) => {
                 wr.minimum_cubic,
                 wr.minimum_rate,
                 wr.excess_rate_per_cubic,
-                wr.effective_date,
+                DATE(wr.effective_date) AS effective_date,
                 wr.modified_by,
                 wr.modified_date,
                 ROW_NUMBER() OVER (
                   PARTITION BY wr.classification_id
-                  ORDER BY wr.effective_date DESC, wr.rate_id DESC
+                  ORDER BY DATE(wr.effective_date) DESC, wr.rate_id DESC
                 ) AS rate_rank
               FROM waterrates wr
               JOIN classification cl ON cl.classification_id = wr.classification_id
@@ -5040,7 +5467,7 @@ app.get('/api/water-rates', async (req, res) => {
                    excess_rate_per_cubic, effective_date, modified_by, modified_date
             FROM ranked_rates
             WHERE rate_rank = 1
-            ORDER BY classification_name ASC, effective_date DESC, rate_id DESC
+            ORDER BY classification_name ASC, DATE(effective_date) DESC, rate_id DESC
           `
           : `
             SELECT
@@ -5050,13 +5477,13 @@ app.get('/api/water-rates', async (req, res) => {
               wr.minimum_cubic,
               wr.minimum_rate,
               wr.excess_rate_per_cubic,
-              wr.effective_date,
+              DATE(wr.effective_date) AS effective_date,
               wr.modified_by,
               wr.modified_date
             FROM waterrates wr
             JOIN classification cl ON cl.classification_id = wr.classification_id
             ${whereClause}
-            ORDER BY cl.classification_name ASC, wr.effective_date DESC, wr.rate_id DESC
+            ORDER BY cl.classification_name ASC, DATE(wr.effective_date) DESC, wr.rate_id DESC
           `;
 
         const { rows } = await pool.query(query, values);
@@ -5090,7 +5517,7 @@ app.get('/api/water-rates', async (req, res) => {
         const classificationMap = new Map((classificationsResult.data || []).map((row) => [row.classification_id, row.classification_name]));
         const mappedRows = (ratesResult.data || [])
           .filter((row) => normalizeRequiredForeignKeyId(row.classification_id))
-          .map((row) => ({
+          .map((row) => normalizeWaterRateRowForResponse({
             ...row,
             classification_name: classificationMap.get(row.classification_id) || null,
           }))
@@ -5099,7 +5526,7 @@ app.get('/api/water-rates', async (req, res) => {
         if (!latestOnly) {
           return mappedRows.sort((left, right) =>
             String(left.classification_name || '').localeCompare(String(right.classification_name || '')) ||
-            new Date(right.effective_date || 0).getTime() - new Date(left.effective_date || 0).getTime() ||
+            String(right.effective_date || '').localeCompare(String(left.effective_date || '')) ||
             Number(right.rate_id || 0) - Number(left.rate_id || 0)
           );
         }
@@ -5117,7 +5544,10 @@ app.get('/api/water-rates', async (req, res) => {
       }
     );
 
-    return res.json({ success: true, data: rows });
+    return res.json({
+      success: true,
+      data: (rows || []).map((row) => normalizeWaterRateRowForResponse(row)),
+    });
   } catch (error) {
     await logRequestError(req, 'waterRates.fetchAll', error);
     console.error('Error fetching water rates:', error);
@@ -5184,6 +5614,57 @@ app.post('/api/zone-coverage-config', async (req, res) => {
   }
 
   try {
+    const normalizeBarangayKey = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const barangayKey = normalizeBarangayKey(barangay);
+    const existingRows = await withPostgresPrimary(
+      'zoneCoverageConfig.validateSplitRules',
+      async () => {
+        const { rows } = await pool.query(
+          `SELECT zone_id, barangay, is_split
+           FROM zone_coverage_config
+           WHERE LOWER(TRIM(barangay)) = LOWER(TRIM($1))`,
+          [barangay]
+        );
+        return rows || [];
+      },
+      async () => {
+        const { data, error } = await supabase.from('zone_coverage_config').select('zone_id, barangay, is_split');
+        if (error && error.code !== '42P01') throw error;
+        return (data || []).filter((row) => normalizeBarangayKey(row.barangay) === barangayKey);
+      }
+    );
+
+    const existingByZone = new Map();
+    let hasSplitAssignment = false;
+    for (const row of existingRows || []) {
+      const existingZoneId = Number(row.zone_id || row.Zone_ID || 0);
+      if (!existingZoneId) continue;
+      existingByZone.set(existingZoneId, true);
+      if (Boolean(row.is_split || row.Is_Split)) {
+        hasSplitAssignment = true;
+      }
+    }
+
+    const alreadyAssignedInCurrentZone = existingByZone.has(zoneId);
+    const distinctAssignedZones = Array.from(existingByZone.keys());
+    const assignedInOtherZones = distinctAssignedZones.filter((existingZoneId) => existingZoneId !== zoneId);
+
+    if (!alreadyAssignedInCurrentZone) {
+      if (distinctAssignedZones.length >= 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'This barangay already reached the maximum of 2 zones.',
+        });
+      }
+
+      if (assignedInOtherZones.length >= 1 && !hasSplitAssignment) {
+        return res.status(400).json({
+          success: false,
+          message: 'This barangay is locked to another zone. Mark its existing assignment as split before reusing it.',
+        });
+      }
+    }
+
     const row = await withPostgresPrimary(
       'zoneCoverageConfig.upsert',
       async () => {
@@ -5253,7 +5734,7 @@ app.delete('/api/zone-coverage-config/:id', async (req, res) => {
 app.get('/api/water-rates/latest', async (req, res) => {
   try {
     const classificationId = normalizeRequiredForeignKeyId(req.query.classification_id);
-    const effectiveOn = req.query.effective_on || new Date().toISOString();
+    const effectiveOn = normalizeWaterRateQueryDate(req.query.effective_on, getTodayDateKey());
 
     if (classificationId) {
       const rate = await resolveApplicableWaterRate(classificationId, effectiveOn);
@@ -5271,13 +5752,13 @@ app.get('/api/water-rates/latest', async (req, res) => {
             wr.minimum_cubic,
             wr.minimum_rate,
             wr.excess_rate_per_cubic,
-            wr.effective_date,
+            DATE(wr.effective_date) AS effective_date,
             wr.modified_by,
             wr.modified_date
           FROM waterrates wr
           JOIN classification cl ON cl.classification_id = wr.classification_id
-          WHERE wr.effective_date <= $1
-          ORDER BY wr.effective_date DESC, wr.rate_id DESC
+          WHERE DATE(wr.effective_date) <= $1::date
+          ORDER BY DATE(wr.effective_date) DESC, wr.rate_id DESC
           LIMIT 1
         `, [effectiveOn]);
         return rows[0] || null;
@@ -5302,14 +5783,14 @@ app.get('/api/water-rates/latest', async (req, res) => {
         }
 
         const classificationMap = new Map((classificationsResult.data || []).map((row) => [row.classification_id, row.classification_name]));
-        return {
+        return normalizeWaterRateRowForResponse({
           ...rateResult.data,
           classification_name: classificationMap.get(rateResult.data.classification_id) || null,
-        };
+        });
       }
     );
 
-    return res.json({ success: true, data: row });
+    return res.json({ success: true, data: normalizeWaterRateRowForResponse(row) });
   } catch (error) {
     await logRequestError(req, 'waterRates.fetchLatest', error);
     console.error('Error fetching latest water rates:', error);
@@ -5321,7 +5802,8 @@ app.get('/api/water-rates/latest', async (req, res) => {
 app.post('/api/water-rates', async (req, res) => {
   try {
     const classification = await validateClassificationExists(req.body.classification_id || req.body.classificationId);
-    const effectiveDate = req.body.effective_date || req.body.effectiveDate || new Date().toISOString();
+    const effectiveDate = normalizeWaterRateEffectiveDate(req.body.effective_date || req.body.effectiveDate);
+    assertWaterRateDateIsNotPast(effectiveDate, 'Water rate');
     const payload = {
       classification_id: parseRequiredWaterRateClassificationId(req.body.classification_id || req.body.classificationId),
       minimum_cubic: normalizeWaterRateNumericValue(req.body.minimum_cubic, 'Minimum cubic', parseInt),
@@ -5339,7 +5821,7 @@ app.post('/api/water-rates', async (req, res) => {
           'waterrates',
           'rate_id',
           `INSERT INTO waterrates (classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           VALUES ($1, $2, $3, $4, $5::date, $6, $7)
            RETURNING rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date`,
           [
             payload.classification_id,
@@ -5360,11 +5842,25 @@ app.post('/api/water-rates', async (req, res) => {
       }
     );
 
+    if (isPostgresAvailable && supabase) {
+      try {
+        await mirrorWaterRateRowToSupabase(row);
+      } catch (mirrorError) {
+        await logRequestError(req, 'waterRates.create.mirrorSupabase', mirrorError);
+      }
+    }
+
+    await writeSystemLog(
+      `[water-rates.create] ${classification.classification_name || `Classification #${payload.classification_id}`} rate created: PHP ${formatCurrencyAmount(payload.minimum_rate)} minimum, PHP ${formatCurrencyAmount(payload.excess_rate_per_cubic)} excess per cubic meter, ${payload.minimum_cubic} m3 minimum cubic, effective ${payload.effective_date}.`,
+      { accountId: payload.modified_by, role: 'Admin' }
+    );
     scheduleImmediateSync('water-rates-create');
+    const normalizedRow = normalizeWaterRateRowForResponse(row);
     return res.json({
       success: true,
+      message: 'Water rate created successfully.',
       data: {
-        ...row,
+        ...normalizedRow,
         classification_name: classification.classification_name || null,
       },
     });
@@ -5383,12 +5879,56 @@ app.put('/api/water-rates/:id', async (req, res) => {
     }
 
     const classification = await validateClassificationExists(req.body.classification_id || req.body.classificationId);
+    const existingRate = await withPostgresPrimary(
+      'waterRates.fetchByIdForUpdate',
+      async () => {
+        const { rows } = await pool.query(
+          'SELECT rate_id, classification_id, effective_date FROM waterrates WHERE rate_id = $1 LIMIT 1',
+          [rateId]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('waterrates')
+          .select('rate_id, classification_id, effective_date')
+          .eq('rate_id', rateId)
+          .maybeSingle();
+        if (error) throw error;
+        return data || null;
+      }
+    );
+    if (!existingRate) {
+      return res.status(404).json({ success: false, message: 'Water rate not found.' });
+    }
+
+    const existingDateKey = normalizeWaterRateEffectiveDate(existingRate.effective_date);
+    const todayDateKey = getTodayDateKey();
+    const existingClassificationId = parseRequiredWaterRateClassificationId(existingRate.classification_id);
+    let latestActiveRate = null;
+    try {
+      latestActiveRate = await resolveApplicableWaterRate(existingClassificationId, todayDateKey);
+    } catch (error) {
+      latestActiveRate = null;
+    }
+    const isCurrentActiveRate = Number(latestActiveRate?.rate_id || 0) === rateId;
+    const isUpcomingRate = existingDateKey > todayDateKey;
+
+    if (!isCurrentActiveRate && !isUpcomingRate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Only current active or upcoming water rates can be edited.',
+      });
+    }
+
+    const normalizedEffectiveDate = normalizeWaterRateEffectiveDate(req.body.effective_date || req.body.effectiveDate);
+    assertWaterRateDateIsNotPast(normalizedEffectiveDate, 'Water rate');
     const payload = {
       classification_id: parseRequiredWaterRateClassificationId(req.body.classification_id || req.body.classificationId),
       minimum_cubic: normalizeWaterRateNumericValue(req.body.minimum_cubic, 'Minimum cubic', parseInt),
       minimum_rate: normalizeWaterRateNumericValue(req.body.minimum_rate, 'Minimum rate', parseFloat),
       excess_rate_per_cubic: normalizeWaterRateNumericValue(req.body.excess_rate_per_cubic, 'Excess rate per cubic', parseFloat),
-      effective_date: req.body.effective_date || req.body.effectiveDate || new Date().toISOString(),
+      effective_date: normalizedEffectiveDate,
       modified_by: normalizeRequiredForeignKeyId(req.body.modified_by || req.body.modifiedBy),
       modified_date: new Date().toISOString(),
     };
@@ -5396,27 +5936,28 @@ app.put('/api/water-rates/:id', async (req, res) => {
     const row = await withPostgresPrimary(
       'waterRates.update',
       async () => {
-        const { rows } = await pool.query(`
-          UPDATE waterrates
-          SET classification_id = $1,
-              minimum_cubic = $2,
-              minimum_rate = $3,
-              excess_rate_per_cubic = $4,
-              effective_date = $5,
-              modified_by = $6,
-              modified_date = $7
-          WHERE rate_id = $8
-          RETURNING rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date
-        `, [
-          payload.classification_id,
-          payload.minimum_cubic,
-          payload.minimum_rate,
-          payload.excess_rate_per_cubic,
-          payload.effective_date,
-          payload.modified_by,
-          payload.modified_date,
-          rateId,
-        ]);
+        const { rows } = await pool.query(
+          `UPDATE waterrates
+           SET classification_id = $1,
+               minimum_cubic = $2,
+               minimum_rate = $3,
+               excess_rate_per_cubic = $4,
+               effective_date = $5::date,
+               modified_by = $6,
+               modified_date = $7
+           WHERE rate_id = $8
+           RETURNING rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date`,
+          [
+            payload.classification_id,
+            payload.minimum_cubic,
+            payload.minimum_rate,
+            payload.excess_rate_per_cubic,
+            payload.effective_date,
+            payload.modified_by,
+            payload.modified_date,
+            rateId,
+          ]
+        );
 
         if (!rows[0]) {
           throw createHttpError('Water rate not found.', 404);
@@ -5427,7 +5968,15 @@ app.put('/api/water-rates/:id', async (req, res) => {
       async () => {
         const { data, error } = await supabase
           .from('waterrates')
-          .update(payload)
+          .update({
+            classification_id: payload.classification_id,
+            minimum_cubic: payload.minimum_cubic,
+            minimum_rate: payload.minimum_rate,
+            excess_rate_per_cubic: payload.excess_rate_per_cubic,
+            effective_date: payload.effective_date,
+            modified_by: payload.modified_by,
+            modified_date: payload.modified_date,
+          })
           .eq('rate_id', rateId)
           .select()
           .maybeSingle();
@@ -5439,11 +5988,25 @@ app.put('/api/water-rates/:id', async (req, res) => {
       }
     );
 
+    if (isPostgresAvailable && supabase) {
+      try {
+        await mirrorWaterRateRowToSupabase(row);
+      } catch (mirrorError) {
+        await logRequestError(req, 'waterRates.update.mirrorSupabase', mirrorError);
+      }
+    }
+
+    await writeSystemLog(
+      `[water-rates.update] ${classification.classification_name || `Classification #${payload.classification_id}`} rate #${rateId} updated: PHP ${formatCurrencyAmount(payload.minimum_rate)} minimum, PHP ${formatCurrencyAmount(payload.excess_rate_per_cubic)} excess per cubic meter, ${payload.minimum_cubic} m3 minimum cubic, effective ${payload.effective_date}.`,
+      { accountId: payload.modified_by, role: 'Admin' }
+    );
     scheduleImmediateSync('water-rates-update');
+    const normalizedRow = normalizeWaterRateRowForResponse(row);
     return res.json({
       success: true,
+      message: 'Water rate updated successfully.',
       data: {
-        ...row,
+        ...normalizedRow,
         classification_name: classification.classification_name || null,
       },
     });
@@ -5460,6 +6023,39 @@ app.delete('/api/water-rates/:id', async (req, res) => {
     if (!Number.isFinite(rateId)) {
       return res.status(400).json({ success: false, message: 'Invalid water rate ID.' });
     }
+
+    const actorAccountId =
+      normalizeRequiredForeignKeyId(req.body?.modified_by || req.body?.modifiedBy || req.query?.modified_by || req.query?.modifiedBy) ||
+      defaultSystemLogAccountId;
+
+    const existingRate = await withPostgresPrimary(
+      'waterRates.fetchByIdForDelete',
+      async () => {
+        const { rows } = await pool.query(
+          `SELECT rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date
+           FROM waterrates
+           WHERE rate_id = $1
+           LIMIT 1`,
+          [rateId]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('waterrates')
+          .select('rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date')
+          .eq('rate_id', rateId)
+          .maybeSingle();
+        if (error) throw error;
+        return data || null;
+      }
+    );
+
+    if (!existingRate) {
+      return res.status(404).json({ success: false, message: 'Water rate not found.' });
+    }
+
+    const classification = await validateClassificationExists(existingRate.classification_id);
 
     await withPostgresPrimary(
       'waterRates.delete',
@@ -5482,6 +6078,18 @@ app.delete('/api/water-rates/:id', async (req, res) => {
       }
     );
 
+    if (isPostgresAvailable && supabase) {
+      try {
+        await mirrorWaterRateDeleteToSupabase(rateId);
+      } catch (mirrorError) {
+        await logRequestError(req, 'waterRates.delete.mirrorSupabase', mirrorError);
+      }
+    }
+
+    await writeSystemLog(
+      `[water-rates.delete] ${classification.classification_name || `Classification #${existingRate.classification_id}`} rate #${rateId} deleted: PHP ${formatCurrencyAmount(existingRate.minimum_rate)} minimum, PHP ${formatCurrencyAmount(existingRate.excess_rate_per_cubic)} excess per cubic meter, ${existingRate.minimum_cubic} m3 minimum cubic, effective ${normalizeWaterRateEffectiveDate(existingRate.effective_date)}.`,
+      { accountId: actorAccountId, role: 'Admin' }
+    );
     scheduleImmediateSync('water-rates-delete');
     return res.json({ success: true, message: 'Water rate deleted successfully.' });
   } catch (error) {
@@ -6068,6 +6676,17 @@ app.put('/api/consumers/:id/profile', async (req, res) => {
       authUserId: updatedProfile.account?.auth_user_id || null,
     });
 
+    const fullName = [updatedProfile.consumer.first_name, updatedProfile.consumer.middle_name, updatedProfile.consumer.last_name]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || `Consumer #${updatedProfile.consumer.consumer_id}`;
+    await writeSystemLog(
+      requestedPassword
+        ? `[password.change] ${fullName} updated account credentials.`
+        : `[profile.update] ${fullName} updated profile details.`,
+      { accountId: updatedProfile.account?.account_id || defaultSystemLogAccountId, role: 'Consumer' }
+    );
+
     scheduleImmediateSync('consumers-profile-update');
     return res.json({
       success: true,
@@ -6258,6 +6877,141 @@ app.put('/api/consumers/:id', async (req, res) => {
     console.error('Error updating consumer:', error);
     const statusCode = error?.code === '23505' || error?.code === '23503' || error?.code === '23514' ? 400 : 500;
     return res.status(statusCode).json({ success: false, message: getConsumerSaveErrorMessage(error) });
+  }
+});
+
+app.put('/api/consumers/:id/disconnect', async (req, res) => {
+  const consumerId = normalizeRequiredForeignKeyId(req.params.id);
+  const reason = String(req.body?.reason || '').trim();
+  const monthsOverdue = Number(req.body?.months_overdue || req.body?.monthsOverdue || 0);
+  const unpaidBills = Number(req.body?.unpaid_bills || req.body?.unpaidBills || 0);
+  const actorAccountId = normalizeRequiredForeignKeyId(req.body?.actor_account_id || req.body?.actorAccountId);
+  const actorRoleName = String(req.body?.actor_role_name || req.body?.actorRoleName || '').trim();
+  const disconnectionScope = String(req.body?.disconnection_scope || req.body?.disconnectionScope || 'service').trim().toLowerCase() === 'account'
+    ? 'Account Access Restriction'
+    : 'Full Service Disconnect';
+  const effectiveDate = String(req.body?.effective_date || req.body?.effectiveDate || '').trim();
+  const referenceNo = String(req.body?.reference_no || req.body?.referenceNo || '').trim();
+
+  if (!consumerId) {
+    return res.status(400).json({ success: false, message: 'A valid consumer ID is required.' });
+  }
+  if (!reason) {
+    return res.status(400).json({ success: false, message: 'Disconnection reason is required.' });
+  }
+
+  try {
+    const result = await withPostgresPrimary(
+      'consumers.disconnect',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const { rows: consumerRows } = await client.query(
+            `SELECT consumer_id, first_name, middle_name, last_name, account_number, login_id
+             FROM consumer
+             WHERE consumer_id = $1
+             LIMIT 1`,
+            [consumerId]
+          );
+          if (!consumerRows.length) {
+            throw createHttpError('Consumer not found.', 404);
+          }
+          const consumer = consumerRows[0];
+
+          await client.query(
+            `UPDATE consumer
+             SET status = 'Disconnected'
+             WHERE consumer_id = $1`,
+            [consumerId]
+          );
+
+          if (Number(consumer.login_id) > 0) {
+            await client.query(
+              `UPDATE accounts
+               SET account_status = 'Disconnected',
+                   updated_at = NOW()
+               WHERE account_id = $1`,
+              [consumer.login_id]
+            );
+
+            await client.query(
+              `UPDATE connection_ticket
+               SET status = 'Disconnected',
+                   remarks = CASE
+                     WHEN COALESCE(NULLIF(TRIM(remarks), ''), '') = '' THEN $2
+                     ELSE remarks || E'\n' || $2
+                   END
+               WHERE account_id = $1`,
+              [consumer.login_id, `[disconnect] ${reason}${referenceNo ? ` | Ref: ${referenceNo}` : ''}${effectiveDate ? ` | Effective: ${effectiveDate}` : ''}${disconnectionScope ? ` | Scope: ${disconnectionScope}` : ''}`]
+            );
+          }
+
+          await client.query('COMMIT');
+          return consumer;
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { data: consumer, error: consumerError } = await supabase
+          .from('consumer')
+          .select('consumer_id, first_name, middle_name, last_name, account_number, login_id')
+          .eq('consumer_id', consumerId)
+          .maybeSingle();
+        if (consumerError) throw consumerError;
+        if (!consumer) {
+          throw createHttpError('Consumer not found.', 404);
+        }
+
+        const { error: consumerUpdateError } = await supabase
+          .from('consumer')
+          .update({ status: 'Disconnected' })
+          .eq('consumer_id', consumerId);
+        if (consumerUpdateError) throw consumerUpdateError;
+
+        if (Number(consumer.login_id) > 0) {
+          const { error: accountUpdateError } = await supabase
+            .from('accounts')
+            .update({ account_status: 'Disconnected' })
+            .eq('account_id', consumer.login_id);
+          if (accountUpdateError) throw accountUpdateError;
+
+          const { data: ticketRows, error: ticketFetchError } = await supabase
+            .from('connection_ticket')
+            .select('ticket_id, remarks')
+            .eq('account_id', consumer.login_id);
+          if (ticketFetchError) throw ticketFetchError;
+
+          for (const ticket of ticketRows || []) {
+            const nextRemarks = ticket.remarks
+              ? `${String(ticket.remarks).trim()}\n[disconnect] ${reason}${referenceNo ? ` | Ref: ${referenceNo}` : ''}${effectiveDate ? ` | Effective: ${effectiveDate}` : ''}${disconnectionScope ? ` | Scope: ${disconnectionScope}` : ''}`
+              : `[disconnect] ${reason}${referenceNo ? ` | Ref: ${referenceNo}` : ''}${effectiveDate ? ` | Effective: ${effectiveDate}` : ''}${disconnectionScope ? ` | Scope: ${disconnectionScope}` : ''}`;
+            const { error: ticketUpdateError } = await supabase
+              .from('connection_ticket')
+              .update({ status: 'Disconnected', remarks: nextRemarks })
+              .eq('ticket_id', ticket.ticket_id);
+            if (ticketUpdateError) throw ticketUpdateError;
+          }
+        }
+
+        return consumer;
+      }
+    );
+
+    const fullName = [result.first_name, result.middle_name, result.last_name].filter(Boolean).join(' ').trim() || `Consumer #${consumerId}`;
+    await writeSystemLog(
+      `[consumers.disconnect] ${fullName} (${result.account_number || 'N/A'}) marked Disconnected. Reason: ${reason}. Scope: ${disconnectionScope}.${effectiveDate ? ` Effective: ${effectiveDate}.` : ''}${referenceNo ? ` Ref: ${referenceNo}.` : ''} Overdue: ${monthsOverdue} month(s). Unpaid bills: ${unpaidBills}.`,
+      { role: actorRoleName || 'Billing Officer', accountId: actorAccountId || defaultSystemLogAccountId }
+    );
+    scheduleImmediateSync('consumers-disconnect');
+    return res.json({ success: true, message: 'Consumer disconnected successfully.' });
+  } catch (error) {
+    await logRequestError(req, 'consumers.disconnect', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
@@ -6949,6 +7703,8 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
         const mappedBills = billRows.rows.map((bill) => mapBillRecord(bill, new Map([[consumer.consumer_id, consumer]]), new Map([[consumer.classification_id, consumer.classification_name]])));
         const billMap = new Map(billRows.rows.map((bill) => [bill.bill_id, bill]));
         const ticket = ticketRows.rows[0] || null;
+        const disconnectionReason = extractTaggedRemark(ticket?.remarks, 'disconnect');
+        const reconnectionReason = extractTaggedRemark(ticket?.remarks, 'reconnection-request');
 
         return {
           consumer: { ...consumer, Consumer_ID: consumer.consumer_id },
@@ -6966,6 +7722,8 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
             Application_Date: ticket.application_date,
             Approved_Date: ticket.approved_date,
             Remarks: ticket.remarks,
+            Disconnection_Reason: disconnectionReason,
+            Reconnection_Reason: reconnectionReason,
           } : null,
         };
       },
@@ -7010,6 +7768,8 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
 
         const billMap = new Map((bills || []).map((bill) => [bill.bill_id, bill]));
         const rawTicket = tickets?.[0] || null;
+        const disconnectionReason = extractTaggedRemark(rawTicket?.remarks, 'disconnect');
+        const reconnectionReason = extractTaggedRemark(rawTicket?.remarks, 'reconnection-request');
 
         return {
           consumer: {
@@ -7037,6 +7797,8 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
             Application_Date: rawTicket.application_date,
             Approved_Date: rawTicket.approved_date,
             Remarks: rawTicket.remarks,
+            Disconnection_Reason: disconnectionReason,
+            Reconnection_Reason: reconnectionReason,
           } : null,
         };
       }
@@ -7051,6 +7813,138 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
     await logRequestError(req, 'consumerDashboard.fetch', error);
     console.error('Consumer dashboard error:', error);
     return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/consumer/reconnection-request', async (req, res) => {
+  const accountId = normalizeRequiredForeignKeyId(req.body?.accountId);
+  const reason = String(req.body?.reason || '').trim();
+
+  if (!accountId) {
+    return res.status(400).json({ success: false, message: 'Account ID is required.' });
+  }
+  if (!reason) {
+    return res.status(400).json({ success: false, message: 'Reconnection reason is required.' });
+  }
+
+  try {
+    const ticketNumber = generateRegistrationTicketNumber();
+    const result = await withPostgresPrimary(
+      'consumer.reconnectionRequest',
+      async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+
+          const { rows: consumerRows } = await client.query(
+            `SELECT consumer_id, status, first_name, middle_name, last_name, account_number
+             FROM consumer
+             WHERE login_id = $1
+             LIMIT 1`,
+            [accountId]
+          );
+          const consumer = consumerRows[0] || null;
+          if (!consumer) {
+            throw createHttpError('Consumer record not found.', 404);
+          }
+
+          if (String(consumer.status || '').trim().toLowerCase() !== 'disconnected') {
+            throw createHttpError('Only disconnected accounts can request reconnection.', 400);
+          }
+
+          const { rows: existingRows } = await client.query(
+            `SELECT ticket_id, ticket_number
+             FROM connection_ticket
+             WHERE account_id = $1
+               AND LOWER(COALESCE(status, 'pending')) = 'pending'
+               AND LOWER(COALESCE(connection_type, '')) = 'reconnection'
+             ORDER BY ticket_id DESC
+             LIMIT 1`,
+            [accountId]
+          );
+          if (existingRows.length) {
+            throw createHttpError(`A reconnection request is already pending (Ticket: ${existingRows[0].ticket_number}).`, 409);
+          }
+
+          await client.query(
+            `INSERT INTO connection_ticket (consumer_id, account_id, ticket_number, application_date, connection_type, requirements_submitted, status, remarks)
+             VALUES ($1, $2, $3, CURRENT_TIMESTAMP, 'Reconnection', NULL, 'Pending', $4)`,
+            [consumer.consumer_id, accountId, ticketNumber, `[reconnection-request] ${reason}`]
+          );
+
+          await client.query(
+            `UPDATE accounts
+             SET updated_at = NOW()
+             WHERE account_id = $1`,
+            [accountId]
+          );
+
+          await client.query('COMMIT');
+          return consumer;
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      },
+      async () => {
+        const { data: consumer, error: consumerError } = await supabase
+          .from('consumer')
+          .select('consumer_id, status, first_name, middle_name, last_name, account_number')
+          .eq('login_id', accountId)
+          .maybeSingle();
+        if (consumerError) throw consumerError;
+        if (!consumer) {
+          throw createHttpError('Consumer record not found.', 404);
+        }
+        if (String(consumer.status || '').trim().toLowerCase() !== 'disconnected') {
+          throw createHttpError('Only disconnected accounts can request reconnection.', 400);
+        }
+
+        const { data: existingTickets, error: existingError } = await supabase
+          .from('connection_ticket')
+          .select('ticket_id, ticket_number')
+          .eq('account_id', accountId)
+          .eq('status', 'Pending')
+          .eq('connection_type', 'Reconnection')
+          .order('ticket_id', { ascending: false })
+          .limit(1);
+        if (existingError) throw existingError;
+        if ((existingTickets || []).length) {
+          throw createHttpError(`A reconnection request is already pending (Ticket: ${existingTickets[0].ticket_number}).`, 409);
+        }
+
+        await insertSupabaseRowWithPrimaryKeyRetry(
+          'connection_ticket',
+          'ticket_id',
+          {
+            consumer_id: consumer.consumer_id,
+            account_id: accountId,
+            ticket_number: ticketNumber,
+            application_date: new Date().toISOString(),
+            connection_type: 'Reconnection',
+            requirements_submitted: null,
+            status: 'Pending',
+            remarks: `[reconnection-request] ${reason}`,
+          },
+          'ticket_id'
+        );
+
+        return consumer;
+      }
+    );
+
+    const fullName = [result.first_name, result.middle_name, result.last_name].filter(Boolean).join(' ').trim() || `Consumer #${result.consumer_id}`;
+    await writeSystemLog(
+      `[consumer.reconnectionRequest] ${fullName} (${result.account_number || 'N/A'}) submitted reconnection request. Reason: ${reason}`,
+      { role: 'Consumer', accountId }
+    );
+    scheduleImmediateSync('consumer-reconnection-request');
+    return res.json({ success: true, ticketNumber, message: 'Reconnection request submitted successfully.' });
+  } catch (error) {
+    await logRequestError(req, 'consumer.reconnectionRequest', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
 
@@ -7772,6 +8666,10 @@ app.post('/api/forgot-password/reset', async (req, res) => {
       password: newPassword,
       authUserId: user.auth_user_id || null,
     });
+    await writeSystemLog(
+      `[password.reset] Password reset completed for account #${user.account_id} (${user.username}).`,
+      { userId: user.account_id, role: user.role_name || 'Consumer' }
+    );
     scheduleImmediateSync('forgot-password-reset');
     return res.json({ success: true, message: 'Password reset successful' });
   } catch (error) {
@@ -8428,9 +9326,14 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
             FROM system_logs sl
             LEFT JOIN accounts a ON a.account_id = sl.account_id
             ORDER BY sl.timestamp DESC
-            LIMIT 10
+            LIMIT 200
           `),
         ]);
+
+        const recentLogs = (logsResult.rows || [])
+          .filter((row) => !isTechnicalSystemAction(row.action))
+          .map(mapDashboardActivityLogRow)
+          .slice(0, 10);
 
         return {
           success: true,
@@ -8441,7 +9344,7 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
               pendingBills: Number(billsResult.rows[0]?.count || 0),
               pendingApplications: Number(applicationsResult.rows[0]?.count || 0),
             },
-            recentLogs: logsResult.rows.map(mapAdminLogRow),
+            recentLogs,
           },
         };
       },
@@ -8450,7 +9353,7 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
           supabase.from('accounts').select('account_id, role_id, account_status, username'),
           supabase.from('consumer').select('consumer_id'),
           supabase.from('bills').select('bill_id, status'),
-          supabase.from('system_logs').select('log_id, timestamp, role, action, account_id').order('timestamp', { ascending: false }).limit(10),
+          supabase.from('system_logs').select('log_id, timestamp, role, action, account_id').order('timestamp', { ascending: false }).limit(200),
         ]);
 
         if (accountsResult.error) throw accountsResult.error;
@@ -8460,6 +9363,14 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
 
         const accounts = accountsResult.data || [];
         const accountMap = new Map(accounts.map((account) => [account.account_id, account]));
+        const recentLogs = (logsResult.data || [])
+          .map((row) => ({
+            ...row,
+            username: accountMap.get(row.account_id)?.username || null,
+          }))
+          .filter((row) => !isTechnicalSystemAction(row.action))
+          .map(mapDashboardActivityLogRow)
+          .slice(0, 10);
 
         return {
           success: true,
@@ -8470,10 +9381,7 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
               pendingBills: (billsResult.data || []).filter((bill) => String(bill.status || 'unpaid').toLowerCase() !== 'paid').length,
               pendingApplications: accounts.filter((account) => String(account.account_status || '').toLowerCase() === 'pending').length,
             },
-            recentLogs: (logsResult.data || []).map((row) => mapAdminLogRow({
-              ...row,
-              username: accountMap.get(row.account_id)?.username || null,
-            })),
+            recentLogs,
           },
         };
       }
@@ -8807,23 +9715,24 @@ app.get('/api/admin/settings', async (req, res) => {
               wr.minimum_cubic,
               wr.minimum_rate,
               wr.excess_rate_per_cubic,
-              wr.effective_date,
+              DATE(wr.effective_date) AS effective_date,
               wr.modified_by,
               wr.modified_date
             FROM waterrates wr
             LEFT JOIN classification cl ON cl.classification_id = wr.classification_id
-            WHERE wr.effective_date <= CURRENT_TIMESTAMP
-            ORDER BY wr.effective_date DESC, wr.rate_id DESC
+            WHERE DATE(wr.effective_date) <= CURRENT_DATE
+            ORDER BY DATE(wr.effective_date) DESC, wr.rate_id DESC
             LIMIT 1
           `);
           return rows[0] || null;
         },
         async () => {
+          const todayDateKey = getTodayDateKey();
           const [rateResult, classificationsResult] = await Promise.all([
             supabase
               .from('waterrates')
               .select('rate_id, classification_id, minimum_cubic, minimum_rate, excess_rate_per_cubic, effective_date, modified_by, modified_date')
-              .lte('effective_date', new Date().toISOString())
+              .lte('effective_date', todayDateKey)
               .order('effective_date', { ascending: false })
               .order('rate_id', { ascending: false })
               .limit(1)
@@ -8836,10 +9745,10 @@ app.get('/api/admin/settings', async (req, res) => {
             return null;
           }
           const classificationMap = new Map((classificationsResult.data || []).map((row) => [row.classification_id, row.classification_name]));
-          return {
+          return normalizeWaterRateRowForResponse({
             ...rateResult.data,
             classification_name: classificationMap.get(rateResult.data.classification_id) || null,
-          };
+          });
         }
       ),
     ]);
@@ -8848,7 +9757,7 @@ app.get('/api/admin/settings', async (req, res) => {
       success: true,
       data: {
         systemSettings: settings,
-        waterRates,
+        waterRates: normalizeWaterRateRowForResponse(waterRates),
       },
     });
   } catch (error) {
@@ -8956,6 +9865,162 @@ app.get('/api/admin/maintenance', async (req, res) => {
     return res.json(result);
   } catch (error) {
     await logRequestError(req, 'admin.maintenance.fetch', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/billing/logs', async (req, res) => {
+  try {
+    const result = await withPostgresPrimary(
+      'billing.logs.fetch',
+      async () => {
+        const [disconnectLogsResult, approvalLogsResult] = await Promise.all([
+          pool.query(`
+            SELECT
+              sl.log_id,
+              sl.timestamp,
+              sl.action,
+              actor.username AS actor_username
+            FROM system_logs sl
+            LEFT JOIN accounts actor ON actor.account_id = sl.account_id
+            WHERE LOWER(COALESCE(sl.action, '')) LIKE '%consumers.disconnect%'
+               OR LOWER(COALESCE(sl.action, '')) LIKE '%marked disconnected%'
+            ORDER BY sl.timestamp DESC
+            LIMIT 200
+          `),
+          pool.query(`
+            SELECT
+              ar.review_id,
+              ar.review_date,
+              ar.review_status,
+              ar.remarks,
+              reviewer.username AS reviewed_by_username,
+              c.account_number,
+              CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) AS consumer_name
+            FROM account_review_log ar
+            LEFT JOIN accounts reviewer ON reviewer.account_id = ar.reviewed_by
+            LEFT JOIN accounts target_account ON target_account.account_id = ar.account_id
+            LEFT JOIN consumer c ON c.login_id = target_account.account_id
+            WHERE LOWER(COALESCE(ar.review_status, '')) IN ('approved', 'rejected')
+            ORDER BY ar.review_date DESC
+            LIMIT 200
+          `),
+        ]);
+
+        const disconnectLogs = disconnectLogsResult.rows.map((row) => {
+          const actionText = String(row.action || '');
+          const nameMatch = actionText.match(/\]\s*(.*?)\s*\((.*?)\)\s*marked disconnected/i);
+          const reasonMatch = actionText.match(/Reason:\s*(.*?)(?:\. Overdue:|$)/i);
+          return {
+            id: `disconnect-${row.log_id}`,
+            timestamp: row.timestamp,
+            event_type: 'Disconnection',
+            consumer_name: nameMatch?.[1] || 'Unknown',
+            account_number: nameMatch?.[2] || 'N/A',
+            performed_by: row.actor_username || 'System',
+            reason: reasonMatch?.[1]?.trim() || 'No reason recorded',
+            status: 'Disconnected',
+          };
+        });
+
+        const approvalLogs = approvalLogsResult.rows.map((row) => ({
+          id: `review-${row.review_id}`,
+          timestamp: row.review_date,
+          event_type: String(row.review_status || '').toLowerCase() === 'approved' ? 'Approval' : 'Rejection',
+          consumer_name: row.consumer_name || 'Unknown',
+          account_number: row.account_number || 'N/A',
+          performed_by: row.reviewed_by_username || 'System',
+          reason: row.remarks || (String(row.review_status || '').toLowerCase() === 'approved' ? 'Application approved.' : 'Application rejected.'),
+          status: String(row.review_status || '').trim() || 'Reviewed',
+        }));
+
+        const merged = [...disconnectLogs, ...approvalLogs]
+          .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
+          .slice(0, 300);
+
+        return { success: true, data: merged };
+      },
+      async () => {
+        const [
+          { data: systemLogs, error: systemLogsError },
+          { data: reviewLogs, error: reviewLogsError },
+          { data: accounts, error: accountsError },
+          { data: consumers, error: consumersError },
+        ] = await Promise.all([
+          supabase
+            .from('system_logs')
+            .select('log_id, timestamp, action, account_id')
+            .order('timestamp', { ascending: false })
+            .limit(200),
+          supabase
+            .from('account_review_log')
+            .select('review_id, review_date, review_status, remarks, reviewed_by, account_id')
+            .order('review_date', { ascending: false })
+            .limit(200),
+          supabase
+            .from('accounts')
+            .select('account_id, username'),
+          supabase
+            .from('consumer')
+            .select('login_id, first_name, middle_name, last_name, account_number'),
+        ]);
+
+        if (systemLogsError) throw systemLogsError;
+        if (reviewLogsError) throw reviewLogsError;
+        if (accountsError) throw accountsError;
+        if (consumersError) throw consumersError;
+
+        const accountMap = new Map((accounts || []).map((row) => [row.account_id, row.username]));
+        const consumerByLoginId = new Map((consumers || []).map((row) => [row.login_id, row]));
+
+        const disconnectLogs = (systemLogs || [])
+          .filter((row) => {
+            const action = String(row.action || '').toLowerCase();
+            return action.includes('consumers.disconnect') || action.includes('marked disconnected');
+          })
+          .map((row) => {
+            const actionText = String(row.action || '');
+            const nameMatch = actionText.match(/\]\s*(.*?)\s*\((.*?)\)\s*marked disconnected/i);
+            const reasonMatch = actionText.match(/Reason:\s*(.*?)(?:\. Overdue:|$)/i);
+            return {
+              id: `disconnect-${row.log_id}`,
+              timestamp: row.timestamp,
+              event_type: 'Disconnection',
+              consumer_name: nameMatch?.[1] || 'Unknown',
+              account_number: nameMatch?.[2] || 'N/A',
+              performed_by: accountMap.get(row.account_id) || 'System',
+              reason: reasonMatch?.[1]?.trim() || 'No reason recorded',
+              status: 'Disconnected',
+            };
+          });
+
+        const approvalLogs = (reviewLogs || [])
+          .filter((row) => ['approved', 'rejected'].includes(String(row.review_status || '').toLowerCase()))
+          .map((row) => {
+            const consumer = consumerByLoginId.get(row.account_id);
+            return {
+              id: `review-${row.review_id}`,
+              timestamp: row.review_date,
+              event_type: String(row.review_status || '').toLowerCase() === 'approved' ? 'Approval' : 'Rejection',
+              consumer_name: consumer ? [consumer.first_name, consumer.middle_name, consumer.last_name].filter(Boolean).join(' ').trim() : 'Unknown',
+              account_number: consumer?.account_number || 'N/A',
+              performed_by: accountMap.get(row.reviewed_by) || 'System',
+              reason: row.remarks || (String(row.review_status || '').toLowerCase() === 'approved' ? 'Application approved.' : 'Application rejected.'),
+              status: String(row.review_status || '').trim() || 'Reviewed',
+            };
+          });
+
+        const merged = [...disconnectLogs, ...approvalLogs]
+          .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
+          .slice(0, 300);
+
+        return { success: true, data: merged };
+      }
+    );
+
+    return res.json(result);
+  } catch (error) {
+    await logRequestError(req, 'billing.logs.fetch', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });

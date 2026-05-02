@@ -18,6 +18,7 @@ import MeterReading from './pages/billing_officer/MeterReading';
 import GenerateBills from './pages/billing_officer/GenerateBills';
 import BillingLedger from './pages/billing_officer/Ledger';
 import BillingReports from './pages/billing_officer/Reports';
+import BillingLogs from './pages/billing_officer/Logs';
 import PendingApplications from './pages/shared/PendingApplications';
 import TreasurerDashboard from './pages/treasurer/Dashboard';
 import ProcessPayment from './pages/treasurer/ProcessPayment';
@@ -200,6 +201,14 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <RoleLedger />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/billing-logs"
+        element={
+          <ProtectedRoute>
+            <BillingLogs />
           </ProtectedRoute>
         }
       />

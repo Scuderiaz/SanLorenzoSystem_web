@@ -22,6 +22,7 @@ interface PendingApplication {
 
 interface BillRow {
   Bill_ID: number;
+  Consumer_ID?: number | null;
   Consumer_Name: string | null;
   Account_Number: string | null;
   Total_Amount: number;
@@ -32,6 +33,8 @@ interface BillRow {
 
 interface PaymentRow {
   Payment_ID: number;
+  Consumer_ID?: number | null;
+  Account_Number?: string | null;
   Consumer_Name: string | null;
   Amount_Paid: number;
   Payment_Date: string | null;
@@ -43,12 +46,17 @@ interface PaymentRow {
 interface WorkItem {
   type: 'Application' | 'Payment' | 'Bill';
   reference: string;
-  consumer: string;
+  Consumer: string;
   detail: string;
   amount: number | null;
   date: string | null;
   status: string;
   route: string;
+  accountId?: number;
+  ticketNumber?: string;
+  billId?: number;
+  consumerId?: number;
+  accountNumber?: string | null;
 }
 
 const formatAmount = (value: number | null | undefined) => `P${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -152,34 +160,41 @@ const Dashboard: React.FC = () => {
     const applicationItems = applications.map((application) => ({
       type: 'Application' as const,
       reference: application.Ticket_Number,
-      consumer: application.Consumer_Name || application.Username || 'Pending Applicant',
+      Consumer: application.Consumer_Name || application.Username || 'Pending Applicant',
       detail: application.Classification_Name || 'For review',
       amount: null,
       date: getApplicationQueueDate(application.Ticket_Number, application.Application_Date),
       status: 'Pending',
       route: '/applications',
+      accountId: Number(application.Account_ID || 0) || undefined,
+      ticketNumber: application.Ticket_Number || undefined,
     }));
 
     const paymentItems = pendingPaymentValidation.map((payment) => ({
       type: 'Payment' as const,
       reference: payment.Reference_No || `PAY-${payment.Payment_ID}`,
-      consumer: payment.Consumer_Name || 'Unknown Consumer',
+      Consumer: payment.Consumer_Name || 'Unknown Concessionaire',
       detail: payment.Payment_Method || 'Manual entry',
       amount: Number(payment.Amount_Paid || 0),
       date: payment.Payment_Date,
       status: payment.Status || 'Pending',
       route: '/ledger',
+      consumerId: Number(payment.Consumer_ID || 0) || undefined,
+      accountNumber: payment.Account_Number || null,
     }));
 
     const overdueItems = overdueBills.map((bill) => ({
       type: 'Bill' as const,
       reference: bill.Account_Number || `BILL-${bill.Bill_ID}`,
-      consumer: bill.Consumer_Name || 'Unknown Consumer',
+      Consumer: bill.Consumer_Name || 'Unknown Concessionaire',
       detail: bill.Billing_Month || 'Outstanding bill',
       amount: Number(bill.Total_Amount || 0),
       date: bill.Due_Date,
       status: bill.Status || 'Overdue',
       route: '/generate-bills',
+      billId: Number(bill.Bill_ID || 0) || undefined,
+      consumerId: Number(bill.Consumer_ID || 0) || undefined,
+      accountNumber: bill.Account_Number || null,
     }));
 
     return [...applicationItems, ...paymentItems, ...overdueItems]
@@ -191,10 +206,53 @@ const Dashboard: React.FC = () => {
       .slice(0, 10);
   }, [applications, pendingPaymentValidation, overdueBills]);
 
+  const openWorkItem = (item: WorkItem) => {
+    if (item.type === 'Application') {
+      const params = new URLSearchParams();
+      if (item.accountId) {
+        params.set('focusAccountId', String(item.accountId));
+      }
+      if (item.ticketNumber) {
+        params.set('focusTicket', item.ticketNumber);
+      }
+      navigate(`/applications${params.toString() ? `?${params.toString()}` : ''}`);
+      return;
+    }
+
+    if (item.type === 'Bill') {
+      const params = new URLSearchParams();
+      if (item.billId) {
+        params.set('focusBillId', String(item.billId));
+      }
+      if (item.consumerId) {
+        params.set('focusConsumerId', String(item.consumerId));
+      }
+      if (item.accountNumber) {
+        params.set('focusAccount', item.accountNumber);
+      }
+      navigate(`/generate-bills${params.toString() ? `?${params.toString()}` : ''}`);
+      return;
+    }
+
+    if (item.type === 'Payment') {
+      const params = new URLSearchParams();
+      if (item.consumerId) {
+        params.set('focusConsumerId', String(item.consumerId));
+      }
+      if (item.accountNumber) {
+        params.set('focusAccount', item.accountNumber);
+      }
+      navigate(`/ledger${params.toString() ? `?${params.toString()}` : ''}`);
+      return;
+    }
+
+    navigate(item.route);
+  };
+
   const queueColumns: Column[] = [
     { key: 'type', label: 'Queue', sortable: true, filterType: 'select', filterLabel: 'Queue' },
     { key: 'reference', label: 'Reference', sortable: true },
-    { key: 'consumer', label: 'Consumer', sortable: true },
+    { key: 'Consumer', label: 'Consumer', sortable: true },
     { key: 'detail', label: 'Details', sortable: true },
     {
       key: 'amount',
@@ -220,7 +278,7 @@ const Dashboard: React.FC = () => {
       key: 'action',
       label: 'Action',
       render: (_: unknown, row: WorkItem) => (
-        <button className="btn btn-sm dashboard-link-btn" onClick={() => navigate(row.route)}>
+        <button className="btn btn-sm dashboard-link-btn" onClick={() => openWorkItem(row)}>
           Open
         </button>
       ),
@@ -311,7 +369,7 @@ const Dashboard: React.FC = () => {
                 loading={loading}
                 emptyMessage="No priority items at the moment."
                 enableFiltering
-                filterPlaceholder="Search by reference, consumer, or details..."
+                filterPlaceholder="Search by reference, Consumer, or details..."
               />
             </div>
           </div>
@@ -322,3 +380,6 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+
+
+

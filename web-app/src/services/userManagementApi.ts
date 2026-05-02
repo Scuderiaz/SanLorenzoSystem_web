@@ -15,7 +15,7 @@ type LoadResult<T> = {
 };
 
 export type ConsumerDashboardData = {
-  consumer: Record<string, any> | null;
+  Consumer: Record<string, any> | null;
   bills: Record<string, any>[];
   payments: Record<string, any>[];
   ticket: Record<string, any> | null;
@@ -131,6 +131,41 @@ const toDateTime = (value: unknown) => {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
+const waterRateDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+const formatDateToManilaKey = (date: Date) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) {
+    const fallback = new Date(date);
+    fallback.setMinutes(fallback.getMinutes() - fallback.getTimezoneOffset());
+    return fallback.toISOString().slice(0, 10);
+  }
+  return `${year}-${month}-${day}`;
+};
+const normalizeWaterRateDateKey = (value: unknown) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const dateOnlyMatch = raw.match(waterRateDatePattern);
+  if (dateOnlyMatch) return `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`;
+
+  const prefixMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (prefixMatch) return `${prefixMatch[1]}-${prefixMatch[2]}-${prefixMatch[3]}`;
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return formatDateToManilaKey(parsed);
+  }
+  return '';
+};
+
 const persistOfflineSnapshot = async <T>(datasetKey: string | undefined, data: T) => {
   if (!datasetKey) {
     return;
@@ -160,6 +195,25 @@ const buildConsumerName = (...parts: Array<unknown>) => parts.filter(Boolean).ma
 const isDeletedApplicationRecord = (_row: Record<string, any> | null | undefined) => false;
 
 const normalizeStatus = (value: unknown) => String(value || '').trim().toLowerCase();
+const extractTaggedRemark = (remarks: unknown, tag: string): string | null => {
+  const normalizedTag = String(tag || '').trim().toLowerCase();
+  if (!normalizedTag) return null;
+  const lines = String(remarks || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i];
+    const match = line.match(/^\[([^\]]+)\]\s*(.*)$/);
+    if (!match) continue;
+    if (String(match[1] || '').trim().toLowerCase() !== normalizedTag) continue;
+    const value = String(match[2] || '').trim();
+    return value || null;
+  }
+
+  return null;
+};
 
 const getCurrentDateKey = () => new Date().toISOString().slice(0, 10);
 
@@ -187,28 +241,28 @@ const mapConsumersFromSupabase = (consumers: any[], zones: any[], classification
     }
   }
 
-  return (consumers || []).map((consumer) => {
-    const meter = meterMap.get(consumer.consumer_id) || null;
+  return (consumers || []).map((Consumer) => {
+    const meter = meterMap.get(Consumer.consumer_id) || null;
     return {
-      Consumer_ID: consumer.consumer_id,
-      First_Name: consumer.first_name,
-      Middle_Name: consumer.middle_name,
-      Last_Name: consumer.last_name,
-      Consumer_Name: buildConsumerName(consumer.first_name, consumer.middle_name, consumer.last_name) || null,
-      Address: consumer.address,
-      Purok: consumer.purok,
-      Barangay: consumer.barangay,
-      Municipality: consumer.municipality,
-      Zip_Code: consumer.zip_code,
-      Zone_ID: consumer.zone_id,
-      Zone_Name: zoneMap.get(consumer.zone_id) || null,
-      Classification_ID: consumer.classification_id,
-      Classification_Name: classificationMap.get(consumer.classification_id) || null,
-      Account_Number: consumer.account_number,
-      Status: consumer.status,
-      Contact_Number: consumer.contact_number,
-      Connection_Date: consumer.connection_date,
-      Login_ID: consumer.login_id ?? null,
+      Consumer_ID: Consumer.consumer_id,
+      First_Name: Consumer.first_name,
+      Middle_Name: Consumer.middle_name,
+      Last_Name: Consumer.last_name,
+      Consumer_Name: buildConsumerName(Consumer.first_name, Consumer.middle_name, Consumer.last_name) || null,
+      Address: Consumer.address,
+      Purok: Consumer.purok,
+      Barangay: Consumer.barangay,
+      Municipality: Consumer.municipality,
+      Zip_Code: Consumer.zip_code,
+      Zone_ID: Consumer.zone_id,
+      Zone_Name: zoneMap.get(Consumer.zone_id) || null,
+      Classification_ID: Consumer.classification_id,
+      Classification_Name: classificationMap.get(Consumer.classification_id) || null,
+      Account_Number: Consumer.account_number,
+      Status: Consumer.status,
+      Contact_Number: Consumer.contact_number,
+      Connection_Date: Consumer.connection_date,
+      Login_ID: Consumer.login_id ?? null,
       Meter_ID: meter?.meter_id || null,
       Meter_Number: meter?.meter_serial_number || null,
       Meter_Status: meter?.meter_status || null,
@@ -222,7 +276,7 @@ const mapBillsFromSupabase = (bills: any[], consumers: any[], classifications: a
   const readingMap = new Map((readings || []).map((row) => [row.reading_id, row]));
 
   return (bills || []).map((bill) => {
-    const consumer = consumerMap.get(bill.consumer_id) || null;
+    const Consumer = consumerMap.get(bill.consumer_id) || null;
     const reading = readingMap.get(bill.reading_id) || null;
     return {
       Bill_ID: bill.bill_id,
@@ -246,10 +300,10 @@ const mapBillsFromSupabase = (bills: any[], consumers: any[], classifications: a
       Billing_Month: bill.billing_month,
       Date_Covered_From: bill.date_covered_from,
       Date_Covered_To: bill.date_covered_to,
-      Consumer_Name: buildConsumerName(consumer?.first_name, consumer?.middle_name, consumer?.last_name) || null,
-      Address: consumer?.address || null,
-      Account_Number: consumer?.account_number || null,
-      Classification: classificationMap.get(consumer?.classification_id) || null,
+      Consumer_Name: buildConsumerName(Consumer?.first_name, Consumer?.middle_name, Consumer?.last_name) || null,
+      Address: Consumer?.address || null,
+      Account_Number: Consumer?.account_number || null,
+      Classification: classificationMap.get(Consumer?.classification_id) || null,
       Current_Reading: reading?.current_reading ?? null,
       Previous_Reading: reading?.previous_reading ?? null,
       Consumption: reading?.consumption ?? null,
@@ -262,7 +316,7 @@ const mapPaymentsFromSupabase = (payments: any[], consumers: any[], bills: any[]
   const billMap = new Map((bills || []).map((row) => [row.bill_id, row]));
 
   return (payments || []).map((payment) => {
-    const consumer = consumerMap.get(payment.consumer_id) || null;
+    const Consumer = consumerMap.get(payment.consumer_id) || null;
     const bill = billMap.get(payment.bill_id) || null;
     return {
       Payment_ID: payment.payment_id,
@@ -275,8 +329,8 @@ const mapPaymentsFromSupabase = (payments: any[], consumers: any[], bills: any[]
       Reference_Number: payment.reference_number || null,
       OR_Number: payment.or_number || null,
       Status: payment.status || 'Pending',
-      Consumer_Name: buildConsumerName(consumer?.first_name, consumer?.middle_name, consumer?.last_name) || 'Unknown Consumer',
-      Account_Number: consumer?.account_number || 'N/A',
+      Consumer_Name: buildConsumerName(Consumer?.first_name, Consumer?.middle_name, Consumer?.last_name) || 'Unknown Concessionaire',
+      Account_Number: Consumer?.account_number || 'N/A',
       Bill_Amount: toNumber(bill?.total_amount),
       Billing_Month: bill?.billing_month || null,
     };
@@ -287,7 +341,7 @@ const mapMeterReadingsFromSupabase = (readings: any[], consumers: any[]) => {
   const consumerMap = new Map((consumers || []).map((row) => [row.consumer_id, row]));
 
   return (readings || []).map((reading) => {
-    const consumer = consumerMap.get(reading.consumer_id) || null;
+    const Consumer = consumerMap.get(reading.consumer_id) || null;
     return {
       Reading_ID: reading.reading_id,
       Consumer_ID: reading.consumer_id,
@@ -298,7 +352,7 @@ const mapMeterReadingsFromSupabase = (readings: any[], consumers: any[]) => {
       Reading_Status: reading.reading_status || 'Recorded',
       Notes: reading.notes || null,
       Reading_Date: reading.reading_date || reading.created_at || null,
-      Consumer_Name: buildConsumerName(consumer?.first_name, consumer?.middle_name, consumer?.last_name) || null,
+      Consumer_Name: buildConsumerName(Consumer?.first_name, Consumer?.middle_name, Consumer?.last_name) || null,
     };
   });
 };
@@ -379,18 +433,18 @@ const loadMeterReadingsFromSupabase = async () => {
 };
 
 const loadConsumerDashboardFromSupabase = async (accountId: number | string): Promise<ConsumerDashboardData> => {
-  const { data: consumer, error: consumerError } = await supabase!
+  const { data: Consumer, error: consumerError } = await supabase!
     .from('consumer')
     .select('*')
     .eq('login_id', accountId)
     .maybeSingle();
 
   if (consumerError) throw consumerError;
-  if (!consumer) {
+  if (!Consumer) {
     throw createRequestError('Consumer not found', 404);
   }
 
-  const consumerId = consumer.consumer_id;
+  const consumerId = Consumer.consumer_id;
   const [
     { data: bills, error: billsError },
     { data: payments, error: paymentsError },
@@ -406,8 +460,8 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
     supabase!.from('meterreadings').select('*').eq('consumer_id', consumerId).order('reading_date', { ascending: false }).limit(6),
     supabase!.from('meter').select('meter_serial_number, meter_status').eq('consumer_id', consumerId).order('meter_id', { ascending: false }).limit(1),
     supabase!.from('accounts').select('username, profile_picture_url, account_status').eq('account_id', accountId).maybeSingle(),
-    supabase!.from('zone').select('zone_name').eq('zone_id', consumer.zone_id).maybeSingle(),
-    supabase!.from('classification').select('classification_name').eq('classification_id', consumer.classification_id).maybeSingle(),
+    supabase!.from('zone').select('zone_name').eq('zone_id', Consumer.zone_id).maybeSingle(),
+    supabase!.from('classification').select('classification_name').eq('classification_id', Consumer.classification_id).maybeSingle(),
     supabase!.from('connection_ticket')
       .select('ticket_id, ticket_number, status, application_date, approved_date, connection_type, remarks')
       .or(`consumer_id.eq.${consumerId},account_id.eq.${accountId}`)
@@ -428,17 +482,17 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
   const billMap = new Map((bills || []).map((bill) => [bill.bill_id, bill]));
 
   return {
-    consumer: {
-      ...consumer,
-      Consumer_ID: consumer.consumer_id,
-      First_Name: consumer.first_name,
-      Middle_Name: consumer.middle_name,
-      Last_Name: consumer.last_name,
-      Status: consumer.status,
-      Account_Number: consumer.account_number || null,
+    Consumer: {
+      ...Consumer,
+      Consumer_ID: Consumer.consumer_id,
+      First_Name: Consumer.first_name,
+      Middle_Name: Consumer.middle_name,
+      Last_Name: Consumer.last_name,
+      Status: Consumer.status,
+      Account_Number: Consumer.account_number || null,
       Username: account?.username || null,
       Profile_Picture_URL: account?.profile_picture_url || null,
-      Account_Status: account?.account_status || consumer.status || null,
+      Account_Status: account?.account_status || Consumer.status || null,
       Zone_Name: zone?.zone_name || null,
       Classification_Name: classification?.classification_name || null,
       Meter_Number: meters?.[0]?.meter_serial_number || null,
@@ -480,6 +534,8 @@ const loadConsumerDashboardFromSupabase = async (accountId: number | string): Pr
       Approved_Date: ticket.approved_date,
       Connection_Type: ticket.connection_type,
       Remarks: ticket.remarks,
+      Disconnection_Reason: extractTaggedRemark(ticket.remarks, 'disconnect'),
+      Reconnection_Reason: extractTaggedRemark(ticket.remarks, 'reconnection-request'),
     } : null,
   };
 };
@@ -513,7 +569,7 @@ const loadApplicationsFromSupabase = async () => {
 
   const rows = (tickets || []).map((ticket) => {
     const account = accountMap.get(ticket.account_id) || null;
-    const consumer = consumerMap.get(ticket.consumer_id) || consumerByLoginId.get(ticket.account_id) || null;
+    const Consumer = consumerMap.get(ticket.consumer_id) || consumerByLoginId.get(ticket.account_id) || null;
 
     return {
       Ticket_ID: ticket.ticket_id,
@@ -526,61 +582,61 @@ const loadApplicationsFromSupabase = async () => {
       Account_ID: account?.account_id ?? ticket.account_id,
       Username: account?.username ?? null,
       Account_Status: account?.account_status ?? null,
-      Consumer_ID: consumer?.consumer_id ?? ticket.consumer_id ?? null,
-      Consumer_Name: consumer ? buildConsumerName(consumer.first_name, consumer.middle_name, consumer.last_name) : null,
-      Contact_Number: consumer?.contact_number ?? null,
-      Address: consumer?.address ?? null,
-      Purok: consumer?.purok ?? null,
-      Barangay: consumer?.barangay ?? null,
-      Municipality: consumer?.municipality ?? null,
-      Zip_Code: consumer?.zip_code ?? null,
-      Account_Number: consumer?.account_number ?? null,
-      Consumer_Status: consumer?.status ?? null,
-      Zone_ID: consumer?.zone_id ?? null,
-      Zone_Name: zoneMap.get(consumer?.zone_id) || null,
-      Classification_ID: consumer?.classification_id ?? null,
-      Classification_Name: classificationMap.get(consumer?.classification_id) || null,
+      Consumer_ID: Consumer?.consumer_id ?? ticket.consumer_id ?? null,
+      Consumer_Name: Consumer ? buildConsumerName(Consumer.first_name, Consumer.middle_name, Consumer.last_name) : null,
+      Contact_Number: Consumer?.contact_number ?? null,
+      Address: Consumer?.address ?? null,
+      Purok: Consumer?.purok ?? null,
+      Barangay: Consumer?.barangay ?? null,
+      Municipality: Consumer?.municipality ?? null,
+      Zip_Code: Consumer?.zip_code ?? null,
+      Account_Number: Consumer?.account_number ?? null,
+      Consumer_Status: Consumer?.status ?? null,
+      Zone_ID: Consumer?.zone_id ?? null,
+      Zone_Name: zoneMap.get(Consumer?.zone_id) || null,
+      Classification_ID: Consumer?.classification_id ?? null,
+      Classification_Name: classificationMap.get(Consumer?.classification_id) || null,
     };
   });
 
   const ticketAccountIds = new Set((tickets || []).map((ticket) => Number(ticket.account_id)).filter((value) => Number.isInteger(value) && value > 0));
   const orphanRows = (consumers || [])
-    .filter((consumer) => {
-      const loginId = Number(consumer.login_id);
+    .filter((Consumer) => {
+      const loginId = Number(Consumer.login_id);
       if (!Number.isInteger(loginId) || loginId <= 0 || ticketAccountIds.has(loginId)) {
         return false;
       }
 
       const account = accountMap.get(loginId);
-      return normalizeStatus(account?.account_status) === 'pending' || normalizeStatus(consumer.status) === 'pending';
+      return normalizeStatus(account?.account_status) === 'pending' || normalizeStatus(Consumer.status) === 'pending';
     })
-    .map((consumer) => {
-      const account = accountMap.get(consumer.login_id) || null;
+    .map((Consumer) => {
+      const account = accountMap.get(Consumer.login_id) || null;
       return {
         Ticket_ID: null,
-        Ticket_Number: consumer.account_number || `PENDING-STAFF-${consumer.consumer_id}`,
+        Ticket_Number: Consumer.account_number || `PENDING-STAFF-${Consumer.consumer_id}`,
         Application_Status: 'Pending',
-        Application_Date: consumer.connection_date || account?.created_at || null,
+        Application_Date: Consumer.connection_date || account?.created_at || null,
         Connection_Type: 'Added by Staff',
         Requirements_Submitted: null,
         Remarks: null,
-        Account_ID: account?.account_id ?? consumer.login_id,
+        Account_ID: account?.account_id ?? Consumer.login_id,
         Username: account?.username ?? null,
-        Account_Status: account?.account_status ?? consumer.status ?? 'Pending',
-        Consumer_ID: consumer.consumer_id,
-        Consumer_Name: buildConsumerName(consumer.first_name, consumer.middle_name, consumer.last_name),
-        Contact_Number: consumer.contact_number ?? null,
-        Address: consumer.address ?? null,
-        Purok: consumer.purok ?? null,
-        Barangay: consumer.barangay ?? null,
-        Municipality: consumer.municipality ?? null,
-        Zip_Code: consumer.zip_code ?? null,
-        Account_Number: consumer.account_number ?? null,
-        Consumer_Status: consumer.status ?? null,
-        Zone_ID: consumer.zone_id ?? null,
-        Zone_Name: zoneMap.get(consumer.zone_id) || null,
-        Classification_ID: consumer.classification_id ?? null,
-        Classification_Name: classificationMap.get(consumer.classification_id) || null,
+        Account_Status: account?.account_status ?? Consumer.status ?? 'Pending',
+        Consumer_ID: Consumer.consumer_id,
+        Consumer_Name: buildConsumerName(Consumer.first_name, Consumer.middle_name, Consumer.last_name),
+        Contact_Number: Consumer.contact_number ?? null,
+        Address: Consumer.address ?? null,
+        Purok: Consumer.purok ?? null,
+        Barangay: Consumer.barangay ?? null,
+        Municipality: Consumer.municipality ?? null,
+        Zip_Code: Consumer.zip_code ?? null,
+        Account_Number: Consumer.account_number ?? null,
+        Consumer_Status: Consumer.status ?? null,
+        Zone_ID: Consumer.zone_id ?? null,
+        Zone_Name: zoneMap.get(Consumer.zone_id) || null,
+        Classification_ID: Consumer.classification_id ?? null,
+        Classification_Name: classificationMap.get(Consumer.classification_id) || null,
       };
     });
 
@@ -595,12 +651,14 @@ const loadWaterRatesFromSupabase = async (options: {
   activeOnly?: boolean;
   effectiveOn?: string;
 } = {}) => {
+  const todayManilaDate = formatDateToManilaKey(new Date());
   const {
     classificationId,
     latestOnly = false,
     activeOnly = true,
-    effectiveOn = new Date().toISOString(),
+    effectiveOn = todayManilaDate,
   } = options;
+  const effectiveOnDateKey = normalizeWaterRateDateKey(effectiveOn) || todayManilaDate;
 
   let ratesQuery = supabase!
     .from('waterrates')
@@ -613,7 +671,7 @@ const loadWaterRatesFromSupabase = async (options: {
   }
 
   if (activeOnly) {
-    ratesQuery = ratesQuery.lte('effective_date', effectiveOn);
+    ratesQuery = ratesQuery.lte('effective_date', effectiveOnDateKey);
   }
 
   const [{ data: rates, error: rateError }, { data: classifications, error: classificationError }] = await Promise.all([
@@ -629,6 +687,7 @@ const loadWaterRatesFromSupabase = async (options: {
     .filter((row) => row.classification_id)
     .map((row) => ({
       ...row,
+      effective_date: normalizeWaterRateDateKey(row.effective_date),
       classification_name: classificationMap.get(row.classification_id) || null,
     }))
     .filter((row) => row.classification_name);
@@ -636,7 +695,7 @@ const loadWaterRatesFromSupabase = async (options: {
   if (!latestOnly) {
     return mappedRates.sort((left, right) =>
       String(left.classification_name || '').localeCompare(String(right.classification_name || '')) ||
-      toDateTime(right.effective_date) - toDateTime(left.effective_date) ||
+      String(right.effective_date || '').localeCompare(String(left.effective_date || '')) ||
       Number(right.rate_id || 0) - Number(left.rate_id || 0)
     );
   }
@@ -670,7 +729,7 @@ const loadLatestWaterRateFromSupabase = async (classificationId?: number | strin
 
   return rates
     .slice()
-    .sort((left, right) => toDateTime(right.effective_date) - toDateTime(left.effective_date))
+    .sort((left, right) => String(normalizeWaterRateDateKey(right.effective_date) || '').localeCompare(String(normalizeWaterRateDateKey(left.effective_date) || '')))
     [0] || null;
 };
 
@@ -682,38 +741,38 @@ const buildAccountLookupFallback = async (query: string) => {
   ]);
 
   const normalizedQuery = query.trim().toLowerCase();
-  const consumer = consumers.find((row) =>
+  const Consumer = consumers.find((row) =>
     String(row.Account_Number || '').toLowerCase() === normalizedQuery ||
     String(row.Account_Number || '').toLowerCase().includes(normalizedQuery) ||
     buildConsumerName(row.First_Name, row.Middle_Name, row.Last_Name).toLowerCase().includes(normalizedQuery)
   ) || null;
 
-  if (!consumer) {
+  if (!Consumer) {
     return null;
   }
 
   const consumerBills = bills
-    .filter((row) => Number(row.Consumer_ID) === Number(consumer.Consumer_ID))
+    .filter((row) => Number(row.Consumer_ID) === Number(Consumer.Consumer_ID))
     .slice()
     .sort((left, right) => toDateTime(right.Bill_Date || right.Due_Date) - toDateTime(left.Bill_Date || left.Due_Date));
 
   const consumerPayments = payments
-    .filter((row) => Number(row.Consumer_ID) === Number(consumer.Consumer_ID))
+    .filter((row) => Number(row.Consumer_ID) === Number(Consumer.Consumer_ID))
     .slice()
     .sort((left, right) => toDateTime(right.Payment_Date) - toDateTime(left.Payment_Date));
 
   const currentBill = consumerBills.find((row) => normalizeStatus(row.Status) !== 'paid') || consumerBills[0] || null;
   if (!currentBill) {
     return {
-      consumer: {
-        Consumer_ID: consumer.Consumer_ID,
-        Consumer_Name: buildConsumerName(consumer.First_Name, consumer.Middle_Name, consumer.Last_Name),
-        Address: consumer.Address,
-        Account_Number: consumer.Account_Number,
-        Classification: consumer.Classification_Name || null,
-        Connection_Date: consumer.Connection_Date || null,
-        Meter_Number: consumer.Meter_Number || null,
-        Zone_Name: consumer.Zone_Name || null,
+      Consumer: {
+        Consumer_ID: Consumer.Consumer_ID,
+        Consumer_Name: buildConsumerName(Consumer.First_Name, Consumer.Middle_Name, Consumer.Last_Name),
+        Address: Consumer.Address,
+        Account_Number: Consumer.Account_Number,
+        Classification: Consumer.Classification_Name || null,
+        Connection_Date: Consumer.Connection_Date || null,
+        Meter_Number: Consumer.Meter_Number || null,
+        Zone_Name: Consumer.Zone_Name || null,
       },
       currentBill: null,
       summary: {
@@ -747,15 +806,15 @@ const buildAccountLookupFallback = async (query: string) => {
   const totalDue = currentBillAmount + previousBalance + overduePenalty;
 
   return {
-    consumer: {
-      Consumer_ID: consumer.Consumer_ID,
-      Consumer_Name: buildConsumerName(consumer.First_Name, consumer.Middle_Name, consumer.Last_Name),
-      Address: consumer.Address,
-      Account_Number: consumer.Account_Number,
-      Classification: consumer.Classification_Name || null,
-      Connection_Date: consumer.Connection_Date || null,
-      Meter_Number: consumer.Meter_Number || null,
-      Zone_Name: consumer.Zone_Name || null,
+    Consumer: {
+      Consumer_ID: Consumer.Consumer_ID,
+      Consumer_Name: buildConsumerName(Consumer.First_Name, Consumer.Middle_Name, Consumer.Last_Name),
+      Address: Consumer.Address,
+      Account_Number: Consumer.Account_Number,
+      Classification: Consumer.Classification_Name || null,
+      Connection_Date: Consumer.Connection_Date || null,
+      Meter_Number: Consumer.Meter_Number || null,
+      Zone_Name: Consumer.Zone_Name || null,
     },
     currentBill: {
       ...currentBill,
@@ -1018,13 +1077,13 @@ export const loadConsumerDashboardWithFallback = async (accountId: number | stri
   `/consumer-dashboard/${accountId}`,
   async () => loadConsumerDashboardFromSupabase(accountId),
   (payload) => ({
-    consumer: payload?.consumer || null,
+    Consumer: payload?.Consumer || null,
     bills: toArray(payload?.bills),
     payments: toArray(payload?.payments),
     readings: toArray(payload?.readings),
     ticket: payload?.ticket || null,
   }),
-  'Failed to load consumer dashboard.',
+  'Failed to load Consumer dashboard.',
   `dataset.consumerDashboard.${accountId}`
 );
 
@@ -1189,7 +1248,7 @@ export const loadTreasurerDashboardSummaryWithFallback = async (dateKey = getCur
       .map((payment) => ({
         Receipt_No: payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID || 'N/A'}`,
         Account_Number: payment.Account_Number || 'N/A',
-        Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
+        Consumer_Name: payment.Consumer_Name || 'Unknown Concessionaire',
         Amount: toNumber(payment.Amount_Paid),
         Payment_Method: payment.Payment_Method || 'Cash',
         Date_Time: payment.Payment_Date || '',
@@ -1225,3 +1284,6 @@ export const getFallbackSourceLabel = (sources: Array<'api' | 'supabase' | 'offl
 };
 
 export const ensureArrayData = <T = any>(value: unknown) => toArray<T>(value);
+
+
+

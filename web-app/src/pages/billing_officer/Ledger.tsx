@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import { useAuth } from '../../context/AuthContext';
 import {
   getErrorMessage,
   loadBillsWithFallback,
   loadConsumersWithFallback,
   loadPaymentsWithFallback,
+  requestJson,
 } from '../../services/userManagementApi';
 import './Ledger.css';
 
@@ -71,6 +74,8 @@ interface LedgerEntry {
   UnpaidBills: number;
   MaxMonthsOverdue: number;
   IsDelinquent: boolean;
+  CollectionTier: 'Current' | 'Watchlist' | 'Urgent Disconnect';
+  IsUrgentDisconnect: boolean;
 }
 
 interface TransactionRow {
@@ -114,7 +119,9 @@ const getMonthsOverdue = (dateValue?: string) => {
 };
 
 const BillingLedger: React.FC = () => {
+  const { user } = useAuth();
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [consumers, setConsumers] = useState<ConsumerRow[]>([]);
   const [bills, setBills] = useState<BillRow[]>([]);
@@ -127,7 +134,23 @@ const BillingLedger: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ledger' | 'delinquents'>('ledger');
   const [delinquentScope, setDelinquentScope] = useState<'all' | 'delinquents'>('all');
   const [monthsOverdueFilter, setMonthsOverdueFilter] = useState('');
+  const [collectionTierFilter, setCollectionTierFilter] = useState('');
   const [selectedConsumer, setSelectedConsumer] = useState<LedgerEntry | null>(null);
+  const [disconnectTarget, setDisconnectTarget] = useState<LedgerEntry | null>(null);
+  const [disconnectReason, setDisconnectReason] = useState('');
+  const [customDisconnectReason, setCustomDisconnectReason] = useState('');
+  const [disconnectScope, setDisconnectScope] = useState<'service' | 'account'>('service');
+  const [disconnectEffectiveDate, setDisconnectEffectiveDate] = useState('');
+  const [disconnectReference, setDisconnectReference] = useState('');
+  const [disconnectSaving, setDisconnectSaving] = useState(false);
+  const disconnectReasonOptions = [
+    'Non-payment of bills',
+    'Illegal connection / tampering',
+    'Refusal of meter inspection',
+    'Requested by concessionaire',
+    'Violation of water service policy',
+    'Other',
+  ];
 
   const loadLedgerData = useCallback(async () => {
     setLoading(true);
@@ -168,9 +191,9 @@ const BillingLedger: React.FC = () => {
       paymentMap.set(payment.Consumer_ID, current);
     });
 
-    return consumers.map((consumer) => {
-      const consumerBills = bills.filter((bill) => bill.Consumer_ID === consumer.Consumer_ID);
-      const consumerPayments = paymentMap.get(consumer.Consumer_ID) || [];
+    return consumers.map((Consumer) => {
+      const consumerBills = bills.filter((bill) => bill.Consumer_ID === Consumer.Consumer_ID);
+      const consumerPayments = paymentMap.get(Consumer.Consumer_ID) || [];
       const unpaidBills = consumerBills.filter((bill) => {
         const normalized = String(bill.Status || '').trim().toLowerCase();
         return normalized !== 'paid';
@@ -179,6 +202,12 @@ const BillingLedger: React.FC = () => {
         const sourceDate = bill.Due_Date || bill.Billing_Month || bill.Bill_Date;
         return Math.max(max, getMonthsOverdue(sourceDate));
       }, 0);
+      const collectionTier: LedgerEntry['CollectionTier'] =
+        unpaidBills.length === 0
+          ? 'Current'
+          : maxMonthsOverdue >= 3
+            ? 'Urgent Disconnect'
+            : 'Watchlist';
       const currentBalance = consumerBills
         .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
         .reduce((sum, bill) => sum + toAmount(bill.Total_Amount), 0);
@@ -189,27 +218,29 @@ const BillingLedger: React.FC = () => {
         .reverse()[0] || '';
 
       return {
-        Account_Number: consumer.Account_Number,
-        Consumer_Name: [consumer.First_Name, consumer.Middle_Name, consumer.Last_Name].filter(Boolean).join(' '),
-        Address: consumer.Address,
-        Zone: formatZoneLabel(consumer.Zone_Name, consumer.Zone_ID),
-        Classification: consumer.Classification_Name || 'Unclassified',
-        Meter_Number: consumer.Meter_Number || null,
-        Connection_Date: consumer.Connection_Date || null,
+        Account_Number: Consumer.Account_Number,
+        Consumer_Name: [Consumer.First_Name, Consumer.Middle_Name, Consumer.Last_Name].filter(Boolean).join(' '),
+        Address: Consumer.Address,
+        Zone: formatZoneLabel(Consumer.Zone_Name, Consumer.Zone_ID),
+        Classification: Consumer.Classification_Name || 'Unclassified',
+        Meter_Number: Consumer.Meter_Number || null,
+        Connection_Date: Consumer.Connection_Date || null,
         Current_Balance: currentBalance,
         Last_Payment: lastPayment,
-        Status: consumer.Status,
-        Consumer_ID: consumer.Consumer_ID,
+        Status: Consumer.Status,
+        Consumer_ID: Consumer.Consumer_ID,
         UnpaidBills: unpaidBills.length,
         MaxMonthsOverdue: maxMonthsOverdue,
-        IsDelinquent: unpaidBills.length >= 3,
+        IsDelinquent: maxMonthsOverdue >= 3,
+        CollectionTier: collectionTier,
+        IsUrgentDisconnect: collectionTier === 'Urgent Disconnect',
       };
     });
   }, [bills, consumers, payments]);
 
   const filteredData = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    return ledgerData.filter((entry) => {
+    const base = ledgerData.filter((entry) => {
       const matchesSearch = !query || [entry.Account_Number, entry.Consumer_Name, entry.Address]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
@@ -218,17 +249,62 @@ const BillingLedger: React.FC = () => {
       const matchesStatus = !statusFilter || entry.Status === statusFilter;
       const matchesTab = activeTab === 'ledger' || entry.UnpaidBills > 0;
       const matchesDelinquentScope = delinquentScope === 'all' || entry.IsDelinquent;
-      const monthsThreshold = Number(monthsOverdueFilter || 0);
-      const matchesMonthsOverdue = !monthsThreshold || entry.MaxMonthsOverdue >= monthsThreshold;
+      const matchesMonthsOverdue = !monthsOverdueFilter
+        || (monthsOverdueFilter === '1' && entry.MaxMonthsOverdue === 1)
+        || (monthsOverdueFilter === '2' && entry.MaxMonthsOverdue === 2)
+        || (monthsOverdueFilter === '3' && entry.MaxMonthsOverdue >= 3);
+      const matchesTier = !collectionTierFilter || entry.CollectionTier === collectionTierFilter;
       return matchesSearch &&
         matchesZone &&
         matchesClassification &&
         matchesStatus &&
         matchesTab &&
         matchesDelinquentScope &&
-        matchesMonthsOverdue;
+        matchesMonthsOverdue &&
+        matchesTier;
     });
-  }, [activeTab, classificationFilter, delinquentScope, ledgerData, monthsOverdueFilter, searchTerm, statusFilter, zoneFilter]);
+    if (activeTab === 'delinquents') {
+      const tierRank: Record<LedgerEntry['CollectionTier'], number> = {
+        'Urgent Disconnect': 0,
+        Watchlist: 1,
+        Current: 2,
+      };
+      return base.sort((left, right) =>
+        tierRank[left.CollectionTier] - tierRank[right.CollectionTier] ||
+        right.MaxMonthsOverdue - left.MaxMonthsOverdue ||
+        right.UnpaidBills - left.UnpaidBills
+      );
+    }
+    return base;
+  }, [activeTab, classificationFilter, collectionTierFilter, delinquentScope, ledgerData, monthsOverdueFilter, searchTerm, statusFilter, zoneFilter]);
+
+  useEffect(() => {
+    const focusConsumerId = Number(searchParams.get('focusConsumerId') || 0);
+    const focusAccount = String(searchParams.get('focusAccount') || '').trim().toLowerCase();
+    if (!focusConsumerId && !focusAccount) {
+      return;
+    }
+
+    const target = ledgerData.find((entry) => {
+      if (focusConsumerId && Number(entry.Consumer_ID) === focusConsumerId) {
+        return true;
+      }
+      return Boolean(focusAccount) && String(entry.Account_Number || '').trim().toLowerCase() === focusAccount;
+    });
+
+    if (!target) {
+      return;
+    }
+
+    setActiveTab('ledger');
+    setSearchTerm(target.Account_Number || target.Consumer_Name || '');
+    setSelectedConsumer(target);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('focusConsumerId');
+    nextParams.delete('focusAccount');
+    setSearchParams(nextParams, { replace: true });
+  }, [ledgerData, searchParams, setSearchParams]);
 
   const zoneOptions = useMemo(
     () => Array.from(new Set(ledgerData.map((entry) => entry.Zone).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
@@ -288,9 +364,62 @@ const BillingLedger: React.FC = () => {
     }).reverse();
   }, [bills, payments, selectedConsumer]);
 
+  const handleDisconnectConsumer = async () => {
+    if (!disconnectTarget) return;
+    const reason = (disconnectReason === 'Other' ? customDisconnectReason : disconnectReason).trim();
+    if (!reason) {
+      showToast('Disconnection reason is required.', 'error');
+      return;
+    }
+    setDisconnectSaving(true);
+    try {
+      await requestJson(`/consumers/${disconnectTarget.Consumer_ID}/disconnect`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          reason,
+          months_overdue: disconnectTarget.MaxMonthsOverdue,
+          unpaid_bills: disconnectTarget.UnpaidBills,
+          actor_account_id: user?.id || null,
+          actor_role_name: user?.role_name || null,
+          disconnection_scope: disconnectScope,
+          effective_date: disconnectEffectiveDate || null,
+          reference_no: disconnectReference.trim() || null,
+        }),
+      });
+      showToast(`${disconnectTarget.Consumer_Name} marked as disconnected.`, 'success');
+      setDisconnectTarget(null);
+      setDisconnectReason('');
+      setCustomDisconnectReason('');
+      setDisconnectScope('service');
+      setDisconnectEffectiveDate('');
+      setDisconnectReference('');
+      await loadLedgerData();
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to disconnect Consumer.'), 'error');
+    } finally {
+      setDisconnectSaving(false);
+    }
+  };
+
+  const canDisconnectAccount = (row: LedgerEntry) =>
+    String(row.Status || '').trim().toLowerCase() !== 'disconnected';
+
+  const renderDisconnectSummary = (entry: LedgerEntry) => {
+    const hasOverdue = entry.MaxMonthsOverdue > 0 || entry.UnpaidBills > 0;
+    const valueClass = hasOverdue ? 'disconnect-metric-bad' : 'disconnect-metric-good';
+    const billsLabel = entry.UnpaidBills === 1 ? 'bill' : 'bills';
+
+    return (
+      <>
+        This account is <span className={valueClass}>{entry.MaxMonthsOverdue} month(s)</span> overdue with{' '}
+        <span className={valueClass}>{entry.UnpaidBills} unpaid {billsLabel}</span>.
+      </>
+    );
+  };
+
   const columns = [
     { key: 'Account_Number', label: 'Account No.', sortable: true },
-    { key: 'Consumer_Name', label: 'Consumer Name', sortable: true },
+    { key: 'Consumer_Name', label: 'Concessionaire Name', sortable: true },
     { key: 'Address', label: 'Address', sortable: true },
     { key: 'Zone', label: 'Zone', sortable: true },
     { key: 'Classification', label: 'Type', sortable: true },
@@ -310,6 +439,26 @@ const BillingLedger: React.FC = () => {
     },
     ...(activeTab === 'delinquents' ? [
       {
+        key: 'IsUrgentDisconnect',
+        label: 'Priority Work',
+        sortable: true,
+        render: (value: boolean) => value ? (
+          <span className="delinquent-tier-badge tier-urgent-disconnect">Urgent for Disconnection</span>
+        ) : (
+          <span className="delinquent-tier-badge tier-watchlist">Monitor</span>
+        ),
+      },
+      {
+        key: 'CollectionTier',
+        label: 'Collection Priority',
+        sortable: true,
+        render: (value: LedgerEntry['CollectionTier']) => (
+          <span className={`delinquent-tier-badge tier-${String(value).toLowerCase().replace(/\s+/g, '-')}`}>
+            {value}
+          </span>
+        ),
+      },
+      {
         key: 'UnpaidBills',
         label: 'Unpaid Bills',
         sortable: true,
@@ -324,9 +473,16 @@ const BillingLedger: React.FC = () => {
       key: 'actions',
       label: 'Ledger',
       render: (_: unknown, row: LedgerEntry) => (
-        <button className="btn btn-sm btn-info" onClick={() => setSelectedConsumer(row)}>
-          <i className="fas fa-book"></i> View Ledger
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-sm btn-info" onClick={() => setSelectedConsumer(row)}>
+            <i className="fas fa-book"></i> View Ledger
+          </button>
+          {canDisconnectAccount(row) ? (
+            <button className="btn btn-sm btn-danger" onClick={() => setDisconnectTarget(row)}>
+              <i className="fas fa-plug-circle-xmark"></i> Disconnect
+            </button>
+          ) : null}
+        </div>
       ),
     },
   ];
@@ -341,6 +497,7 @@ const BillingLedger: React.FC = () => {
               setActiveTab('ledger');
               setDelinquentScope('all');
               setMonthsOverdueFilter('');
+              setCollectionTierFilter('');
             }}
           >
             Ledger
@@ -362,7 +519,7 @@ const BillingLedger: React.FC = () => {
                   </div>
                   <input
                     type="text"
-                    placeholder="Search by account number or consumer name..."
+                    placeholder="Search by account number or concessionaire name..."
                     className="form-control"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -392,7 +549,18 @@ const BillingLedger: React.FC = () => {
                         onChange={(e) => setDelinquentScope(e.target.value as 'all' | 'delinquents')}
                       >
                         <option value="all">All Unpaid Accounts</option>
-                        <option value="delinquents">Delinquents (3+ Unpaid)</option>
+                        <option value="delinquents">3+ Months Overdue</option>
+                      </select>
+                      <select
+                        className="form-control"
+                        style={{ minWidth: '200px' }}
+                        value={collectionTierFilter}
+                        onChange={(e) => setCollectionTierFilter(e.target.value)}
+                      >
+                        <option value="">All Priorities</option>
+                        <option value="Urgent Disconnect">Urgent Disconnect</option>
+                        <option value="Watchlist">Watchlist</option>
+                        <option value="Current">Current</option>
                       </select>
                       <select
                         className="form-control"
@@ -401,11 +569,9 @@ const BillingLedger: React.FC = () => {
                         onChange={(e) => setMonthsOverdueFilter(e.target.value)}
                       >
                         <option value="">All Months Overdue</option>
-                        <option value="1">1+ Month</option>
-                        <option value="2">2+ Months</option>
+                        <option value="1">1 Month Only</option>
+                        <option value="2">2 Months Only</option>
                         <option value="3">3+ Months</option>
-                        <option value="6">6+ Months</option>
-                        <option value="12">12+ Months</option>
                       </select>
                     </>
                   ) : null}
@@ -432,7 +598,7 @@ const BillingLedger: React.FC = () => {
         </div>
 
         {selectedConsumer && (
-          <Modal isOpen={Boolean(selectedConsumer)} onClose={() => setSelectedConsumer(null)} title="Official Account Ledger" size="portrait" closeOnOverlayClick={true}>
+          <Modal isOpen={Boolean(selectedConsumer)} onClose={() => setSelectedConsumer(null)} title="Official Account Ledger" size="xlarge" closeOnOverlayClick={true}>
             <div className="billing-paper-theme">
               <div className="ledger-big-id">{selectedConsumer.Account_Number.split('-').pop()}</div>
               
@@ -443,10 +609,10 @@ const BillingLedger: React.FC = () => {
                 <h3>RECORDS OF PAYMENT</h3>
               </div>
 
-              <div className="ledger-consumer-info">
+              <div className="ledger-Consumer-info">
                 <div className="info-row-layout">
                   <div className="form-field flex-wide">
-                    <span className="form-label">Consumer Name</span>
+                    <span className="form-label">Concessionaire Name</span>
                     <div className="form-data underline">{selectedConsumer.Consumer_Name}</div>
                   </div>
                   <div className="form-field">
@@ -542,9 +708,121 @@ const BillingLedger: React.FC = () => {
             </div>
           </Modal>
         )}
+
+        {disconnectTarget && (
+          <Modal
+            isOpen={Boolean(disconnectTarget)}
+            onClose={() => {
+              if (disconnectSaving) return;
+              setDisconnectTarget(null);
+              setDisconnectReason('');
+              setCustomDisconnectReason('');
+              setDisconnectScope('service');
+              setDisconnectEffectiveDate('');
+              setDisconnectReference('');
+            }}
+            title="Confirm Disconnection"
+            size="medium"
+            closeOnOverlayClick={!disconnectSaving}
+          >
+            <div className="meter-reader-form">
+              <p style={{ margin: 0, color: '#334155', fontSize: '15px' }}>
+                Disconnect <strong>{disconnectTarget.Consumer_Name}</strong> ({disconnectTarget.Account_Number})?
+                {' '} {renderDisconnectSummary(disconnectTarget)}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
+                  Reason for disconnection <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <select
+                  className="form-control"
+                  value={disconnectReason}
+                  onChange={(e) => setDisconnectReason(e.target.value)}
+                  disabled={disconnectSaving}
+                  required
+                >
+                  <option value="">Select reason</option>
+                  {disconnectReasonOptions.map((reasonOption) => (
+                    <option key={reasonOption} value={reasonOption}>
+                      {reasonOption}
+                    </option>
+                  ))}
+                </select>
+                {disconnectReason === 'Other' ? (
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={customDisconnectReason}
+                    onChange={(e) => setCustomDisconnectReason(e.target.value)}
+                    placeholder="Enter custom reason"
+                    disabled={disconnectSaving}
+                    required
+                  />
+                ) : null}
+                {Number(user?.role_id) === 1 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>Admin Scope</label>
+                      <select
+                        className="form-control"
+                        value={disconnectScope}
+                        onChange={(e) => setDisconnectScope(e.target.value as 'service' | 'account')}
+                        disabled={disconnectSaving}
+                      >
+                        <option value="service">Full Service Disconnect</option>
+                        <option value="account">Account Access Restriction</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>Effective Date</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={disconnectEffectiveDate}
+                        onChange={(e) => setDisconnectEffectiveDate(e.target.value)}
+                        disabled={disconnectSaving}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', gridColumn: '1 / -1' }}>
+                      <label style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>Admin Reference No. (Optional)</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={disconnectReference}
+                        onChange={(e) => setDisconnectReference(e.target.value)}
+                        placeholder="Enter memo/order reference"
+                        disabled={disconnectSaving}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <div className="assignment-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setDisconnectTarget(null);
+                    setDisconnectReason('');
+                    setCustomDisconnectReason('');
+                  }}
+                  disabled={disconnectSaving}
+                >
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-danger" onClick={handleDisconnectConsumer} disabled={disconnectSaving}>
+                  <i className="fas fa-plug-circle-xmark"></i> {disconnectSaving ? 'Disconnecting...' : 'Confirm Disconnect'}
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </div>
     </MainLayout>
   );
 };
 
 export default BillingLedger;
+
+
+

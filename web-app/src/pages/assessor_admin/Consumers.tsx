@@ -196,8 +196,8 @@ const Consumers: React.FC = () => {
     setFilteredConsumers(filtered);
   };
 
-  const handleViewDetails = (consumer: Consumer) => {
-    setSelectedConsumer(consumer);
+  const handleViewDetails = (Consumer: Consumer) => {
+    setSelectedConsumer(Consumer);
     setIsDetailsModalOpen(true);
   };
 
@@ -225,26 +225,26 @@ const Consumers: React.FC = () => {
     setIsFormModalOpen(true);
   };
 
-  const handleEditConsumer = (consumer: Consumer) => {
-    setEditingConsumer(consumer);
+  const handleEditConsumer = (Consumer: Consumer) => {
+    setEditingConsumer(Consumer);
     setFormData({
       username: '',
       password: '',
-      firstName: consumer.First_Name,
-      middleName: consumer.Middle_Name || '',
-      lastName: consumer.Last_Name,
-      address: consumer.Address,
-      purok: consumer.Purok || '',
-      barangay: consumer.Barangay || '',
-      municipality: consumer.Municipality || 'San Lorenzo Ruiz',
-      zipCode: consumer.Zip_Code || '4610',
-      zoneId: consumer.Zone_ID.toString(),
-      classificationId: consumer.Classification_ID.toString(),
-      accountNumber: consumer.Account_Number,
-      meterNumber: consumer.Meter_Number,
-      contactNumber: consumer.Contact_Number,
-      connectionDate: consumer.Connection_Date,
-      status: consumer.Status,
+      firstName: Consumer.First_Name,
+      middleName: Consumer.Middle_Name || '',
+      lastName: Consumer.Last_Name,
+      address: Consumer.Address,
+      purok: Consumer.Purok || '',
+      barangay: Consumer.Barangay || '',
+      municipality: Consumer.Municipality || 'San Lorenzo Ruiz',
+      zipCode: Consumer.Zip_Code || '4610',
+      zoneId: Consumer.Zone_ID.toString(),
+      classificationId: Consumer.Classification_ID.toString(),
+      accountNumber: Consumer.Account_Number,
+      meterNumber: Consumer.Meter_Number,
+      contactNumber: Consumer.Contact_Number,
+      connectionDate: Consumer.Connection_Date,
+      status: Consumer.Status,
     });
     setIsFormModalOpen(true);
     setIsDetailsModalOpen(false);
@@ -255,19 +255,19 @@ const Consumers: React.FC = () => {
     try {
       const result = await requestJson<{ success: boolean; message?: string }>(`/consumers/${consumerToDelete.Consumer_ID}`, {
         method: 'DELETE',
-      }, 'Failed to delete consumer.');
+      }, 'Failed to delete Concessionaire.');
 
       if (result.success) {
-        showToast(result.message || 'Consumer deleted successfully', 'success');
+        showToast(result.message || 'Concessionaire deleted successfully', 'success');
         loadConsumers();
         setIsDetailsModalOpen(false);
         setConsumerToDelete(null);
       } else {
-        showToast(result.message || 'Failed to delete consumer', 'error');
+        showToast(result.message || 'Failed to delete Concessionaire', 'error');
       }
     } catch (error) {
-      console.error('Error deleting consumer:', error);
-      showToast(getErrorMessage(error, 'Failed to delete consumer.'), 'error');
+      console.error('Error deleting Concessionaire:', error);
+      showToast(getErrorMessage(error, 'Failed to delete Concessionaire.'), 'error');
     }
   };
 
@@ -288,12 +288,12 @@ const Consumers: React.FC = () => {
     }
 
     if (!formData.zoneId) {
-      showToast('Please select a zone before saving the consumer.', 'error');
+      showToast('Please select a zone before saving the Concessionaire.', 'error');
       return;
     }
 
     if (!formData.classificationId) {
-      showToast('Please select a classification before saving the consumer.', 'error');
+      showToast('Please select a classification before saving the Concessionaire.', 'error');
       return;
     }
 
@@ -324,22 +324,22 @@ const Consumers: React.FC = () => {
         method: editingConsumer ? 'PUT' : 'POST',
         body: JSON.stringify(body),
         },
-        'Failed to save consumer.'
+        'Failed to save Concessionaire.'
       );
 
       if (result.success !== false) {
         showToast(
-          result.message || (editingConsumer ? 'Consumer updated successfully' : 'Consumer created successfully'),
+          result.message || (editingConsumer ? 'Concessionaire updated successfully' : 'Concessionaire created successfully'),
           'success'
         );
         setIsFormModalOpen(false);
         loadConsumers();
       } else {
-        showToast(result.message || 'Failed to save consumer', 'error');
+        showToast(result.message || 'Failed to save Concessionaire', 'error');
       }
     } catch (error) {
-      console.error('Error saving consumer:', error);
-      showToast(getErrorMessage(error, 'Failed to save consumer.'), 'error');
+      console.error('Error saving Concessionaire:', error);
+      showToast(getErrorMessage(error, 'Failed to save Concessionaire.'), 'error');
     }
   };
 
@@ -352,7 +352,7 @@ const Consumers: React.FC = () => {
     },
     {
       key: 'name',
-      label: 'Consumer Name',
+      label: 'Concessionaire Name',
       sortable: true,
       render: (_, row: Consumer) => `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '.' : ''} ${row.Last_Name}`,
     },
@@ -388,14 +388,14 @@ const Consumers: React.FC = () => {
           </button>
           <button
             className="btn-icon"
-            title="Edit Consumer"
+            title="Edit Concessionaire"
             onClick={() => handleEditConsumer(row)}
           >
             <i className="fas fa-edit"></i>
           </button>
           <button
             className="btn-icon btn-danger"
-            title="Delete Consumer"
+            title="Delete Concessionaire"
             onClick={() => setConsumerToDelete(row)}
           >
             <i className="fas fa-trash"></i>
@@ -418,12 +418,12 @@ const Consumers: React.FC = () => {
   ];
 
   return (
-    <MainLayout title="Consumer Registry">
+    <MainLayout title="Concessionaire Registry">
       <div className="consumers-page">
         {/* Top Actions */}
         <div className="action-buttons">
           <button className="btn btn-primary" onClick={handleAddConsumer}>
-            <i className="fas fa-plus"></i> New Consumer
+            <i className="fas fa-plus"></i> New Concessionaire
           </button>
           <button className="btn btn-secondary" onClick={() => { loadConsumers(); showToast('Consumer list refreshed', 'success'); }} title="Refresh Records">
             <i className="fas fa-sync-alt"></i> Refresh
@@ -457,7 +457,7 @@ const Consumers: React.FC = () => {
               value={classificationFilter}
               onChange={setClassificationFilter}
               options={classificationOptions}
-              placeholder="All Consumer Types"
+              placeholder="All Concessionaire Types"
             />
             <FormSelect
               label=""
@@ -496,7 +496,7 @@ const Consumers: React.FC = () => {
         <Modal
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
-          title="Consumer Information"
+          title="Concessionaire Information"
           size="large"
           closeOnOverlayClick={true}
           footer={
@@ -515,48 +515,48 @@ const Consumers: React.FC = () => {
           }
         >
           {selectedConsumer && (
-            <div className="consumer-detail-modal">
-              <div className="consumer-detail-grid">
-                <section className="consumer-detail-section">
-                  <h3 className="consumer-detail-section-title">
+            <div className="Consumer-detail-modal">
+              <div className="Consumer-detail-grid">
+                <section className="Consumer-detail-section">
+                  <h3 className="Consumer-detail-section-title">
                     <i className="fas fa-user"></i> Personal Data
                   </h3>
-                  <div className="consumer-detail-row">
-                    <span className="consumer-detail-label">Account No.</span>
-                    <span className="consumer-detail-value">{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</span>
+                  <div className="Consumer-detail-row">
+                    <span className="Consumer-detail-label">Account No.</span>
+                    <span className="Consumer-detail-value">{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</span>
                   </div>
-                  <div className="consumer-detail-row">
-                    <span className="consumer-detail-label">Name</span>
-                    <span className="consumer-detail-value consumer-detail-value-name">
+                  <div className="Consumer-detail-row">
+                    <span className="Consumer-detail-label">Name</span>
+                    <span className="Consumer-detail-value Consumer-detail-value-name">
                       {selectedConsumer.First_Name} {selectedConsumer.Middle_Name ? `${selectedConsumer.Middle_Name} ` : ''}{selectedConsumer.Last_Name}
                     </span>
                   </div>
-                  <div className="consumer-detail-row consumer-detail-row-address">
-                    <span className="consumer-detail-label">Address</span>
-                    <span className="consumer-detail-value">{selectedConsumer.Address}</span>
+                  <div className="Consumer-detail-row Consumer-detail-row-address">
+                    <span className="Consumer-detail-label">Address</span>
+                    <span className="Consumer-detail-value">{selectedConsumer.Address}</span>
                   </div>
                 </section>
 
-                <section className="consumer-detail-section">
-                  <h3 className="consumer-detail-section-title">
+                <section className="Consumer-detail-section">
+                  <h3 className="Consumer-detail-section-title">
                     <i className="fas fa-credit-card"></i> Account Info
                   </h3>
-                  <div className="consumer-detail-row">
-                    <span className="consumer-detail-label">Map Zone</span>
-                    <span className="consumer-detail-value">{formatZoneLabel(selectedConsumer.Zone_Name, selectedConsumer.Zone_ID)}</span>
+                  <div className="Consumer-detail-row">
+                    <span className="Consumer-detail-label">Map Zone</span>
+                    <span className="Consumer-detail-value">{formatZoneLabel(selectedConsumer.Zone_Name, selectedConsumer.Zone_ID)}</span>
                   </div>
-                  <div className="consumer-detail-row">
-                    <span className="consumer-detail-label">Classification</span>
-                    <span className="consumer-detail-value">{selectedConsumer.Classification_Name}</span>
+                  <div className="Consumer-detail-row">
+                    <span className="Consumer-detail-label">Classification</span>
+                    <span className="Consumer-detail-value">{selectedConsumer.Classification_Name}</span>
                   </div>
-                  <div className="consumer-detail-row">
-                    <span className="consumer-detail-label">Meter Status</span>
+                  <div className="Consumer-detail-row">
+                    <span className="Consumer-detail-label">Meter Status</span>
                     <span className={`status-badge status-${(selectedConsumer.Meter_Status || 'active').toLowerCase()}`}>
                       {selectedConsumer.Meter_Status || 'Active'}
                     </span>
                   </div>
-                  <div className="consumer-detail-row">
-                    <span className="consumer-detail-label">Status</span>
+                  <div className="Consumer-detail-row">
+                    <span className="Consumer-detail-label">Status</span>
                     <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`}>
                       {selectedConsumer.Status}
                     </span>
@@ -571,7 +571,7 @@ const Consumers: React.FC = () => {
         <Modal
           isOpen={isFormModalOpen}
           onClose={() => setIsFormModalOpen(false)}
-          title={editingConsumer ? 'Edit Consumer' : 'Add New Consumer'}
+          title={editingConsumer ? 'Edit Concessionaire' : 'Add New Concessionaire'}
           size="large"
           footer={
             <>
@@ -584,10 +584,10 @@ const Consumers: React.FC = () => {
             </>
           }
         >
-          <div className="consumer-modal-grid">
+          <div className="Consumer-modal-grid">
             {!editingConsumer && (
               <>
-                <div className="consumer-modal-section-title">Account Access</div>
+                <div className="Consumer-modal-section-title">Account Access</div>
                 <FormInput
                   label="Username"
                   value={formData.username}
@@ -605,7 +605,7 @@ const Consumers: React.FC = () => {
                 />
               </>
             )}
-            <div className="consumer-modal-section-title">Personal Information</div>
+            <div className="Consumer-modal-section-title">Personal Information</div>
             <FormInput
               label="First Name"
               value={formData.firstName}
@@ -640,7 +640,7 @@ const Consumers: React.FC = () => {
               onChange={(value) => setFormData({ ...formData, meterNumber: value })}
               icon="fa-tachometer-alt"
             />
-            <div className="consumer-modal-section-title">Address Details</div>
+            <div className="Consumer-modal-section-title">Address Details</div>
             <FormSelect
               label="Purok"
               value={formData.purok}
@@ -673,7 +673,7 @@ const Consumers: React.FC = () => {
               onChange={() => {}}
               icon="fa-map-marker-alt"
             />
-            <div className="consumer-modal-section-title">Service Details</div>
+            <div className="Consumer-modal-section-title">Service Details</div>
             <FormInput
               label="Contact Number"
               value={formData.contactNumber}
@@ -722,7 +722,7 @@ const Consumers: React.FC = () => {
         <Modal
           isOpen={!!consumerToDelete}
           onClose={() => setConsumerToDelete(null)}
-          title="Delete Consumer"
+          title="Delete Concessionaire"
           size="small"
           footer={
             <>
@@ -737,7 +737,7 @@ const Consumers: React.FC = () => {
         >
           {consumerToDelete && (
             <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
-              Delete consumer <strong>{consumerToDelete.First_Name} {consumerToDelete.Last_Name}</strong>? This action cannot be undone.
+              Delete Concessionaire <strong>{consumerToDelete.First_Name} {consumerToDelete.Last_Name}</strong>? This action cannot be undone.
             </p>
           )}
         </Modal>
@@ -747,3 +747,6 @@ const Consumers: React.FC = () => {
 };
 
 export default Consumers;
+
+
+

@@ -208,39 +208,39 @@ const ConsumerProfile: React.FC = () => {
 
     try {
       const { data } = await loadConsumerDashboardWithFallback(user.id);
-      const consumer = data.consumer;
+      const Consumer = data.Consumer;
 
-      if (!consumer) {
+      if (!Consumer) {
         setProfile(null);
         return;
       }
 
       setProfile({
-        Consumer_ID: consumer.Consumer_ID ?? consumer.consumer_id,
-        First_Name: consumer.First_Name ?? consumer.first_name ?? '',
-        Middle_Name: consumer.Middle_Name ?? consumer.middle_name ?? '',
-        Last_Name: consumer.Last_Name ?? consumer.last_name ?? '',
-        Address: consumer.Address ?? consumer.address ?? '',
-        Purok: resolveSelectValue(consumer.Purok ?? consumer.purok ?? '', PUROK_OPTIONS),
-        Barangay: resolveSelectValue(consumer.Barangay ?? consumer.barangay ?? '', BARANGAYS),
-        Municipality: String(consumer.Municipality ?? consumer.municipality ?? 'San Lorenzo Ruiz').trim() || 'San Lorenzo Ruiz',
-        Zip_Code: String(consumer.Zip_Code ?? consumer.zip_code ?? '4610').trim() || '4610',
-        Zone_ID: Number(consumer.Zone_ID ?? consumer.zone_id ?? 0),
-        Zone_Name: consumer.Zone_Name ?? consumer.zone_name ?? '',
-        Classification_ID: Number(consumer.Classification_ID ?? consumer.classification_id ?? 0),
-        Classification_Name: consumer.Classification_Name ?? consumer.classification_name ?? '',
-        Account_Number: consumer.Account_Number ?? consumer.account_number ?? '',
-        Meter_Number: consumer.Meter_Number ?? consumer.meter_number ?? '',
-        Meter_Status: consumer.Meter_Status ?? consumer.meter_status ?? '',
-        Status: consumer.Status ?? consumer.status ?? '',
-        Contact_Number: consumer.Contact_Number ?? consumer.contact_number ?? '',
-        Connection_Date: consumer.Connection_Date ?? consumer.connection_date ?? '',
-        Username: consumer.Username ?? consumer.username ?? user.username ?? '',
-        Profile_Picture_URL: consumer.Profile_Picture_URL ?? consumer.profile_picture_url ?? user.profile_picture_url ?? null,
-        Account_Status: consumer.Account_Status ?? consumer.account_status ?? consumer.Status ?? consumer.status ?? '',
+        Consumer_ID: Consumer.Consumer_ID ?? Consumer.consumer_id,
+        First_Name: Consumer.First_Name ?? Consumer.first_name ?? '',
+        Middle_Name: Consumer.Middle_Name ?? Consumer.middle_name ?? '',
+        Last_Name: Consumer.Last_Name ?? Consumer.last_name ?? '',
+        Address: Consumer.Address ?? Consumer.address ?? '',
+        Purok: resolveSelectValue(Consumer.Purok ?? Consumer.purok ?? '', PUROK_OPTIONS),
+        Barangay: resolveSelectValue(Consumer.Barangay ?? Consumer.barangay ?? '', BARANGAYS),
+        Municipality: String(Consumer.Municipality ?? Consumer.municipality ?? 'San Lorenzo Ruiz').trim() || 'San Lorenzo Ruiz',
+        Zip_Code: String(Consumer.Zip_Code ?? Consumer.zip_code ?? '4610').trim() || '4610',
+        Zone_ID: Number(Consumer.Zone_ID ?? Consumer.zone_id ?? 0),
+        Zone_Name: Consumer.Zone_Name ?? Consumer.zone_name ?? '',
+        Classification_ID: Number(Consumer.Classification_ID ?? Consumer.classification_id ?? 0),
+        Classification_Name: Consumer.Classification_Name ?? Consumer.classification_name ?? '',
+        Account_Number: Consumer.Account_Number ?? Consumer.account_number ?? '',
+        Meter_Number: Consumer.Meter_Number ?? Consumer.meter_number ?? '',
+        Meter_Status: Consumer.Meter_Status ?? Consumer.meter_status ?? '',
+        Status: Consumer.Status ?? Consumer.status ?? '',
+        Contact_Number: Consumer.Contact_Number ?? Consumer.contact_number ?? '',
+        Connection_Date: Consumer.Connection_Date ?? Consumer.connection_date ?? '',
+        Username: Consumer.Username ?? Consumer.username ?? user.username ?? '',
+        Profile_Picture_URL: Consumer.Profile_Picture_URL ?? Consumer.profile_picture_url ?? user.profile_picture_url ?? null,
+        Account_Status: Consumer.Account_Status ?? Consumer.account_status ?? Consumer.Status ?? Consumer.status ?? '',
       });
     } catch (error) {
-      console.error('Error loading consumer profile:', error);
+      console.error('Error loading Consumer profile:', error);
       showToast(getErrorMessage(error, 'Failed to load profile.'), 'error');
       setProfile(null);
     } finally {
@@ -460,7 +460,7 @@ const ConsumerProfile: React.FC = () => {
       showToast(result.message || 'Profile updated successfully.', result.queued ? 'warning' : 'success');
       await loadProfile(false);
     } catch (error) {
-      console.error('Error updating consumer profile:', error);
+      console.error('Error updating Consumer profile:', error);
       showToast(getErrorMessage(error, 'Failed to update profile.'), 'error');
     } finally {
       setIsSaving(false);
@@ -483,7 +483,7 @@ const ConsumerProfile: React.FC = () => {
           <div className="cp-empty-state">
             <i className="fas fa-exclamation-circle" />
             <h2>Profile unavailable</h2>
-            <p>We could not load your consumer profile right now. Please refresh and try again.</p>
+            <p>We could not load your Consumer profile right now. Please refresh and try again.</p>
             <button className="cp-btn cp-btn-primary" onClick={() => void loadProfile(true)}>
               <i className="fas fa-sync-alt" /> Try Again
             </button>
@@ -736,12 +736,12 @@ const ConsumerProfile: React.FC = () => {
             displayName={displayName || loginUsername}
             onChange={setDraftProfileImage}
             onError={(message) => showToast(message, 'error')}
-            helperText="Upload a clear square photo for your consumer profile."
+            helperText="Upload a clear square photo for your Consumer profile."
           />
           <div className="cp-form-note">
             <i className="fas fa-info-circle" />
             <span>
-              Your photo appears in your consumer profile and account header across the system.
+              Your photo appears in your Consumer profile and account header across the system.
             </span>
           </div>
         </Modal>
@@ -778,7 +778,7 @@ const ConsumerProfile: React.FC = () => {
             <section className="cp-form-section cp-form-card cp-form-card-wide">
               <div className="cp-form-section-head">
                 <h3 className="cp-form-section-title">Account Access</h3>
-                <p className="cp-form-section-copy">Update your sign-in details for the consumer portal.</p>
+                <p className="cp-form-section-copy">Update your sign-in details for the Consumer portal.</p>
               </div>
               <div className="cp-form-fields cp-form-fields-account">
                 <div className="cp-form-field cp-form-field-wide">
@@ -934,3 +934,5 @@ const ConsumerProfile: React.FC = () => {
 };
 
 export default ConsumerProfile;
+
+

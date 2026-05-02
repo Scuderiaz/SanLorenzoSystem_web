@@ -9,6 +9,7 @@ interface ModalProps {
   footer?: React.ReactNode;
   size?: 'small' | 'medium' | 'large' | 'xlarge' | 'portrait';
   closeOnOverlayClick?: boolean;
+  className?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -19,6 +20,7 @@ const Modal: React.FC<ModalProps> = ({
   footer,
   size = 'medium',
   closeOnOverlayClick = false,
+  className = '',
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -48,7 +50,7 @@ const Modal: React.FC<ModalProps> = ({
   return (
     <div className="modal-overlay" onClick={closeOnOverlayClick ? onClose : undefined}>
       <div
-        className={`modal-content modal-${size}`}
+        className={`modal-content modal-${size} ${className}`.trim()}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">

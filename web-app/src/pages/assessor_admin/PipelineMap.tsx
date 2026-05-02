@@ -3,7 +3,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import './PipelineMap.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-type Mode = 'grab' | 'junction' | 'mainline' | 'pipe' | 'consumer';
+type Mode = 'grab' | 'junction' | 'mainline' | 'pipe' | 'Consumer';
 type ConsumerType = 'Residential' | 'Commercial' | 'Institutional';
 
 interface JunctionPoint { id: number; lat: number; lng: number; marker: any; }
@@ -45,7 +45,7 @@ const MODE_CONFIG: Record<Mode, { label: string; icon: string; hint: string }> =
   junction: { label:'Add Junction',  icon:'fas fa-map-pin',         hint:'Click anywhere on the map to place a junction (branching) point.' },
   mainline: { label:'Main Line',     icon:'fas fa-grip-lines',      hint:'Click a junction point to start, then click another to draw the MAIN transmission line.' },
   pipe:     { label:'Branch Pipe',   icon:'fas fa-project-diagram', hint:'Click a junction point to start, then click another to draw a distribution branch pipe.' },
-  consumer: { label:'Add Consumer',  icon:'fas fa-user-circle',     hint:'Click on the map near a junction to place a Residential, Commercial, or Institutional consumer.' },
+  Consumer: { label:'Add Consumer',  icon:'fas fa-user-circle',     hint:'Click on the map near a junction to place a Residential, Commercial, or Institutional Consumer.' },
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -171,10 +171,10 @@ const PipelineMap: React.FC = () => {
       last.ref.line.remove();
       pipesRef.current = pipesRef.current.filter((p: PipeLine) => p !== last.ref);
       setStatus('Undone: removed last pipe.');
-    } else if (last.type === 'consumer') {
+    } else if (last.type === 'Consumer') {
       last.ref.marker.remove();
       consumersRef.current = consumersRef.current.filter((c: Consumer) => c !== last.ref);
-      setStatus('Undone: removed last consumer.');
+      setStatus('Undone: removed last Consumer.');
     }
     forceUpdate();
   }, []);
@@ -197,10 +197,10 @@ const PipelineMap: React.FC = () => {
       item.ref.line.addTo(map);
       pipesRef.current.push(item.ref);
       setStatus('Redone: restored pipe.');
-    } else if (item.type === 'consumer') {
+    } else if (item.type === 'Consumer') {
       item.ref.marker.addTo(map);
       consumersRef.current.push(item.ref);
-      setStatus(`Redone: restored ${item.ref.type} consumer.`);
+      setStatus(`Redone: restored ${item.ref.type} Consumer.`);
     }
     forceUpdate();
   }, []);
@@ -252,9 +252,9 @@ const PipelineMap: React.FC = () => {
 
     const c: Consumer = { lat:latlng.lat, lng:latlng.lng, type:t, marker };
     consumersRef.current.push(c);
-    historyRef.current.push({ type:'consumer', ref:c });
+    historyRef.current.push({ type:'Consumer', ref:c });
     redoStackRef.current = [];
-    setStatus(`${t} consumer added.`);
+    setStatus(`${t} Consumer added.`);
     setShowConsumerModal(false);
     pendingLatLngRef.current = null;
     forceUpdate();
@@ -357,7 +357,7 @@ const PipelineMap: React.FC = () => {
             forceUpdate();
           }
 
-        } else if (m === 'consumer') {
+        } else if (m === 'Consumer') {
           pendingLatLngRef.current = e.latlng;
           setSelectedConsumerType('Residential');
           setShowConsumerModal(true);
@@ -379,20 +379,20 @@ const PipelineMap: React.FC = () => {
 
         {/* Consumer type modal */}
         {showConsumerModal && (
-          <div className="consumer-modal-overlay">
-            <div className="consumer-modal">
+          <div className="Consumer-modal-overlay">
+            <div className="Consumer-modal">
               <h3>Add Consumer</h3>
-              <p>Select the type of consumer connection:</p>
-              <div className="consumer-type-options">
+              <p>Select the type of Consumer connection:</p>
+              <div className="Consumer-type-options">
                 {CONSUMER_TYPES.map(ct => (
                   <button
                     key={ct.type}
                     type="button"
-                    className={`consumer-type-btn ${selectedConsumerType === ct.type ? 'selected' : ''}`}
+                    className={`Consumer-type-btn ${selectedConsumerType === ct.type ? 'selected' : ''}`}
                     style={{ borderColor: selectedConsumerType === ct.type ? ct.color : '#e0e0e0' }}
                     onClick={() => setSelectedConsumerType(ct.type)}
                   >
-                    <div className="consumer-type-icon" style={{ background: ct.bg }}>
+                    <div className="Consumer-type-icon" style={{ background: ct.bg }}>
                       <i className={ct.icon} style={{ color:'#fff' }}></i>
                     </div>
                     <div>
@@ -471,7 +471,7 @@ const PipelineMap: React.FC = () => {
         {/* Toolbar */}
         <div className="pipeline-controls">
           {/* Mode buttons */}
-          {(['grab','junction','mainline','pipe','consumer'] as Mode[]).map(m => (
+          {(['grab','junction','mainline','pipe','Consumer'] as Mode[]).map(m => (
             <button
               key={m}
               type="button"
@@ -518,3 +518,5 @@ const PipelineMap: React.FC = () => {
 };
 
 export default PipelineMap;
+
+

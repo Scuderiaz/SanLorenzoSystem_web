@@ -12,7 +12,7 @@ interface Transaction {
   time: string;
   cashier: string;
   accountNumber: string;
-  consumer: string;
+  Consumer: string;
   amount: number;
   notes: string;
 }
@@ -175,7 +175,7 @@ const CloseDay: React.FC = () => {
                 { key: 'orNumber', label: 'OR Number', sortable: true },
                 { key: 'time', label: 'Timestamp', sortable: true },
                 { key: 'accountNumber', label: 'Account', sortable: true },
-                { key: 'consumer', label: 'Consumer', sortable: true },
+                { key: 'Consumer', label: 'Consumer', sortable: true },
                 { key: 'amount', label: 'Amount (PHP)', sortable: true, render: (v: number) => `PHP ${v.toFixed(2)}` },
                 { key: 'notes', label: 'Reference', sortable: true }
               ]}
@@ -183,7 +183,7 @@ const CloseDay: React.FC = () => {
               loading={loading}
               emptyMessage="No transactions recorded for this period."
               enableFiltering
-              filterPlaceholder="Search by OR number, account, consumer, or reference..."
+              filterPlaceholder="Search by OR number, account, Consumer, or reference..."
             />
           </div>
         </div>
@@ -193,3 +193,5 @@ const CloseDay: React.FC = () => {
 };
 
 export default CloseDay;
+
+

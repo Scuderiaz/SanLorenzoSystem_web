@@ -84,7 +84,7 @@ const Reports: React.FC = () => {
       const result = await requestJsonWithOfflineSnapshot<any[]>(
         `/admin/reports/consumers?${params.toString()}`,
         `dataset.adminReportsConsumers.${zoneFilter || 'all'}`,
-        'Failed to load consumer report.',
+        'Failed to load Consumer report.',
         (payload) => payload?.data || []
       );
 
@@ -221,9 +221,9 @@ const Reports: React.FC = () => {
               columns={consumerReportColumns}
               data={consumerReports}
               loading={loading}
-              emptyMessage="No consumer data available"
+              emptyMessage="No Consumer data available"
               enableFiltering
-              filterPlaceholder="Search consumer report by zone or totals..."
+              filterPlaceholder="Search Consumer report by zone or totals..."
             />
           </div>
         </div>
@@ -334,3 +334,5 @@ const Reports: React.FC = () => {
 };
 
 export default Reports;
+
+

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
@@ -150,6 +151,7 @@ const computeChargeFromRate = (consumption: number, rate?: WaterRateRow | null) 
 
 const GenerateBills: React.FC = () => {
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [bills, setBills] = useState<BillRow[]>([]);
   const [consumers, setConsumers] = useState<ConsumerRow[]>([]);
@@ -226,13 +228,13 @@ const GenerateBills: React.FC = () => {
     loadBills();
   }, [loadBills]);
 
-  const consumerMap = useMemo(() => new Map(consumers.map((consumer) => [consumer.Consumer_ID, consumer])), [consumers]);
+  const consumerMap = useMemo(() => new Map(consumers.map((Consumer) => [Consumer.Consumer_ID, Consumer])), [consumers]);
   const waterRateMap = useMemo(
     () => new Map(waterRates.map((rate) => [Number(rate.classification_id), rate])),
     [waterRates]
   );
   const selectedManualConsumer = useMemo(
-    () => consumers.find((consumer) => String(consumer.Consumer_ID) === manualForm.consumerId) || null,
+    () => consumers.find((Consumer) => String(Consumer.Consumer_ID) === manualForm.consumerId) || null,
     [consumers, manualForm.consumerId]
   );
   const selectedManualRate = useMemo(() => {
@@ -342,16 +344,48 @@ const GenerateBills: React.FC = () => {
   const filteredBills = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     return bills.filter((bill) => {
-      const consumer = consumerMap.get(bill.Consumer_ID);
+      const Consumer = consumerMap.get(bill.Consumer_ID);
       const matchesSearch = !query || [bill.Account_Number, bill.Consumer_Name, bill.Address]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
-      const matchesZone = !zoneFilter || String(consumer?.Zone_ID || '') === zoneFilter;
+      const matchesZone = !zoneFilter || String(Consumer?.Zone_ID || '') === zoneFilter;
       const matchesStatus = !statusFilter || bill.Status === statusFilter;
       const matchesBillingMonth = !billingMonthFilter || bill.Billing_Month === billingMonthFilter;
       return matchesSearch && matchesZone && matchesStatus && matchesBillingMonth;
     });
   }, [bills, billingMonthFilter, consumerMap, searchTerm, statusFilter, zoneFilter]);
+
+  useEffect(() => {
+    const focusBillId = Number(searchParams.get('focusBillId') || 0);
+    const focusConsumerId = Number(searchParams.get('focusConsumerId') || 0);
+    const focusAccount = String(searchParams.get('focusAccount') || '').trim().toLowerCase();
+    if (!focusBillId && !focusConsumerId && !focusAccount) {
+      return;
+    }
+
+    const target = bills.find((bill) => {
+      if (focusBillId && Number(bill.Bill_ID) === focusBillId) {
+        return true;
+      }
+      if (focusConsumerId && Number(bill.Consumer_ID) === focusConsumerId) {
+        return true;
+      }
+      return Boolean(focusAccount) && String(bill.Account_Number || '').trim().toLowerCase() === focusAccount;
+    });
+
+    if (!target) {
+      return;
+    }
+
+    setSearchTerm(target.Account_Number || target.Consumer_Name || '');
+    setSelectedBill(target);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('focusBillId');
+    nextParams.delete('focusConsumerId');
+    nextParams.delete('focusAccount');
+    setSearchParams(nextParams, { replace: true });
+  }, [bills, searchParams, setSearchParams]);
 
   const totalBills = filteredBills.length;
   const totalBilled = filteredBills.reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
@@ -389,7 +423,7 @@ const GenerateBills: React.FC = () => {
 
   const columns = [
     { key: 'Account_Number', label: 'Account No.', sortable: true },
-    { key: 'Consumer_Name', label: 'Consumer Name', sortable: true },
+    { key: 'Consumer_Name', label: 'Concessionaire Name', sortable: true },
     { key: 'Billing_Month', label: 'Billing Month', sortable: true },
     { key: 'Bill_Date', label: 'Bill Date', sortable: true, render: (value: string) => formatDate(value) },
     { key: 'Due_Date', label: 'Due Date', sortable: true, render: (value: string) => formatDate(value) },
@@ -438,9 +472,9 @@ const GenerateBills: React.FC = () => {
   const consumerOptions = consumers
     .slice()
     .sort((a, b) => String(a.Account_Number || '').localeCompare(String(b.Account_Number || '')))
-    .map((consumer) => ({
-      value: consumer.Consumer_ID,
-      label: `${consumer.Account_Number || 'NO-ACCOUNT'} - ${[consumer.First_Name, consumer.Middle_Name, consumer.Last_Name].filter(Boolean).join(' ')}`,
+    .map((Consumer) => ({
+      value: Consumer.Consumer_ID,
+      label: `${Consumer.Account_Number || 'NO-ACCOUNT'} - ${[Consumer.First_Name, Consumer.Middle_Name, Consumer.Last_Name].filter(Boolean).join(' ')}`,
     }));
 
   const resetManualForm = useCallback(() => {
@@ -550,12 +584,12 @@ const GenerateBills: React.FC = () => {
     }
 
     if (!hasChargeOverride && !selectedManualRate) {
-      showToast('No active water rate is configured for the selected consumer classification.', 'error');
+      showToast('No active water rate is configured for the selected Concessionaire classification.', 'error');
       return;
     }
 
     if (!editingBill && !selectedConsumerReading?.Reading_ID && !selectedManualConsumer?.Meter_ID) {
-      showToast('The selected consumer has no meter assigned yet. Add or sync the meter before saving a manual bill.', 'error');
+      showToast('The selected Concessionaire has no meter assigned yet. Add or sync the meter before saving a manual bill.', 'error');
       return;
     }
 
@@ -670,7 +704,7 @@ const GenerateBills: React.FC = () => {
             <TableToolbar
               searchValue={searchTerm}
               onSearchChange={setSearchTerm}
-              searchPlaceholder="Search by account number or consumer name..."
+              searchPlaceholder="Search by account number or concessionaire name..."
               quickFilters={
                 <>
                   <FormSelect label="" value={zoneFilter} onChange={setZoneFilter} options={zoneOptions} placeholder="All Map Zones" icon="fa-map-marker-alt" />
@@ -769,7 +803,7 @@ const GenerateBills: React.FC = () => {
               value={manualForm.consumerId}
               onChange={handleManualConsumerChange}
               options={consumerOptions}
-              placeholder="Select consumer account"
+              placeholder="Select Concessionaire account"
               required
               disabled={Boolean(editingBill)}
             />
@@ -898,13 +932,13 @@ const GenerateBills: React.FC = () => {
 
           <div className="manual-bill-preview">
             <div>
-              <h4>Selected Consumer</h4>
+              <h4>Selected Concessionaire</h4>
               <p><strong>Account:</strong> {selectedManualConsumer?.Account_Number || 'None selected'}</p>
               <p><strong>Name:</strong> {[selectedManualConsumer?.First_Name, selectedManualConsumer?.Middle_Name, selectedManualConsumer?.Last_Name].filter(Boolean).join(' ') || 'N/A'}</p>
               <p><strong>Address:</strong> {selectedManualConsumer?.Address || 'N/A'}</p>
               <p><strong>Classification:</strong> {selectedManualConsumer?.Classification_Name || 'N/A'}</p>
               <p><strong>Date Covered:</strong> {formatDate(manualForm.dateCovered)}</p>
-              <p><strong>Latest Reading From DB:</strong> {selectedConsumerReading ? `${selectedConsumerReading.Previous_Reading ?? 0} -> ${selectedConsumerReading.Current_Reading ?? 0} (${formatDate(selectedConsumerReading.Reading_Date)})` : 'New consumer: starts at 0'}</p>
+              <p><strong>Latest Reading From DB:</strong> {selectedConsumerReading ? `${selectedConsumerReading.Previous_Reading ?? 0} -> ${selectedConsumerReading.Current_Reading ?? 0} (${formatDate(selectedConsumerReading.Reading_Date)})` : 'New Concessionaire: starts at 0'}</p>
               <p><strong>Outstanding Balance From DB:</strong> {formatCurrency(selectedConsumerOutstanding.previousBalance)}</p>
               <p><strong>Outstanding Penalty From DB:</strong> {formatCurrency(selectedConsumerOutstanding.previousPenalty)}</p>
             </div>
@@ -935,3 +969,6 @@ const GenerateBills: React.FC = () => {
 };
 
 export default GenerateBills;
+
+
+

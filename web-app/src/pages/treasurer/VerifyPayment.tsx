@@ -52,7 +52,7 @@ const VerifyPayment: React.FC = () => {
         Payment_ID: payment.Payment_ID,
         OR_No: payment.OR_Number || payment.Reference_No || String(payment.Payment_ID),
         Account_Number: formatAccountNumberForDisplay(payment.Account_Number, 'N/A'),
-        Consumer_Name: payment.Consumer_Name || 'Unknown Consumer',
+        Consumer_Name: payment.Consumer_Name || 'Unknown Concessionaire',
         Payment_Date: payment.Payment_Date || '',
         Amount: toAmount(payment.Amount_Paid),
         Entered_By: 'Treasurer',
@@ -272,3 +272,6 @@ const VerifyPayment: React.FC = () => {
 };
 
 export default VerifyPayment;
+
+
+

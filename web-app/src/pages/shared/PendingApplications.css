@@ -327,6 +327,19 @@
   color: #64748b;
 }
 
+.pending-app-action-modal {
+  width: min(760px, 94vw);
+  max-width: 760px;
+}
+
+.pending-app-action-modal .modal-footer .btn {
+  min-height: 50px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 12px;
+}
+
 .pending-app-panels {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -564,5 +577,9 @@
 
   .pending-app-detail-image {
     max-height: 240px;
+  }
+
+  .pending-app-action-modal .modal-footer .btn {
+    width: 100%;
   }
 }

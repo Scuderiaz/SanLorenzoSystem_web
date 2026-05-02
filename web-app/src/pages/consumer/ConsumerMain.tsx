@@ -27,6 +27,8 @@ interface Ticket {
   Application_Date?: string | null;
   Approved_Date?: string | null;
   Remarks?: string | null;
+  Disconnection_Reason?: string | null;
+  Reconnection_Reason?: string | null;
 }
 
 interface Concern {
@@ -284,9 +286,9 @@ const ConsumptionChart: React.FC<ConsumptionChartProps> = ({ readings }) => {
         </div>
 
         <div className="cm-year-select-wrapper">
-          <label htmlFor="consumer-dashboard-year">Year</label>
+          <label htmlFor="Consumer-dashboard-year">Year</label>
           <select
-            id="consumer-dashboard-year"
+            id="Consumer-dashboard-year"
             value={selectedYear}
             onChange={(event) => setSelectedYear(Number(event.target.value))}
             className="cm-year-select"
@@ -364,7 +366,7 @@ const ConsumerMain: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [consumer, setConsumer] = useState<ConsumerInfo | null>(null);
+  const [Consumer, setConsumer] = useState<ConsumerInfo | null>(null);
   const [bills, setBills] = useState<Bill[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [readings, setReadings] = useState<Reading[]>([]);
@@ -389,6 +391,11 @@ const ConsumerMain: React.FC = () => {
   const [concernLoading, setConcernLoading] = useState(false);
   const [concernError, setConcernError] = useState('');
   const [concernSuccess, setConcernSuccess] = useState('');
+  const [showReconnectionModal, setShowReconnectionModal] = useState(false);
+  const [reconnectionReason, setReconnectionReason] = useState('');
+  const [reconnectionLoading, setReconnectionLoading] = useState(false);
+  const [reconnectionError, setReconnectionError] = useState('');
+  const [reconnectionSuccess, setReconnectionSuccess] = useState('');
   const [concernForm, setConcernForm] = useState({
     category: 'Leakage',
     subject: '',
@@ -405,7 +412,7 @@ const ConsumerMain: React.FC = () => {
       try {
         const { data, source } = await loadConsumerDashboardWithFallback(user.id);
         setDataSource(source);
-        setConsumer(data.consumer as ConsumerInfo);
+        setConsumer(data.Consumer as ConsumerInfo);
         setBills((data.bills || []) as Bill[]);
         setPayments((data.payments || []) as Payment[]);
         setReadings((data.readings || []) as Reading[]);
@@ -450,27 +457,45 @@ const ConsumerMain: React.FC = () => {
   const latestReading = readings[readings.length - 1] || null;
 
   const displayName = formatName(
-    consumer?.First_Name ?? consumer?.first_name,
-    consumer?.Middle_Name ?? consumer?.middle_name,
-    consumer?.Last_Name ?? consumer?.last_name,
+    Consumer?.First_Name ?? Consumer?.first_name,
+    Consumer?.Middle_Name ?? Consumer?.middle_name,
+    Consumer?.Last_Name ?? Consumer?.last_name,
     user?.fullName || user?.username || 'Consumer'
   );
-  const accountNumber = consumer?.Account_Number ?? consumer?.account_number ?? 'Pending';
-  const serviceStatus = consumer?.Status ?? consumer?.status ?? 'Unknown';
-  const accountStatus = consumer?.Account_Status ?? consumer?.account_status ?? 'Unknown';
+  const accountNumber = Consumer?.Account_Number ?? Consumer?.account_number ?? 'Pending';
+  const serviceStatus = Consumer?.Status ?? Consumer?.status ?? 'Unknown';
+  const accountStatus = Consumer?.Account_Status ?? Consumer?.account_status ?? 'Unknown';
   const accountApprovalPending = normalizeStatus(accountStatus) === 'pending';
   const ticketApprovalPending = normalizeStatus(ticket?.Status) === 'pending';
   const showApprovalPendingMessage = accountApprovalPending || ticketApprovalPending;
+  const isDisconnectedAccount =
+    normalizeStatus(serviceStatus) === 'disconnected'
+    || normalizeStatus(accountStatus) === 'disconnected'
+    || normalizeStatus(ticket?.Status) === 'disconnected';
+  const hasPendingReconnectionRequest =
+    normalizeStatus(ticket?.Status) === 'pending'
+    && normalizeStatus(ticket?.Connection_Type) === 'reconnection';
+  const disconnectedReasonFromRemarks = String(ticket?.Remarks || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .reverse()
+    .find((line) => /^\[disconnect\]\s*/i.test(line))
+    ?.replace(/^\[disconnect\]\s*/i, '')
+    ?.trim();
+  const disconnectionReason =
+    ticket?.Disconnection_Reason
+    || disconnectedReasonFromRemarks
+    || 'No reason was recorded by the billing office.';
   const dueDate = currentBill?.Due_Date ? formatDate(currentBill.Due_Date) : 'No due date';
-  const profileImage = consumer?.Profile_Picture_URL ?? consumer?.profile_picture_url ?? user?.profile_picture_url ?? null;
+  const profileImage = Consumer?.Profile_Picture_URL ?? Consumer?.profile_picture_url ?? user?.profile_picture_url ?? null;
   const serviceAddress = (
-    consumer?.Address
-    ?? consumer?.address
+    Consumer?.Address
+    ?? Consumer?.address
     ?? [
-      consumer?.Purok ?? consumer?.purok,
-      consumer?.Barangay ?? consumer?.barangay,
-      consumer?.Municipality ?? consumer?.municipality,
-      consumer?.Zip_Code ?? consumer?.zip_code,
+      Consumer?.Purok ?? Consumer?.purok,
+      Consumer?.Barangay ?? Consumer?.barangay,
+      Consumer?.Municipality ?? Consumer?.municipality,
+      Consumer?.Zip_Code ?? Consumer?.zip_code,
     ].filter(Boolean).join(', ')
   ) || 'No service address recorded';
 
@@ -656,6 +681,43 @@ const ConsumerMain: React.FC = () => {
     }
   };
 
+  const handleReconnectionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const reason = reconnectionReason.trim();
+    if (!reason) {
+      setReconnectionError('Please provide a reason for reconnection.');
+      return;
+    }
+
+    setReconnectionLoading(true);
+    setReconnectionError('');
+    setReconnectionSuccess('');
+    try {
+      const res = await api.post('/consumer/reconnection-request', {
+        accountId: user?.id,
+        reason,
+      });
+      if (res.data?.success) {
+        const ticketNumber = String(res.data.ticketNumber || '').trim();
+        setReconnectionSuccess('Reconnection request submitted. The office will review your request.');
+        setTicket((prev) => ({
+          Ticket_Number: ticketNumber || prev?.Ticket_Number || 'PENDING-RECONNECTION',
+          Status: 'Pending',
+          Connection_Type: 'Reconnection',
+          Application_Date: new Date().toISOString(),
+          Remarks: `[reconnection-request] ${reason}`,
+          Disconnection_Reason: prev?.Disconnection_Reason || disconnectionReason,
+        }));
+      } else {
+        setReconnectionError(res.data?.message || 'Failed to submit reconnection request.');
+      }
+    } catch (err: any) {
+      setReconnectionError(err.response?.data?.message || err.message || 'Failed to submit reconnection request.');
+    } finally {
+      setReconnectionLoading(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="cm-page">
@@ -718,10 +780,10 @@ const ConsumerMain: React.FC = () => {
                 <i className="fas fa-file-invoice" /> Account No. <strong>{accountNumber}</strong>
               </span>
               <span className="cm-meta-item">
-                <i className="fas fa-user-circle" /> Username <strong>{consumer?.Username ?? consumer?.username ?? user?.username ?? 'N/A'}</strong>
+                <i className="fas fa-user-circle" /> Username <strong>{Consumer?.Username ?? Consumer?.username ?? user?.username ?? 'N/A'}</strong>
               </span>
               <span className="cm-meta-item">
-                <i className="fas fa-calendar-alt" /> Connected <strong>{formatDate(consumer?.Connection_Date ?? consumer?.connection_date)}</strong>
+                <i className="fas fa-calendar-alt" /> Connected <strong>{formatDate(Consumer?.Connection_Date ?? Consumer?.connection_date)}</strong>
               </span>
             </div>
           </div>
@@ -755,7 +817,47 @@ const ConsumerMain: React.FC = () => {
         )}
 
         {/* Water Connection Application Banner — always accessible outside locked area */}
-        {ticket && normalizeStatus(ticket.Status) !== 'approved' ? (
+        {isDisconnectedAccount ? (
+          <div className="cm-application-banner cm-application-banner--disconnected">
+            <div className="cm-application-banner-icon">
+              <i className="fas fa-plug-circle-xmark" />
+            </div>
+            <div className="cm-application-banner-body">
+              <div className="cm-application-banner-title">
+                Service Disconnected
+                <span className="cm-status-badge disconnected">Disconnected</span>
+              </div>
+              <div className="cm-application-banner-meta">
+                <span><strong>Account:</strong> {accountNumber}</span>
+                {ticket?.Ticket_Number && <span><strong>Ticket:</strong> {ticket.Ticket_Number}</span>}
+                {ticket?.Application_Date && <span><strong>Updated:</strong> {formatDate(ticket.Application_Date)}</span>}
+              </div>
+              <p className="cm-application-banner-message">
+                Your service is currently disconnected. Please review the reason below and request reconnection when ready.
+              </p>
+              <p className="cm-application-banner-remarks"><i className="fas fa-comment-alt" /> {disconnectionReason}</p>
+              {hasPendingReconnectionRequest ? (
+                <p className="cm-application-banner-message" style={{ marginTop: '8px' }}>
+                  Reconnection request is already pending review.
+                </p>
+              ) : null}
+            </div>
+            {!hasPendingReconnectionRequest ? (
+              <button
+                type="button"
+                className="cm-application-banner-apply"
+                onClick={() => {
+                  setReconnectionError('');
+                  setReconnectionSuccess('');
+                  setReconnectionReason('');
+                  setShowReconnectionModal(true);
+                }}
+              >
+                <i className="fas fa-plug-circle-check" /> Apply for Reconnection
+              </button>
+            ) : null}
+          </div>
+        ) : ticket && normalizeStatus(ticket.Status) !== 'approved' ? (
           <div className={`cm-application-banner cm-application-banner--${statusClassName(ticket.Status)}`}>
             <div className="cm-application-banner-icon">
               <i className={`fas ${
@@ -926,19 +1028,19 @@ const ConsumerMain: React.FC = () => {
                 </div>
                 <div className="cm-summary-row">
                   <span>Meter number</span>
-                  <strong>{consumer?.Meter_Number ?? consumer?.meter_number ?? 'Not assigned'}</strong>
+                  <strong>{Consumer?.Meter_Number ?? Consumer?.meter_number ?? 'Not assigned'}</strong>
                 </div>
                 <div className="cm-summary-row">
                   <span>Meter status</span>
-                  <strong>{consumer?.Meter_Status ?? consumer?.meter_status ?? 'Unknown'}</strong>
+                  <strong>{Consumer?.Meter_Status ?? Consumer?.meter_status ?? 'Unknown'}</strong>
                 </div>
                 <div className="cm-summary-row">
                   <span>Zone</span>
-                  <strong>{consumer?.Zone_Name ?? consumer?.zone_name ?? 'Not assigned'}</strong>
+                  <strong>{Consumer?.Zone_Name ?? Consumer?.zone_name ?? 'Not assigned'}</strong>
                 </div>
                 <div className="cm-summary-row">
                   <span>Classification</span>
-                  <strong>{consumer?.Classification_Name ?? consumer?.classification_name ?? 'Not assigned'}</strong>
+                  <strong>{Consumer?.Classification_Name ?? Consumer?.classification_name ?? 'Not assigned'}</strong>
                 </div>
                 <div className="cm-summary-row cm-summary-row-wide">
                   <span>Service address</span>
@@ -1142,7 +1244,7 @@ const ConsumerMain: React.FC = () => {
                 </div>
                 <div className="cm-detail-item">
                   <span>Classification</span>
-                  <strong>{detailValue(selectedBill.Classification || consumer?.Classification_Name || consumer?.classification_name)}</strong>
+                  <strong>{detailValue(selectedBill.Classification || Consumer?.Classification_Name || Consumer?.classification_name)}</strong>
                 </div>
                 <div className="cm-detail-item">
                   <span>Reading Reference</span>
@@ -1432,6 +1534,57 @@ const ConsumerMain: React.FC = () => {
           )}
         </Modal>
 
+        <Modal
+          isOpen={showReconnectionModal}
+          onClose={() => {
+            if (reconnectionLoading) return;
+            setShowReconnectionModal(false);
+          }}
+          title="Apply for Reconnection"
+          size="medium"
+          closeOnOverlayClick={!reconnectionLoading}
+          footer={(
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="cm-modal-close-btn"
+                onClick={() => setShowReconnectionModal(false)}
+                disabled={reconnectionLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="reconnection-form"
+                className="cm-application-banner-apply"
+                disabled={reconnectionLoading}
+                style={{ padding: '10px 22px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+              >
+                {reconnectionLoading ? <><i className="fas fa-spinner fa-spin" /> Submitting...</> : <><i className="fas fa-paper-plane" /> Submit Request</>}
+              </button>
+            </div>
+          )}
+        >
+          <form id="reconnection-form" onSubmit={handleReconnectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {reconnectionError ? <div className="cm-apply-error"><i className="fas fa-exclamation-circle" /> {reconnectionError}</div> : null}
+            {reconnectionSuccess ? <div className="cm-apply-success"><i className="fas fa-check-circle" /> {reconnectionSuccess}</div> : null}
+            <p style={{ fontSize: '14px', color: '#475569', margin: 0 }}>
+              Tell us why you are requesting reconnection. This reason will be reviewed by the billing office.
+            </p>
+            <div className="cm-apply-field">
+              <label>Reason for reconnection</label>
+              <textarea
+                value={reconnectionReason}
+                onChange={(e) => setReconnectionReason(e.target.value)}
+                placeholder="Enter your request reason"
+                required
+                disabled={reconnectionLoading}
+                className="cm-reconnection-textarea"
+              />
+            </div>
+          </form>
+        </Modal>
+
         {/* My Reports History Modal */}
         <Modal
           isOpen={showHistoryModal}
@@ -1482,3 +1635,5 @@ const ConsumerMain: React.FC = () => {
 };
 
 export default ConsumerMain;
+
+

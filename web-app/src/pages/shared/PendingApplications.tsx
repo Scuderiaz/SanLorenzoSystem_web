@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable, { Column } from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
@@ -68,6 +69,7 @@ const statusToneClass = (value?: string | null) => String(value || 'unknown').tr
 const PendingApplications: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canViewUsername = user?.role_id === 1;
   const [applications, setApplications] = useState<PendingApplication[]>([]);
   const [loading, setLoading] = useState(false);
@@ -147,6 +149,33 @@ const PendingApplications: React.FC = () => {
     loadApplications();
     loadLookups();
   }, [loadApplications, loadLookups]);
+
+  useEffect(() => {
+    const focusAccountId = Number(searchParams.get('focusAccountId') || 0);
+    const focusTicket = String(searchParams.get('focusTicket') || '').trim();
+    if (!focusAccountId && !focusTicket) {
+      return;
+    }
+
+    const target = applications.find((application) => {
+      if (focusAccountId && Number(application.Account_ID) === focusAccountId) {
+        return true;
+      }
+      return Boolean(focusTicket) && String(application.Ticket_Number || '').toLowerCase() === focusTicket.toLowerCase();
+    });
+
+    if (!target) {
+      return;
+    }
+
+    setSelectedApplication(target);
+    setSearchQuery(target.Ticket_Number || target.Consumer_Name || '');
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('focusAccountId');
+    nextParams.delete('focusTicket');
+    setSearchParams(nextParams, { replace: true });
+  }, [applications, searchParams, setSearchParams]);
 
   const openEdit = (application: PendingApplication, options?: { returnToDetails?: boolean }) => {
     const [firstName = '', middleName = '', ...remainingName] = String(application.Consumer_Name || '').split(' ');
@@ -352,7 +381,7 @@ const PendingApplications: React.FC = () => {
   }
 
   const confirmActionMessage = confirmAction?.type === 'approve'
-    ? 'Approve this consumer application and move it forward for activation?'
+    ? 'Approve this Consumer application and move it forward for activation?'
     : 'Reject this application and mark its status as Rejected. The rejection reason will be saved with the application record.';
 
   const accountNumberDisplay = (application: PendingApplication | null) => {
@@ -639,7 +668,7 @@ const PendingApplications: React.FC = () => {
             <section className="pending-app-section">
               <div className="pending-app-section-head">
                 <h3 className="pending-app-section-title">Applicant Details</h3>
-                <p className="pending-app-section-copy">Review the pending concessionaire information before approval.</p>
+                <p className="pending-app-section-copy">Review the pending Consumer information before approval.</p>
               </div>
               <div className="pending-app-grid">
                 {canViewUsername && (
@@ -691,7 +720,7 @@ const PendingApplications: React.FC = () => {
             <section className="pending-app-section">
               <div className="pending-app-section-head">
                 <h3 className="pending-app-section-title">Sedula Image</h3>
-                <p className="pending-app-section-copy">The concessionaire should now upload a clear image of the sedula for verification.</p>
+                <p className="pending-app-section-copy">The Consumer should now upload a clear image of the sedula for verification.</p>
               </div>
               <div className="pending-app-document-card">
                 <div className="pending-app-document-top">
@@ -753,7 +782,8 @@ const PendingApplications: React.FC = () => {
           isOpen={Boolean(confirmAction)}
           onClose={closeConfirmAction}
           title={confirmAction?.type === 'approve' ? 'Approve Application' : 'Reject Application'}
-          size="small"
+          size="medium"
+          className="pending-app-action-modal"
           footer={
             confirmAction ? (
               <>
@@ -801,3 +831,5 @@ const PendingApplications: React.FC = () => {
 };
 
 export default PendingApplications;
+
+

@@ -26,6 +26,18 @@ const formatDate = (value?: string | null) => {
 const formatZoneLabel = (zoneName?: string | null, zoneId?: number | string | null) =>
   zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
 
+const getMonthsOverdue = (dateValue?: string | null) => {
+  if (!dateValue) return 0;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return 0;
+  const now = new Date();
+  let months = (now.getFullYear() - date.getFullYear()) * 12 + (now.getMonth() - date.getMonth());
+  if (now.getDate() < date.getDate()) {
+    months -= 1;
+  }
+  return Math.max(0, months);
+};
+
 interface ConsumerRecord {
   Consumer_ID: number;
   First_Name: string;
@@ -84,6 +96,9 @@ interface RegistryRow {
   Status: string;
   Meter_Number: string | null;
   Connection_Date: string | null;
+  Unpaid_Bills: number;
+  Months_Unpaid: number;
+  Delinquent_Status: 'Delinquent' | 'Watchlist' | 'Non-Delinquent';
 }
 
 interface LedgerRecord {
@@ -160,13 +175,13 @@ const TreasurerLedger: React.FC = () => {
       paymentsByConsumer.set(payment.Consumer_ID, current);
     });
 
-    return consumers.map((consumer) => {
-      const consumerBills = (billsByConsumer.get(consumer.Consumer_ID) || []).slice().sort((a, b) => {
+    return consumers.map((Consumer) => {
+      const consumerBills = (billsByConsumer.get(Consumer.Consumer_ID) || []).slice().sort((a, b) => {
         const aTime = new Date(a.Bill_Date || a.Due_Date || 0).getTime();
         const bTime = new Date(b.Bill_Date || b.Due_Date || 0).getTime();
         return bTime - aTime;
       });
-      const consumerPayments = (paymentsByConsumer.get(consumer.Consumer_ID) || []).slice().sort((a, b) => {
+      const consumerPayments = (paymentsByConsumer.get(Consumer.Consumer_ID) || []).slice().sort((a, b) => {
         const aTime = new Date(a.Payment_Date || 0).getTime();
         const bTime = new Date(b.Payment_Date || 0).getTime();
         return bTime - aTime;
@@ -177,20 +192,33 @@ const TreasurerLedger: React.FC = () => {
       const outstandingBalance = consumerBills
         .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
         .reduce((sum, bill) => sum + toAmount(bill.Total_Amount), 0);
+      const unpaidBills = consumerBills.filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid');
+      const maxMonthsOverdue = unpaidBills.reduce((max, bill) => {
+        const sourceDate = bill.Due_Date || bill.Billing_Month || bill.Bill_Date;
+        return Math.max(max, getMonthsOverdue(sourceDate));
+      }, 0);
 
       return {
-        Consumer_ID: consumer.Consumer_ID,
-        Consumer_Name: [consumer.First_Name, consumer.Middle_Name, consumer.Last_Name].filter(Boolean).join(' '),
-        Account_Number: consumer.Account_Number,
-        Address: consumer.Address,
-        Zone: formatZoneLabel(consumer.Zone_Name, consumer.Zone_ID),
-        Classification: consumer.Classification_Name || 'Unclassified',
+        Consumer_ID: Consumer.Consumer_ID,
+        Consumer_Name: [Consumer.First_Name, Consumer.Middle_Name, Consumer.Last_Name].filter(Boolean).join(' '),
+        Account_Number: Consumer.Account_Number,
+        Address: Consumer.Address,
+        Zone: formatZoneLabel(Consumer.Zone_Name, Consumer.Zone_ID),
+        Classification: Consumer.Classification_Name || 'Unclassified',
         Last_Bill: toAmount(lastBill?.Total_Amount),
         Outstanding_Balance: outstandingBalance,
         Last_Payment: lastPayment?.Payment_Date || '',
-        Status: consumer.Status || 'Unknown',
-        Meter_Number: consumer.Meter_Number || null,
-        Connection_Date: consumer.Connection_Date || null,
+        Status: Consumer.Status || 'Unknown',
+        Meter_Number: Consumer.Meter_Number || null,
+        Connection_Date: Consumer.Connection_Date || null,
+        Unpaid_Bills: unpaidBills.length,
+        Months_Unpaid: maxMonthsOverdue,
+        Delinquent_Status:
+          maxMonthsOverdue >= 3
+            ? 'Delinquent'
+            : maxMonthsOverdue >= 1
+              ? 'Watchlist'
+              : 'Non-Delinquent',
       };
     });
   }, [bills, consumers, payments]);
@@ -269,7 +297,7 @@ const TreasurerLedger: React.FC = () => {
       sortable: true,
       render: (value: string) => formatAccountNumberForDisplay(value),
     },
-    { key: 'Consumer_Name', label: 'CONSUMER NAME', sortable: true },
+    { key: 'Consumer_Name', label: 'Consumer NAME', sortable: true },
     { key: 'Zone', label: 'ZONE', sortable: true },
     { key: 'Classification', label: 'TYPE', sortable: true },
     {
@@ -293,6 +321,36 @@ const TreasurerLedger: React.FC = () => {
       label: 'LAST PAYMENT',
       sortable: true,
       render: (value: string) => formatDate(value),
+    },
+    {
+      key: 'Unpaid_Bills',
+      label: 'UNPAID BILLS',
+      sortable: true,
+      render: (value: number) => (
+        <span className={toAmount(value) > 0 ? 'balance-due' : 'balance-paid'}>
+          {toAmount(value)}
+        </span>
+      ),
+    },
+    {
+      key: 'Months_Unpaid',
+      label: 'MONTHS UNPAID',
+      sortable: true,
+      render: (value: number) => (
+        <span className={toAmount(value) > 0 ? 'balance-due' : 'balance-paid'}>
+          {toAmount(value)}
+        </span>
+      ),
+    },
+    {
+      key: 'Delinquent_Status',
+      label: 'DELINQUENT STATUS',
+      sortable: true,
+      render: (value: RegistryRow['Delinquent_Status']) => (
+        <span className={`treasurer-delinquent-badge ${value === 'Delinquent' ? 'is-delinquent' : value === 'Watchlist' ? 'is-watchlist' : 'is-current'}`}>
+          {value}
+        </span>
+      ),
     },
     {
       key: 'actions',
@@ -325,7 +383,7 @@ const TreasurerLedger: React.FC = () => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Filter registry by Account No., Consumer Name, Zone, or Type..."
+                    placeholder="Filter registry by Account No., Concessionaire Name, Zone, or Type..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -387,7 +445,7 @@ const TreasurerLedger: React.FC = () => {
               columns={columns}
               data={filteredRegistryRows}
               loading={loading}
-              emptyMessage="No consumer financial records found."
+              emptyMessage="No Consumer financial records found."
             />
           </div>
         </div>
@@ -402,7 +460,7 @@ const TreasurerLedger: React.FC = () => {
                 <div style={{ marginTop: '10px', fontSize: '14px', fontWeight: 900, textDecoration: 'underline' }}>WATER SERVICE RECORD</div>
               </div>
 
-              <div className="ledger-consumer-info">
+              <div className="ledger-Consumer-info">
                 <div className="info-row-layout">
                   <div className="form-field"><span className="form-label">Acc. No.</span><div className="form-data underline">{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</div></div>
                   <div className="form-field flex-narrow"><span className="form-label">Zone</span><div className="form-data underline">{selectedConsumer.Zone}</div></div>
@@ -471,3 +529,6 @@ const TreasurerLedger: React.FC = () => {
 };
 
 export default TreasurerLedger;
+
+
+

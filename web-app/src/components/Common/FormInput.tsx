@@ -11,6 +11,9 @@ interface FormInputProps {
   disabled?: boolean;
   error?: string;
   icon?: string;
+  min?: string | number;
+  max?: string | number;
+  step?: string | number;
 }
 
 const FormInput: React.FC<FormInputProps> = ({
@@ -23,6 +26,9 @@ const FormInput: React.FC<FormInputProps> = ({
   disabled = false,
   error,
   icon,
+  min,
+  max,
+  step,
 }) => {
   return (
     <div className="form-input-group">
@@ -37,6 +43,9 @@ const FormInput: React.FC<FormInputProps> = ({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
+        min={min}
+        max={max}
+        step={step}
         className={`form-input ${error ? 'error' : ''}`}
       />
       {error && <span className="error-message">{error}</span>}

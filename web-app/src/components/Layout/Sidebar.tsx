@@ -17,18 +17,20 @@ const menuItems: MenuItem[] = [
   { path: '/accounts',      icon: 'fas fa-address-book',        label: 'Account Management', roles: [1] },
   { path: '/applications',  icon: 'fas fa-file-signature',      label: 'Applications',       roles: [1, 2] },
   { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Reports',             roles: [1] },
+  { path: '/ledger',        icon: 'fas fa-book',                label: 'Delinquents & Ledger',roles: [1] },
   { path: '/settings',      icon: 'fas fa-cogs',                label: 'System Settings',     roles: [1] },
   { path: '/maintenance',   icon: 'fas fa-tools',               label: 'System Maintenance',  roles: [1] },
   { path: '/pipeline-map',  icon: 'fas fa-map-marked-alt',      label: 'Pipeline Map',        roles: [1] },
   { path: '/close-day',     icon: 'fas fa-lock',                label: 'Close Day',           roles: [1] },
   // --- Billing Officer (Role 2) ---
-  { path: '/consumers',     icon: 'fas fa-users',               label: 'Consumer Management', roles: [2] },
-  { path: '/meter-reading', icon: 'fas fa-calendar-alt',        label: 'Reading Schedule',    roles: [2] },
+  { path: '/consumers',     icon: 'fas fa-users',               label: 'Concessionaire Management', roles: [2] },
+  { path: '/meter-reading', icon: 'fas fa-calendar-alt',        label: 'Reader & Zone Setup', roles: [1, 2] },
   { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Bills Registry',      roles: [2] },
   { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Billing Reports',     roles: [2] },
   { path: '/ledger',        icon: 'fas fa-book',                label: 'Account Ledger',      roles: [2] },
+  { path: '/billing-logs',  icon: 'fas fa-clipboard-list',      label: 'Billing Logs',        roles: [2] },
   // --- Meter Reader (Role 3) ---
-  { path: '/consumers',     icon: 'fas fa-users',               label: 'Consumer Management', roles: [3] },
+  { path: '/consumers',     icon: 'fas fa-users',               label: 'Concessionaire Management', roles: [3] },
   { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Bills Review',        roles: [3] },
   // --- Treasurer (Role 4) ---
   { path: '/payments',      icon: 'fas fa-money-bill-wave',     label: 'Process Payment',     roles: [4] },
@@ -108,3 +110,6 @@ const Sidebar: React.FC = () => {
 };
 
 export default Sidebar;
+
+
+
