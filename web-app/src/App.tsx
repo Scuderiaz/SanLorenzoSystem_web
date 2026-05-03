@@ -20,6 +20,7 @@ import BillingLedger from './pages/billing_officer/Ledger';
 import BillingReports from './pages/billing_officer/Reports';
 import BillingLogs from './pages/billing_officer/Logs';
 import PendingApplications from './pages/shared/PendingApplications';
+import PublicConcerns from './pages/shared/PublicConcerns';
 import TreasurerDashboard from './pages/treasurer/Dashboard';
 import ProcessPayment from './pages/treasurer/ProcessPayment';
 import TreasurerLedger from './pages/treasurer/Ledger';
@@ -209,6 +210,14 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <BillingLogs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/public-concerns"
+        element={
+          <ProtectedRoute>
+            <PublicConcerns />
           </ProtectedRoute>
         }
       />

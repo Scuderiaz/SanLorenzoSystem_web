@@ -72,6 +72,9 @@ const defaultAdminSettings = {
   dueDateDays: '15',
   lateFee: '10.0',
 };
+const primaryZoneCoverageTable = 'zone_coverage';
+const legacyZoneCoverageTables = ['zone_barangay_map', 'zone_coverage_config'];
+const zoneCoverageTableCandidates = [primaryZoneCoverageTable, ...legacyZoneCoverageTables];
 let isSupabaseSyncRunning = false;
 let immediateSyncTimer = null;
 let isPostgresAvailable = false;
@@ -110,6 +113,7 @@ const syncTableConfigs = [
   { tableName: 'backuplogs', primaryKey: 'backup_id' },
   { tableName: 'waterrates', primaryKey: 'rate_id' },
   { tableName: 'consumer_concerns', primaryKey: 'concern_id' },
+  { tableName: 'public_contact_messages', primaryKey: 'message_id' },
 ];
 
 const syncTableColumns = {
@@ -245,6 +249,19 @@ const syncTableColumns = {
   error_logs: ['error_id', 'error_time', 'severity', 'module', 'error_message', 'user_id', 'status'],
   system_logs: ['log_id', 'account_id', 'role', 'action', 'timestamp'],
   consumer_concerns: ['concern_id', 'consumer_id', 'account_id', 'category', 'subject', 'description', 'status', 'priority', 'created_at', 'resolved_at', 'resolved_by', 'remarks'],
+  public_contact_messages: [
+    'message_id',
+    'full_name',
+    'barangay',
+    'contact_number',
+    'subject',
+    'message',
+    'status',
+    'created_at',
+    'reviewed_at',
+    'reviewed_by',
+    'remarks',
+  ],
 };
 
 const syncConflictPolicies = {
@@ -1602,6 +1619,31 @@ function isMissingAdminSettingsStorageError(error) {
     ));
 }
 
+function isMissingSupabaseTableError(error, tableNames = []) {
+  const code = String(error?.code || '').toUpperCase();
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+  const tableHints = tableNames
+    .map((tableName) => String(tableName || '').toLowerCase())
+    .filter(Boolean);
+
+  if (code === '42P01' || code === 'PGRST205') {
+    return true;
+  }
+
+  if (!message) {
+    return false;
+  }
+
+  if (message.includes('schema cache') || message.includes('find the table') || message.includes('does not exist')) {
+    if (!tableHints.length) {
+      return true;
+    }
+    return tableHints.some((hint) => message.includes(hint));
+  }
+
+  return false;
+}
+
 async function saveAdminSettingsToPostgres(settings, executor = pool) {
   const payload = normalizeAdminSettingsInput(settings);
   const { rows } = await executor.query(`
@@ -2434,6 +2476,8 @@ function mapDashboardActivityLogRow(row) {
     category = 'Backup';
   } else if (normalized.includes('[auth]')) {
     category = 'Authentication';
+  } else if (normalized.includes('[public-contact]')) {
+    category = 'Public Concerns';
   }
 
   return {
@@ -2827,6 +2871,24 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_consumer_concerns_account_id ON consumer_concerns(account_id);
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS public_contact_messages (
+      message_id SERIAL PRIMARY KEY,
+      full_name VARCHAR(160) NOT NULL,
+      barangay VARCHAR(120) NOT NULL,
+      contact_number VARCHAR(20) NOT NULL,
+      subject VARCHAR(200) NOT NULL,
+      message TEXT NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+      created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      reviewed_at TIMESTAMP WITHOUT TIME ZONE,
+      reviewed_by INTEGER,
+      remarks TEXT,
+      CONSTRAINT public_contact_messages_status_check CHECK (status IN ('Pending', 'In Progress', 'Resolved', 'Closed'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_public_contact_messages_created_at ON public_contact_messages(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_public_contact_messages_status ON public_contact_messages(status);
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS password_reset (
       reset_id SERIAL PRIMARY KEY,
       account_id INTEGER NOT NULL,
@@ -2864,7 +2926,7 @@ async function initDb() {
   await ensureTableColumn('waterrates', 'classification_id', 'INTEGER');
   await ensureWaterRatesEffectiveDateColumnIsDate();
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS zone_coverage_config (
+    CREATE TABLE IF NOT EXISTS ${quoteIdentifier(primaryZoneCoverageTable)} (
       config_id SERIAL PRIMARY KEY,
       zone_id INTEGER NOT NULL REFERENCES zone(zone_id) ON UPDATE CASCADE ON DELETE CASCADE,
       barangay VARCHAR(120) NOT NULL,
@@ -2872,13 +2934,38 @@ async function initDb() {
       is_split BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      CONSTRAINT zone_coverage_config_unique UNIQUE (zone_id, barangay)
+      CONSTRAINT zone_coverage_unique UNIQUE (zone_id, barangay)
     );
-    CREATE INDEX IF NOT EXISTS idx_zone_coverage_config_zone_id ON zone_coverage_config(zone_id);
-    CREATE INDEX IF NOT EXISTS idx_zone_coverage_config_barangay ON zone_coverage_config(barangay);
+    CREATE INDEX IF NOT EXISTS idx_zone_coverage_zone_id ON ${quoteIdentifier(primaryZoneCoverageTable)}(zone_id);
+    CREATE INDEX IF NOT EXISTS idx_zone_coverage_barangay ON ${quoteIdentifier(primaryZoneCoverageTable)}(barangay);
   `);
   await pool.query(`
-    CREATE OR REPLACE FUNCTION set_zone_coverage_config_updated_at()
+    DO $$
+    BEGIN
+      IF to_regclass('zone_barangay_map') IS NOT NULL THEN
+        INSERT INTO ${quoteIdentifier(primaryZoneCoverageTable)} (zone_id, barangay, purok_count, is_split, created_at, updated_at)
+        SELECT zone_id, barangay, purok_count, is_split, COALESCE(created_at, NOW()), COALESCE(updated_at, NOW())
+        FROM zone_barangay_map
+        ON CONFLICT (zone_id, barangay) DO UPDATE
+        SET purok_count = EXCLUDED.purok_count,
+            is_split = EXCLUDED.is_split,
+            updated_at = NOW();
+      END IF;
+
+      IF to_regclass('zone_coverage_config') IS NOT NULL THEN
+        INSERT INTO ${quoteIdentifier(primaryZoneCoverageTable)} (zone_id, barangay, purok_count, is_split, created_at, updated_at)
+        SELECT zone_id, barangay, purok_count, is_split, COALESCE(created_at, NOW()), COALESCE(updated_at, NOW())
+        FROM zone_coverage_config
+        ON CONFLICT (zone_id, barangay) DO UPDATE
+        SET purok_count = EXCLUDED.purok_count,
+            is_split = EXCLUDED.is_split,
+            updated_at = NOW();
+      END IF;
+    END
+    $$;
+  `);
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION set_zone_coverage_updated_at()
     RETURNS TRIGGER AS $$
     BEGIN
       NEW.updated_at = NOW();
@@ -2887,10 +2974,10 @@ async function initDb() {
     $$ LANGUAGE plpgsql;
   `);
   await pool.query(`
-    DROP TRIGGER IF EXISTS trg_zone_coverage_config_updated_at ON zone_coverage_config;
-    CREATE TRIGGER trg_zone_coverage_config_updated_at
-    BEFORE UPDATE ON zone_coverage_config
-    FOR EACH ROW EXECUTE FUNCTION set_zone_coverage_config_updated_at();
+    DROP TRIGGER IF EXISTS trg_zone_coverage_updated_at ON ${quoteIdentifier(primaryZoneCoverageTable)};
+    CREATE TRIGGER trg_zone_coverage_updated_at
+    BEFORE UPDATE ON ${quoteIdentifier(primaryZoneCoverageTable)}
+    FOR EACH ROW EXECUTE FUNCTION set_zone_coverage_updated_at();
   `);
   await pool.query(`
     DO $$
@@ -5568,24 +5655,37 @@ app.get('/api/zone-coverage-config', async (req, res) => {
             zcc.barangay AS "Barangay",
             zcc.purok_count AS "Purok_Count",
             zcc.is_split AS "Is_Split"
-          FROM zone_coverage_config zcc
+          FROM ${quoteIdentifier(primaryZoneCoverageTable)} zcc
           JOIN zone z ON z.zone_id = zcc.zone_id
           ORDER BY zcc.zone_id ASC, zcc.barangay ASC
         `);
         return rows;
       },
       async () => {
-        const [configResult, zoneResult] = await Promise.all([
-          supabase.from('zone_coverage_config').select('config_id, zone_id, barangay, purok_count, is_split'),
-          supabase.from('zone').select('zone_id, zone_name'),
-        ]);
-        if (configResult.error) {
-          if (configResult.error.code === '42P01') return [];
-          throw configResult.error;
+        let configRows = [];
+        let configLoaded = false;
+
+        for (const tableName of zoneCoverageTableCandidates) {
+          const result = await supabase.from(tableName).select('config_id, zone_id, barangay, purok_count, is_split');
+          if (result.error) {
+            if (isMissingSupabaseTableError(result.error, [tableName])) {
+              continue;
+            }
+            throw result.error;
+          }
+          configRows = result.data || [];
+          configLoaded = true;
+          break;
         }
+
+        if (!configLoaded) {
+          return [];
+        }
+
+        const zoneResult = await supabase.from('zone').select('zone_id, zone_name');
         if (zoneResult.error) throw zoneResult.error;
         const zoneMap = new Map((zoneResult.data || []).map((zone) => [zone.zone_id, zone.zone_name]));
-        return (configResult.data || []).map((row) => ({
+        return configRows.map((row) => ({
           Config_ID: row.config_id,
           Zone_ID: row.zone_id,
           Zone_Name: zoneMap.get(row.zone_id) || null,
@@ -5614,62 +5714,11 @@ app.post('/api/zone-coverage-config', async (req, res) => {
   }
 
   try {
-    const normalizeBarangayKey = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    const barangayKey = normalizeBarangayKey(barangay);
-    const existingRows = await withPostgresPrimary(
-      'zoneCoverageConfig.validateSplitRules',
-      async () => {
-        const { rows } = await pool.query(
-          `SELECT zone_id, barangay, is_split
-           FROM zone_coverage_config
-           WHERE LOWER(TRIM(barangay)) = LOWER(TRIM($1))`,
-          [barangay]
-        );
-        return rows || [];
-      },
-      async () => {
-        const { data, error } = await supabase.from('zone_coverage_config').select('zone_id, barangay, is_split');
-        if (error && error.code !== '42P01') throw error;
-        return (data || []).filter((row) => normalizeBarangayKey(row.barangay) === barangayKey);
-      }
-    );
-
-    const existingByZone = new Map();
-    let hasSplitAssignment = false;
-    for (const row of existingRows || []) {
-      const existingZoneId = Number(row.zone_id || row.Zone_ID || 0);
-      if (!existingZoneId) continue;
-      existingByZone.set(existingZoneId, true);
-      if (Boolean(row.is_split || row.Is_Split)) {
-        hasSplitAssignment = true;
-      }
-    }
-
-    const alreadyAssignedInCurrentZone = existingByZone.has(zoneId);
-    const distinctAssignedZones = Array.from(existingByZone.keys());
-    const assignedInOtherZones = distinctAssignedZones.filter((existingZoneId) => existingZoneId !== zoneId);
-
-    if (!alreadyAssignedInCurrentZone) {
-      if (distinctAssignedZones.length >= 2) {
-        return res.status(400).json({
-          success: false,
-          message: 'This barangay already reached the maximum of 2 zones.',
-        });
-      }
-
-      if (assignedInOtherZones.length >= 1 && !hasSplitAssignment) {
-        return res.status(400).json({
-          success: false,
-          message: 'This barangay is locked to another zone. Mark its existing assignment as split before reusing it.',
-        });
-      }
-    }
-
     const row = await withPostgresPrimary(
       'zoneCoverageConfig.upsert',
       async () => {
         const { rows } = await pool.query(`
-          INSERT INTO zone_coverage_config (zone_id, barangay, purok_count, is_split)
+          INSERT INTO ${quoteIdentifier(primaryZoneCoverageTable)} (zone_id, barangay, purok_count, is_split)
           VALUES ($1, $2, $3, $4)
           ON CONFLICT (zone_id, barangay) DO UPDATE
           SET purok_count = EXCLUDED.purok_count,
@@ -5685,19 +5734,33 @@ app.post('/api/zone-coverage-config', async (req, res) => {
         return rows[0];
       },
       async () => {
-        const { data, error } = await supabase
-          .from('zone_coverage_config')
-          .upsert([{ zone_id: zoneId, barangay: barangay, purok_count: purokCount, is_split: isSplit }], { onConflict: 'zone_id,barangay' })
-          .select('config_id, zone_id, barangay, purok_count, is_split')
-          .single();
-        if (error) throw error;
-        return {
-          Config_ID: data.config_id,
-          Zone_ID: data.zone_id,
-          Barangay: data.barangay,
-          Purok_Count: Number(data.purok_count || 0),
-          Is_Split: Boolean(data.is_split),
-        };
+        for (const tableName of zoneCoverageTableCandidates) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .upsert([{ zone_id: zoneId, barangay: barangay, purok_count: purokCount, is_split: isSplit }], { onConflict: 'zone_id,barangay' })
+            .select('config_id, zone_id, barangay, purok_count, is_split')
+            .single();
+
+          if (error) {
+            if (isMissingSupabaseTableError(error, [tableName])) {
+              continue;
+            }
+            throw error;
+          }
+
+          return {
+            Config_ID: data.config_id,
+            Zone_ID: data.zone_id,
+            Barangay: data.barangay,
+            Purok_Count: Number(data.purok_count || 0),
+            Is_Split: Boolean(data.is_split),
+          };
+        }
+
+        throw createHttpError(
+          `Zone coverage table is missing in schema "${supabaseSchema}". Expected "${primaryZoneCoverageTable}" (or legacy: ${legacyZoneCoverageTables.join(', ')}).`,
+          500
+        );
       }
     );
     scheduleImmediateSync('zone-coverage-config-upsert');
@@ -5715,11 +5778,28 @@ app.delete('/api/zone-coverage-config/:id', async (req, res) => {
     await withPostgresPrimary(
       'zoneCoverageConfig.delete',
       async () => {
-        await pool.query('DELETE FROM zone_coverage_config WHERE config_id = $1', [id]);
+        await pool.query(`DELETE FROM ${quoteIdentifier(primaryZoneCoverageTable)} WHERE config_id = $1`, [id]);
       },
       async () => {
-        const { error } = await supabase.from('zone_coverage_config').delete().eq('config_id', id);
-        if (error && error.code !== '42P01') throw error;
+        let deleted = false;
+        for (const tableName of zoneCoverageTableCandidates) {
+          const { error } = await supabase.from(tableName).delete().eq('config_id', id);
+          if (error) {
+            if (isMissingSupabaseTableError(error, [tableName])) {
+              continue;
+            }
+            throw error;
+          }
+          deleted = true;
+          break;
+        }
+
+        if (!deleted) {
+          throw createHttpError(
+            `Zone coverage table is missing in schema "${supabaseSchema}". Expected "${primaryZoneCoverageTable}" (or legacy: ${legacyZoneCoverageTables.join(', ')}).`,
+            500
+          );
+        }
       }
     );
     scheduleImmediateSync('zone-coverage-config-delete');
@@ -8494,6 +8574,212 @@ app.post('/api/forgot-password/request', async (req, res) => {
   }
 });
 
+app.post('/api/public/contact', async (req, res) => {
+  const fullName = String(req.body?.fullName || '').trim();
+  const barangay = String(req.body?.barangay || '').trim();
+  const rawContactNumber = String(req.body?.contactNumber || '').trim();
+  const subject = String(req.body?.subject || '').trim();
+  const message = String(req.body?.message || '').trim();
+
+  if (!fullName || !barangay || !rawContactNumber || !subject || !message) {
+    return res.status(400).json({ success: false, message: 'All required fields must be provided.' });
+  }
+
+  const normalizedContactNumber = normalizePhilippinePhoneNumber(rawContactNumber);
+  if (!normalizedContactNumber) {
+    return res.status(400).json({ success: false, message: 'Contact number must be a valid Philippine mobile number.' });
+  }
+
+  if (message.length < 10) {
+    return res.status(400).json({ success: false, message: 'Message must be at least 10 characters long.' });
+  }
+
+  try {
+    await withPostgresPrimary(
+      'public.contact.submit',
+      async () => {
+        await pool.query(
+          `INSERT INTO public_contact_messages
+            (full_name, barangay, contact_number, subject, message, status)
+           VALUES ($1, $2, $3, $4, $5, 'Pending')`,
+          [fullName, barangay, normalizedContactNumber, subject, message]
+        );
+      },
+      async () => {
+        const { error } = await supabase.from('public_contact_messages').insert([{
+          full_name: fullName,
+          barangay,
+          contact_number: normalizedContactNumber,
+          subject,
+          message,
+          status: 'Pending',
+        }]);
+        if (error) throw error;
+      }
+    );
+
+    await writeSystemLog(`[public-contact] ${fullName} submitted: ${subject}`, { role: 'Public' });
+    scheduleImmediateSync('public-contact-submit');
+    return res.json({ success: true, message: 'Message submitted successfully.' });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.submit', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit message.' });
+  }
+});
+
+app.get('/api/public-contact-messages', async (req, res) => {
+  const query = String(req.query?.q || '').trim().toLowerCase();
+  const statusFilter = String(req.query?.status || '').trim();
+
+  try {
+    const rows = await withPostgresPrimary(
+      'public.contact.list',
+      async () => {
+        const clauses = [];
+        const values = [];
+
+        if (statusFilter) {
+          values.push(statusFilter);
+          clauses.push(`status = $${values.length}`);
+        }
+
+        if (query) {
+          values.push(`%${query}%`);
+          clauses.push(
+            `(LOWER(full_name) LIKE $${values.length}
+              OR LOWER(barangay) LIKE $${values.length}
+              OR LOWER(subject) LIKE $${values.length}
+              OR LOWER(message) LIKE $${values.length}
+              OR LOWER(contact_number) LIKE $${values.length})`
+          );
+        }
+
+        const whereClause = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+        const { rows } = await pool.query(
+          `SELECT message_id, full_name, barangay, contact_number, subject, message, status, created_at, reviewed_at, reviewed_by, remarks
+           FROM public_contact_messages
+           ${whereClause}
+           ORDER BY created_at DESC, message_id DESC
+           LIMIT 500`,
+          values
+        );
+        return rows || [];
+      },
+      async () => {
+        let builder = supabase
+          .from('public_contact_messages')
+          .select('message_id, full_name, barangay, contact_number, subject, message, status, created_at, reviewed_at, reviewed_by, remarks')
+          .order('created_at', { ascending: false })
+          .limit(500);
+
+        if (statusFilter) {
+          builder = builder.eq('status', statusFilter);
+        }
+
+        const { data, error } = await builder;
+        if (error) throw error;
+
+        const normalizedData = data || [];
+        if (!query) return normalizedData;
+        return normalizedData.filter((row) => {
+          const haystack = [
+            row.full_name,
+            row.barangay,
+            row.subject,
+            row.message,
+            row.contact_number,
+          ]
+            .map((value) => String(value || '').toLowerCase())
+            .join(' ');
+          return haystack.includes(query);
+        });
+      }
+    );
+
+    return res.json({
+      success: true,
+      data: rows.map(mapPublicContactMessageRow),
+    });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.list', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
+  const id = Number(req.params.id);
+  const nextStatus = String(req.body?.status || '').trim();
+  const remarks = String(req.body?.remarks || '').trim() || null;
+  const reviewedBy = normalizeRequiredForeignKeyId(req.body?.reviewedBy || req.body?.reviewed_by || req.body?.actorAccountId);
+  const allowedStatuses = new Set(['Pending', 'In Progress', 'Resolved', 'Closed']);
+
+  if (!id || id < 1) {
+    return res.status(400).json({ success: false, message: 'A valid message ID is required.' });
+  }
+
+  if (!allowedStatuses.has(nextStatus)) {
+    return res.status(400).json({ success: false, message: 'Invalid status. Allowed values are Pending, In Progress, Resolved, and Closed.' });
+  }
+
+  try {
+    const updated = await withPostgresPrimary(
+      'public.contact.updateStatus',
+      async () => {
+        const { rows } = await pool.query(
+          `UPDATE public_contact_messages
+              SET status = $1,
+                  remarks = COALESCE($2, remarks),
+                  reviewed_by = COALESCE($3, reviewed_by),
+                  reviewed_at = CASE
+                    WHEN $1 IN ('Resolved', 'Closed') THEN NOW()
+                    WHEN $1 IN ('Pending', 'In Progress') THEN NULL
+                    ELSE reviewed_at
+                  END
+            WHERE message_id = $4
+            RETURNING message_id, full_name, barangay, contact_number, subject, message, status, created_at, reviewed_at, reviewed_by, remarks`,
+          [nextStatus, remarks, reviewedBy, id]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const payload = {
+          status: nextStatus,
+          remarks: remarks,
+          reviewed_by: reviewedBy,
+          reviewed_at: ['Resolved', 'Closed'].includes(nextStatus) ? new Date().toISOString() : null,
+        };
+        const { data, error } = await supabase
+          .from('public_contact_messages')
+          .update(payload)
+          .eq('message_id', id)
+          .select('message_id, full_name, barangay, contact_number, subject, message, status, created_at, reviewed_at, reviewed_by, remarks')
+          .maybeSingle();
+        if (error) throw error;
+        return data || null;
+      }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Public concern not found.' });
+    }
+
+    await writeSystemLog(`[public-contact] Message #${id} marked ${nextStatus}.`, {
+      userId: reviewedBy || defaultSystemLogAccountId,
+      role: 'Admin',
+    });
+    scheduleImmediateSync('public-contact-status-update');
+
+    return res.json({
+      success: true,
+      message: 'Public concern status updated successfully.',
+      data: mapPublicContactMessageRow(updated),
+    });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.updateStatus', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
 app.post('/api/forgot-password/verify-otp', async (req, res) => {
   const username = String(req.body?.username || '').trim();
   const code = String(req.body?.code || '').trim();
@@ -10276,6 +10562,22 @@ function normalizeReadingSchedulePayload(rawSchedule, overrideDate = null) {
     zone_id: zoneId,
     meter_reader_id: normalizedReaderId,
     status,
+  };
+}
+
+function mapPublicContactMessageRow(row) {
+  return {
+    message_id: Number(row?.message_id || 0),
+    full_name: row?.full_name || '',
+    barangay: row?.barangay || '',
+    contact_number: row?.contact_number || '',
+    subject: row?.subject || '',
+    message: row?.message || '',
+    status: row?.status || 'Pending',
+    created_at: row?.created_at || null,
+    reviewed_at: row?.reviewed_at || null,
+    reviewed_by: row?.reviewed_by || null,
+    remarks: row?.remarks || null,
   };
 }
 

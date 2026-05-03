@@ -1,8 +1,0 @@
-
-> web-app@0.1.0 start
-> set GENERATE_SOURCEMAP=false && set DISABLE_ESLINT_PLUGIN=true && react-scripts start
-
-Failed to compile.
-
-spawn EPERM
-

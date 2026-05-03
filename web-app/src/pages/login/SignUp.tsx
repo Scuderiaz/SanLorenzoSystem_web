@@ -41,6 +41,7 @@ const SignUp: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [ticketNumber, setTicketNumber] = useState('');
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
   const barangays = [
     'Daculang Bolo', 'Dagotdotan', 'Langga', 'Laniton', 
@@ -96,13 +97,20 @@ const SignUp: React.FC = () => {
     [classifications]
   );
 
-  const validateForm = () => {
+  const validateAccountDetails = () => {
     if (!formData.username || !formData.password || !formData.confirmPassword) {
       return 'Please fill in all account details.';
     }
     if (formData.password !== formData.confirmPassword) {
       return 'Passwords do not match.';
     }
+    if (formData.password.length < 8) {
+      return 'Password must be at least 8 characters long.';
+    }
+    return '';
+  };
+
+  const validateApplicationDetails = () => {
     if (!formData.firstName || !formData.lastName || !formData.phone) {
       return 'Please fill in required fields.';
     }
@@ -121,9 +129,35 @@ const SignUp: React.FC = () => {
     return '';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleContinueToDetails = () => {
+    const validationError = validateAccountDetails();
+    if (validationError) {
+      setError(validationError);
+      return false;
+    }
+    setError('');
+    setCurrentStep(2);
+    return true;
+  };
+
+  const handleStepSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const validationError = validateForm();
+    if (currentStep === 1) {
+      handleContinueToDetails();
+      return;
+    }
+    void handleSubmit();
+  };
+
+  const handleSubmit = async () => {
+    const accountError = validateAccountDetails();
+    if (accountError) {
+      setCurrentStep(1);
+      setError(accountError);
+      return;
+    }
+
+    const validationError = validateApplicationDetails();
     if (validationError) {
       setError(validationError);
       return;
@@ -148,7 +182,7 @@ const SignUp: React.FC = () => {
   const handlePrintTicket = () => {
     const printDate = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
     const applicantName = registrationName || formData.username || 'Applicant';
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Registration Ticket - ${ticketNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px;color:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}.ticket{border:2px solid #1B1B63;border-radius:12px;padding:40px;width:680px;background:white;box-sizing:border-box}.ticket-header{text-align:center;border-bottom:1px dashed #ccc;padding-bottom:20px;margin-bottom:20px}.ticket-logo-title{font-size:15px;font-weight:700;color:#1B1B63}.ticket-number{font-size:22px;font-weight:900;color:#1B1B63;letter-spacing:1px;margin:18px 0 6px;text-align:center}.ticket-label{font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:1px}.ticket-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}.ticket-row span{color:#555}.ticket-row strong{color:#111}.status-badge{display:inline-block;padding:4px 14px;background:#FEF3C7;color:#92400E;border-radius:99px;font-size:12px;font-weight:700;margin:10px 0}.charges{margin-top:16px;background:#f9f9f9;border-radius:8px;padding:14px}.charges-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:10px}.charge-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}.charge-total{font-weight:700;border-top:1px solid #ddd;margin-top:6px;padding-top:8px}.ticket-footer{margin-top:20px;text-align:center;font-size:11px;color:#888;line-height:1.6}@media print{@page{margin:10mm}body{padding:0}}</style></head><body><div class="ticket"><div class="ticket-header"><div class="ticket-logo-title">San Lorenzo Ruiz Waterworks System</div><div style="font-size:12px;color:#555;margin-top:4px">Water Connection Application Receipt</div></div><div class="ticket-label">Ticket Number</div><div class="ticket-number">${ticketNumber}</div><div style="text-align:center;margin-bottom:20px;"><span class="status-badge">PENDING</span></div><div class="ticket-row"><span>Applicant</span><strong>${applicantName}</strong></div><div class="ticket-row"><span>Username</span><strong>${formData.username}</strong></div><div class="ticket-row"><span>Date Applied</span><strong>${printDate}</strong></div><div class="ticket-row"><span>Connection Type</span><strong>New Connection</strong></div><div class="charges"><div class="charges-title">Registration Charges</div><div class="charge-row"><span>Connection Fee</span><span>PHP 300.00</span></div><div class="charge-row"><span>Membership Fee</span><span>PHP 50.00</span></div><div class="charge-row"><span>Meter Full Deposit</span><span>PHP 1,500.00</span></div><div class="charge-row charge-total"><span>Total Amount</span><strong>PHP 1,850.00</strong></div></div><div class="ticket-footer">Please bring this ticket to the Municipal Office.<br>Present this reference number during your visit.<br><br>San Lorenzo Ruiz, Camarines Norte — Water Billing System</div></div></body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Registration Ticket - ${ticketNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px;color:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}.ticket{border:2px solid #1B1B63;border-radius:12px;padding:40px;width:680px;background:white;box-sizing:border-box}.ticket-header{text-align:center;border-bottom:1px dashed #ccc;padding-bottom:20px;margin-bottom:20px}.ticket-logo-title{font-size:15px;font-weight:700;color:#1B1B63}.ticket-number{font-size:22px;font-weight:900;color:#1B1B63;letter-spacing:1px;margin:18px 0 6px;text-align:center}.ticket-label{font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:1px}.ticket-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}.ticket-row span{color:#555}.ticket-row strong{color:#111}.status-badge{display:inline-block;padding:4px 14px;background:#FEF3C7;color:#92400E;border-radius:99px;font-size:12px;font-weight:700;margin:10px 0}.charges{margin-top:16px;background:#f9f9f9;border-radius:8px;padding:14px}.charges-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:10px}.charge-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}.charge-total{font-weight:700;border-top:1px solid #ddd;margin-top:6px;padding-top:8px}.ticket-footer{margin-top:20px;text-align:center;font-size:11px;color:#888;line-height:1.6}@media print{@page{margin:10mm}body{padding:0}}</style></head><body><div class="ticket"><div class="ticket-header"><div class="ticket-logo-title">San Lorenzo Ruiz Waterworks System</div><div style="font-size:12px;color:#555;margin-top:4px">Water Connection Application Receipt</div></div><div class="ticket-label">Ticket Number</div><div class="ticket-number">${ticketNumber}</div><div style="text-align:center;margin-bottom:20px;"><span class="status-badge">PENDING</span></div><div class="ticket-row"><span>Applicant</span><strong>${applicantName}</strong></div><div class="ticket-row"><span>Username</span><strong>${formData.username}</strong></div><div class="ticket-row"><span>Date Applied</span><strong>${printDate}</strong></div><div class="ticket-row"><span>Connection Type</span><strong>New Connection</strong></div><div class="charges"><div class="charges-title">Registration Charges</div><div class="charge-row"><span>Connection Fee</span><span>PHP 300.00</span></div><div class="charge-row"><span>Membership Fee</span><span>PHP 50.00</span></div><div class="charge-row"><span>Meter Full Deposit</span><span>PHP 1,500.00</span></div><div class="charge-row charge-total"><span>Total Amount</span><strong>PHP 1,850.00</strong></div></div><div class="ticket-footer">Please bring this ticket to the Municipal Office.<br>Present this reference number during your visit.<br><br>San Lorenzo Ruiz, Camarines Norte â€” Water Billing System</div></div></body></html>`;
     const win = window.open('', '_blank', 'width=800,height=900');
     if (win) { win.document.write(html); win.document.close(); win.focus(); setTimeout(() => win.print(), 500); }
   };
@@ -218,7 +252,7 @@ const SignUp: React.FC = () => {
         <div style="margin-top: 20px; text-align: center; font-size: 11px; color: #888; line-height: 1.6;">
           Please bring this ticket to the Municipal Office.<br>
           Present this reference number during your visit.<br><br>
-          San Lorenzo Ruiz, Camarines Norte — Water Billing System
+          San Lorenzo Ruiz, Camarines Norte â€” Water Billing System
         </div>
       </div>
     `;
@@ -338,36 +372,14 @@ const SignUp: React.FC = () => {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="signup-form">
+          <form onSubmit={handleStepSubmit} className="signup-form">
             <div className="signup-scrollable-form">
               <div className="signup-header">
                 <div className="signup-logo" onClick={() => navigate('/')}>
-                  <img src="/slr-logo.svg" alt="San Lorenzo Ruiz Logo" />
+                  <img src="/images/SLR logo 1.png" alt="San Lorenzo Ruiz Logo" />
                 </div>
-                <h1>Consumer Sign-Up</h1>
+                <h1>San Lorenzo Ruiz Municipal</h1>
                 <h2>Water Billing and Payment Record Management System</h2>
-              </div>
-
-              <div className="signup-social">
-                <button type="button" className="signup-google-btn" onClick={handleGoogleSignUp}>
-                  <span className="google-icon" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                      <path fill="#EA4335" d="M24 9.5c3.35 0 6.36 1.15 8.73 3.41l6.46-6.46C35.27 2.71 30.05 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.52 5.84C12.08 13.33 17.55 9.5 24 9.5z"/>
-                      <path fill="#4285F4" d="M46.98 24.55c0-1.58-.14-3.09-.41-4.55H24v8.61h12.94c-.56 3.02-2.25 5.58-4.8 7.31l7.39 5.73c4.32-3.99 6.45-9.87 6.45-17.1z"/>
-                      <path fill="#FBBC05" d="M10.08 28.94A14.5 14.5 0 0 1 9.3 24c0-1.71.3-3.36.78-4.94l-7.52-5.84A23.92 23.92 0 0 0 0 24c0 3.88.93 7.56 2.56 10.78l7.52-5.84z"/>
-                      <path fill="#34A853" d="M24 48c6.05 0 11.27-1.99 15.04-5.39l-7.39-5.73c-2.05 1.38-4.69 2.19-7.65 2.19-6.45 0-11.92-3.83-13.92-9.56l-7.52 5.84C6.51 42.62 14.62 48 24 48z"/>
-                    </svg>
-                  </span>
-                  <span>Sign up with Google</span>
-                </button>
-
-                <div className="signup-divider">
-                  <span className="divider-line"></span>
-                  <span className="divider-text">or</span>
-                  <span className="divider-line"></span>
-                </div>
-
-                <p className="signup-hint">Fill in your details below to create an account</p>
               </div>
 
               {error && (
@@ -376,12 +388,9 @@ const SignUp: React.FC = () => {
                 </div>
               )}
 
-              <div className="signup-section">
-                <div className="signup-section-title">Account Details</div>
-              </div>
-
+              {currentStep === 1 && (
               <div className="signup-field">
-                <label htmlFor="username">Username</label>
+                <label htmlFor="username"><i className="fas fa-user"></i> Username</label>
                 <input
                   id="username"
                   name="username"
@@ -391,7 +400,9 @@ const SignUp: React.FC = () => {
                   placeholder="Enter username"
                 />
               </div>
+              )}
 
+              {currentStep === 2 && (
               <div className="signup-field">
                 <label htmlFor="phone">Phone Number</label>
                 <input
@@ -404,9 +415,11 @@ const SignUp: React.FC = () => {
                   inputMode="numeric"
                 />
               </div>
+              )}
 
+              {currentStep === 1 && (
               <div className="signup-field">
-                <label htmlFor="password">Password</label>
+                <label htmlFor="password"><i className="fas fa-lock"></i> Password</label>
                 <div className="signup-password">
                   <input
                     id="password"
@@ -426,9 +439,11 @@ const SignUp: React.FC = () => {
                   </button>
                 </div>
               </div>
+              )}
 
+              {currentStep === 1 && (
               <div className="signup-field">
-                <label htmlFor="confirmPassword">Confirm Password</label>
+                <label htmlFor="confirmPassword"><i className="fas fa-lock"></i> Confirm Password</label>
                 <input
                   id="confirmPassword"
                   type={showPassword ? 'text' : 'password'}
@@ -439,7 +454,10 @@ const SignUp: React.FC = () => {
                   placeholder="Confirm password"
                 />
               </div>
+              )}
 
+              {currentStep === 2 && (
+              <>
               <div className="signup-section">
                 <div className="signup-section-title">Consumer Details</div>
               </div>
@@ -614,22 +632,51 @@ const SignUp: React.FC = () => {
 
               <div className="signup-charges">
                 <h4>Registration Charges</h4>
-                <div className="signup-charge-row"><span>Connection Fee</span><span>₱300.00</span></div>
-                <div className="signup-charge-row"><span>Membership Fee</span><span>₱50.00</span></div>
-                <div className="signup-charge-row"><span>Meter Full Deposit</span><span>₱1,500.00</span></div>
-                <div className="signup-charge-row signup-charge-total"><span>Total Amount</span><span>₱1,850.00</span></div>
+                <div className="signup-charge-row"><span>Connection Fee</span><span>â‚±300.00</span></div>
+                <div className="signup-charge-row"><span>Membership Fee</span><span>â‚±50.00</span></div>
+                <div className="signup-charge-row"><span>Meter Full Deposit</span><span>â‚±1,500.00</span></div>
+                <div className="signup-charge-row signup-charge-total"><span>Total Amount</span><span>â‚±1,850.00</span></div>
                 <p style={{ margin: '10px 0 0', color: '#5f6368', fontSize: 13 }}>
                   You will need to present these to the municipal office and settle the charges to complete your registration.
                 </p>
               </div>
+              </>
+              )}
             </div>
 
             <div className="signup-actions">
+              {currentStep === 2 && (
+                <button type="button" className="signup-secondary-btn signup-back-btn" onClick={() => setCurrentStep(1)} disabled={loading}>
+                  <i className="fas fa-arrow-left" /> Back
+                </button>
+              )}
               <button type="submit" className="signup-primary" disabled={loading}>
-                <i className="fas fa-paper-plane" />
-                {loading ? 'Submitting...' : 'Submit Registration'}
+                <i className={`fas ${currentStep === 1 ? 'fa-arrow-right' : 'fa-paper-plane'}`} />
+                {loading ? 'Submitting...' : currentStep === 1 ? 'Continue Registration' : 'Submit Registration'}
               </button>
             </div>
+
+            {currentStep === 1 && (
+              <div className="signup-social">
+                <div className="signup-divider">
+                  <span className="divider-line"></span>
+                  <span className="divider-text">or</span>
+                  <span className="divider-line"></span>
+                </div>
+
+                <button type="button" className="signup-google-btn" onClick={handleGoogleSignUp}>
+                  <span className="google-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                      <path fill="#EA4335" d="M24 9.5c3.35 0 6.36 1.15 8.73 3.41l6.46-6.46C35.27 2.71 30.05 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.52 5.84C12.08 13.33 17.55 9.5 24 9.5z"/>
+                      <path fill="#4285F4" d="M46.98 24.55c0-1.58-.14-3.09-.41-4.55H24v8.61h12.94c-.56 3.02-2.25 5.58-4.8 7.31l7.39 5.73c4.32-3.99 6.45-9.87 6.45-17.1z"/>
+                      <path fill="#FBBC05" d="M10.08 28.94A14.5 14.5 0 0 1 9.3 24c0-1.71.3-3.36.78-4.94l-7.52-5.84A23.92 23.92 0 0 0 0 24c0 3.88.93 7.56 2.56 10.78l7.52-5.84z"/>
+                      <path fill="#34A853" d="M24 48c6.05 0 11.27-1.99 15.04-5.39l-7.39-5.73c-2.05 1.38-4.69 2.19-7.65 2.19-6.45 0-11.92-3.83-13.92-9.56l-7.52 5.84C6.51 42.62 14.62 48 24 48z"/>
+                    </svg>
+                  </span>
+                  <span>Continue with Google</span>
+                </button>
+              </div>
+            )}
           </form>
         )}
 
@@ -639,7 +686,7 @@ const SignUp: React.FC = () => {
         </div>
 
         <div className="signup-copyright">
-          © 2026 Municipality of San Lorenzo Ruiz
+          Â© 2026 Municipality of San Lorenzo Ruiz
         </div>
       </div>
     </div>

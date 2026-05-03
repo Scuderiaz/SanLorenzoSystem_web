@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import FormInput from '../../components/Common/FormInput';
 import { useToast } from '../../components/Common/ToastContainer';
@@ -130,7 +130,7 @@ const ViewBill: React.FC = () => {
               <div className="bill-header">
                 <div className="bill-logo">
                   <img 
-                    src="/images/Waterworks System Payment Logo 1.svg" 
+                    src="/slr-water-billing-logo.png" 
                     alt="San Lorenzo Ruiz Water Logo" 
                     className="bill-logo-img" 
                     style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
@@ -208,8 +208,8 @@ const ViewBill: React.FC = () => {
                     <tr>
                       <td>{selectedBill.Previous_Reading}</td>
                       <td>{selectedBill.Current_Reading}</td>
-                      <td>{selectedBill.Consumption} m³</td>
-                      <td>₱{(selectedBill.Rate || 0).toFixed(2)}</td>
+                      <td>{selectedBill.Consumption} mÂ³</td>
+                      <td>â‚±{(selectedBill.Rate || 0).toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -222,27 +222,27 @@ const ViewBill: React.FC = () => {
                   <tbody>
                     <tr>
                       <td>Core Utility Charge</td>
-                      <td>₱{(selectedBill.Basic_Charge || 0).toFixed(2)}</td>
+                      <td>â‚±{(selectedBill.Basic_Charge || 0).toFixed(2)}</td>
                     </tr>
                     <tr>
                       <td>Environmental Compliance Fee</td>
-                      <td>₱{(selectedBill.Environmental_Fee || 0).toFixed(2)}</td>
+                      <td>â‚±{(selectedBill.Environmental_Fee || 0).toFixed(2)}</td>
                     </tr>
                     <tr className="subtotal">
                       <td><strong>Net Period Charges</strong></td>
-                      <td><strong>₱{(selectedBill.Total_Amount || 0).toFixed(2)}</strong></td>
+                      <td><strong>â‚±{(selectedBill.Total_Amount || 0).toFixed(2)}</strong></td>
                     </tr>
                     <tr>
                       <td>Arrears / Previous Balance</td>
-                      <td>₱{(selectedBill.Previous_Balance || 0).toFixed(2)}</td>
+                      <td>â‚±{(selectedBill.Previous_Balance || 0).toFixed(2)}</td>
                     </tr>
                     <tr>
                       <td>Late Fulfillment Penalties</td>
-                      <td>₱{(selectedBill.Penalties || 0).toFixed(2)}</td>
+                      <td>â‚±{(selectedBill.Penalties || 0).toFixed(2)}</td>
                     </tr>
                     <tr className="total">
                       <td><strong>GROSS LIQUIDITY DUE</strong></td>
-                      <td><strong>₱{(selectedBill.Total_Amount_Due || 0).toFixed(2)}</strong></td>
+                      <td><strong>â‚±{(selectedBill.Total_Amount_Due || 0).toFixed(2)}</strong></td>
                     </tr>
                   </tbody>
                 </table>

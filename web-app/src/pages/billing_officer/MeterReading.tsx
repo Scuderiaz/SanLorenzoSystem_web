@@ -3,6 +3,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import FormInput from '../../components/Common/FormInput';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
+import { useAuth } from '../../context/AuthContext';
 import {
   getErrorMessage,
   loadConsumersWithFallback,
@@ -63,6 +64,36 @@ interface ZoneCoverageConfigRow {
   Is_Split: boolean;
 }
 
+interface BarangayStructureRow {
+  barangay: string;
+  zoneIds: number[];
+  zoneLabels: string[];
+  configuredCount: number;
+  hasSplit: boolean;
+}
+
+interface CoverageStructureListRow {
+  key: string;
+  barangay: string;
+  zoneIds: number[];
+  zoneLabels: string[];
+  configuredCount: number;
+  hasSplit: boolean;
+  rules: ZoneCoverageConfigRow[];
+}
+
+const DEFAULT_BARANGAY_ZONE_STRUCTURE: Array<{ barangay: string; zoneIds: number[] }> = [
+  { barangay: 'Daculang Bolo', zoneIds: [1, 2] },
+  { barangay: 'Dagotdotan', zoneIds: [2, 3, 4] },
+  { barangay: 'Laniton', zoneIds: [3] },
+  { barangay: 'Langga', zoneIds: [4] },
+  { barangay: 'Maisog', zoneIds: [5] },
+  { barangay: 'Mampurog', zoneIds: [4, 5, 6, 7] },
+  { barangay: 'Matacong', zoneIds: [8, 9, 10] },
+  { barangay: 'San Isidro', zoneIds: [11] },
+  { barangay: 'San Ramon', zoneIds: [12] },
+];
+
 const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
 
 const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
@@ -118,7 +149,9 @@ const getInitials = (name?: string | null) => {
 };
 
 const MeterReading: React.FC = () => {
+  const { user } = useAuth();
   const { showToast } = useToast();
+  const canManageZoneCoverage = user?.role_id === 1;
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -137,6 +170,7 @@ const MeterReading: React.FC = () => {
   const [coverageConfig, setCoverageConfig] = useState<ZoneCoverageConfigRow[]>([]);
   const [isCoverageConfigModalOpen, setIsCoverageConfigModalOpen] = useState(false);
   const [coverageConfigSaving, setCoverageConfigSaving] = useState(false);
+  const [selectedCoverageStructureKey, setSelectedCoverageStructureKey] = useState('');
   const [coverageConfigForm, setCoverageConfigForm] = useState({
     zoneId: '',
     barangay: '',
@@ -335,85 +369,154 @@ const MeterReading: React.FC = () => {
     return { coverageByZone, sharedBarangayMap };
   }, [consumers, coverageConfig, zones]);
 
-  const coverageBarangaysByZone = useMemo(() => {
-    const map = new Map<number, string[]>();
+  const barangayStructureMap = useMemo(() => {
+    const map = new Map<string, Set<number>>();
+    const displayMap = new Map<string, string>();
+    const addPair = (barangayRaw?: string | null, zoneIdRaw?: number | string | null) => {
+      const barangay = normalizeBarangayName(barangayRaw);
+      const zoneId = Number(zoneIdRaw || 0);
+      if (!barangay || !zoneId) return;
+      const key = barangay.toLowerCase();
+      if (!displayMap.has(key)) {
+        displayMap.set(key, barangay);
+      }
+      if (!map.has(key)) {
+        map.set(key, new Set<number>());
+      }
+      map.get(key)!.add(zoneId);
+    };
 
-    consumers.forEach((Consumer) => {
-      const zoneId = Number(Consumer.Zone_ID || 0);
-      const barangay = normalizeBarangayName(Consumer.Barangay);
-      if (!zoneId || !barangay) return;
-      if (!map.has(zoneId)) {
-        map.set(zoneId, []);
-      }
-      const rows = map.get(zoneId)!;
-      if (!rows.some((value) => value.toLowerCase() === barangay.toLowerCase())) {
-        rows.push(barangay);
-      }
+    DEFAULT_BARANGAY_ZONE_STRUCTURE.forEach((entry) => {
+      entry.zoneIds.forEach((zoneId) => addPair(entry.barangay, zoneId));
     });
 
-    map.forEach((rows, zoneId) => {
-      map.set(zoneId, rows.sort((left, right) => left.localeCompare(right)));
-    });
+    coverageConfig.forEach((entry) => addPair(entry.Barangay, entry.Zone_ID));
+    consumers.forEach((Consumer) => addPair(Consumer.Barangay, Consumer.Zone_ID));
 
-    return map;
-  }, [consumers]);
+    return { zoneMap: map, displayMap };
+  }, [consumers, coverageConfig]);
 
-  const selectedCoverageZoneId = Number(coverageConfigForm.zoneId || 0);
-
-  const coverageBarangayOptions = useMemo(() => {
-    const zoneBarangays = coverageBarangaysByZone.get(selectedCoverageZoneId) || [];
-    const assignmentMap = new Map<string, { zones: Set<number>; hasSplit: boolean }>();
-
+  const coverageAssignmentsByBarangay = useMemo(() => {
+    const assignmentMap = new Map<string, { zones: Set<number>; hasSplit: boolean; configuredCount: number }>();
     coverageConfig.forEach((entry) => {
       const barangay = normalizeBarangayName(entry.Barangay).toLowerCase();
       const zoneId = Number(entry.Zone_ID || 0);
       if (!barangay || !zoneId) return;
       if (!assignmentMap.has(barangay)) {
-        assignmentMap.set(barangay, { zones: new Set<number>(), hasSplit: false });
+        assignmentMap.set(barangay, { zones: new Set<number>(), hasSplit: false, configuredCount: 0 });
       }
-      const assignment = assignmentMap.get(barangay)!;
-      assignment.zones.add(zoneId);
-      assignment.hasSplit = assignment.hasSplit || Boolean(entry.Is_Split);
+      const record = assignmentMap.get(barangay)!;
+      record.zones.add(zoneId);
+      record.hasSplit = record.hasSplit || Boolean(entry.Is_Split);
+      record.configuredCount += 1;
     });
+    return assignmentMap;
+  }, [coverageConfig]);
+
+  const coverageBarangaysByZone = useMemo(() => {
+    const map = new Map<number, string[]>();
+    barangayStructureMap.zoneMap.forEach((zoneSet, barangayKey) => {
+      const barangayName = barangayStructureMap.displayMap.get(barangayKey) || barangayKey;
+      zoneSet.forEach((zoneId) => {
+        if (!map.has(zoneId)) {
+          map.set(zoneId, []);
+        }
+        const list = map.get(zoneId)!;
+        if (!list.some((value) => value.toLowerCase() === barangayName.toLowerCase())) {
+          list.push(barangayName);
+        }
+      });
+    });
+
+    map.forEach((rows, zoneId) => {
+      map.set(zoneId, rows.sort((left, right) => left.localeCompare(right)));
+    });
+    return map;
+  }, [barangayStructureMap]);
+
+  const barangayStructureRows = useMemo<BarangayStructureRow[]>(() => {
+    const rows: BarangayStructureRow[] = [];
+    barangayStructureMap.zoneMap.forEach((zoneSet, barangayKey) => {
+      const normalizedName = barangayStructureMap.displayMap.get(barangayKey) || barangayKey;
+      const assignment = coverageAssignmentsByBarangay.get(barangayKey);
+      const zoneIds = Array.from(zoneSet).sort((left, right) => left - right);
+      rows.push({
+        barangay: normalizedName,
+        zoneIds,
+        zoneLabels: zoneIds.map((zoneId) => formatZoneLabel(zoneLookup.get(zoneId), zoneId)),
+        configuredCount: assignment?.configuredCount || 0,
+        hasSplit: Boolean(assignment?.hasSplit) || zoneIds.length > 1,
+      });
+    });
+
+    return rows.sort((left, right) => left.barangay.localeCompare(right.barangay));
+  }, [barangayStructureMap, coverageAssignmentsByBarangay, zoneLookup]);
+
+  const coverageStructureRows = useMemo<CoverageStructureListRow[]>(() => {
+    const rows = barangayStructureRows.map((row) => {
+      const key = normalizeBarangayName(row.barangay).toLowerCase();
+      const rules = coverageConfig
+        .filter((entry) => normalizeBarangayName(entry.Barangay).toLowerCase() === key)
+        .sort((left, right) => Number(left.Zone_ID || 0) - Number(right.Zone_ID || 0));
+      return {
+        key,
+        barangay: row.barangay,
+        zoneIds: row.zoneIds,
+        zoneLabels: row.zoneLabels,
+        configuredCount: row.configuredCount,
+        hasSplit: row.hasSplit,
+        rules,
+      };
+    });
+    return rows;
+  }, [barangayStructureRows, coverageConfig]);
+
+  useEffect(() => {
+    if (!coverageStructureRows.length) {
+      setSelectedCoverageStructureKey('');
+      return;
+    }
+    if (!selectedCoverageStructureKey || !coverageStructureRows.some((row) => row.key === selectedCoverageStructureKey)) {
+      setSelectedCoverageStructureKey(coverageStructureRows[0].key);
+    }
+  }, [coverageStructureRows, selectedCoverageStructureKey]);
+
+  const selectedCoverageStructure = useMemo(
+    () => coverageStructureRows.find((row) => row.key === selectedCoverageStructureKey) || null,
+    [coverageStructureRows, selectedCoverageStructureKey]
+  );
+
+  const selectedCoverageZoneId = Number(coverageConfigForm.zoneId || 0);
+
+  const coverageBarangayOptions = useMemo(() => {
+    const zoneBarangays = coverageBarangaysByZone.get(selectedCoverageZoneId) || [];
 
     return zoneBarangays.map((barangay) => {
       const key = normalizeBarangayName(barangay).toLowerCase();
-      const assignment = assignmentMap.get(key);
+      const assignment = coverageAssignmentsByBarangay.get(key);
       const assignedZoneIds = Array.from(assignment?.zones || []).sort((left, right) => left - right);
-      const totalAssignedZones = assignedZoneIds.length;
-      const assignedInCurrentZone = assignedZoneIds.includes(selectedCoverageZoneId);
-      const assignedInOtherZone = assignedZoneIds.some((zoneId) => zoneId !== selectedCoverageZoneId);
       const hasSplit = Boolean(assignment?.hasSplit);
-      const disabled = !assignedInCurrentZone && (
-        totalAssignedZones >= 2 ||
-        (assignedInOtherZone && !hasSplit)
-      );
-      const assignedZoneLabels = assignedZoneIds
-        .map((zoneId) => formatZoneLabel(zoneLookup.get(zoneId), zoneId))
-        .join(', ');
+      const assignedInCurrentZone = assignedZoneIds.includes(selectedCoverageZoneId);
+      const sharedCount = assignedZoneIds.length;
       let hint = '';
-      if (assignedInCurrentZone && totalAssignedZones >= 2) {
-        hint = 'Split 2/2';
+      if (assignedInCurrentZone && sharedCount > 1) {
+        hint = `Shared in ${sharedCount} zones`;
       } else if (assignedInCurrentZone) {
-        hint = hasSplit ? 'Split-enabled' : 'Assigned';
-      } else if (totalAssignedZones >= 2) {
-        hint = 'Max 2 zones reached';
-      } else if (assignedInOtherZone && hasSplit) {
-        hint = 'Split-enabled 1/2';
-      } else if (assignedInOtherZone) {
-        hint = `Locked to ${assignedZoneLabels}`;
+        hint = hasSplit ? 'Split-enabled' : 'Configured';
+      } else if (sharedCount > 0) {
+        hint = `Also in ${assignedZoneIds.map((zoneId) => formatZoneLabel(zoneLookup.get(zoneId), zoneId)).join(', ')}`;
       }
 
       return {
         value: barangay,
-        disabled,
-        assignedInOtherZone,
         assignedZoneIds,
         hasSplit,
+        assignedInCurrentZone,
+        zoneCount: sharedCount,
         label: hint ? `${barangay} (${hint})` : barangay,
       };
     });
-  }, [coverageBarangaysByZone, coverageConfig, selectedCoverageZoneId, zoneLookup]);
+  }, [coverageAssignmentsByBarangay, coverageBarangaysByZone, selectedCoverageZoneId, zoneLookup]);
 
   useEffect(() => {
     if (!coverageConfigForm.barangay) {
@@ -422,7 +525,7 @@ const MeterReading: React.FC = () => {
     const selectedOption = coverageBarangayOptions.find(
       (option) => normalizeBarangayName(option.value).toLowerCase() === normalizeBarangayName(coverageConfigForm.barangay).toLowerCase()
     );
-    if (selectedOption && selectedOption.disabled) {
+    if (!selectedOption) {
       setCoverageConfigForm((current) => ({ ...current, barangay: '' }));
     }
   }, [coverageBarangayOptions, coverageConfigForm.barangay]);
@@ -450,14 +553,14 @@ const MeterReading: React.FC = () => {
       showToast('Select a valid barangay from the selected zone.', 'error');
       return;
     }
-    if (selectedOption.disabled) {
-      if (selectedOption.assignedZoneIds?.length >= 2) {
-        showToast('This barangay already reached the max of 2 zones.', 'error');
-      } else {
-        showToast('This barangay is locked to another zone. Mark the original assignment as split first.', 'error');
-      }
-      return;
-    }
+    const existingZoneIdsForBarangay = new Set(
+      coverageConfig
+        .filter((entry) => normalizeBarangayName(entry.Barangay).toLowerCase() === barangay.toLowerCase())
+        .map((entry) => Number(entry.Zone_ID || 0))
+        .filter((value) => value > 0)
+    );
+    existingZoneIdsForBarangay.add(zoneId);
+    const shouldMarkSplit = coverageConfigForm.isSplit || existingZoneIdsForBarangay.size > 1;
     setCoverageConfigSaving(true);
     try {
       await requestJson('/zone-coverage-config', {
@@ -466,7 +569,7 @@ const MeterReading: React.FC = () => {
           zone_id: zoneId,
           barangay,
           purok_count: purokCount,
-          is_split: coverageConfigForm.isSplit,
+          is_split: shouldMarkSplit,
         }),
       });
       setCoverageConfigForm({ zoneId: '', barangay: '', purokCount: '0', isSplit: false });
@@ -488,6 +591,15 @@ const MeterReading: React.FC = () => {
     } catch (error) {
       showToast(getErrorMessage(error, 'Failed to delete coverage rule.'), 'error');
     }
+  };
+
+  const handleEditCoverageConfig = (entry: ZoneCoverageConfigRow) => {
+    setCoverageConfigForm({
+      zoneId: String(entry.Zone_ID || ''),
+      barangay: String(entry.Barangay || ''),
+      purokCount: String(entry.Purok_Count || 0),
+      isSplit: Boolean(entry.Is_Split),
+    });
   };
 
   const activeMeterReaders = useMemo(
@@ -990,16 +1102,18 @@ const MeterReading: React.FC = () => {
               <button type="button" className="btn btn-secondary" onClick={() => setIsAddReaderModalOpen(true)}>
                 <i className="fas fa-user-plus"></i> Add Meter Reader
               </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  loadCoverageConfig();
-                  setIsCoverageConfigModalOpen(true);
-                }}
-              >
-                <i className="fas fa-map-marked-alt"></i> Configure Zone Coverage
-              </button>
+              {canManageZoneCoverage ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    loadCoverageConfig();
+                    setIsCoverageConfigModalOpen(true);
+                  }}
+                >
+                  <i className="fas fa-map-marked-alt"></i> Configure Zone Coverage
+                </button>
+              ) : null}
               <button type="button" className="btn btn-primary" onClick={() => openDateModal(formatDateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()))}>
                 <i className="fas fa-calendar-plus"></i> Schedule Today
               </button>
@@ -1333,151 +1447,167 @@ const MeterReading: React.FC = () => {
           </div>
         </Modal>
 
-        <Modal
-          isOpen={isCoverageConfigModalOpen}
-          onClose={() => {
-            if (coverageConfigSaving) return;
-            setIsCoverageConfigModalOpen(false);
-            setCoverageConfigForm({ zoneId: '', barangay: '', purokCount: '0', isSplit: false });
-          }}
-          title="Zone Coverage Configuration"
-          size="large"
-          closeOnOverlayClick={!coverageConfigSaving}
-        >
-          <div className="coverage-config-modal">
-            <div className="coverage-config-hero">
-              <p className="scheduler-panel-copy">
-                Step 1: Select a zone. Step 2: Pick one barangay. Split allows that barangay to be shared to one more zone only.
-              </p>
-              <div className="coverage-config-badges">
-                <span className="status-scheduled">Single Zone</span>
-                <span className="status-cancelled">Split (Max 2 Zones)</span>
-              </div>
-            </div>
-            <div className="coverage-config-grid">
-              <section className="scheduler-panel">
-              <div className="assignment-select-row">
-                <label htmlFor="coverage-zone">Zone</label>
-                <select
-                  id="coverage-zone"
-                  className="assignment-select"
-                  value={coverageConfigForm.zoneId}
-                  onChange={(event) => {
-                    const nextZoneId = event.target.value;
-                    setCoverageConfigForm((current) => ({
-                      ...current,
-                      zoneId: nextZoneId,
-                      barangay: '',
-                    }));
-                  }}
-                >
-                  <option value="">Select zone</option>
-                  {zones.map((zone) => (
-                    <option key={`coverage-zone-${zone.Zone_ID}`} value={zone.Zone_ID}>
-                      {formatZoneLabel(zone.Zone_Name, zone.Zone_ID)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="assignment-select-row">
-                <label htmlFor="coverage-barangay">Barangay</label>
-                <select
-                  id="coverage-barangay"
-                  className="assignment-select"
-                  value={coverageConfigForm.barangay}
-                  disabled={!coverageConfigForm.zoneId}
-                  onChange={(event) => {
-                    setCoverageConfigForm((current) => ({ ...current, barangay: event.target.value }));
-                  }}
-                >
-                  <option value="">{coverageConfigForm.zoneId ? 'Select barangay' : 'Select a zone first'}</option>
-                  {coverageBarangayOptions.map((option) => (
-                    <option
-                      key={`coverage-barangay-option-${option.value}`}
-                      value={option.value}
-                      disabled={option.disabled}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                {coverageConfigForm.zoneId && coverageBarangayOptions.some((option) => option.disabled) ? (
-                  <small className="coverage-config-warning">
-                    Locked barangays cannot be selected unless their first assignment was marked as split.
-                  </small>
-                ) : null}
-              </div>
-              <FormInput
-                label="Purok Count"
-                value={coverageConfigForm.purokCount}
-                onChange={(value) => setCoverageConfigForm((current) => ({ ...current, purokCount: value.replace(/[^\d]/g, '') }))}
-              />
-              <label className="checkbox-inline">
-                <input
-                  type="checkbox"
-                  checked={coverageConfigForm.isSplit}
-                  onChange={(event) => setCoverageConfigForm((current) => ({ ...current, isSplit: event.target.checked }))}
-                />
-                <span>Mark as split barangay</span>
-              </label>
-              <div className="assignment-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  setIsCoverageConfigModalOpen(false);
-                  setCoverageConfigForm({ zoneId: '', barangay: '', purokCount: '0', isSplit: false });
-                }}
-                disabled={coverageConfigSaving}
-              >
-                Close
-              </button>
-              <button type="button" className="btn btn-primary" onClick={handleSaveCoverageConfig} disabled={coverageConfigSaving}>
-                {coverageConfigSaving ? 'Saving...' : 'Save Rule'}
-              </button>
-              </div>
-              </section>
-
-              <aside className="scheduler-panel coverage-config-sidebar">
-                <h4 className="schedule-card-reader">Barangay Availability</h4>
-                <p className="schedule-card-contact">Preview whether each barangay is open, split-enabled, or already at max zones.</p>
-                <div className="coverage-config-option-list">
-                  {coverageBarangayOptions.length > 0 ? coverageBarangayOptions.map((option) => (
-                    <div key={`coverage-preview-${option.value}`} className={`coverage-config-option ${option.disabled ? 'locked' : 'open'}`}>
-                      <strong>{option.value}</strong>
-                      <span>{option.label.replace(`${option.value} `, '') || '(Available)'}</span>
-                    </div>
-                  )) : (
-                    <div className="summary-empty">Select a zone to load barangays.</div>
-                  )}
+        {canManageZoneCoverage ? (
+          <Modal
+            isOpen={isCoverageConfigModalOpen}
+            onClose={() => {
+              if (coverageConfigSaving) return;
+              setIsCoverageConfigModalOpen(false);
+              setCoverageConfigForm({ zoneId: '', barangay: '', purokCount: '0', isSplit: false });
+            }}
+            title="Zone Coverage Configuration"
+            size="large"
+            closeOnOverlayClick={!coverageConfigSaving}
+          >
+            <div className="coverage-config-modal">
+              <div className="coverage-config-hero">
+                <p className="scheduler-panel-copy">
+                  Configure coverage based on the current zoning structure. Shared barangays can belong to multiple zones.
+                </p>
+                <div className="coverage-config-badges">
+                  <span className="status-scheduled">Single Zone</span>
+                  <span className="status-cancelled">Shared / Split</span>
                 </div>
-              </aside>
-            </div>
-            <div className="schedule-card-list coverage-config-rules">
-              {coverageConfig.length > 0 ? coverageConfig.map((entry) => (
-                <article key={`coverage-config-${entry.Config_ID}`} className="schedule-card">
-                  <div className="schedule-card-top">
-                    <div>
-                      <p className="schedule-card-zone">{formatZoneLabel(entry.Zone_Name || undefined, entry.Zone_ID)}</p>
-                      <h4 className="schedule-card-reader">{entry.Barangay}</h4>
-                      <p className="schedule-card-contact">{entry.Purok_Count} purok(s)</p>
-                    </div>
-                    <span className={entry.Is_Split ? 'status-cancelled' : 'status-scheduled'}>
-                      {entry.Is_Split ? 'Split' : 'Single Zone'}
-                    </span>
+              </div>
+              <div className="coverage-config-grid">
+                <section className="scheduler-panel">
+                <div className="assignment-select-row">
+                  <label htmlFor="coverage-zone">Zone</label>
+                  <select
+                    id="coverage-zone"
+                    className="assignment-select"
+                    value={coverageConfigForm.zoneId}
+                    onChange={(event) => {
+                      const nextZoneId = event.target.value;
+                      setCoverageConfigForm((current) => ({
+                        ...current,
+                        zoneId: nextZoneId,
+                        barangay: '',
+                      }));
+                    }}
+                  >
+                    <option value="">Select zone</option>
+                    {zones.map((zone) => (
+                      <option key={`coverage-zone-${zone.Zone_ID}`} value={zone.Zone_ID}>
+                        {formatZoneLabel(zone.Zone_Name, zone.Zone_ID)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="assignment-select-row">
+                  <label htmlFor="coverage-barangay">Barangay</label>
+                  <select
+                    id="coverage-barangay"
+                    className="assignment-select"
+                    value={coverageConfigForm.barangay}
+                    disabled={!coverageConfigForm.zoneId}
+                    onChange={(event) => {
+                      setCoverageConfigForm((current) => ({ ...current, barangay: event.target.value }));
+                    }}
+                  >
+                    <option value="">{coverageConfigForm.zoneId ? 'Select barangay' : 'Select a zone first'}</option>
+                    {coverageBarangayOptions.map((option) => (
+                      <option
+                        key={`coverage-barangay-option-${option.value}`}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <FormInput
+                  label="Purok Count"
+                  value={coverageConfigForm.purokCount}
+                  onChange={(value) => setCoverageConfigForm((current) => ({ ...current, purokCount: value.replace(/[^\d]/g, '') }))}
+                />
+                <label className="checkbox-inline">
+                  <input
+                    type="checkbox"
+                    checked={coverageConfigForm.isSplit}
+                    onChange={(event) => setCoverageConfigForm((current) => ({ ...current, isSplit: event.target.checked }))}
+                  />
+                  <span>Mark as split barangay</span>
+                </label>
+                <div className="assignment-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setIsCoverageConfigModalOpen(false);
+                    setCoverageConfigForm({ zoneId: '', barangay: '', purokCount: '0', isSplit: false });
+                  }}
+                  disabled={coverageConfigSaving}
+                >
+                  Close
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleSaveCoverageConfig} disabled={coverageConfigSaving}>
+                  {coverageConfigSaving ? 'Saving...' : 'Save Rule'}
+                </button>
+                </div>
+                </section>
+              </div>
+              <div className="coverage-structure-bottom">
+                <h4 className="schedule-card-reader">Current Zoning Structure and Saved Rules</h4>
+                <div className="coverage-structure-layout">
+                  <div className="coverage-structure-list">
+                    {coverageStructureRows.length > 0 ? coverageStructureRows.map((row) => (
+                      <button
+                        key={`coverage-structure-item-${row.key}`}
+                        type="button"
+                        className={`coverage-structure-item ${selectedCoverageStructureKey === row.key ? 'active' : ''}`}
+                        onClick={() => setSelectedCoverageStructureKey(row.key)}
+                      >
+                        <strong>{row.barangay}</strong>
+                        <span>{row.zoneLabels.join(', ')}</span>
+                        <span>{row.configuredCount} saved rule(s){row.hasSplit ? ' - split/shared' : ''}</span>
+                      </button>
+                    )) : (
+                      <div className="summary-empty">No zoning structure found yet.</div>
+                    )}
                   </div>
-                  <div className="schedule-actions">
-                    <button type="button" className="btn btn-danger" onClick={() => handleDeleteCoverageConfig(entry.Config_ID)}>
-                      <i className="fas fa-trash"></i> Delete
-                    </button>
+                  <div className="coverage-structure-detail">
+                    {selectedCoverageStructure ? (
+                      <div className="coverage-structure-detail-card">
+                        <div className="coverage-structure-detail-head">
+                          <h5>{selectedCoverageStructure.barangay}</h5>
+                          <span className={selectedCoverageStructure.hasSplit ? 'status-cancelled' : 'status-scheduled'}>
+                            {selectedCoverageStructure.hasSplit ? 'Shared / Split' : 'Single Zone'}
+                          </span>
+                        </div>
+                        <p className="schedule-card-contact"><strong>Zones:</strong> {selectedCoverageStructure.zoneLabels.join(', ')}</p>
+                        {selectedCoverageStructure.rules.length > 0 ? (
+                          <div className="coverage-structure-rule-list">
+                            {selectedCoverageStructure.rules.map((entry) => (
+                              <article key={`coverage-config-${entry.Config_ID}`} className="coverage-structure-rule-item">
+                                <div>
+                                  <p className="schedule-card-zone">{formatZoneLabel(entry.Zone_Name || undefined, entry.Zone_ID)}</p>
+                                  <p className="schedule-card-contact">{entry.Purok_Count} purok(s)</p>
+                                </div>
+                                <div className="schedule-actions">
+                                  <button type="button" className="btn btn-secondary" onClick={() => handleEditCoverageConfig(entry)}>
+                                    <i className="fas fa-pen"></i> Edit
+                                  </button>
+                                  <button type="button" className="btn btn-danger" onClick={() => handleDeleteCoverageConfig(entry.Config_ID)}>
+                                    <i className="fas fa-trash"></i> Delete
+                                  </button>
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="summary-empty">No saved rules yet for this barangay.</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="summary-empty">Select a barangay from the list to view details.</div>
+                    )}
                   </div>
-                </article>
-              )) : (
-                <div className="summary-empty">No coverage rules yet. Add zone-barangay rules here to control scheduling clearly.</div>
-              )}
+                </div>
+              </div>
             </div>
-          </div>
-        </Modal>
+          </Modal>
+        ) : null}
 
         <Modal
           isOpen={isAddReaderModalOpen}

@@ -24,7 +24,7 @@
   width: 95%;
   max-width: 420px;
   max-height: 85vh;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(245, 247, 252, 0.92);
   backdrop-filter: blur(10px);
   border-radius: 24px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
@@ -70,8 +70,8 @@
 }
 
 .signup-logo {
-  width: 88px;
-  height: 88px;
+  width: 118px;
+  height: 118px;
   margin: 0 auto 10px;
   display: flex;
   align-items: center;
@@ -92,7 +92,7 @@
 
 .signup-header h1 {
   color: #1a73e8;
-  font-size: 24px;
+  font-size: 20px;
   margin: 0;
 }
 
@@ -104,7 +104,7 @@
 }
 
 .signup-social {
-  margin: 20px 0 24px;
+  margin: 6px 0 2px;
 }
 
 .signup-google-btn {
@@ -149,7 +149,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 20px 0;
+  margin: 12px 0;
 }
 
 .divider-line {
@@ -203,6 +203,9 @@
   color: #202124;
   font-size: 13px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .signup-field input,
@@ -211,7 +214,7 @@
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #dadce0;
-  border-radius: 10px;
+  border-radius: 6px;
   font-size: 14px;
   color: #3c4043;
   background: #fff;
@@ -364,6 +367,10 @@
   transform: none;
 }
 
+.signup-back-btn {
+  min-width: 140px;
+}
+
 .signup-download-btn {
   border: 1px solid #16a34a;
   background: #16a34a;
@@ -447,7 +454,7 @@
   gap: 12px;
   justify-content: center;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 14px;
   padding-top: 8px;
   flex-wrap: wrap;
   flex-shrink: 0;
@@ -466,6 +473,11 @@
   align-items: center;
   gap: 10px;
   transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.signup-form .signup-primary {
+  width: 100%;
+  justify-content: center;
 }
 
 .signup-primary:hover:not(:disabled) {

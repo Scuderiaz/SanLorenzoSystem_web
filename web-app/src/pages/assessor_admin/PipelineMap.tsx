@@ -35,12 +35,6 @@ const ZONE_PILLS = [
   { label:'Zone 11',  color:'#6a1b9a' }, { label:'Zone 12', color:'#4a148c' },
 ];
 
-const CONSUMER_TYPES: { type: ConsumerType; color: string; bg: string; icon: string; desc: string }[] = [
-  { type:'Residential',   color:'#1565c0', bg:'#1565c0', icon:'fas fa-home',     desc:'Private household' },
-  { type:'Commercial',    color:'#e65100', bg:'#e65100', icon:'fas fa-store',    desc:'Business / Shop' },
-  { type:'Institutional', color:'#2e7d32', bg:'#2e7d32', icon:'fas fa-landmark', desc:'School / Gov office' },
-];
-
 const MAIN_LINES = [
   { id: 'ML2', label: 'Main Line 2', lat: 14.03531, lng: 122.86335 },
   { id: 'ML3', label: 'Main Line 3', lat: 14.04143, lng: 122.83856 },
@@ -73,13 +67,11 @@ const PipelineMap: React.FC = () => {
   const pipeStartRef    = useRef<JunctionPoint | null>(null);
   const junctionCountRef= useRef(0);
   const modeRef         = useRef<Mode>('grab');
-  const pendingLatLngRef= useRef<any>(null);
 
   const [mode, setMode]             = useState<Mode>('grab');
   const [status, setStatus]         = useState('Select a tool from the toolbar to begin.');
   const [activeZone, setActiveZone] = useState('All');
   const [showConsumerModal, setShowConsumerModal] = useState(false);
-  const [selectedConsumerType, setSelectedConsumerType] = useState<ConsumerType>('Residential');
 
   const [searchQuery, setSearchQuery] = useState('');
 const [searchResults, setSearchResults] = useState<{ label: string; type: string; lat: number; lng: number; marker: any }[]>([]);
@@ -318,28 +310,6 @@ const handleConsumerSearch = useCallback((query: string) => {
   }, []);
 
   // ── Consumer modal confirm ────────────────────────────────────────────────
-  const handleConsumerConfirm = useCallback(() => {
-    const latlng = pendingLatLngRef.current;
-    const map    = mapRef.current;
-    const L      = (window as any).L;
-    if (!latlng || !map || !L) return;
-
-    const t     = selectedConsumerType;
-    const color = CONSUMER_TYPES.find(c => c.type === t)!.color;
-    const marker = L.circleMarker(latlng, {
-      radius:5, color, weight:2, fillColor:color, fillOpacity:0.9,
-    }).addTo(map).bindPopup(`<b>${t}</b><br>${(latlng.lat as number).toFixed(5)}, ${(latlng.lng as number).toFixed(5)}`);
-
-    const c: Consumer = { lat:latlng.lat, lng:latlng.lng, type:t, marker };
-    consumersRef.current.push(c);
-    historyRef.current.push({ type:'Consumer', ref:c });
-    redoStackRef.current = [];
-    setStatus(`${t} Consumer added.`);
-    setShowConsumerModal(false);
-    pendingLatLngRef.current = null;
-    forceUpdate();
-  }, [selectedConsumerType]);
-
   // ── Init map ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (mapInitialized.current) return;

@@ -1,12 +1,13 @@
 {
-  "short_name": "SLR Waterworks",
-  "name": "San Lorenzo Ruiz Waterworks Office Billing and Payment System",
-  "description": "San Lorenzo Ruiz Waterworks Office Billing and Payment System",
+  "short_name": "SLR Water Billing",
+  "name": "SLR Water Billing System",
+  "description": "SLR Water Billing System",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "slr-water-billing-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "logo192.png",

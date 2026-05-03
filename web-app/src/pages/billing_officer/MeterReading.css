@@ -760,7 +760,7 @@
 
 .coverage-config-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: flex-start;
 }
@@ -813,8 +813,108 @@
   margin-top: 2px;
 }
 
+.coverage-structure-bottom {
+  margin-top: 2px;
+  border: 1px solid #dbe3f0;
+  border-radius: 14px;
+  background: #f8fbff;
+  padding: 14px;
+}
+
+.coverage-structure-layout {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.2fr);
+  gap: 12px;
+}
+
+.coverage-structure-list {
+  max-height: 360px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.coverage-structure-item {
+  text-align: left;
+  border: 1px solid #d7e1ef;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.coverage-structure-item strong {
+  color: #102347;
+  font-size: 15px;
+}
+
+.coverage-structure-item span {
+  color: #475569;
+  font-size: 13px;
+}
+
+.coverage-structure-item:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.1);
+}
+
+.coverage-structure-item.active {
+  border-color: #1d4ed8;
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14);
+}
+
+.coverage-structure-detail {
+  min-height: 180px;
+}
+
+.coverage-structure-detail-card {
+  border: 1px solid #d7e1ef;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.coverage-structure-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.coverage-structure-detail-head h5 {
+  margin: 0;
+  font-size: 20px;
+  color: #102347;
+}
+
+.coverage-structure-rule-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coverage-structure-rule-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
 @media (max-width: 1080px) {
-  .coverage-config-grid {
+  .coverage-structure-layout {
     grid-template-columns: 1fr;
   }
 }

@@ -65,7 +65,7 @@ const AuthCallback: React.FC = () => {
       <div className="login-container">
         <div className="login-header">
           <div className="logo-placeholder">
-            <img src="/slr-logo.svg" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
+            <img src="/slr-water-billing-logo.png" alt="SLR Water Billing Logo" className="slr-logo" />
           </div>
           <h1>San Lorenzo Ruiz Municipal</h1>
           <h2>Water Billing and Payment Record Management System</h2>

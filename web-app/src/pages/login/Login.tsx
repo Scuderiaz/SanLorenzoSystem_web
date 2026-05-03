@@ -24,7 +24,7 @@ const Login: React.FC = () => {
 
       if (result.success) {
         login(result.user);
-        // Route based on role — consumers go to their own dashboard
+        // Route based on role â€” consumers go to their own dashboard
         if (result.user.role_id === 5) {
           navigate('/consumer');
         } else {
@@ -69,10 +69,10 @@ const Login: React.FC = () => {
       <div className="login-container">
         <div className="login-header">
           <div className="logo-placeholder" onClick={() => navigate('/')}>
-            <img src="/slr-logo.svg" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
+            <img src="/images/SLR logo 1.png" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
           </div>
-          <h1>San Lorenzo Ruiz Municipal</h1>
-          <h2>Water Billing and Payment Record Management System</h2>
+          <h1>Welcome Back</h1>
+          <h2>Log in to the San Lorenzo Ruiz Water Billing System</h2>
         </div>
 
         {error && (
@@ -127,7 +127,7 @@ const Login: React.FC = () => {
             <button type="submit" className="login-btn" disabled={loading}>
               <span className="btn-content">
                 <i className="fas fa-sign-in-alt"></i>
-                <span>{loading ? 'Logging in...' : 'Login'}</span>
+                <span>{loading ? 'Logging in...' : 'Log In'}</span>
               </span>
               {loading && <div className="spinner"></div>}
             </button>
@@ -163,7 +163,7 @@ const Login: React.FC = () => {
           </form>
         </div>
         <div className="login-footer">
-          <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
+          <p>Don't have an account yet? <Link to="/signup">Sign Up</Link></p>
           <p>&copy; {new Date().getFullYear()} Municipality of San Lorenzo Ruiz</p>
         </div>
       </div>

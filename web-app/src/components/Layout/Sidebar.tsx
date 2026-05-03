@@ -20,6 +20,7 @@ const menuItems: MenuItem[] = [
   { path: '/ledger',        icon: 'fas fa-book',                label: 'Delinquents & Ledger',roles: [1] },
   { path: '/settings',      icon: 'fas fa-cogs',                label: 'System Settings',     roles: [1] },
   { path: '/maintenance',   icon: 'fas fa-tools',               label: 'System Maintenance',  roles: [1] },
+  { path: '/public-concerns', icon: 'fas fa-inbox',             label: 'Public Concerns',      roles: [1, 2] },
   { path: '/pipeline-map',  icon: 'fas fa-map-marked-alt',      label: 'Pipeline Map',        roles: [1] },
   { path: '/close-day',     icon: 'fas fa-lock',                label: 'Close Day',           roles: [1] },
   // --- Billing Officer (Role 2) ---
@@ -69,8 +70,8 @@ const Sidebar: React.FC = () => {
     user && item.roles.includes(user.role_id)
   );
 
-  const logoSrc = user?.role_id === 4 
-    ? "/images/Waterworks System Payment Logo 1.svg" 
+  const logoSrc = user?.role_id === 4
+    ? "/images/Waterworks System Payment Logo 1.svg"
     : "/images/Waterworks System Office Logo 1.svg";
 
   return (

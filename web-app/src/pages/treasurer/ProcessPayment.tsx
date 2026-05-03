@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import MainLayout from '../../components/Layout/MainLayout';
-import DataTable from '../../components/Common/DataTable';
+import DataTable, { type Column } from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
 import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
@@ -188,7 +188,7 @@ const ProcessPayment: React.FC = () => {
         Consumer_Name: Consumer.Consumer_Name,
         Address: Consumer.Address,
         Classification: Consumer.Classification,
-        Billing_Month: currentBill?.Billing_Month || summary.billingMonth || '—',
+        Billing_Month: currentBill?.Billing_Month || summary.billingMonth || 'â€”',
         Due_Date: currentBill?.Due_Date || summary.dueDate || null,
         Basic_Charge: toAmount(currentBill?.Basic_Charge),
         Environmental_Fee: toAmount(currentBill?.Environmental_Fee),
@@ -214,7 +214,7 @@ const ProcessPayment: React.FC = () => {
 
       if (isPaidOrNoBill) {
         showToast(
-          currentBill ? 'Account is fully paid — no outstanding balance.' : 'Consumer found — no current bill on record.',
+          currentBill ? 'Account is fully paid â€” no outstanding balance.' : 'Consumer found â€” no current bill on record.',
           'info'
         );
       } else {
@@ -352,7 +352,7 @@ const ProcessPayment: React.FC = () => {
     }
   }, [editedReceiptNumber, editingPayment, loadPaymentHistory, showToast]);
 
-  const paymentColumns = useMemo(() => [
+  const paymentColumns = useMemo<Column[]>(() => [
     { key: 'Receipt_No', label: 'Receipt No.', sortable: true },
     {
       key: 'Account_Number',
@@ -763,7 +763,7 @@ const ProcessPayment: React.FC = () => {
           <Modal isOpen={showFullBillModal} title="Strategic Financial Statement" onClose={() => setShowFullBillModal(false)} size="large" closeOnOverlayClick={true}>
             <div className="bill-container-modal">
               <div className="bill-header" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #1B1B63', paddingBottom: '20px', marginBottom: '30px' }}>
-                <img src="/images/Waterworks System Payment Logo 1.svg" alt="Logo" style={{ height: '70px' }} />
+                <img src="/slr-water-billing-logo.png" alt="Logo" style={{ height: '70px' }} />
                 <div style={{ textAlign: 'right' }}>
                   <h2 style={{ margin: 0, color: '#1B1B63' }}>San Lorenzo Ruiz Waterworks</h2>
                   <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Municipal Treasury Office</p>

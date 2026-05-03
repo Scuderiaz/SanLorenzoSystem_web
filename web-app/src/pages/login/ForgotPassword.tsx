@@ -192,7 +192,7 @@ const ForgotPassword: React.FC = () => {
       <div className="login-container forgot-pass-container">
         <div className="login-header">
           <div className="logo-placeholder" onClick={() => navigate('/')}>
-            <img src="/slr-logo.svg" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
+            <img src="/slr-water-billing-logo.png" alt="SLR Water Billing Logo" className="slr-logo" />
           </div>
           <h1>San Lorenzo Ruiz</h1>
           <h2>Water Billing System</h2>
