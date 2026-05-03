@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useReducer } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import './PipelineMap.css';
+import { loadConsumersWithFallback } from '../../services/userManagementApi';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Mode = 'grab' | 'junction' | 'mainline' | 'pipe' | 'Consumer';
@@ -40,6 +41,12 @@ const CONSUMER_TYPES: { type: ConsumerType; color: string; bg: string; icon: str
   { type:'Institutional', color:'#2e7d32', bg:'#2e7d32', icon:'fas fa-landmark', desc:'School / Gov office' },
 ];
 
+const MAIN_LINES = [
+  { id: 'ML2', label: 'Main Line 2', lat: 14.03531, lng: 122.86335 },
+  { id: 'ML3', label: 'Main Line 3', lat: 14.04143, lng: 122.83856 },
+  // Main Line 1 — TBD
+];
+
 const MODE_CONFIG: Record<Mode, { label: string; icon: string; hint: string }> = {
   grab:     { label:'Pan Map',       icon:'fas fa-hand-paper',      hint:'Click and drag the map to navigate. No points will be placed.' },
   junction: { label:'Add Junction',  icon:'fas fa-map-pin',         hint:'Click anywhere on the map to place a junction (branching) point.' },
@@ -53,7 +60,11 @@ const PipelineMap: React.FC = () => {
   const mapRef          = useRef<any>(null);
   const mapInitialized  = useRef(false);
   const barangayLayers  = useRef<any[]>([]);
-
+  const mainLineRefs = useRef<{ id: string; label: string; marker: any; circle: any }[]>([]);
+  const [dbConsumers, setDbConsumers] = useState<any[]>([]);
+  const [consumerSearch, setConsumerSearch] = useState('');
+  const [filteredConsumers, setFilteredConsumers] = useState<any[]>([]);
+  const [pendingConsumerLatLng, setPendingConsumerLatLng] = useState<any>(null);
   const junctionsRef    = useRef<JunctionPoint[]>([]);
   const pipesRef        = useRef<PipeLine[]>([]);
   const consumersRef    = useRef<Consumer[]>([]);
@@ -70,7 +81,76 @@ const PipelineMap: React.FC = () => {
   const [showConsumerModal, setShowConsumerModal] = useState(false);
   const [selectedConsumerType, setSelectedConsumerType] = useState<ConsumerType>('Residential');
 
+  const [searchQuery, setSearchQuery] = useState('');
+const [searchResults, setSearchResults] = useState<{ label: string; type: string; lat: number; lng: number; marker: any }[]>([]);
+const [showResults, setShowResults] = useState(false);
+
+const handleSearch = useCallback((query: string) => {
+  setSearchQuery(query);
+  if (!query.trim()) { setSearchResults([]); setShowResults(false); return; }
+  const q = query.toLowerCase();
+  const results: { label: string; type: string; lat: number; lng: number; marker: any }[] = [];
+
+  // Search Main Lines
+  mainLineRefs.current.forEach(ml => {
+    if (ml.label.toLowerCase().includes(q) || ml.id.toLowerCase().includes(q)) {
+      results.push({ label: ml.label, type: 'Main Line', lat: ml.marker.getLatLng().lat, lng: ml.marker.getLatLng().lng, marker: ml.circle });
+    }
+  });
+
+  // Search Consumers
+  consumersRef.current.forEach(c => {
+    if (c.type.toLowerCase().includes(q)) {
+      results.push({ label: `${c.type} Consumer`, type: c.type, lat: c.lat, lng: c.lng, marker: c.marker });
+    }
+  });
+
+  // Search Junctions
+  junctionsRef.current.forEach(j => {
+    if ((`j${j.id}`).includes(q) || (`junction ${j.id}`).includes(q)) {
+      results.push({ label: `Junction J${j.id}`, type: 'Junction', lat: j.lat, lng: j.lng, marker: j.marker });
+    }
+  });
+
+  setSearchResults(results);
+  setShowResults(results.length > 0);
+}, []);
+
+const handleSelectResult = useCallback((result: { label: string; type: string; lat: number; lng: number; marker: any }) => {
+  const map = mapRef.current;
+  if (!map) return;
+  map.setView([result.lat, result.lng], 17);
+  setTimeout(() => result.marker.openPopup(), 400);
+  setShowResults(false);
+  setSearchQuery(result.label);
+  setStatus(`Found: ${result.label}`);
+}, []);
+
   const [, forceUpdate] = useReducer((value: number) => value + 1, 0);
+
+  useEffect(() => {
+  const fetchConsumers = async () => {
+    try {
+      const result = await loadConsumersWithFallback();
+      setDbConsumers(result.data || []);
+    } catch (err) {
+      console.error('Failed to load consumers:', err);
+    }
+  };
+  void fetchConsumers();
+}, []);
+
+const handleConsumerSearch = useCallback((query: string) => {
+  setConsumerSearch(query);
+  if (!query.trim()) { setFilteredConsumers([]); return; }
+  const q = query.toLowerCase();
+  const filtered = dbConsumers.filter(c =>
+    String(c.Consumer_Name || '').toLowerCase().includes(q) ||
+    String(c.Account_Number || '').toLowerCase().includes(q) ||
+    String(c.Meter_Number || '').toLowerCase().includes(q)
+  ).slice(0, 10);
+  setFilteredConsumers(filtered);
+}, [dbConsumers]);
 
   // ── Change mode ──────────────────────────────────────────────────────────
   const changeMode = useCallback((m: Mode) => {
@@ -296,19 +376,43 @@ const PipelineMap: React.FC = () => {
         barangayLayers.current.push(circle, label);
       });
 
+        // Main Line markers
+     MAIN_LINES.forEach(ml => {
+  const circle = L.circleMarker([ml.lat, ml.lng], {
+    radius: 10, color: '#00838f', weight: 3,
+    fillColor: '#00bcd4', fillOpacity: 0.9,
+  }).addTo(map).bindPopup(`
+    <b>🔵 ${ml.label}</b><br>
+    <small>${ml.lat.toFixed(5)}, ${ml.lng.toFixed(5)}</small><br>
+    <i>Main water line source</i>
+  `);
+
+  const marker = L.marker([ml.lat, ml.lng], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="background:#00838f;color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.3)">🔵 ${ml.label}</div>`,
+      iconAnchor: [0, 10],
+    }),
+  }).addTo(map);
+
+  mainLineRefs.current.push({ id: ml.id, label: ml.label, marker, circle });
+});
+
       // Legend
       const legend = L.control({ position:'bottomright' });
       legend.onAdd = () => {
         const div = L.DomUtil.create('div','pipeline-legend');
         div.innerHTML = `
-          <b>Legend</b>
-          <div class="legend-row"><div class="legend-dot" style="background:#f5c518;border:2px solid #444"></div> Junction point</div>
-          <div class="legend-row"><div class="legend-line" style="background:#00bcd4"></div> Main line</div>
-          <div class="legend-row"><div class="legend-line" style="background:#1a237e"></div> Branch pipe</div>
-          <div class="legend-row"><div class="legend-dot" style="background:#1565c0"></div> Residential</div>
-          <div class="legend-row"><div class="legend-dot" style="background:#e65100"></div> Commercial</div>
-          <div class="legend-row"><div class="legend-dot" style="background:#2e7d32"></div> Institutional</div>
-        `;
+           <b>Legend</b>
+           <div style="font-size:11px;color:#666;margin-bottom:4px">Water System Hierarchy</div>
+           <div class="legend-row"><div class="legend-dot" style="background:#00bcd4;border:2px solid #00838f"></div> Main Line (Source)</div>
+           <div class="legend-row"><div class="legend-line" style="background:#00bcd4"></div> Main transmission line</div>
+           <div class="legend-row"><div class="legend-dot" style="background:#f5c518;border:2px solid #444"></div> Junction point</div>
+           <div class="legend-row"><div class="legend-line" style="background:#1a237e"></div> Branch pipe</div>
+           <div class="legend-row"><div class="legend-dot" style="background:#1565c0"></div> Residential</div>
+           <div class="legend-row"><div class="legend-dot" style="background:#e65100"></div> Commercial</div>
+           <div class="legend-row"><div class="legend-dot" style="background:#2e7d32"></div> Institutional</div>
+      `;
         return div;
       };
       legend.addTo(map);
@@ -358,8 +462,9 @@ const PipelineMap: React.FC = () => {
           }
 
         } else if (m === 'Consumer') {
-          pendingLatLngRef.current = e.latlng;
-          setSelectedConsumerType('Residential');
+          setPendingConsumerLatLng(e.latlng);
+          setConsumerSearch('');
+          setFilteredConsumers([]);
           setShowConsumerModal(true);
         }
       });
@@ -377,42 +482,136 @@ const PipelineMap: React.FC = () => {
     <MainLayout title="Pipeline Map">
       <div className="pipeline-map-page">
 
-        {/* Consumer type modal */}
+   {/* Consumer modal */}
         {showConsumerModal && (
-          <div className="Consumer-modal-overlay">
-            <div className="Consumer-modal">
-              <h3>Add Consumer</h3>
-              <p>Select the type of Consumer connection:</p>
-              <div className="Consumer-type-options">
-                {CONSUMER_TYPES.map(ct => (
-                  <button
-                    key={ct.type}
-                    type="button"
-                    className={`Consumer-type-btn ${selectedConsumerType === ct.type ? 'selected' : ''}`}
-                    style={{ borderColor: selectedConsumerType === ct.type ? ct.color : '#e0e0e0' }}
-                    onClick={() => setSelectedConsumerType(ct.type)}
-                  >
-                    <div className="Consumer-type-icon" style={{ background: ct.bg }}>
-                      <i className={ct.icon} style={{ color:'#fff' }}></i>
-                    </div>
-                    <div>
-                      <div style={{ fontWeight:700, color: ct.color }}>{ct.type}</div>
-                      <div style={{ fontSize:'11px', color:'#888', fontWeight:400 }}>{ct.desc}</div>
-                    </div>
-                  </button>
-                ))}
+          <div className="consumer-modal-overlay">
+            <div className="consumer-modal" style={{ width: 380 }}>
+              <h3>Add Consumer to Map</h3>
+              <p>Search by name, account number, or meter number:</p>
+
+              {/* Search input */}
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1.5px solid #d0d5dd', borderRadius: 8, padding: '8px 12px', background: '#fafafa' }}>
+                  <i className="fas fa-search" style={{ color: '#888', fontSize: 13 }}></i>
+                  <input
+                    type="text"
+                    placeholder="Search consumer..."
+                    value={consumerSearch}
+                    onChange={e => handleConsumerSearch(e.target.value)}
+                    style={{ border: 'none', outline: 'none', flex: 1, fontSize: 13, background: 'transparent' }}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Dropdown results */}
+                {filteredConsumers.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', zIndex: 10000, maxHeight: 220, overflowY: 'auto', marginTop: 4 }}>
+                    {filteredConsumers.map((c, i) => {
+                      const classColor = c.Classification_Name === 'Commercial' ? '#e65100' : c.Classification_Name === 'Institutional' ? '#2e7d32' : '#1565c0';
+                      return (
+                        <button key={i} type="button"
+                          onClick={() => {
+                            const map = mapRef.current;
+                            const L = (window as any).L;
+                            if (!map || !L || !pendingConsumerLatLng) return;
+                            const color = classColor;
+                            const marker = L.circleMarker(pendingConsumerLatLng, {
+                              radius: 6, color, weight: 2, fillColor: color, fillOpacity: 0.9,
+                            }).addTo(map).bindPopup(`
+                              <b>${c.Consumer_Name || 'Unknown'}</b><br>
+                              <small>Account: ${c.Account_Number || 'N/A'}</small><br>
+                              <small>Meter: ${c.Meter_Number || 'N/A'}</small><br>
+                              <small>Classification: ${c.Classification_Name || 'N/A'}</small><br>
+                              <small>Zone: ${c.Zone_Name || 'N/A'}</small><br>
+                              <small>Barangay: ${c.Barangay || 'N/A'}</small>
+                            `);
+                            const consumer = { lat: pendingConsumerLatLng.lat, lng: pendingConsumerLatLng.lng, type: (c.Classification_Name || 'Residential') as ConsumerType, marker };
+                            consumersRef.current.push(consumer);
+                            historyRef.current.push({ type: 'Consumer', ref: consumer });
+                            redoStackRef.current = [];
+                            setStatus(`${c.Consumer_Name} (${c.Classification_Name}) added to map.`);
+                            setShowConsumerModal(false);
+                            setConsumerSearch('');
+                            setFilteredConsumers([]);
+                            setPendingConsumerLatLng(null);
+                            forceUpdate();
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#f5f7ff')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: classColor, flexShrink: 0 }}></div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>{c.Consumer_Name || 'Unknown'}</div>
+                            <div style={{ fontSize: 11, color: '#888' }}>
+                              {c.Account_Number || 'No account no.'} · {c.Classification_Name || 'N/A'} · {c.Barangay || 'N/A'}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {consumerSearch && filteredConsumers.length === 0 && (
+                  <div style={{ padding: '10px 14px', fontSize: 13, color: '#888', textAlign: 'center', marginTop: 4, background: '#f9f9f9', borderRadius: 8 }}>
+                    No consumers found.
+                  </div>
+                )}
               </div>
-              <div className="modal-actions">
-                <button type="button" className="btn btn-cancel" onClick={() => { setShowConsumerModal(false); pendingLatLngRef.current = null; }}>
+
+              <div className="modal-actions" style={{ marginTop: 16 }}>
+                <button type="button" className="btn btn-cancel" onClick={() => {
+                  setShowConsumerModal(false);
+                  setConsumerSearch('');
+                  setFilteredConsumers([]);
+                  setPendingConsumerLatLng(null);
+                }}>
                   Cancel
-                </button>
-                <button type="button" className="btn btn-confirm" onClick={handleConsumerConfirm}>
-                  <i className="fas fa-check"></i> Confirm
                 </button>
               </div>
             </div>
           </div>
         )}
+        
+        {/* Search Bar */}
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1.5px solid #d0d5dd', borderRadius: 8, padding: '8px 14px' }}>
+            <i className="fas fa-search" style={{ color: '#888', fontSize: 13 }}></i>
+            <input
+              type="text"
+              placeholder="Search main line, junction, or consumer..."
+              value={searchQuery}
+              onChange={e => handleSearch(e.target.value)}
+              onFocus={() => searchResults.length > 0 && setShowResults(true)}
+              style={{ border: 'none', outline: 'none', flex: 1, fontSize: 13, color: '#333', background: 'transparent' }}
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => { setSearchQuery(''); setSearchResults([]); setShowResults(false); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: 13 }}>
+                <i className="fas fa-times"></i>
+              </button>
+            )}
+          </div>
+          {showResults && (
+            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', zIndex: 9000, maxHeight: 220, overflowY: 'auto', marginTop: 4 }}>
+              {searchResults.map((r, i) => (
+                <button key={i} type="button" onClick={() => handleSelectResult(r)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #f0f0f0' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f5f7ff')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                >
+                  <i className={r.type === 'Main Line' ? 'fas fa-water' : r.type === 'Junction' ? 'fas fa-map-pin' : 'fas fa-user-circle'}
+                    style={{ color: r.type === 'Main Line' ? '#00838f' : r.type === 'Junction' ? '#f5c518' : '#1565c0', width: 16 }}></i>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>{r.label}</div>
+                    <div style={{ fontSize: 11, color: '#888' }}>{r.type}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Stats */}
         <div className="pipeline-stats">
