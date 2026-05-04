@@ -71,8 +71,8 @@ const Login: React.FC = () => {
           <div className="logo-placeholder" onClick={() => navigate('/')}>
             <img src="/images/SLR logo 1.png" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
           </div>
-          <h1>Welcome Back</h1>
-          <h2>Log in to the San Lorenzo Ruiz Water Billing System</h2>
+          <h1>San Lorenzo Ruiz Waterworks System</h1>
+          <h2>Water Billing and Payment Record Management System</h2>
         </div>
 
         {error && (
@@ -126,7 +126,6 @@ const Login: React.FC = () => {
             </div>
             <button type="submit" className="login-btn" disabled={loading}>
               <span className="btn-content">
-                <i className="fas fa-sign-in-alt"></i>
                 <span>{loading ? 'Logging in...' : 'Log In'}</span>
               </span>
               {loading && <div className="spinner"></div>}
@@ -140,7 +139,7 @@ const Login: React.FC = () => {
 
             <button
               type="button"
-              className="login-btn"
+              className="login-btn google-login-btn"
               onClick={handleGoogleLogin}
               style={{
                 background: '#fff',
@@ -172,5 +171,6 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+
 
 

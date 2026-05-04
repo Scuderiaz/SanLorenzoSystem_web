@@ -43,6 +43,7 @@ const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [pendingCount, setPendingCount] = React.useState(0);
+  const [pendingConcernCount, setPendingConcernCount] = React.useState(0);
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -58,13 +59,29 @@ const Sidebar: React.FC = () => {
     }
   }, [API_URL]);
 
+  const loadPendingConcernCount = React.useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/public-contact-messages?status=Pending`);
+      const result = await response.json();
+      if (result.success) {
+        setPendingConcernCount((result.data || []).length);
+      }
+    } catch (error) {
+      console.error('Error loading pending public concern count:', error);
+    }
+  }, [API_URL]);
+
   React.useEffect(() => {
     if (user?.role_id === 1 || user?.role_id === 2) {
       void loadPendingCount();
-      const interval = setInterval(() => void loadPendingCount(), 30000); // Check every 30s
+      void loadPendingConcernCount();
+      const interval = setInterval(() => {
+        void loadPendingCount();
+        void loadPendingConcernCount();
+      }, 30000); // Check every 30s
       return () => clearInterval(interval);
     }
-  }, [user, loadPendingCount]);
+  }, [user, loadPendingCount, loadPendingConcernCount]);
 
   const filteredMenuItems = menuItems.filter(item => 
     user && item.roles.includes(user.role_id)
@@ -93,6 +110,9 @@ const Sidebar: React.FC = () => {
               <div className="menu-icon-wrapper">
                 <i className={item.icon}></i>
                 {item.path === '/applications' && pendingCount > 0 && (
+                  <span className="notification-dot"></span>
+                )}
+                {item.path === '/public-concerns' && pendingConcernCount > 0 && (
                   <span className="notification-dot"></span>
                 )}
               </div>

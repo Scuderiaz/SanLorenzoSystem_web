@@ -97,3 +97,294 @@
 [2026-05-03T14:19:05.580Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
 [2026-05-03T14:19:09.734Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
 [2026-05-03T14:20:01.140Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T14:20:14.494Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T14:44:23.205Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T14:44:23.883Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-05-03T14:44:30.071Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T14:44:37.862Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:43:06.277Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:43:19.924Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:43:24.236Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:44:06.294Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:44:12.873Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:44:18.293Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:45:06.303Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:45:10.713Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:45:14.553Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:46:06.342Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:46:12.987Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:46:17.136Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:47:06.323Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:47:11.912Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:47:15.788Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:48:06.326Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:48:14.846Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:48:19.571Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:49:06.347Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:49:11.879Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:49:19.903Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:50:06.342Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:50:12.593Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:50:16.358Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:51:06.353Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:51:10.602Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:51:14.194Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:52:06.350Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:52:10.905Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:52:15.076Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:53:06.359Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:53:13.300Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:53:16.851Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:54:06.380Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:54:15.280Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:54:19.369Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:55:06.401Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:55:12.263Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:55:16.382Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:56:06.401Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:56:12.665Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:56:19.085Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:57:06.406Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:57:15.321Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:57:19.260Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:58:06.406Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:58:12.081Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:58:16.018Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:59:06.426Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-03T23:59:11.229Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-03T23:59:16.105Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:00:06.434Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:00:11.214Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:00:15.295Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:01:06.446Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:01:13.114Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:01:19.455Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:02:06.466Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:02:11.878Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:02:16.155Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:03:06.465Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:03:10.527Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:03:14.691Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:04:06.480Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:04:11.542Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:04:16.272Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:05:06.477Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:05:11.504Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:05:15.345Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:06:06.483Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:06:11.835Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:06:15.675Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:07:06.517Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:07:12.106Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:07:15.959Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:08:06.509Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:08:12.826Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:08:16.885Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:09:06.521Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:09:11.240Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:09:15.220Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:10:06.523Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:10:10.549Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:10:14.889Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:11:06.523Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:11:10.688Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:11:14.402Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:12:06.524Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:12:11.435Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:12:15.111Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:13:06.527Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:13:10.682Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:13:14.658Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:14:06.541Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:14:10.544Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:14:13.967Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:15:06.561Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:15:12.452Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:15:16.324Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:16:06.566Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:16:11.551Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:16:15.475Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:17:06.567Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:17:10.708Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:17:14.635Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:18:06.583Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:18:11.974Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:18:16.177Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:19:06.581Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:19:11.544Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:19:15.620Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:20:06.586Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:20:13.916Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:20:18.655Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:21:06.598Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:21:11.538Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:21:18.274Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:22:06.610Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:22:11.886Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:22:15.639Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:23:06.612Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:23:12.327Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:23:19.161Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:24:06.614Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:24:11.965Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:24:16.493Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:25:06.614Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:25:11.439Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:25:15.770Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:26:06.629Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:26:12.041Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:26:16.322Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:27:06.642Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:27:11.552Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:27:15.355Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:28:06.648Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:28:11.300Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:28:14.946Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:28:58.664Z] [public.contact.updateStatus] inconsistent types deduced for parameter $1 | PATCH /api/public-contact-messages/1/status | params={"id":"1"} | query={} | body={"status":"In Progress","remarks":"secret","reviewedBy":3}
+[2026-05-04T00:29:04.636Z] [public.contact.updateStatus] inconsistent types deduced for parameter $1 | PATCH /api/public-contact-messages/1/status | params={"id":"1"} | query={} | body={"status":"In Progress","remarks":"secret","reviewedBy":3}
+[2026-05-04T00:29:06.658Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:29:11.241Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:29:15.444Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:30:06.659Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:30:11.831Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:30:15.770Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:31:06.677Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:31:10.950Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:31:14.684Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:32:06.689Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:32:10.648Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:32:14.047Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:32:40.596Z] [public.contact.updateStatus] inconsistent types deduced for parameter $1 | PATCH /api/public-contact-messages/1/status | params={"id":"1"} | query={} | body={"status":"In Progress","remarks":"secret","reviewedBy":3}
+[2026-05-04T00:32:57.728Z] [public.contact.updateStatus] inconsistent types deduced for parameter $1 | PATCH /api/public-contact-messages/1/status | params={"id":"1"} | query={} | body={"status":"In Progress","remarks":"secret","reviewedBy":3}
+[2026-05-04T00:33:06.699Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:33:11.206Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:33:15.322Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:33:45.378Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:33:53.049Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:34:34.768Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-04T00:34:39.468Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:34:43.416Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:34:53.082Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:34:56.670Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:34:59.916Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:35:53.093Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:35:58.384Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:36:03.025Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:36:53.101Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:36:57.412Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:37:01.242Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:37:53.115Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:37:58.335Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:38:02.300Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:38:53.122Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:38:57.498Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:39:00.984Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:39:53.130Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:39:57.906Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:40:01.940Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:40:53.133Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:40:58.154Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:41:02.116Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:41:53.147Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:41:58.287Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:42:02.468Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:42:53.158Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:42:58.006Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:43:01.533Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:43:53.164Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:43:57.694Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:44:01.116Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:44:53.175Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:44:58.035Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:45:01.855Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:45:53.183Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:45:57.232Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:46:01.249Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:46:53.197Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:46:58.256Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:47:01.989Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:47:02.194Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-04T00:47:09.226Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:47:19.994Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:47:26.570Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:48:16.914Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-04T00:48:23.197Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:48:27.193Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:49:26.603Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:49:35.286Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:49:39.445Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:49:51.500Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-04T00:49:55.160Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:49:58.537Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:50:26.608Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:50:30.598Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:50:34.568Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:51:26.622Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:51:32.063Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:51:35.877Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:51:50.579Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:51:54.981Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:51:58.714Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-04T00:52:04.384Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:52:08.707Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:52:34.219Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-04T00:52:38.724Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:52:42.397Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:52:55.018Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:52:58.762Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:53:02.206Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:53:55.022Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:54:00.156Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:54:03.788Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:54:55.036Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:54:59.487Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:55:03.642Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:55:55.051Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:55:59.996Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:56:03.883Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:56:55.046Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:56:58.989Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:57:02.616Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:57:37.232Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-04T00:57:41.866Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:57:45.562Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:57:56.762Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:58:00.835Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:59:00.861Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T00:59:05.540Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T00:59:09.195Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:00:00.864Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:00:05.061Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:00:09.041Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:01:00.871Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:01:04.791Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:01:08.671Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:02:00.886Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:02:04.785Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:02:08.265Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:03:00.892Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:03:05.191Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:03:09.076Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:04:00.895Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:04:04.791Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:04:08.320Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:04:15.345Z] [public.contact.updateStatus] Semaphore SMS failed (403): Your account has not yet been approved for sending messages. Please either top-up your account or wait for your account to be approved. If your account has not been approved within 2 business days, please email support@semaphore.co | PATCH /api/public-contact-messages/1/status | params={"id":"1"} | query={} | body={"status":"In Progress","remarks":"secret","reviewedBy":3}
+[2026-05-04T01:05:00.897Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:05:06.077Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:05:09.918Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:06:00.907Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:06:05.567Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:06:09.097Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:07:00.920Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:07:06.524Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:07:10.458Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:08:00.924Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:08:05.348Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:08:08.775Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:09:00.928Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:09:05.732Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:09:09.386Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:10:00.935Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-04T01:10:05.018Z] [postgres.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:10:08.933Z] [supabase.sync.public_contact_messages] Could not find the table 'water_billing.public_contact_messages' in the schema cache
+[2026-05-04T01:10:25.990Z] [public.contact.updateStatus] Semaphore SMS failed (403): Your account has not yet been approved for sending messages. Please either top-up your account or wait for your account to be approved. If your account has not been approved within 2 business days, please email support@semaphore.co | PATCH /api/public-contact-messages/1/status | params={"id":"1"} | query={} | body={"status":"In Progress","remarks":"s","reviewedBy":3}

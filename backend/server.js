@@ -6,7 +6,11 @@ const { Pool } = pg;
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-require('dotenv').config();
+const https = require('https');
+require('dotenv').config({
+  path: path.join(__dirname, '.env'),
+  override: true,
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -66,6 +70,13 @@ const logFiles = {
 };
 const adminSettingsFile = path.join(__dirname, 'data', 'admin-settings.json');
 const defaultSourceSiteId = process.env.SYNC_SOURCE_SITE_ID || process.env.REACT_APP_SOURCE_SITE_ID || 'postgres-local';
+const smsProvider = String(process.env.SMS_PROVIDER || 'mock').trim().toLowerCase();
+const hasSemaphoreApiKey = Boolean(String(process.env.SMS_SEMAPHORE_API_KEY || '').trim());
+if (smsProvider === 'semaphore' && !hasSemaphoreApiKey) {
+  console.warn('[SMS] Provider is set to semaphore but SMS_SEMAPHORE_API_KEY is missing.');
+} else {
+  console.log(`[SMS] Provider: ${smsProvider}${smsProvider === 'semaphore' ? ' (real sending enabled)' : ' (mock mode)'}`);
+}
 const defaultAdminSettings = {
   systemName: 'San Lorenzo Ruiz Water Billing System',
   currency: 'PHP',
@@ -113,7 +124,6 @@ const syncTableConfigs = [
   { tableName: 'backuplogs', primaryKey: 'backup_id' },
   { tableName: 'waterrates', primaryKey: 'rate_id' },
   { tableName: 'consumer_concerns', primaryKey: 'concern_id' },
-  { tableName: 'public_contact_messages', primaryKey: 'message_id' },
 ];
 
 const syncTableColumns = {
@@ -248,19 +258,22 @@ const syncTableColumns = {
   backuplogs: ['backup_id', 'backup_name', 'backup_time', 'backup_size', 'backup_type', 'created_by'],
   error_logs: ['error_id', 'error_time', 'severity', 'module', 'error_message', 'user_id', 'status'],
   system_logs: ['log_id', 'account_id', 'role', 'action', 'timestamp'],
-  consumer_concerns: ['concern_id', 'consumer_id', 'account_id', 'category', 'subject', 'description', 'status', 'priority', 'created_at', 'resolved_at', 'resolved_by', 'remarks'],
-  public_contact_messages: [
-    'message_id',
+  consumer_concerns: [
+    'concern_id',
+    'consumer_id',
+    'account_id',
+    'category',
+    'subject',
+    'description',
+    'status',
+    'priority',
+    'created_at',
+    'resolved_at',
+    'resolved_by',
+    'remarks',
     'full_name',
     'barangay',
     'contact_number',
-    'subject',
-    'message',
-    'status',
-    'created_at',
-    'reviewed_at',
-    'reviewed_by',
-    'remarks',
   ],
 };
 
@@ -1445,6 +1458,61 @@ function generateRegistrationTicketNumber() {
     .slice(0, 14);
   const suffix = Math.floor(Math.random() * 9000) + 1000;
   return `REG-${timestamp}-${suffix}`;
+}
+
+function getManilaYearMonthPrefix(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    year: '2-digit',
+    month: '2-digit',
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value || '';
+  const month = parts.find((part) => part.type === 'month')?.value || '';
+  return `${year}${month}`;
+}
+
+async function generateSequentialRegistrationTicketNumber(options = {}) {
+  const { pgClient = null, useSupabase = false } = options;
+  const prefix = getManilaYearMonthPrefix();
+
+  if (pgClient) {
+    await pgClient.query('LOCK TABLE connection_ticket IN SHARE ROW EXCLUSIVE MODE');
+    const { rows } = await pgClient.query(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(ticket_number FROM 5 FOR 6) AS INTEGER)), 0) AS max_sequence
+       FROM connection_ticket
+       WHERE ticket_number ~ '^[0-9]{10}$'
+         AND SUBSTRING(ticket_number FROM 1 FOR 4) = $1`,
+      [prefix]
+    );
+    const nextSequence = Number(rows?.[0]?.max_sequence || 0) + 1;
+    return `${prefix}${String(nextSequence).padStart(6, '0')}`;
+  }
+
+  if (useSupabase && supabase) {
+    const { data, error } = await supabase
+      .from('connection_ticket')
+      .select('ticket_number')
+      .like('ticket_number', `${prefix}%`)
+      .order('ticket_number', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+
+    const maxSequence = (data || []).reduce((max, row) => {
+      const ticketNumber = String(row?.ticket_number || '').trim();
+      if (!/^\d{10}$/.test(ticketNumber)) {
+        return max;
+      }
+      if (!ticketNumber.startsWith(prefix)) {
+        return max;
+      }
+      const sequence = Number(ticketNumber.slice(4));
+      return Number.isFinite(sequence) ? Math.max(max, sequence) : max;
+    }, 0);
+
+    return `${prefix}${String(maxSequence + 1).padStart(6, '0')}`;
+  }
+
+  return generateRegistrationTicketNumber();
 }
 
 function getStaffAddedTicketLabel() {
@@ -2769,6 +2837,29 @@ async function isUsernameTaken(username) {
   );
 }
 
+async function generateAvailableUsername(baseUsername) {
+  const cleanedBase = String(baseUsername || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, '')
+    .slice(0, 24) || 'googleuser';
+
+  let candidate = cleanedBase;
+  let counter = 0;
+  while (await isUsernameTaken(candidate)) {
+    counter += 1;
+    if (counter > 9999) {
+      candidate = `googleuser${Date.now().toString().slice(-6)}`;
+      if (!(await isUsernameTaken(candidate))) {
+        return candidate;
+      }
+      continue;
+    }
+    candidate = `${cleanedBase}${String(counter).padStart(3, '0')}`;
+  }
+
+  return candidate;
+}
+
 async function logPostgresEvent(message, options = {}) {
   await logSyncEvent('postgres', message, options);
 }
@@ -2871,24 +2962,6 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_consumer_concerns_account_id ON consumer_concerns(account_id);
   `);
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS public_contact_messages (
-      message_id SERIAL PRIMARY KEY,
-      full_name VARCHAR(160) NOT NULL,
-      barangay VARCHAR(120) NOT NULL,
-      contact_number VARCHAR(20) NOT NULL,
-      subject VARCHAR(200) NOT NULL,
-      message TEXT NOT NULL,
-      status VARCHAR(20) NOT NULL DEFAULT 'Pending',
-      created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-      reviewed_at TIMESTAMP WITHOUT TIME ZONE,
-      reviewed_by INTEGER,
-      remarks TEXT,
-      CONSTRAINT public_contact_messages_status_check CHECK (status IN ('Pending', 'In Progress', 'Resolved', 'Closed'))
-    );
-    CREATE INDEX IF NOT EXISTS idx_public_contact_messages_created_at ON public_contact_messages(created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_public_contact_messages_status ON public_contact_messages(status);
-  `);
-  await pool.query(`
     CREATE TABLE IF NOT EXISTS password_reset (
       reset_id SERIAL PRIMARY KEY,
       account_id INTEGER NOT NULL,
@@ -2923,6 +2996,9 @@ async function initDb() {
   await ensureTableColumn('accounts', 'full_name', 'TEXT');
   await ensureTableColumn('accounts', 'email', 'VARCHAR(255)');
   await ensureTableColumn('accounts', 'contact_number', 'VARCHAR(20)');
+  await ensureTableColumn('consumer_concerns', 'full_name', 'VARCHAR(160)');
+  await ensureTableColumn('consumer_concerns', 'barangay', 'VARCHAR(120)');
+  await ensureTableColumn('consumer_concerns', 'contact_number', 'VARCHAR(20)');
   await ensureTableColumn('waterrates', 'classification_id', 'INTEGER');
   await ensureWaterRatesEffectiveDateColumnIsDate();
   await pool.query(`
@@ -8059,7 +8135,7 @@ app.post('/api/consumer/apply', async (req, res) => {
       async () => { const { data } = await supabase.from('connection_ticket').select('ticket_id, ticket_number').eq('account_id', accountId).in('status', ['Pending','Active']).limit(1); return data?.[0] || null; }
     );
     if (existingTicket) return res.status(409).json({ success: false, message: `You already have a pending application (Ticket: ${existingTicket.ticket_number}).` });
-    const ticketNumber = generateRegistrationTicketNumber();
+    let ticketNumber = null;
     const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
     const address = [purok, barangay, municipality || 'San Lorenzo Ruiz', zipCode || '4610'].filter(Boolean).join(', ');
     await withPostgresPrimary(
@@ -8068,6 +8144,7 @@ app.post('/api/consumer/apply', async (req, res) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
+          ticketNumber = await generateSequentialRegistrationTicketNumber({ pgClient: client });
           await client.query(
             `UPDATE consumer
              SET first_name = COALESCE(NULLIF($1, ''), first_name),
@@ -8093,6 +8170,7 @@ app.post('/api/consumer/apply', async (req, res) => {
         } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
       },
       async () => {
+        ticketNumber = await generateSequentialRegistrationTicketNumber({ useSupabase: true });
         const { data: cData } = await supabase.from('consumer').select('consumer_id').eq('login_id', accountId).maybeSingle();
         if (!cData?.consumer_id) throw new Error('Consumer record not found.');
         await supabase.from('consumer').update({ first_name: firstName, middle_name: middleName, last_name: lastName, contact_number: normalizedPhone, purok, barangay, municipality, zip_code: zipCode, classification_id: normalizedClassificationId, address, status: 'Pending' }).eq('login_id', accountId);
@@ -8474,19 +8552,135 @@ app.put('/api/payments/:id/status', async (req, res) => {
   }
 });
 
-// Helper to send SMS (Mock for now)
-const sendSMS = async (phone, message) => {
+function normalizePhilippineSmsRecipient(phoneNumber) {
+  const localFormat = normalizePhilippinePhoneNumber(phoneNumber);
+  if (!localFormat) {
+    return null;
+  }
+  return `63${localFormat.slice(1)}`;
+}
+
+function sendFormUrlEncodedRequest(targetUrl, payload, { headers = {}, timeoutMs = 15000 } = {}) {
+  return new Promise((resolve, reject) => {
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch (error) {
+      reject(new Error(`Invalid SMS URL: ${targetUrl}`));
+      return;
+    }
+
+    const body = new URLSearchParams(payload).toString();
+    const request = https.request({
+      protocol: parsedUrl.protocol,
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+      path: `${parsedUrl.pathname}${parsedUrl.search}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(body),
+        ...headers,
+      },
+      timeout: timeoutMs,
+    }, (response) => {
+      let responseBody = '';
+      response.on('data', (chunk) => {
+        responseBody += chunk;
+      });
+      response.on('end', () => {
+        resolve({
+          ok: response.statusCode >= 200 && response.statusCode < 300,
+          statusCode: response.statusCode,
+          body: responseBody,
+        });
+      });
+    });
+
+    request.on('timeout', () => {
+      request.destroy(new Error('SMS request timed out.'));
+    });
+    request.on('error', (error) => reject(error));
+    request.write(body);
+    request.end();
+  });
+}
+
+async function sendSmsViaSemaphore(phone, message) {
+  const apiKey = String(process.env.SMS_SEMAPHORE_API_KEY || '').trim();
+  if (!apiKey) {
+    throw new Error('SMS_SEMAPHORE_API_KEY is missing. Configure it in backend/.env.');
+  }
+
+  const recipient = normalizePhilippineSmsRecipient(phone);
+  if (!recipient) {
+    throw new Error('Recipient phone number is invalid for SMS sending.');
+  }
+
+  const senderName = String(process.env.SMS_SEMAPHORE_SENDERNAME || '').trim();
+  const endpoint = String(process.env.SMS_SEMAPHORE_ENDPOINT || 'https://api.semaphore.co/api/v4/messages').trim();
+  const timeoutMs = Number(process.env.SMS_TIMEOUT_MS || 15000);
+  const payload = {
+    apikey: apiKey,
+    number: recipient,
+    message: String(message || '').trim(),
+  };
+  if (senderName) {
+    payload.sendername = senderName;
+  }
+
+  const response = await sendFormUrlEncodedRequest(endpoint, payload, { timeoutMs });
+  if (!response.ok) {
+    throw new Error(`Semaphore SMS failed (${response.statusCode}): ${response.body || 'No response body'}`);
+  }
+
+  let parsed;
   try {
+    parsed = response.body ? JSON.parse(response.body) : null;
+  } catch (error) {
+    parsed = response.body || null;
+  }
+
+  return {
+    success: true,
+    provider: 'semaphore',
+    recipient,
+    response: parsed,
+  };
+}
+
+// SMS provider driver (default is mock; set SMS_PROVIDER=semaphore for actual sending)
+const sendSMS = async (phone, message) => {
+  const provider = String(process.env.SMS_PROVIDER || 'mock').trim().toLowerCase();
+  const messageText = String(message || '').trim();
+  if (!messageText) {
+    throw new Error('SMS message is empty.');
+  }
+
+  if (provider === 'mock') {
     console.log(`\n--- MOCK SMS SENT ---`);
     console.log(`To: ${phone}`);
-    console.log(`Message: ${message}`);
+    console.log(`Message: ${messageText}`);
     console.log(`----------------------\n`);
-    return { success: true };
-  } catch (error) {
-    await logDatabaseError('sms.mock.send', error, { severity: 'WARNING' });
-    return { success: false, message: error.message };
+    return { success: true, provider: 'mock', recipient: phone };
   }
+
+  if (provider === 'semaphore') {
+    return sendSmsViaSemaphore(phone, messageText);
+  }
+
+  throw new Error(`Unsupported SMS_PROVIDER "${provider}". Use "semaphore" or "mock".`);
 };
+
+function buildPublicConcernSmsReply(subject, replyText) {
+  return [
+    'San Lorenzo Ruiz Waterworks System',
+    `Re: ${subject || 'Public Concern'}`,
+    String(replyText || '').trim(),
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
 
 // --- FORGOT PASSWORD ENDPOINTS ---
 app.post('/api/forgot-password/request', async (req, res) => {
@@ -8499,11 +8693,11 @@ app.post('/api/forgot-password/request', async (req, res) => {
     const user = await withPostgresPrimary(
       'forgotPassword.request',
       async () => {
-        const { rows } = await pool.query('SELECT account_id, username FROM accounts WHERE username = $1', [username]);
+        const { rows } = await pool.query('SELECT account_id, username, contact_number FROM accounts WHERE username = $1', [username]);
         return rows[0] || null;
       },
       async () => {
-        const { data, error } = await supabase.from('accounts').select('account_id, username').eq('username', username).maybeSingle();
+        const { data, error } = await supabase.from('accounts').select('account_id, username, contact_number').eq('username', username).maybeSingle();
         if (error) throw error;
         return data || null;
       }
@@ -8561,7 +8755,7 @@ app.post('/api/forgot-password/request', async (req, res) => {
       }
     );
 
-    await sendSMS(null, `Password reset code for ${username}: ${resetCode}`);
+    await sendSMS(user.contact_number, `Password reset code for ${username}: ${resetCode}`);
     return res.json({
       success: true,
       message: 'Password reset code generated successfully.',
@@ -8599,20 +8793,24 @@ app.post('/api/public/contact', async (req, res) => {
       'public.contact.submit',
       async () => {
         await pool.query(
-          `INSERT INTO public_contact_messages
-            (full_name, barangay, contact_number, subject, message, status)
-           VALUES ($1, $2, $3, $4, $5, 'Pending')`,
-          [fullName, barangay, normalizedContactNumber, subject, message]
+          `INSERT INTO consumer_concerns
+            (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number)
+           VALUES (NULL, $1, $2, $3, $4, 'Normal', 'Pending', $5, $6, $7)`,
+          [defaultSystemLogAccountId, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber]
         );
       },
       async () => {
-        const { error } = await supabase.from('public_contact_messages').insert([{
+        const { error } = await supabase.from('consumer_concerns').insert([{
+          consumer_id: null,
+          account_id: defaultSystemLogAccountId,
+          category: 'Public Contact',
+          subject,
+          description: message,
+          priority: 'Normal',
+          status: 'Pending',
           full_name: fullName,
           barangay,
           contact_number: normalizedContactNumber,
-          subject,
-          message,
-          status: 'Pending',
         }]);
         if (error) throw error;
       }
@@ -8636,7 +8834,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
       'public.contact.list',
       async () => {
         const clauses = [];
-        const values = [];
+        const values = [['Public Contact', 'Public Concern']];
 
         if (statusFilter) {
           values.push(statusFilter);
@@ -8646,18 +8844,28 @@ app.get('/api/public-contact-messages', async (req, res) => {
         if (query) {
           values.push(`%${query}%`);
           clauses.push(
-            `(LOWER(full_name) LIKE $${values.length}
-              OR LOWER(barangay) LIKE $${values.length}
-              OR LOWER(subject) LIKE $${values.length}
-              OR LOWER(message) LIKE $${values.length}
-              OR LOWER(contact_number) LIKE $${values.length})`
+            `(LOWER(COALESCE(full_name, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(barangay, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(subject, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(description, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(contact_number, '')) LIKE $${values.length})`
           );
         }
 
-        const whereClause = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+        const whereClause = `WHERE category = ANY($1::text[])${clauses.length ? ` AND ${clauses.join(' AND ')}` : ''}`;
         const { rows } = await pool.query(
-          `SELECT message_id, full_name, barangay, contact_number, subject, message, status, created_at, reviewed_at, reviewed_by, remarks
-           FROM public_contact_messages
+          `SELECT concern_id AS message_id,
+                  full_name,
+                  barangay,
+                  contact_number,
+                  subject,
+                  description AS message,
+                  status,
+                  created_at,
+                  resolved_at AS reviewed_at,
+                  resolved_by AS reviewed_by,
+                  remarks
+           FROM consumer_concerns
            ${whereClause}
            ORDER BY created_at DESC, message_id DESC
            LIMIT 500`,
@@ -8667,8 +8875,9 @@ app.get('/api/public-contact-messages', async (req, res) => {
       },
       async () => {
         let builder = supabase
-          .from('public_contact_messages')
-          .select('message_id, full_name, barangay, contact_number, subject, message, status, created_at, reviewed_at, reviewed_by, remarks')
+          .from('consumer_concerns')
+          .select('concern_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .in('category', ['Public Contact', 'Public Concern'])
           .order('created_at', { ascending: false })
           .limit(500);
 
@@ -8686,7 +8895,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
             row.full_name,
             row.barangay,
             row.subject,
-            row.message,
+            row.description,
             row.contact_number,
           ]
             .map((value) => String(value || '').toLowerCase())
@@ -8726,18 +8935,19 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
       'public.contact.updateStatus',
       async () => {
         const { rows } = await pool.query(
-          `UPDATE public_contact_messages
-              SET status = $1,
+          `UPDATE consumer_concerns
+              SET status = $1::varchar,
                   remarks = COALESCE($2, remarks),
-                  reviewed_by = COALESCE($3, reviewed_by),
-                  reviewed_at = CASE
-                    WHEN $1 IN ('Resolved', 'Closed') THEN NOW()
-                    WHEN $1 IN ('Pending', 'In Progress') THEN NULL
-                    ELSE reviewed_at
+                  resolved_by = COALESCE($3, resolved_by),
+                  resolved_at = CASE
+                    WHEN $1::varchar IN ('Resolved', 'Closed') THEN NOW()
+                    WHEN $1::varchar IN ('Pending', 'In Progress') THEN NULL
+                    ELSE resolved_at
                   END
-            WHERE message_id = $4
-            RETURNING message_id, full_name, barangay, contact_number, subject, message, status, created_at, reviewed_at, reviewed_by, remarks`,
-          [nextStatus, remarks, reviewedBy, id]
+            WHERE concern_id = $4
+              AND category = ANY($5::text[])
+            RETURNING concern_id AS message_id, full_name, barangay, contact_number, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
+          [nextStatus, remarks, reviewedBy, id, ['Public Contact', 'Public Concern']]
         );
         return rows[0] || null;
       },
@@ -8745,14 +8955,15 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
         const payload = {
           status: nextStatus,
           remarks: remarks,
-          reviewed_by: reviewedBy,
-          reviewed_at: ['Resolved', 'Closed'].includes(nextStatus) ? new Date().toISOString() : null,
+          resolved_by: reviewedBy,
+          resolved_at: ['Resolved', 'Closed'].includes(nextStatus) ? new Date().toISOString() : null,
         };
         const { data, error } = await supabase
-          .from('public_contact_messages')
+          .from('consumer_concerns')
           .update(payload)
-          .eq('message_id', id)
-          .select('message_id, full_name, barangay, contact_number, subject, message, status, created_at, reviewed_at, reviewed_by, remarks')
+          .eq('concern_id', id)
+          .in('category', ['Public Contact', 'Public Concern'])
+          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
           .maybeSingle();
         if (error) throw error;
         return data || null;
@@ -8761,6 +8972,11 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
 
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Public concern not found.' });
+    }
+
+    if (remarks && updated.contact_number) {
+      const smsReply = buildPublicConcernSmsReply(updated.subject, remarks);
+      await sendSMS(updated.contact_number, smsReply);
     }
 
     await writeSystemLog(`[public-contact] Message #${id} marked ${nextStatus}.`, {
@@ -8776,6 +8992,94 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
     });
   } catch (error) {
     await logRequestError(req, 'public.contact.updateStatus', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
+  const id = Number(req.params.id);
+  const reply = String(req.body?.reply || '').trim();
+  const reviewedBy = normalizeRequiredForeignKeyId(req.body?.reviewedBy || req.body?.reviewed_by || req.body?.actorAccountId);
+
+  if (!id || id < 1) {
+    return res.status(400).json({ success: false, message: 'A valid message ID is required.' });
+  }
+
+  if (!reply) {
+    return res.status(400).json({ success: false, message: 'Reply message is required.' });
+  }
+
+  try {
+    const updated = await withPostgresPrimary(
+      'public.contact.reply',
+      async () => {
+        const { rows } = await pool.query(
+          `UPDATE consumer_concerns
+              SET remarks = $1,
+                  resolved_by = COALESCE($2, resolved_by),
+                  resolved_at = NOW(),
+                  status = CASE WHEN status = 'Pending' THEN 'In Progress' ELSE status END
+            WHERE concern_id = $3
+              AND category = ANY($4::text[])
+            RETURNING concern_id AS message_id, full_name, barangay, contact_number, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
+          [reply, reviewedBy, id, ['Public Contact', 'Public Concern']]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const payload = {
+          remarks: reply,
+          resolved_by: reviewedBy,
+          resolved_at: new Date().toISOString(),
+        };
+        const { data, error } = await supabase
+          .from('consumer_concerns')
+          .update(payload)
+          .eq('concern_id', id)
+          .in('category', ['Public Contact', 'Public Concern'])
+          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) return null;
+
+        if (data.status === 'Pending') {
+          const { data: updatedStatusData, error: statusError } = await supabase
+            .from('consumer_concerns')
+            .update({ status: 'In Progress' })
+            .eq('concern_id', id)
+            .in('category', ['Public Contact', 'Public Concern'])
+            .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+            .maybeSingle();
+          if (statusError) throw statusError;
+          return updatedStatusData || data;
+        }
+
+        return data;
+      }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Public concern not found.' });
+    }
+
+    if (updated.contact_number) {
+      const smsReply = buildPublicConcernSmsReply(updated.subject, reply);
+      await sendSMS(updated.contact_number, smsReply);
+    }
+
+    await writeSystemLog(`[public-contact] Message #${id} replied.`, {
+      userId: reviewedBy || defaultSystemLogAccountId,
+      role: 'Billing Officer',
+    });
+    scheduleImmediateSync('public-contact-reply');
+
+    return res.json({
+      success: true,
+      message: 'Reply sent successfully.',
+      data: mapPublicContactMessageRow(updated),
+    });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.reply', error);
     return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
@@ -8995,12 +9299,16 @@ app.post('/api/register', async (req, res) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 
+  if (!normalizedRequirementsSubmitted) {
+    return res.status(400).json({ success: false, message: 'Sedula image is required to complete registration.' });
+  }
+
   try {
     if (await isUsernameTaken(username)) {
       return res.status(400).json({ success: false, message: 'Username is already taken.' });
     }
 
-    const ticketNumber = generateRegistrationTicketNumber();
+    let ticketNumber = null;
     let createdAccountId = null;
     let authUserId = null;
 
@@ -9016,6 +9324,7 @@ app.post('/api/register', async (req, res) => {
               { tableName: 'consumer', primaryKey: 'consumer_id' },
               { tableName: 'connection_ticket', primaryKey: 'ticket_id' },
             ]);
+            ticketNumber = await generateSequentialRegistrationTicketNumber({ pgClient: client });
 
             try {
               const { rows } = await client.query(
@@ -9056,6 +9365,7 @@ app.post('/api/register', async (req, res) => {
       async () => {
         let accountId = null;
         let consumerId = null;
+        ticketNumber = await generateSequentialRegistrationTicketNumber({ useSupabase: true });
 
         const accountRow = await insertSupabaseRowWithPrimaryKeyRetry(
           'accounts',
@@ -9222,7 +9532,7 @@ app.post('/api/auth/google', async (req, res) => {
     // New Google user — create account + consumer with Active status
     const [firstName = '', ...restName] = googleName.split(' ');
     const lastName = restName.join(' ') || firstName;
-    const generatedUsername = googleEmail.split('@')[0] || `google_${Date.now()}`;
+    const generatedUsername = await generateAvailableUsername(googleEmail.split('@')[0] || `google_${Date.now()}`);
     const generatedPassword = `google_${crypto.randomUUID()}`;
     const generatedPasswordHash = hashPassword(generatedPassword);
 
@@ -10567,16 +10877,16 @@ function normalizeReadingSchedulePayload(rawSchedule, overrideDate = null) {
 
 function mapPublicContactMessageRow(row) {
   return {
-    message_id: Number(row?.message_id || 0),
+    message_id: Number(row?.message_id || row?.concern_id || 0),
     full_name: row?.full_name || '',
     barangay: row?.barangay || '',
     contact_number: row?.contact_number || '',
     subject: row?.subject || '',
-    message: row?.message || '',
+    message: row?.message || row?.description || '',
     status: row?.status || 'Pending',
     created_at: row?.created_at || null,
-    reviewed_at: row?.reviewed_at || null,
-    reviewed_by: row?.reviewed_by || null,
+    reviewed_at: row?.reviewed_at || row?.resolved_at || null,
+    reviewed_by: row?.reviewed_by || row?.resolved_by || null,
     remarks: row?.remarks || null,
   };
 }

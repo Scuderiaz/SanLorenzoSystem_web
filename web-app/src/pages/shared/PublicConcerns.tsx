@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import DataTable, { Column } from '../../components/Common/DataTable';
+import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage, requestJson } from '../../services/userManagementApi';
@@ -31,9 +32,11 @@ const PublicConcerns: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
-  const [draftStatusById, setDraftStatusById] = useState<Record<number, ConcernStatus>>({});
-  const [draftRemarksById, setDraftRemarksById] = useState<Record<number, string>>({});
-  const [savingId, setSavingId] = useState<number | null>(null);
+  const [replyTarget, setReplyTarget] = useState<PublicConcern | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
+  const canReply = [1, 2].includes(Number(user?.role_id || 0));
 
   const loadConcerns = useCallback(async () => {
     setLoading(true);
@@ -50,24 +53,6 @@ const PublicConcerns: React.FC = () => {
 
       const loadedRows = result.data || [];
       setRows(loadedRows);
-      setDraftStatusById((current) => {
-        const next = { ...current };
-        loadedRows.forEach((entry) => {
-          if (!next[entry.message_id]) {
-            next[entry.message_id] = entry.status;
-          }
-        });
-        return next;
-      });
-      setDraftRemarksById((current) => {
-        const next = { ...current };
-        loadedRows.forEach((entry) => {
-          if (next[entry.message_id] === undefined) {
-            next[entry.message_id] = entry.remarks || '';
-          }
-        });
-        return next;
-      });
     } catch (error) {
       showToast(getErrorMessage(error, 'Failed to load public concerns.'), 'error');
     } finally {
@@ -79,35 +64,43 @@ const PublicConcerns: React.FC = () => {
     loadConcerns();
   }, [loadConcerns]);
 
-  const saveStatus = useCallback(async (row: PublicConcern) => {
-    const messageId = row.message_id;
-    const nextStatus = draftStatusById[messageId] || row.status;
-    const remarks = (draftRemarksById[messageId] || '').trim();
+  const submitReply = useCallback(async () => {
+    if (!replyTarget) {
+      return;
+    }
+    const normalizedReply = replyMessage.trim();
+    if (!normalizedReply) {
+      showToast('Reply message is required.', 'error');
+      return;
+    }
 
-    setSavingId(messageId);
+    setIsSendingReply(true);
     try {
+      const nextStatus: ConcernStatus = replyTarget.status === 'Pending' ? 'In Progress' : replyTarget.status;
       await requestJson<{ success: boolean; message: string; data: PublicConcern }>(
-        `/public-contact-messages/${messageId}/status`,
+        `/public-contact-messages/${replyTarget.message_id}/status`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             status: nextStatus,
-            remarks: remarks || null,
+            remarks: normalizedReply,
             reviewedBy: user?.id || null,
           }),
         },
-        'Failed to update public concern status.'
+        'Failed to send reply.'
       );
 
-      showToast(`Concern #${messageId} updated to ${nextStatus}.`, 'success');
+      showToast(`Reply sent for concern #${replyTarget.message_id}.`, 'success');
+      setReplyTarget(null);
+      setReplyMessage('');
       await loadConcerns();
     } catch (error) {
-      showToast(getErrorMessage(error, 'Failed to update public concern status.'), 'error');
+      showToast(getErrorMessage(error, 'Failed to send reply.'), 'error');
     } finally {
-      setSavingId(null);
+      setIsSendingReply(false);
     }
-  }, [draftRemarksById, draftStatusById, loadConcerns, showToast, user?.id]);
+  }, [loadConcerns, replyMessage, replyTarget, showToast, user?.id]);
 
   const columns: Column[] = useMemo(() => ([
     {
@@ -125,7 +118,30 @@ const PublicConcerns: React.FC = () => {
       key: 'message',
       label: 'Message',
       sortable: false,
-      render: (value: string) => <div className="public-concern-message">{value}</div>,
+      render: (value: string, row: PublicConcern) => {
+        const text = String(value || '');
+        const isExpanded = Boolean(expandedMessageIds[row.message_id]);
+        const canExpand = text.length > 80;
+        return (
+          <div className="public-concern-message-cell">
+            <div className={`public-concern-message ${isExpanded ? 'expanded' : 'collapsed'}`}>{text}</div>
+            {canExpand && (
+              <button
+                type="button"
+                className="public-concern-expand-btn"
+                onClick={() =>
+                  setExpandedMessageIds((current) => ({
+                    ...current,
+                    [row.message_id]: !isExpanded,
+                  }))
+                }
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'status',
@@ -136,57 +152,35 @@ const PublicConcerns: React.FC = () => {
       render: (value: ConcernStatus) => <span className={`public-concern-status status-${String(value).toLowerCase().replace(/\s+/g, '-')}`}>{value}</span>,
     },
     {
-      key: 'actions',
-      label: 'Action',
+      key: 'reply',
+      label: 'Reply',
       sortable: false,
       filterable: false,
-      render: (_: unknown, row: PublicConcern) => {
-        const rowDraftStatus = draftStatusById[row.message_id] || row.status;
-        const rowDraftRemarks = draftRemarksById[row.message_id] || '';
-        const isSaving = savingId === row.message_id;
-        return (
-          <div className="public-concern-action-cell">
-            <select
-              className="public-concern-select"
-              value={rowDraftStatus}
-              disabled={isSaving}
-              onChange={(event) =>
-                setDraftStatusById((current) => ({
-                  ...current,
-                  [row.message_id]: event.target.value as ConcernStatus,
-                }))
-              }
-            >
-              {statusOptions.map((statusOption) => (
-                <option key={statusOption} value={statusOption}>{statusOption}</option>
-              ))}
-            </select>
-            <input
-              className="public-concern-remarks"
-              type="text"
-              value={rowDraftRemarks}
-              disabled={isSaving}
-              placeholder="Remarks (optional)"
-              onChange={(event) =>
-                setDraftRemarksById((current) => ({
-                  ...current,
-                  [row.message_id]: event.target.value,
-                }))
-              }
-            />
+      render: (_: unknown, row: PublicConcern) => (
+        <div className="public-concern-reply-cell">
+          {row.remarks ? (
+            <div className="public-concern-reply-preview" title={row.remarks}>
+              {row.remarks}
+            </div>
+          ) : (
+            <div className="public-concern-reply-empty">No reply yet</div>
+          )}
+          {canReply && (
             <button
               type="button"
-              className="btn btn-primary public-concern-save"
-              disabled={isSaving}
-              onClick={() => saveStatus(row)}
+              className="btn btn-primary public-concern-reply-btn"
+              onClick={() => {
+                setReplyTarget(row);
+                setReplyMessage('');
+              }}
             >
-              {isSaving ? 'Saving...' : 'Save'}
+              Reply
             </button>
-          </div>
-        );
-      },
+          )}
+        </div>
+      ),
     },
-  ]), [draftRemarksById, draftStatusById, saveStatus, savingId]);
+  ]), [canReply, expandedMessageIds]);
 
   return (
     <MainLayout title="Public Concerns">
@@ -195,7 +189,7 @@ const PublicConcerns: React.FC = () => {
           <div>
             <h2 className="public-concerns-title">Public Concerns Inbox</h2>
             <p className="public-concerns-subtitle">
-              Manage website concern submissions and update workflow status.
+              Review website concern submissions and send replies.
             </p>
           </div>
           <div className="public-concerns-actions">
@@ -235,6 +229,54 @@ const PublicConcerns: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={Boolean(replyTarget)}
+        onClose={() => {
+          if (!isSendingReply) {
+            setReplyTarget(null);
+            setReplyMessage('');
+          }
+        }}
+        title={replyTarget ? `Reply to ${replyTarget.full_name}` : 'Reply'}
+        size="medium"
+        className="public-concern-reply-dialog"
+        footer={(
+          <>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={isSendingReply}
+              onClick={() => {
+                setReplyTarget(null);
+                setReplyMessage('');
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={isSendingReply || !replyMessage.trim()}
+              onClick={() => void submitReply()}
+            >
+              {isSendingReply ? 'Sending...' : 'Send Reply'}
+            </button>
+          </>
+        )}
+      >
+        <div className="public-concern-reply-modal">
+          <label htmlFor="public-concern-reply-message">Reply Message</label>
+          <textarea
+            id="public-concern-reply-message"
+            value={replyMessage}
+            onChange={(event) => setReplyMessage(event.target.value)}
+            rows={6}
+            placeholder="Type your reply here..."
+            disabled={isSendingReply}
+          />
+        </div>
+      </Modal>
     </MainLayout>
   );
 };

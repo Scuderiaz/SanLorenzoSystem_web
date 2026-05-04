@@ -182,7 +182,7 @@ const SignUp: React.FC = () => {
   const handlePrintTicket = () => {
     const printDate = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
     const applicantName = registrationName || formData.username || 'Applicant';
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Registration Ticket - ${ticketNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px;color:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}.ticket{border:2px solid #1B1B63;border-radius:12px;padding:40px;width:680px;background:white;box-sizing:border-box}.ticket-header{text-align:center;border-bottom:1px dashed #ccc;padding-bottom:20px;margin-bottom:20px}.ticket-logo-title{font-size:15px;font-weight:700;color:#1B1B63}.ticket-number{font-size:22px;font-weight:900;color:#1B1B63;letter-spacing:1px;margin:18px 0 6px;text-align:center}.ticket-label{font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:1px}.ticket-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}.ticket-row span{color:#555}.ticket-row strong{color:#111}.status-badge{display:inline-block;padding:4px 14px;background:#FEF3C7;color:#92400E;border-radius:99px;font-size:12px;font-weight:700;margin:10px 0}.charges{margin-top:16px;background:#f9f9f9;border-radius:8px;padding:14px}.charges-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:10px}.charge-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}.charge-total{font-weight:700;border-top:1px solid #ddd;margin-top:6px;padding-top:8px}.ticket-footer{margin-top:20px;text-align:center;font-size:11px;color:#888;line-height:1.6}@media print{@page{margin:10mm}body{padding:0}}</style></head><body><div class="ticket"><div class="ticket-header"><div class="ticket-logo-title">San Lorenzo Ruiz Waterworks System</div><div style="font-size:12px;color:#555;margin-top:4px">Water Connection Application Receipt</div></div><div class="ticket-label">Ticket Number</div><div class="ticket-number">${ticketNumber}</div><div style="text-align:center;margin-bottom:20px;"><span class="status-badge">PENDING</span></div><div class="ticket-row"><span>Applicant</span><strong>${applicantName}</strong></div><div class="ticket-row"><span>Username</span><strong>${formData.username}</strong></div><div class="ticket-row"><span>Date Applied</span><strong>${printDate}</strong></div><div class="ticket-row"><span>Connection Type</span><strong>New Connection</strong></div><div class="charges"><div class="charges-title">Registration Charges</div><div class="charge-row"><span>Connection Fee</span><span>PHP 300.00</span></div><div class="charge-row"><span>Membership Fee</span><span>PHP 50.00</span></div><div class="charge-row"><span>Meter Full Deposit</span><span>PHP 1,500.00</span></div><div class="charge-row charge-total"><span>Total Amount</span><strong>PHP 1,850.00</strong></div></div><div class="ticket-footer">Please bring this ticket to the Municipal Office.<br>Present this reference number during your visit.<br><br>San Lorenzo Ruiz, Camarines Norte â€” Water Billing System</div></div></body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Registration Ticket - ${ticketNumber}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px;color:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}.ticket{border:2px solid #1B1B63;border-radius:12px;padding:40px;width:680px;background:white;box-sizing:border-box}.ticket-header{text-align:center;border-bottom:1px dashed #ccc;padding-bottom:20px;margin-bottom:20px}.ticket-logo-title{font-size:15px;font-weight:700;color:#1B1B63}.ticket-number{font-size:22px;font-weight:900;color:#1B1B63;letter-spacing:1px;margin:18px 0 6px;text-align:center}.ticket-label{font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:1px}.ticket-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px}.ticket-row span{color:#555}.ticket-row strong{color:#111}.status-badge{display:inline-block;padding:4px 14px;background:#FEF3C7;color:#92400E;border-radius:99px;font-size:12px;font-weight:700;margin:10px 0}.charges{margin-top:16px;background:#f9f9f9;border-radius:8px;padding:14px}.charges-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:10px}.charge-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}.charge-total{font-weight:700;border-top:1px solid #ddd;margin-top:6px;padding-top:8px}.ticket-footer{margin-top:20px;text-align:center;font-size:11px;color:#888;line-height:1.6}@media print{@page{margin:10mm}body{padding:0}}</style></head><body><div class="ticket"><div class="ticket-header"><div class="ticket-logo-title">San Lorenzo Ruiz Waterworks System</div><div style="font-size:12px;color:#555;margin-top:4px">Water Connection Application Receipt</div></div><div class="ticket-label">Ticket Number</div><div class="ticket-number">${ticketNumber}</div><div style="text-align:center;margin-bottom:20px;"><span class="status-badge">PENDING</span></div><div class="ticket-row"><span>Applicant</span><strong>${applicantName}</strong></div><div class="ticket-row"><span>Username</span><strong>${formData.username}</strong></div><div class="ticket-row"><span>Date Applied</span><strong>${printDate}</strong></div><div class="ticket-row"><span>Connection Type</span><strong>New Connection</strong></div><div class="charges"><div class="charges-title">Registration Charges</div><div class="charge-row"><span>Connection Fee</span><span>₱300.00</span></div><div class="charge-row"><span>Membership Fee</span><span>₱50.00</span></div><div class="charge-row"><span>Meter Full Deposit</span><span>₱1,500.00</span></div><div class="charge-row charge-total"><span>Total Amount</span><strong>₱1,850.00</strong></div></div><div class="ticket-footer">Please bring this ticket to the Municipal Office.<br>Present this reference number during your visit.<br><br>San Lorenzo Ruiz, Camarines Norte â€” Water Billing System</div></div></body></html>`;
     const win = window.open('', '_blank', 'width=800,height=900');
     if (win) { win.document.write(html); win.document.close(); win.focus(); setTimeout(() => win.print(), 500); }
   };
@@ -234,19 +234,19 @@ const SignUp: React.FC = () => {
           <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 10px;">Registration Charges</div>
           <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0;">
             <span>Connection Fee</span>
-            <span>PHP 300.00</span>
+            <span>₱300.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0;">
             <span>Membership Fee</span>
-            <span>PHP 50.00</span>
+            <span>₱50.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0;">
             <span>Meter Full Deposit</span>
-            <span>PHP 1,500.00</span>
+            <span>₱1,500.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; font-weight: 700; border-top: 1px solid #ddd; margin-top: 6px; padding-top: 8px;">
             <span>Total Amount</span>
-            <strong>PHP 1,850.00</strong>
+            <strong>₱1,850.00</strong>
           </div>
         </div>
         <div style="margin-top: 20px; text-align: center; font-size: 11px; color: #888; line-height: 1.6;">
@@ -347,7 +347,7 @@ const SignUp: React.FC = () => {
 
   return (
     <div className="signup-page">
-      <div className="signup-card">
+      <div className={`signup-card ${!ticketNumber && currentStep === 2 ? 'signup-card-wide' : ''}`}>
         {ticketNumber ? (
           <div className="signup-success">
             <div style={{ textAlign: 'center', marginBottom: '8px' }}>
@@ -357,7 +357,7 @@ const SignUp: React.FC = () => {
             <p>Your application has been received. Please present the ticket number below at the Municipal Office to proceed with your water connection.</p>
             <div className="signup-ticket">{ticketNumber}</div>
             <p style={{ fontSize: '13px', color: '#64748b', margin: '8px 0 20px' }}>
-              <i className="fas fa-info-circle" /> You can also view this ticket any time by logging in to your dashboard.
+              <i className="fas fa-info-circle" /> You can use the concessionaire dashboard after submitting registration.
             </p>
             <div className="signup-actions" style={{ justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <button type="button" className="signup-download-btn" onClick={handleDownloadTicket}>
@@ -372,14 +372,16 @@ const SignUp: React.FC = () => {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleStepSubmit} className="signup-form">
+          <form onSubmit={handleStepSubmit} className={`signup-form ${currentStep === 2 ? 'signup-form-step-two' : ''}`}>
             <div className="signup-scrollable-form">
-              <div className="signup-header">
+              <div className={`signup-header ${currentStep === 1 ? 'signup-header-step-one' : 'signup-header-step-two'}`}>
                 <div className="signup-logo" onClick={() => navigate('/')}>
                   <img src="/images/SLR logo 1.png" alt="San Lorenzo Ruiz Logo" />
                 </div>
-                <h1>San Lorenzo Ruiz Municipal</h1>
-                <h2>Water Billing and Payment Record Management System</h2>
+                <div className="signup-header-text">
+                  <h1>San Lorenzo Ruiz Waterworks System</h1>
+                  <h2>Water Billing and Payment Record Management System</h2>
+                </div>
               </div>
 
               {error && (
@@ -398,21 +400,6 @@ const SignUp: React.FC = () => {
                   onChange={handleChange}
                   required
                   placeholder="Enter username"
-                />
-              </div>
-              )}
-
-              {currentStep === 2 && (
-              <div className="signup-field">
-                <label htmlFor="phone">Phone Number</label>
-                <input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  placeholder="09xxxxxxxxx"
-                  inputMode="numeric"
                 />
               </div>
               )}
@@ -461,88 +448,103 @@ const SignUp: React.FC = () => {
               <div className="signup-section">
                 <div className="signup-section-title">Consumer Details</div>
               </div>
+              <div className="signup-form-grid">
+                <div className="signup-field">
+                  <label htmlFor="firstName">First Name</label>
+                  <input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
+                </div>
 
-              <div className="signup-field">
-                <label htmlFor="firstName">First Name</label>
-                <input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
-              </div>
+                <div className="signup-field">
+                  <label htmlFor="middleName">Middle Name</label>
+                  <input id="middleName" name="middleName" value={formData.middleName} onChange={handleChange} />
+                </div>
 
-              <div className="signup-field">
-                <label htmlFor="middleName">Middle Name</label>
-                <input id="middleName" name="middleName" value={formData.middleName} onChange={handleChange} />
-              </div>
+                <div className="signup-field">
+                  <label htmlFor="lastName">Last Name</label>
+                  <input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                </div>
 
-              <div className="signup-field">
-                <label htmlFor="lastName">Last Name</label>
-                <input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                <div className="signup-field">
+                  <label htmlFor="phone">Phone Number</label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                    placeholder="09xxxxxxxxx"
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
 
               <div className="signup-section" style={{ marginTop: '8px' }}>
                 <div className="signup-section-title">Address</div>
               </div>
+              <div className="signup-form-grid">
+                <div className="signup-field">
+                  <label htmlFor="municipality">Municipality</label>
+                  <input
+                    id="municipality"
+                    name="municipality"
+                    value={formData.municipality}
+                    readOnly
+                    className="readonly"
+                  />
+                </div>
 
-              <div className="signup-field">
-                <label htmlFor="municipality">Municipality</label>
-                <input
-                  id="municipality"
-                  name="municipality"
-                  value={formData.municipality}
-                  readOnly
-                  className="readonly"
-                />
-              </div>
+                <div className="signup-field">
+                  <label htmlFor="zipCode">Postal Code</label>
+                  <input
+                    id="zipCode"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    readOnly
+                    className="readonly"
+                  />
+                </div>
 
-              <div className="signup-field">
-                <label htmlFor="zipCode">Postal Code</label>
-                <input
-                  id="zipCode"
-                  name="zipCode"
-                  value={formData.zipCode}
-                  readOnly
-                  className="readonly"
-                />
-              </div>
+                <div className="signup-field">
+                  <label htmlFor="barangay">Barangay</label>
+                  <select
+                    id="barangay"
+                    name="barangay"
+                    value={formData.barangay}
+                    onChange={(e) => setFormData({ ...formData, barangay: e.target.value, purok: '' })}
+                    required
+                  >
+                    <option value="">Select Barangay</option>
+                    {barangays.map((barangay) => (
+                      <option key={barangay} value={barangay}>
+                        {barangay}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="signup-field">
-                <label htmlFor="barangay">Barangay</label>
-                <select
-                  id="barangay"
-                  name="barangay"
-                  value={formData.barangay}
-                  onChange={(e) => setFormData({ ...formData, barangay: e.target.value, purok: '' })}
-                  required
-                >
-                  <option value="">Select Barangay</option>
-                  {barangays.map((barangay) => (
-                    <option key={barangay} value={barangay}>
-                      {barangay}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div className="signup-field">
+                  <label htmlFor="purok">Purok</label>
+                  <select
+                    id="purok"
+                    name="purok"
+                    value={formData.purok}
+                    onChange={handleChange}
+                    required
+                    disabled={!formData.barangay}
+                  >
+                    <option value="">{formData.barangay ? 'Select Purok' : 'Select Barangay First'}</option>
+                    {(puroksByBarangay[formData.barangay] || []).map((purok) => (
+                      <option key={purok} value={purok}>
+                        {purok}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="signup-field">
-                <label htmlFor="purok">Purok</label>
-                <select
-                  id="purok"
-                  name="purok"
-                  value={formData.purok}
-                  onChange={handleChange}
-                  required
-                  disabled={!formData.barangay}
-                >
-                  <option value="">{formData.barangay ? 'Select Purok' : 'Select Barangay First'}</option>
-                  {(puroksByBarangay[formData.barangay] || []).map((purok) => (
-                    <option key={purok} value={purok}>
-                      {purok}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="signup-field">
-                <label htmlFor="address">Full Address</label>
-                <input id="address" name="address" value={formData.address} readOnly className="readonly" />
+                <div className="signup-field signup-field-span-2">
+                  <label htmlFor="address">Full Address</label>
+                  <input id="address" name="address" value={formData.address} readOnly className="readonly" />
+                </div>
               </div>
 
               <div className="signup-section">
@@ -632,12 +634,12 @@ const SignUp: React.FC = () => {
 
               <div className="signup-charges">
                 <h4>Registration Charges</h4>
-                <div className="signup-charge-row"><span>Connection Fee</span><span>â‚±300.00</span></div>
-                <div className="signup-charge-row"><span>Membership Fee</span><span>â‚±50.00</span></div>
-                <div className="signup-charge-row"><span>Meter Full Deposit</span><span>â‚±1,500.00</span></div>
-                <div className="signup-charge-row signup-charge-total"><span>Total Amount</span><span>â‚±1,850.00</span></div>
+                <div className="signup-charge-row"><span>Connection Fee</span><span>₱300.00</span></div>
+                <div className="signup-charge-row"><span>Membership Fee</span><span>₱50.00</span></div>
+                <div className="signup-charge-row"><span>Meter Full Deposit</span><span>₱1,500.00</span></div>
+                <div className="signup-charge-row signup-charge-total"><span>Total Amount</span><span>₱1,850.00</span></div>
                 <p style={{ margin: '10px 0 0', color: '#5f6368', fontSize: 13 }}>
-                  You will need to present these to the municipal office and settle the charges to complete your registration.
+                  You can use the concessionaire dashboard after submitting registration.
                 </p>
               </div>
               </>
@@ -650,9 +652,13 @@ const SignUp: React.FC = () => {
                   <i className="fas fa-arrow-left" /> Back
                 </button>
               )}
-              <button type="submit" className="signup-primary" disabled={loading}>
-                <i className={`fas ${currentStep === 1 ? 'fa-arrow-right' : 'fa-paper-plane'}`} />
-                {loading ? 'Submitting...' : currentStep === 1 ? 'Continue Registration' : 'Submit Registration'}
+              <button
+                type="submit"
+                className="signup-primary"
+                disabled={loading || (currentStep === 2 && !formData.sedulaImage)}
+                title={currentStep === 2 && !formData.sedulaImage ? 'Upload a sedula image to continue.' : undefined}
+              >
+                {loading ? 'Submitting...' : currentStep === 1 ? 'Sign Up' : 'Submit Registration'}
               </button>
             </div>
 
@@ -694,5 +700,6 @@ const SignUp: React.FC = () => {
 };
 
 export default SignUp;
+
 
 
