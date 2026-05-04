@@ -140,7 +140,8 @@ export const authService = {
       const response = await api.post('/auth/google', { access_token: accessToken });
       return response.data;
     } catch (error: any) {
-      if (isNetworkError(error)) {
+      const isConnectionError = error?.code === 'ERR_NETWORK' || !error?.response;
+      if (isConnectionError) {
         return {
           success: false,
           message: 'Google sign-in requires the backend service. Please try again when the server connection is available.',

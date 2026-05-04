@@ -6,7 +6,11 @@ const { Pool } = pg;
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-require('dotenv').config();
+const https = require('https');
+require('dotenv').config({
+  path: path.join(__dirname, '.env'),
+  override: true,
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -66,12 +70,24 @@ const logFiles = {
 };
 const adminSettingsFile = path.join(__dirname, 'data', 'admin-settings.json');
 const defaultSourceSiteId = process.env.SYNC_SOURCE_SITE_ID || process.env.REACT_APP_SOURCE_SITE_ID || 'postgres-local';
+const backendBuildMarker = '2026-05-04-google-consumer-address-fix-v2';
+console.log(`[BACKEND] Build marker: ${backendBuildMarker}`);
+const smsProvider = String(process.env.SMS_PROVIDER || 'mock').trim().toLowerCase();
+const hasSemaphoreApiKey = Boolean(String(process.env.SMS_SEMAPHORE_API_KEY || '').trim());
+if (smsProvider === 'semaphore' && !hasSemaphoreApiKey) {
+  console.warn('[SMS] Provider is set to semaphore but SMS_SEMAPHORE_API_KEY is missing.');
+} else {
+  console.log(`[SMS] Provider: ${smsProvider}${smsProvider === 'semaphore' ? ' (real sending enabled)' : ' (mock mode)'}`);
+}
 const defaultAdminSettings = {
   systemName: 'San Lorenzo Ruiz Water Billing System',
   currency: 'PHP',
   dueDateDays: '15',
   lateFee: '10.0',
 };
+const primaryZoneCoverageTable = 'zone_coverage';
+const legacyZoneCoverageTables = ['zone_barangay_map', 'zone_coverage_config'];
+const zoneCoverageTableCandidates = [primaryZoneCoverageTable, ...legacyZoneCoverageTables];
 let isSupabaseSyncRunning = false;
 let immediateSyncTimer = null;
 let isPostgresAvailable = false;
@@ -244,7 +260,23 @@ const syncTableColumns = {
   backuplogs: ['backup_id', 'backup_name', 'backup_time', 'backup_size', 'backup_type', 'created_by'],
   error_logs: ['error_id', 'error_time', 'severity', 'module', 'error_message', 'user_id', 'status'],
   system_logs: ['log_id', 'account_id', 'role', 'action', 'timestamp'],
-  consumer_concerns: ['concern_id', 'consumer_id', 'account_id', 'category', 'subject', 'description', 'status', 'priority', 'created_at', 'resolved_at', 'resolved_by', 'remarks'],
+  consumer_concerns: [
+    'concern_id',
+    'consumer_id',
+    'account_id',
+    'category',
+    'subject',
+    'description',
+    'status',
+    'priority',
+    'created_at',
+    'resolved_at',
+    'resolved_by',
+    'remarks',
+    'full_name',
+    'barangay',
+    'contact_number',
+  ],
 };
 
 const syncConflictPolicies = {
@@ -1430,6 +1462,61 @@ function generateRegistrationTicketNumber() {
   return `REG-${timestamp}-${suffix}`;
 }
 
+function getManilaYearMonthPrefix(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    year: '2-digit',
+    month: '2-digit',
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value || '';
+  const month = parts.find((part) => part.type === 'month')?.value || '';
+  return `${year}${month}`;
+}
+
+async function generateSequentialRegistrationTicketNumber(options = {}) {
+  const { pgClient = null, useSupabase = false } = options;
+  const prefix = getManilaYearMonthPrefix();
+
+  if (pgClient) {
+    await pgClient.query('LOCK TABLE connection_ticket IN SHARE ROW EXCLUSIVE MODE');
+    const { rows } = await pgClient.query(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(ticket_number FROM 5 FOR 6) AS INTEGER)), 0) AS max_sequence
+       FROM connection_ticket
+       WHERE ticket_number ~ '^[0-9]{10}$'
+         AND SUBSTRING(ticket_number FROM 1 FOR 4) = $1`,
+      [prefix]
+    );
+    const nextSequence = Number(rows?.[0]?.max_sequence || 0) + 1;
+    return `${prefix}${String(nextSequence).padStart(6, '0')}`;
+  }
+
+  if (useSupabase && supabase) {
+    const { data, error } = await supabase
+      .from('connection_ticket')
+      .select('ticket_number')
+      .like('ticket_number', `${prefix}%`)
+      .order('ticket_number', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+
+    const maxSequence = (data || []).reduce((max, row) => {
+      const ticketNumber = String(row?.ticket_number || '').trim();
+      if (!/^\d{10}$/.test(ticketNumber)) {
+        return max;
+      }
+      if (!ticketNumber.startsWith(prefix)) {
+        return max;
+      }
+      const sequence = Number(ticketNumber.slice(4));
+      return Number.isFinite(sequence) ? Math.max(max, sequence) : max;
+    }, 0);
+
+    return `${prefix}${String(maxSequence + 1).padStart(6, '0')}`;
+  }
+
+  return generateRegistrationTicketNumber();
+}
+
 function getStaffAddedTicketLabel() {
   return 'Added by Staff';
 }
@@ -1600,6 +1687,31 @@ function isMissingAdminSettingsStorageError(error) {
       || message.includes('find the table')
       || message.includes('undefined table')
     ));
+}
+
+function isMissingSupabaseTableError(error, tableNames = []) {
+  const code = String(error?.code || '').toUpperCase();
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+  const tableHints = tableNames
+    .map((tableName) => String(tableName || '').toLowerCase())
+    .filter(Boolean);
+
+  if (code === '42P01' || code === 'PGRST205') {
+    return true;
+  }
+
+  if (!message) {
+    return false;
+  }
+
+  if (message.includes('schema cache') || message.includes('find the table') || message.includes('does not exist')) {
+    if (!tableHints.length) {
+      return true;
+    }
+    return tableHints.some((hint) => message.includes(hint));
+  }
+
+  return false;
 }
 
 async function saveAdminSettingsToPostgres(settings, executor = pool) {
@@ -2434,6 +2546,8 @@ function mapDashboardActivityLogRow(row) {
     category = 'Backup';
   } else if (normalized.includes('[auth]')) {
     category = 'Authentication';
+  } else if (normalized.includes('[public-contact]')) {
+    category = 'Public Concerns';
   }
 
   return {
@@ -2725,6 +2839,29 @@ async function isUsernameTaken(username) {
   );
 }
 
+async function generateAvailableUsername(baseUsername) {
+  const cleanedBase = String(baseUsername || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, '')
+    .slice(0, 24) || 'googleuser';
+
+  let candidate = cleanedBase;
+  let counter = 0;
+  while (await isUsernameTaken(candidate)) {
+    counter += 1;
+    if (counter > 9999) {
+      candidate = `googleuser${Date.now().toString().slice(-6)}`;
+      if (!(await isUsernameTaken(candidate))) {
+        return candidate;
+      }
+      continue;
+    }
+    candidate = `${cleanedBase}${String(counter).padStart(3, '0')}`;
+  }
+
+  return candidate;
+}
+
 async function logPostgresEvent(message, options = {}) {
   await logSyncEvent('postgres', message, options);
 }
@@ -2861,10 +2998,21 @@ async function initDb() {
   await ensureTableColumn('accounts', 'full_name', 'TEXT');
   await ensureTableColumn('accounts', 'email', 'VARCHAR(255)');
   await ensureTableColumn('accounts', 'contact_number', 'VARCHAR(20)');
+  await pool.query(`
+    ALTER TABLE consumer
+      ALTER COLUMN address SET DEFAULT 'Not Specified, Not Specified, San Lorenzo Ruiz, 4610',
+      ALTER COLUMN purok SET DEFAULT 'Not Specified',
+      ALTER COLUMN barangay SET DEFAULT 'Not Specified',
+      ALTER COLUMN municipality SET DEFAULT 'San Lorenzo Ruiz',
+      ALTER COLUMN zip_code SET DEFAULT '4610';
+  `);
+  await ensureTableColumn('consumer_concerns', 'full_name', 'VARCHAR(160)');
+  await ensureTableColumn('consumer_concerns', 'barangay', 'VARCHAR(120)');
+  await ensureTableColumn('consumer_concerns', 'contact_number', 'VARCHAR(20)');
   await ensureTableColumn('waterrates', 'classification_id', 'INTEGER');
   await ensureWaterRatesEffectiveDateColumnIsDate();
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS zone_coverage_config (
+    CREATE TABLE IF NOT EXISTS ${quoteIdentifier(primaryZoneCoverageTable)} (
       config_id SERIAL PRIMARY KEY,
       zone_id INTEGER NOT NULL REFERENCES zone(zone_id) ON UPDATE CASCADE ON DELETE CASCADE,
       barangay VARCHAR(120) NOT NULL,
@@ -2872,13 +3020,38 @@ async function initDb() {
       is_split BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      CONSTRAINT zone_coverage_config_unique UNIQUE (zone_id, barangay)
+      CONSTRAINT zone_coverage_unique UNIQUE (zone_id, barangay)
     );
-    CREATE INDEX IF NOT EXISTS idx_zone_coverage_config_zone_id ON zone_coverage_config(zone_id);
-    CREATE INDEX IF NOT EXISTS idx_zone_coverage_config_barangay ON zone_coverage_config(barangay);
+    CREATE INDEX IF NOT EXISTS idx_zone_coverage_zone_id ON ${quoteIdentifier(primaryZoneCoverageTable)}(zone_id);
+    CREATE INDEX IF NOT EXISTS idx_zone_coverage_barangay ON ${quoteIdentifier(primaryZoneCoverageTable)}(barangay);
   `);
   await pool.query(`
-    CREATE OR REPLACE FUNCTION set_zone_coverage_config_updated_at()
+    DO $$
+    BEGIN
+      IF to_regclass('zone_barangay_map') IS NOT NULL THEN
+        INSERT INTO ${quoteIdentifier(primaryZoneCoverageTable)} (zone_id, barangay, purok_count, is_split, created_at, updated_at)
+        SELECT zone_id, barangay, purok_count, is_split, COALESCE(created_at, NOW()), COALESCE(updated_at, NOW())
+        FROM zone_barangay_map
+        ON CONFLICT (zone_id, barangay) DO UPDATE
+        SET purok_count = EXCLUDED.purok_count,
+            is_split = EXCLUDED.is_split,
+            updated_at = NOW();
+      END IF;
+
+      IF to_regclass('zone_coverage_config') IS NOT NULL THEN
+        INSERT INTO ${quoteIdentifier(primaryZoneCoverageTable)} (zone_id, barangay, purok_count, is_split, created_at, updated_at)
+        SELECT zone_id, barangay, purok_count, is_split, COALESCE(created_at, NOW()), COALESCE(updated_at, NOW())
+        FROM zone_coverage_config
+        ON CONFLICT (zone_id, barangay) DO UPDATE
+        SET purok_count = EXCLUDED.purok_count,
+            is_split = EXCLUDED.is_split,
+            updated_at = NOW();
+      END IF;
+    END
+    $$;
+  `);
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION set_zone_coverage_updated_at()
     RETURNS TRIGGER AS $$
     BEGIN
       NEW.updated_at = NOW();
@@ -2887,10 +3060,10 @@ async function initDb() {
     $$ LANGUAGE plpgsql;
   `);
   await pool.query(`
-    DROP TRIGGER IF EXISTS trg_zone_coverage_config_updated_at ON zone_coverage_config;
-    CREATE TRIGGER trg_zone_coverage_config_updated_at
-    BEFORE UPDATE ON zone_coverage_config
-    FOR EACH ROW EXECUTE FUNCTION set_zone_coverage_config_updated_at();
+    DROP TRIGGER IF EXISTS trg_zone_coverage_updated_at ON ${quoteIdentifier(primaryZoneCoverageTable)};
+    CREATE TRIGGER trg_zone_coverage_updated_at
+    BEFORE UPDATE ON ${quoteIdentifier(primaryZoneCoverageTable)}
+    FOR EACH ROW EXECUTE FUNCTION set_zone_coverage_updated_at();
   `);
   await pool.query(`
     DO $$
@@ -5568,24 +5741,37 @@ app.get('/api/zone-coverage-config', async (req, res) => {
             zcc.barangay AS "Barangay",
             zcc.purok_count AS "Purok_Count",
             zcc.is_split AS "Is_Split"
-          FROM zone_coverage_config zcc
+          FROM ${quoteIdentifier(primaryZoneCoverageTable)} zcc
           JOIN zone z ON z.zone_id = zcc.zone_id
           ORDER BY zcc.zone_id ASC, zcc.barangay ASC
         `);
         return rows;
       },
       async () => {
-        const [configResult, zoneResult] = await Promise.all([
-          supabase.from('zone_coverage_config').select('config_id, zone_id, barangay, purok_count, is_split'),
-          supabase.from('zone').select('zone_id, zone_name'),
-        ]);
-        if (configResult.error) {
-          if (configResult.error.code === '42P01') return [];
-          throw configResult.error;
+        let configRows = [];
+        let configLoaded = false;
+
+        for (const tableName of zoneCoverageTableCandidates) {
+          const result = await supabase.from(tableName).select('config_id, zone_id, barangay, purok_count, is_split');
+          if (result.error) {
+            if (isMissingSupabaseTableError(result.error, [tableName])) {
+              continue;
+            }
+            throw result.error;
+          }
+          configRows = result.data || [];
+          configLoaded = true;
+          break;
         }
+
+        if (!configLoaded) {
+          return [];
+        }
+
+        const zoneResult = await supabase.from('zone').select('zone_id, zone_name');
         if (zoneResult.error) throw zoneResult.error;
         const zoneMap = new Map((zoneResult.data || []).map((zone) => [zone.zone_id, zone.zone_name]));
-        return (configResult.data || []).map((row) => ({
+        return configRows.map((row) => ({
           Config_ID: row.config_id,
           Zone_ID: row.zone_id,
           Zone_Name: zoneMap.get(row.zone_id) || null,
@@ -5614,62 +5800,11 @@ app.post('/api/zone-coverage-config', async (req, res) => {
   }
 
   try {
-    const normalizeBarangayKey = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    const barangayKey = normalizeBarangayKey(barangay);
-    const existingRows = await withPostgresPrimary(
-      'zoneCoverageConfig.validateSplitRules',
-      async () => {
-        const { rows } = await pool.query(
-          `SELECT zone_id, barangay, is_split
-           FROM zone_coverage_config
-           WHERE LOWER(TRIM(barangay)) = LOWER(TRIM($1))`,
-          [barangay]
-        );
-        return rows || [];
-      },
-      async () => {
-        const { data, error } = await supabase.from('zone_coverage_config').select('zone_id, barangay, is_split');
-        if (error && error.code !== '42P01') throw error;
-        return (data || []).filter((row) => normalizeBarangayKey(row.barangay) === barangayKey);
-      }
-    );
-
-    const existingByZone = new Map();
-    let hasSplitAssignment = false;
-    for (const row of existingRows || []) {
-      const existingZoneId = Number(row.zone_id || row.Zone_ID || 0);
-      if (!existingZoneId) continue;
-      existingByZone.set(existingZoneId, true);
-      if (Boolean(row.is_split || row.Is_Split)) {
-        hasSplitAssignment = true;
-      }
-    }
-
-    const alreadyAssignedInCurrentZone = existingByZone.has(zoneId);
-    const distinctAssignedZones = Array.from(existingByZone.keys());
-    const assignedInOtherZones = distinctAssignedZones.filter((existingZoneId) => existingZoneId !== zoneId);
-
-    if (!alreadyAssignedInCurrentZone) {
-      if (distinctAssignedZones.length >= 2) {
-        return res.status(400).json({
-          success: false,
-          message: 'This barangay already reached the maximum of 2 zones.',
-        });
-      }
-
-      if (assignedInOtherZones.length >= 1 && !hasSplitAssignment) {
-        return res.status(400).json({
-          success: false,
-          message: 'This barangay is locked to another zone. Mark its existing assignment as split before reusing it.',
-        });
-      }
-    }
-
     const row = await withPostgresPrimary(
       'zoneCoverageConfig.upsert',
       async () => {
         const { rows } = await pool.query(`
-          INSERT INTO zone_coverage_config (zone_id, barangay, purok_count, is_split)
+          INSERT INTO ${quoteIdentifier(primaryZoneCoverageTable)} (zone_id, barangay, purok_count, is_split)
           VALUES ($1, $2, $3, $4)
           ON CONFLICT (zone_id, barangay) DO UPDATE
           SET purok_count = EXCLUDED.purok_count,
@@ -5685,19 +5820,33 @@ app.post('/api/zone-coverage-config', async (req, res) => {
         return rows[0];
       },
       async () => {
-        const { data, error } = await supabase
-          .from('zone_coverage_config')
-          .upsert([{ zone_id: zoneId, barangay: barangay, purok_count: purokCount, is_split: isSplit }], { onConflict: 'zone_id,barangay' })
-          .select('config_id, zone_id, barangay, purok_count, is_split')
-          .single();
-        if (error) throw error;
-        return {
-          Config_ID: data.config_id,
-          Zone_ID: data.zone_id,
-          Barangay: data.barangay,
-          Purok_Count: Number(data.purok_count || 0),
-          Is_Split: Boolean(data.is_split),
-        };
+        for (const tableName of zoneCoverageTableCandidates) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .upsert([{ zone_id: zoneId, barangay: barangay, purok_count: purokCount, is_split: isSplit }], { onConflict: 'zone_id,barangay' })
+            .select('config_id, zone_id, barangay, purok_count, is_split')
+            .single();
+
+          if (error) {
+            if (isMissingSupabaseTableError(error, [tableName])) {
+              continue;
+            }
+            throw error;
+          }
+
+          return {
+            Config_ID: data.config_id,
+            Zone_ID: data.zone_id,
+            Barangay: data.barangay,
+            Purok_Count: Number(data.purok_count || 0),
+            Is_Split: Boolean(data.is_split),
+          };
+        }
+
+        throw createHttpError(
+          `Zone coverage table is missing in schema "${supabaseSchema}". Expected "${primaryZoneCoverageTable}" (or legacy: ${legacyZoneCoverageTables.join(', ')}).`,
+          500
+        );
       }
     );
     scheduleImmediateSync('zone-coverage-config-upsert');
@@ -5715,11 +5864,28 @@ app.delete('/api/zone-coverage-config/:id', async (req, res) => {
     await withPostgresPrimary(
       'zoneCoverageConfig.delete',
       async () => {
-        await pool.query('DELETE FROM zone_coverage_config WHERE config_id = $1', [id]);
+        await pool.query(`DELETE FROM ${quoteIdentifier(primaryZoneCoverageTable)} WHERE config_id = $1`, [id]);
       },
       async () => {
-        const { error } = await supabase.from('zone_coverage_config').delete().eq('config_id', id);
-        if (error && error.code !== '42P01') throw error;
+        let deleted = false;
+        for (const tableName of zoneCoverageTableCandidates) {
+          const { error } = await supabase.from(tableName).delete().eq('config_id', id);
+          if (error) {
+            if (isMissingSupabaseTableError(error, [tableName])) {
+              continue;
+            }
+            throw error;
+          }
+          deleted = true;
+          break;
+        }
+
+        if (!deleted) {
+          throw createHttpError(
+            `Zone coverage table is missing in schema "${supabaseSchema}". Expected "${primaryZoneCoverageTable}" (or legacy: ${legacyZoneCoverageTables.join(', ')}).`,
+            500
+          );
+        }
       }
     );
     scheduleImmediateSync('zone-coverage-config-delete');
@@ -7979,7 +8145,7 @@ app.post('/api/consumer/apply', async (req, res) => {
       async () => { const { data } = await supabase.from('connection_ticket').select('ticket_id, ticket_number').eq('account_id', accountId).in('status', ['Pending','Active']).limit(1); return data?.[0] || null; }
     );
     if (existingTicket) return res.status(409).json({ success: false, message: `You already have a pending application (Ticket: ${existingTicket.ticket_number}).` });
-    const ticketNumber = generateRegistrationTicketNumber();
+    let ticketNumber = null;
     const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
     const address = [purok, barangay, municipality || 'San Lorenzo Ruiz', zipCode || '4610'].filter(Boolean).join(', ');
     await withPostgresPrimary(
@@ -7988,6 +8154,7 @@ app.post('/api/consumer/apply', async (req, res) => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
+          ticketNumber = await generateSequentialRegistrationTicketNumber({ pgClient: client });
           await client.query(
             `UPDATE consumer
              SET first_name = COALESCE(NULLIF($1, ''), first_name),
@@ -8013,6 +8180,7 @@ app.post('/api/consumer/apply', async (req, res) => {
         } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
       },
       async () => {
+        ticketNumber = await generateSequentialRegistrationTicketNumber({ useSupabase: true });
         const { data: cData } = await supabase.from('consumer').select('consumer_id').eq('login_id', accountId).maybeSingle();
         if (!cData?.consumer_id) throw new Error('Consumer record not found.');
         await supabase.from('consumer').update({ first_name: firstName, middle_name: middleName, last_name: lastName, contact_number: normalizedPhone, purok, barangay, municipality, zip_code: zipCode, classification_id: normalizedClassificationId, address, status: 'Pending' }).eq('login_id', accountId);
@@ -8394,19 +8562,135 @@ app.put('/api/payments/:id/status', async (req, res) => {
   }
 });
 
-// Helper to send SMS (Mock for now)
-const sendSMS = async (phone, message) => {
+function normalizePhilippineSmsRecipient(phoneNumber) {
+  const localFormat = normalizePhilippinePhoneNumber(phoneNumber);
+  if (!localFormat) {
+    return null;
+  }
+  return `63${localFormat.slice(1)}`;
+}
+
+function sendFormUrlEncodedRequest(targetUrl, payload, { headers = {}, timeoutMs = 15000 } = {}) {
+  return new Promise((resolve, reject) => {
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch (error) {
+      reject(new Error(`Invalid SMS URL: ${targetUrl}`));
+      return;
+    }
+
+    const body = new URLSearchParams(payload).toString();
+    const request = https.request({
+      protocol: parsedUrl.protocol,
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+      path: `${parsedUrl.pathname}${parsedUrl.search}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(body),
+        ...headers,
+      },
+      timeout: timeoutMs,
+    }, (response) => {
+      let responseBody = '';
+      response.on('data', (chunk) => {
+        responseBody += chunk;
+      });
+      response.on('end', () => {
+        resolve({
+          ok: response.statusCode >= 200 && response.statusCode < 300,
+          statusCode: response.statusCode,
+          body: responseBody,
+        });
+      });
+    });
+
+    request.on('timeout', () => {
+      request.destroy(new Error('SMS request timed out.'));
+    });
+    request.on('error', (error) => reject(error));
+    request.write(body);
+    request.end();
+  });
+}
+
+async function sendSmsViaSemaphore(phone, message) {
+  const apiKey = String(process.env.SMS_SEMAPHORE_API_KEY || '').trim();
+  if (!apiKey) {
+    throw new Error('SMS_SEMAPHORE_API_KEY is missing. Configure it in backend/.env.');
+  }
+
+  const recipient = normalizePhilippineSmsRecipient(phone);
+  if (!recipient) {
+    throw new Error('Recipient phone number is invalid for SMS sending.');
+  }
+
+  const senderName = String(process.env.SMS_SEMAPHORE_SENDERNAME || '').trim();
+  const endpoint = String(process.env.SMS_SEMAPHORE_ENDPOINT || 'https://api.semaphore.co/api/v4/messages').trim();
+  const timeoutMs = Number(process.env.SMS_TIMEOUT_MS || 15000);
+  const payload = {
+    apikey: apiKey,
+    number: recipient,
+    message: String(message || '').trim(),
+  };
+  if (senderName) {
+    payload.sendername = senderName;
+  }
+
+  const response = await sendFormUrlEncodedRequest(endpoint, payload, { timeoutMs });
+  if (!response.ok) {
+    throw new Error(`Semaphore SMS failed (${response.statusCode}): ${response.body || 'No response body'}`);
+  }
+
+  let parsed;
   try {
+    parsed = response.body ? JSON.parse(response.body) : null;
+  } catch (error) {
+    parsed = response.body || null;
+  }
+
+  return {
+    success: true,
+    provider: 'semaphore',
+    recipient,
+    response: parsed,
+  };
+}
+
+// SMS provider driver (default is mock; set SMS_PROVIDER=semaphore for actual sending)
+const sendSMS = async (phone, message) => {
+  const provider = String(process.env.SMS_PROVIDER || 'mock').trim().toLowerCase();
+  const messageText = String(message || '').trim();
+  if (!messageText) {
+    throw new Error('SMS message is empty.');
+  }
+
+  if (provider === 'mock') {
     console.log(`\n--- MOCK SMS SENT ---`);
     console.log(`To: ${phone}`);
-    console.log(`Message: ${message}`);
+    console.log(`Message: ${messageText}`);
     console.log(`----------------------\n`);
-    return { success: true };
-  } catch (error) {
-    await logDatabaseError('sms.mock.send', error, { severity: 'WARNING' });
-    return { success: false, message: error.message };
+    return { success: true, provider: 'mock', recipient: phone };
   }
+
+  if (provider === 'semaphore') {
+    return sendSmsViaSemaphore(phone, messageText);
+  }
+
+  throw new Error(`Unsupported SMS_PROVIDER "${provider}". Use "semaphore" or "mock".`);
 };
+
+function buildPublicConcernSmsReply(subject, replyText) {
+  return [
+    'San Lorenzo Ruiz Waterworks System',
+    `Re: ${subject || 'Public Concern'}`,
+    String(replyText || '').trim(),
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
 
 // --- FORGOT PASSWORD ENDPOINTS ---
 app.post('/api/forgot-password/request', async (req, res) => {
@@ -8419,11 +8703,11 @@ app.post('/api/forgot-password/request', async (req, res) => {
     const user = await withPostgresPrimary(
       'forgotPassword.request',
       async () => {
-        const { rows } = await pool.query('SELECT account_id, username FROM accounts WHERE username = $1', [username]);
+        const { rows } = await pool.query('SELECT account_id, username, contact_number FROM accounts WHERE username = $1', [username]);
         return rows[0] || null;
       },
       async () => {
-        const { data, error } = await supabase.from('accounts').select('account_id, username').eq('username', username).maybeSingle();
+        const { data, error } = await supabase.from('accounts').select('account_id, username, contact_number').eq('username', username).maybeSingle();
         if (error) throw error;
         return data || null;
       }
@@ -8481,7 +8765,7 @@ app.post('/api/forgot-password/request', async (req, res) => {
       }
     );
 
-    await sendSMS(null, `Password reset code for ${username}: ${resetCode}`);
+    await sendSMS(user.contact_number, `Password reset code for ${username}: ${resetCode}`);
     return res.json({
       success: true,
       message: 'Password reset code generated successfully.',
@@ -8490,6 +8774,322 @@ app.post('/api/forgot-password/request', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'forgotPassword.request', error);
     console.error('Forgot password request error:', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/public/contact', async (req, res) => {
+  const fullName = String(req.body?.fullName || '').trim();
+  const barangay = String(req.body?.barangay || '').trim();
+  const rawContactNumber = String(req.body?.contactNumber || '').trim();
+  const subject = String(req.body?.subject || '').trim();
+  const message = String(req.body?.message || '').trim();
+
+  if (!fullName || !barangay || !rawContactNumber || !subject || !message) {
+    return res.status(400).json({ success: false, message: 'All required fields must be provided.' });
+  }
+
+  const normalizedContactNumber = normalizePhilippinePhoneNumber(rawContactNumber);
+  if (!normalizedContactNumber) {
+    return res.status(400).json({ success: false, message: 'Contact number must be a valid Philippine mobile number.' });
+  }
+
+  if (message.length < 10) {
+    return res.status(400).json({ success: false, message: 'Message must be at least 10 characters long.' });
+  }
+
+  try {
+    await withPostgresPrimary(
+      'public.contact.submit',
+      async () => {
+        await pool.query(
+          `INSERT INTO consumer_concerns
+            (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number)
+           VALUES (NULL, $1, $2, $3, $4, 'Normal', 'Pending', $5, $6, $7)`,
+          [defaultSystemLogAccountId, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber]
+        );
+      },
+      async () => {
+        const { error } = await supabase.from('consumer_concerns').insert([{
+          consumer_id: null,
+          account_id: defaultSystemLogAccountId,
+          category: 'Public Contact',
+          subject,
+          description: message,
+          priority: 'Normal',
+          status: 'Pending',
+          full_name: fullName,
+          barangay,
+          contact_number: normalizedContactNumber,
+        }]);
+        if (error) throw error;
+      }
+    );
+
+    await writeSystemLog(`[public-contact] ${fullName} submitted: ${subject}`, { role: 'Public' });
+    scheduleImmediateSync('public-contact-submit');
+    return res.json({ success: true, message: 'Message submitted successfully.' });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.submit', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit message.' });
+  }
+});
+
+app.get('/api/public-contact-messages', async (req, res) => {
+  const query = String(req.query?.q || '').trim().toLowerCase();
+  const statusFilter = String(req.query?.status || '').trim();
+
+  try {
+    const rows = await withPostgresPrimary(
+      'public.contact.list',
+      async () => {
+        const clauses = [];
+        const values = [['Public Contact', 'Public Concern']];
+
+        if (statusFilter) {
+          values.push(statusFilter);
+          clauses.push(`status = $${values.length}`);
+        }
+
+        if (query) {
+          values.push(`%${query}%`);
+          clauses.push(
+            `(LOWER(COALESCE(full_name, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(barangay, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(subject, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(description, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(contact_number, '')) LIKE $${values.length})`
+          );
+        }
+
+        const whereClause = `WHERE category = ANY($1::text[])${clauses.length ? ` AND ${clauses.join(' AND ')}` : ''}`;
+        const { rows } = await pool.query(
+          `SELECT concern_id AS message_id,
+                  full_name,
+                  barangay,
+                  contact_number,
+                  subject,
+                  description AS message,
+                  status,
+                  created_at,
+                  resolved_at AS reviewed_at,
+                  resolved_by AS reviewed_by,
+                  remarks
+           FROM consumer_concerns
+           ${whereClause}
+           ORDER BY created_at DESC, message_id DESC
+           LIMIT 500`,
+          values
+        );
+        return rows || [];
+      },
+      async () => {
+        let builder = supabase
+          .from('consumer_concerns')
+          .select('concern_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .in('category', ['Public Contact', 'Public Concern'])
+          .order('created_at', { ascending: false })
+          .limit(500);
+
+        if (statusFilter) {
+          builder = builder.eq('status', statusFilter);
+        }
+
+        const { data, error } = await builder;
+        if (error) throw error;
+
+        const normalizedData = data || [];
+        if (!query) return normalizedData;
+        return normalizedData.filter((row) => {
+          const haystack = [
+            row.full_name,
+            row.barangay,
+            row.subject,
+            row.description,
+            row.contact_number,
+          ]
+            .map((value) => String(value || '').toLowerCase())
+            .join(' ');
+          return haystack.includes(query);
+        });
+      }
+    );
+
+    return res.json({
+      success: true,
+      data: rows.map(mapPublicContactMessageRow),
+    });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.list', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
+  const id = Number(req.params.id);
+  const nextStatus = String(req.body?.status || '').trim();
+  const remarks = String(req.body?.remarks || '').trim() || null;
+  const reviewedBy = normalizeRequiredForeignKeyId(req.body?.reviewedBy || req.body?.reviewed_by || req.body?.actorAccountId);
+  const allowedStatuses = new Set(['Pending', 'In Progress', 'Resolved', 'Closed']);
+
+  if (!id || id < 1) {
+    return res.status(400).json({ success: false, message: 'A valid message ID is required.' });
+  }
+
+  if (!allowedStatuses.has(nextStatus)) {
+    return res.status(400).json({ success: false, message: 'Invalid status. Allowed values are Pending, In Progress, Resolved, and Closed.' });
+  }
+
+  try {
+    const updated = await withPostgresPrimary(
+      'public.contact.updateStatus',
+      async () => {
+        const { rows } = await pool.query(
+          `UPDATE consumer_concerns
+              SET status = $1::varchar,
+                  remarks = COALESCE($2, remarks),
+                  resolved_by = COALESCE($3, resolved_by),
+                  resolved_at = CASE
+                    WHEN $1::varchar IN ('Resolved', 'Closed') THEN NOW()
+                    WHEN $1::varchar IN ('Pending', 'In Progress') THEN NULL
+                    ELSE resolved_at
+                  END
+            WHERE concern_id = $4
+              AND category = ANY($5::text[])
+            RETURNING concern_id AS message_id, full_name, barangay, contact_number, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
+          [nextStatus, remarks, reviewedBy, id, ['Public Contact', 'Public Concern']]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const payload = {
+          status: nextStatus,
+          remarks: remarks,
+          resolved_by: reviewedBy,
+          resolved_at: ['Resolved', 'Closed'].includes(nextStatus) ? new Date().toISOString() : null,
+        };
+        const { data, error } = await supabase
+          .from('consumer_concerns')
+          .update(payload)
+          .eq('concern_id', id)
+          .in('category', ['Public Contact', 'Public Concern'])
+          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .maybeSingle();
+        if (error) throw error;
+        return data || null;
+      }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Public concern not found.' });
+    }
+
+    if (remarks && updated.contact_number) {
+      const smsReply = buildPublicConcernSmsReply(updated.subject, remarks);
+      await sendSMS(updated.contact_number, smsReply);
+    }
+
+    await writeSystemLog(`[public-contact] Message #${id} marked ${nextStatus}.`, {
+      userId: reviewedBy || defaultSystemLogAccountId,
+      role: 'Admin',
+    });
+    scheduleImmediateSync('public-contact-status-update');
+
+    return res.json({
+      success: true,
+      message: 'Public concern status updated successfully.',
+      data: mapPublicContactMessageRow(updated),
+    });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.updateStatus', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
+app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
+  const id = Number(req.params.id);
+  const reply = String(req.body?.reply || '').trim();
+  const reviewedBy = normalizeRequiredForeignKeyId(req.body?.reviewedBy || req.body?.reviewed_by || req.body?.actorAccountId);
+
+  if (!id || id < 1) {
+    return res.status(400).json({ success: false, message: 'A valid message ID is required.' });
+  }
+
+  if (!reply) {
+    return res.status(400).json({ success: false, message: 'Reply message is required.' });
+  }
+
+  try {
+    const updated = await withPostgresPrimary(
+      'public.contact.reply',
+      async () => {
+        const { rows } = await pool.query(
+          `UPDATE consumer_concerns
+              SET remarks = $1,
+                  resolved_by = COALESCE($2, resolved_by),
+                  resolved_at = NOW(),
+                  status = CASE WHEN status = 'Pending' THEN 'In Progress' ELSE status END
+            WHERE concern_id = $3
+              AND category = ANY($4::text[])
+            RETURNING concern_id AS message_id, full_name, barangay, contact_number, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
+          [reply, reviewedBy, id, ['Public Contact', 'Public Concern']]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const payload = {
+          remarks: reply,
+          resolved_by: reviewedBy,
+          resolved_at: new Date().toISOString(),
+        };
+        const { data, error } = await supabase
+          .from('consumer_concerns')
+          .update(payload)
+          .eq('concern_id', id)
+          .in('category', ['Public Contact', 'Public Concern'])
+          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) return null;
+
+        if (data.status === 'Pending') {
+          const { data: updatedStatusData, error: statusError } = await supabase
+            .from('consumer_concerns')
+            .update({ status: 'In Progress' })
+            .eq('concern_id', id)
+            .in('category', ['Public Contact', 'Public Concern'])
+            .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+            .maybeSingle();
+          if (statusError) throw statusError;
+          return updatedStatusData || data;
+        }
+
+        return data;
+      }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Public concern not found.' });
+    }
+
+    if (updated.contact_number) {
+      const smsReply = buildPublicConcernSmsReply(updated.subject, reply);
+      await sendSMS(updated.contact_number, smsReply);
+    }
+
+    await writeSystemLog(`[public-contact] Message #${id} replied.`, {
+      userId: reviewedBy || defaultSystemLogAccountId,
+      role: 'Billing Officer',
+    });
+    scheduleImmediateSync('public-contact-reply');
+
+    return res.json({
+      success: true,
+      message: 'Reply sent successfully.',
+      data: mapPublicContactMessageRow(updated),
+    });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.reply', error);
     return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
   }
 });
@@ -8709,12 +9309,16 @@ app.post('/api/register', async (req, res) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 
+  if (!normalizedRequirementsSubmitted) {
+    return res.status(400).json({ success: false, message: 'Sedula image is required to complete registration.' });
+  }
+
   try {
     if (await isUsernameTaken(username)) {
       return res.status(400).json({ success: false, message: 'Username is already taken.' });
     }
 
-    const ticketNumber = generateRegistrationTicketNumber();
+    let ticketNumber = null;
     let createdAccountId = null;
     let authUserId = null;
 
@@ -8730,6 +9334,7 @@ app.post('/api/register', async (req, res) => {
               { tableName: 'consumer', primaryKey: 'consumer_id' },
               { tableName: 'connection_ticket', primaryKey: 'ticket_id' },
             ]);
+            ticketNumber = await generateSequentialRegistrationTicketNumber({ pgClient: client });
 
             try {
               const { rows } = await client.query(
@@ -8770,6 +9375,7 @@ app.post('/api/register', async (req, res) => {
       async () => {
         let accountId = null;
         let consumerId = null;
+        ticketNumber = await generateSequentialRegistrationTicketNumber({ useSupabase: true });
 
         const accountRow = await insertSupabaseRowWithPrimaryKeyRetry(
           'accounts',
@@ -8936,7 +9542,12 @@ app.post('/api/auth/google', async (req, res) => {
     // New Google user — create account + consumer with Active status
     const [firstName = '', ...restName] = googleName.split(' ');
     const lastName = restName.join(' ') || firstName;
-    const generatedUsername = googleEmail.split('@')[0] || `google_${Date.now()}`;
+    const defaultMunicipality = 'San Lorenzo Ruiz';
+    const defaultZipCode = '4610';
+    const defaultBarangay = 'Not Specified';
+    const defaultPurok = 'Not Specified';
+    const defaultAddress = [defaultPurok, defaultBarangay, defaultMunicipality, defaultZipCode].join(', ');
+    const generatedUsername = await generateAvailableUsername(googleEmail.split('@')[0] || `google_${Date.now()}`);
     const generatedPassword = `google_${crypto.randomUUID()}`;
     const generatedPasswordHash = hashPassword(generatedPassword);
 
@@ -8960,9 +9571,31 @@ app.post('/api/auth/google', async (req, res) => {
           const accountId = accountRows[0].account_id;
 
           await client.query(`
-            INSERT INTO consumer (first_name, last_name, login_id, status, municipality, zip_code)
-            VALUES ($1, $2, $3, $4, $5, $6)
-          `, [firstName || generatedUsername, lastName || '', accountId, 'Active', 'San Lorenzo Ruiz', '4610']);
+            INSERT INTO consumer (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number)
+            VALUES (
+              $1,
+              $2,
+              $3,
+              $4,
+              COALESCE(NULLIF($5, ''), 'Not Specified, Not Specified, San Lorenzo Ruiz, 4610'),
+              COALESCE(NULLIF($6, ''), 'Not Specified'),
+              COALESCE(NULLIF($7, ''), 'Not Specified'),
+              COALESCE(NULLIF($8, ''), 'San Lorenzo Ruiz'),
+              COALESCE(NULLIF($9, ''), '4610'),
+              $10
+            )
+          `, [
+            firstName || generatedUsername,
+            lastName || '',
+            accountId,
+            'Active',
+            defaultAddress,
+            defaultPurok,
+            defaultBarangay,
+            defaultMunicipality,
+            defaultZipCode,
+            null,
+          ]);
 
           await client.query('COMMIT');
           return accountRows[0];
@@ -8997,8 +9630,12 @@ app.post('/api/auth/google', async (req, res) => {
             last_name: lastName || '',
             login_id: accountData.account_id,
             status: 'Active',
-            municipality: 'San Lorenzo Ruiz',
-            zip_code: '4610',
+            address: defaultAddress,
+            purok: defaultPurok,
+            barangay: defaultBarangay,
+            municipality: defaultMunicipality,
+            zip_code: defaultZipCode,
+            contact_number: null,
           }]);
         if (consumerError) throw consumerError;
 
@@ -10276,6 +10913,22 @@ function normalizeReadingSchedulePayload(rawSchedule, overrideDate = null) {
     zone_id: zoneId,
     meter_reader_id: normalizedReaderId,
     status,
+  };
+}
+
+function mapPublicContactMessageRow(row) {
+  return {
+    message_id: Number(row?.message_id || row?.concern_id || 0),
+    full_name: row?.full_name || '',
+    barangay: row?.barangay || '',
+    contact_number: row?.contact_number || '',
+    subject: row?.subject || '',
+    message: row?.message || row?.description || '',
+    status: row?.status || 'Pending',
+    created_at: row?.created_at || null,
+    reviewed_at: row?.reviewed_at || row?.resolved_at || null,
+    reviewed_by: row?.reviewed_by || row?.resolved_by || null,
+    remarks: row?.remarks || null,
   };
 }
 

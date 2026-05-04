@@ -4,3 +4,9 @@ node_modules
 backend/.env
 web-app/.env
 backend/sync-logs/
+*.log
+startup-*.log
+root.start.*.log
+backend/*.log
+web-app/*.log
+web-app/build/

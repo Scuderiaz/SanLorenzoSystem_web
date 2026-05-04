@@ -13,6 +13,18 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
 
+    const readAccessTokenFromHash = () => {
+      const hash = String(window.location.hash || '');
+      if (!hash.startsWith('#')) return '';
+      const params = new URLSearchParams(hash.slice(1));
+      return String(params.get('access_token') || '').trim();
+    };
+
+    const getRedirectPathByRole = (roleId: number) => {
+      if (roleId === 5) return '/consumer';
+      return '/dashboard';
+    };
+
     const handleOAuthCallback = async () => {
       try {
         if (!supabase) {
@@ -20,28 +32,43 @@ const AuthCallback: React.FC = () => {
           return;
         }
 
-        // Supabase automatically picks up the session from the URL hash fragment
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const url = new URL(window.location.href);
+        const authCode = String(url.searchParams.get('code') || '').trim();
+        let accessToken = readAccessTokenFromHash();
 
-        if (sessionError) {
-          console.error('Supabase session error:', sessionError);
-          setError(sessionError.message || 'Failed to retrieve Google session.');
-          return;
+        // PKCE callback flow: exchange code for session
+        if (!accessToken && authCode) {
+          const { data: exchanged, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode);
+          if (exchangeError) {
+            setError(exchangeError.message || 'Failed to complete Google sign-in.');
+            return;
+          }
+          accessToken = String(exchanged?.session?.access_token || '').trim();
         }
 
-        if (!session?.access_token) {
+        // Implicit flow fallback: read current session
+        if (!accessToken) {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) {
+            console.error('Supabase session error:', sessionError);
+            setError(sessionError.message || 'Failed to retrieve Google session.');
+            return;
+          }
+          accessToken = String(session?.access_token || '').trim();
+        }
+
+        if (!accessToken) {
           setError('No active session found. Please try signing in again.');
           return;
         }
 
-        // Send the Supabase access token to our backend for account creation/lookup
-        const result = await authService.loginWithGoogle(session.access_token);
+        const result = await authService.loginWithGoogle(accessToken);
 
         if (cancelled) return;
 
         if (result.success) {
           login(result.user);
-          navigate('/consumer');
+          navigate(getRedirectPathByRole(Number(result.user?.role_id || 5)));
         } else {
           setError(result.message || 'Google sign-in failed.');
         }
@@ -65,9 +92,9 @@ const AuthCallback: React.FC = () => {
       <div className="login-container">
         <div className="login-header">
           <div className="logo-placeholder">
-            <img src="/slr-logo.svg" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
+            <img src="/images/SLR logo 1.png" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
           </div>
-          <h1>San Lorenzo Ruiz Municipal</h1>
+          <h1>San Lorenzo Ruiz Waterworks System</h1>
           <h2>Water Billing and Payment Record Management System</h2>
         </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/api';
+import './Login.css';
 import './ForgotPassword.css';
 
 const ForgotPassword: React.FC = () => {
@@ -192,10 +193,10 @@ const ForgotPassword: React.FC = () => {
       <div className="login-container forgot-pass-container">
         <div className="login-header">
           <div className="logo-placeholder" onClick={() => navigate('/')}>
-            <img src="/slr-logo.svg" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
+            <img src="/images/SLR logo 1.png" alt="San Lorenzo Ruiz Logo" className="slr-logo" />
           </div>
-          <h1>San Lorenzo Ruiz</h1>
-          <h2>Water Billing System</h2>
+          <h1>San Lorenzo Ruiz Waterworks System</h1>
+          <h2>Water Billing and Payment Record Management System</h2>
         </div>
 
         {error && (

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
 const LandingPage: React.FC = () => {
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,64 +21,28 @@ const LandingPage: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-
-  // Apply modal state
-  const [showApplyModal, setShowApplyModal] = useState(false);
-  const [applyStep, setApplyStep] = useState<1 | 2>(1);
-  const [applyForm, setApplyForm] = useState({
-    firstName: '', middleName: '', lastName: '', phone: '',
-    purok: '', barangay: '', municipality: 'San Lorenzo Ruiz', zipCode: '4610',
-  });
-  const [scheduleData, setScheduleData] = useState<{ date: string; slot: string }>({ date: '', slot: '' });
-  const [applyError, setApplyError] = useState('');
-  const [applyLoading, setApplyLoading] = useState(false);
-  const [applySuccess, setApplyTicketNumber] = useState('');
-
-  // Calendar state for apply modal
-  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-  const MORNING_SLOTS = ['08:00–08:30','08:30–09:00','09:00–09:30','09:30–10:00','10:00–10:30','10:30–11:00'];
-  const AFTERNOON_SLOTS = ['01:00–01:30','01:30–02:00','02:00–02:30','02:30–03:00','03:00–03:30','03:30–04:00'];
-
-  const today = new Date();
-  const [calMonth, setCalMonth] = useState(today.getMonth());
-  const [calYear, setCalYear] = useState(today.getFullYear());
-
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-
-  const selectDate = (d: number) => {
-    const dt = new Date(calYear, calMonth, d);
-    if (dt.getDay() === 0 || dt < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return;
-    setScheduleData(s => ({ ...s, date: `${MONTHS[calMonth]} ${d}, ${calYear}` }));
-  };
-
-  const handleApplySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scheduleData.date || !scheduleData.slot) {
-      setApplyError('Please select an inspection date and time slot.');
-      return;
-    }
-    setApplyLoading(true);
-    setApplyError('');
-    try {
-      const res = await fetch('/api/consumer/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...applyForm, preferredDate: scheduleData.date, preferredSlot: scheduleData.slot }),
-      });
-      const data = await res.json();
-      if (data?.success) {
-        setApplyTicketNumber(data.ticketNumber);
-      } else {
-        setApplyError(data?.message || 'Submission failed. Please try again.');
-      }
-    } catch {
-      setApplyError('Failed to submit. Please try again.');
-    } finally {
-      setApplyLoading(false);
-    }
-  };
+  const [submitError, setSubmitError] = useState('');
+  const barangayOptions = [
+    'Daculang Bolo',
+    'Dagotdotan',
+    'Laniton',
+    'Langga',
+    'Maisog',
+    'Mampurog',
+    'Matacong',
+    'San Isidro',
+    'San Ramon',
+  ];
+  const subjectOptions = [
+    'Water Billing Concern',
+    'New Connection Inquiry',
+    'Reconnection Inquiry',
+    'Meter Reading Concern',
+    'Water Leak / Repair Request',
+    'Payment Concern',
+    'Account/Profile Concern',
+    'Other Concern',
+  ];
 
   // Service data with full details
   const servicesData = {
@@ -129,11 +94,11 @@ const LandingPage: React.FC = () => {
         'Connection to nearest water main line',
         'Water quality testing before activation',
         'Consumer orientation on proper water usage',
-        'Issuance of official receipt and contract'
+        ' issuance of official receipt and contract'
       ],
       requirements: [
         'Barangay Clearance',
-        "Valid ID (Passport, Driver's License, etc.)",
+        'Valid ID (Passport, Driver\'s License, etc.)',
         'Proof of property ownership or lease',
         'Sedula or Tax Certificate',
         '2x2 ID photo (2 copies)',
@@ -191,9 +156,9 @@ const LandingPage: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Lock body scroll when modals are open
+  // Lock body scroll when service modal is open
   useEffect(() => {
-    if (selectedService || showApplyModal) {
+    if (selectedService) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -201,7 +166,7 @@ const LandingPage: React.FC = () => {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [selectedService, showApplyModal]);
+  }, [selectedService]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -213,12 +178,50 @@ const LandingPage: React.FC = () => {
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitSuccess(false);
+    setSubmitError('');
+
+    const normalizedPayload = {
+      fullName: formData.fullName.trim(),
+      barangay: formData.barangay.trim(),
+      contactNumber: formData.contactNumber.trim(),
+      subject: formData.subject.trim(),
+      message: formData.message.trim(),
+    };
+
+    if (
+      !normalizedPayload.fullName ||
+      !normalizedPayload.barangay ||
+      !normalizedPayload.contactNumber ||
+      !normalizedPayload.subject ||
+      !normalizedPayload.message
+    ) {
+      setSubmitError('Please complete all fields before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
-    setFormData({ fullName: '', barangay: '', contactNumber: '', subject: '', message: '' });
-    setTimeout(() => setSubmitSuccess(false), 5000);
+
+    try {
+      const response = await fetch(`${API_URL}/public/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(normalizedPayload),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || 'Unable to submit your message right now.');
+      }
+
+      setSubmitSuccess(true);
+      setFormData({ fullName: '', barangay: '', contactNumber: '', subject: '', message: '' });
+      setTimeout(() => setSubmitSuccess(false), 5000);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to submit your message right now.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -227,9 +230,9 @@ const LandingPage: React.FC = () => {
       <nav className={`landing-nav ${isScrolled ? 'scrolled' : ''}`}>
         <div className="nav-container">
           <div className="nav-logo" onClick={() => scrollToSection('hero')}>
-            <img src="/slr-logo.png" alt="San Lorenzo Ruiz Water Billing" />
+            <img src="/slr-water-billing-logo.png" alt="SLR Water Billing Logo" />
           </div>
-
+          
           <div className="nav-links-wrapper">
             <ul className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
               <li><button onClick={() => scrollToSection('about')}>About</button></li>
@@ -250,8 +253,8 @@ const LandingPage: React.FC = () => {
             <button className="btn-login" onClick={() => navigate('/login')}>Log In</button>
           </div>
 
-          <button
-            className="mobile-menu-btn"
+          <button 
+            className="mobile-menu-btn" 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'}`} />
@@ -272,22 +275,11 @@ const LandingPage: React.FC = () => {
               <span className="title-sub">WATER BILLING</span>
             </h1>
             <p className="hero-description">
-              Providing reliable, clean, and accessible water services to our community.
+              Providing reliable, clean, and accessible water services to our community. 
               Manage your water billing, apply for a new connection, and stay informed all in one place.
             </p>
             <div className="hero-buttons">
-              <button
-                className="btn-apply"
-                onClick={() => {
-                  setApplyStep(1);
-                  setScheduleData({ date: '', slot: '' });
-                  setApplyError('');
-                  setApplyTicketNumber('');
-                  setShowApplyModal(true);
-                }}
-              >
-                APPLY NOW
-              </button>
+              <button className="btn-apply" onClick={() => scrollToSection('apply')}>APPLY NOW</button>
               <button className="btn-contact" onClick={() => scrollToSection('contact')}>CONTACT US</button>
             </div>
           </div>
@@ -308,20 +300,20 @@ const LandingPage: React.FC = () => {
                 WITH CLEAN WATER ACCESS
               </h2>
               <p className="about-lead">
-                Providing reliable, clean, and accessible water services to our community.
+                Providing reliable, clean, and accessible water services to our community. 
                 Manage your water billing, apply for a new connection, and stay informed all in one place.
               </p>
               <p className="about-description">
-                The San Lorenzo Ruiz Water Billing Office manages water supply, billing, and new connection
-                services for residents and businesses within our coverage area. Our office is committed
+                The San Lorenzo Ruiz Water Billing Office manages water supply, billing, and new connection 
+                services for residents and businesses within our coverage area. Our office is committed 
                 to transparency, efficiency, and quality service delivery.
               </p>
               <p className="about-description">
-                We handle all water-related concerns including monthly billing, meter reading, application
+                We handle all water-related concerns including monthly billing, meter reading, application 
                 for new connections, water disconnection and reconnection requests, and assistance with billing disputes.
               </p>
               <p className="about-description">
-                Our team works tirelessly to ensure that every member of our community has access to
+                Our team works tirelessly to ensure that every member of our community has access to 
                 potable water — a basic necessity and a fundamental right.
               </p>
             </div>
@@ -354,28 +346,52 @@ const LandingPage: React.FC = () => {
             <div className="services-slider">
               <div className="service-card" onClick={() => setSelectedService('water-supply')} role="button" tabIndex={0}>
                 <h3 className="service-title">WATER SUPPLY</h3>
-                <div className="service-image"><img src="/images/water-supply.png" alt="Water Supply" /></div>
-                <p className="service-description">Provision of potable water to residential, commercial, and institutional concessionaires within the service area.</p>
+                <div className="service-image">
+                  <img src="/images/water-supply.png" alt="Water Supply" />
+                </div>
+                <p className="service-description">
+                  Provision of potable water to residential, commercial, and institutional concessionaires within the service area.
+                </p>
               </div>
+
               <div className="service-card" onClick={() => setSelectedService('monthly-billing')} role="button" tabIndex={0}>
                 <h3 className="service-title">MONTHLY BILLING</h3>
-                <div className="service-image"><img src="/images/billing.png" alt="Monthly Billing" /></div>
-                <p className="service-description">Monthly meter reading and billing for all registered concessionaires based on actual consumption.</p>
+                <div className="service-image">
+                  <img src="/images/billing.png" alt="Monthly Billing" />
+                </div>
+                <p className="service-description">
+                  Monthly meter reading and billing for all registered concessionaires based on actual consumption.
+                </p>
               </div>
+
               <div className="service-card" onClick={() => setSelectedService('new-connection')} role="button" tabIndex={0}>
                 <h3 className="service-title">NEW WATER CONNECTION</h3>
-                <div className="service-image"><img src="/images/connection.png" alt="New Water Connection" /></div>
-                <p className="service-description">Processing of applications for new water connections including site inspection and installation.</p>
+                <div className="service-image">
+                  <img src="/images/connection.png" alt="New Water Connection" />
+                </div>
+                <p className="service-description">
+                  Processing of applications for new water connections including site inspection and installation.
+                </p>
               </div>
+
               <div className="service-card" onClick={() => setSelectedService('reconnection')} role="button" tabIndex={0}>
                 <h3 className="service-title">RECONNECTION</h3>
-                <div className="service-image"><img src="/images/disconnection.png" alt="Reconnection" /></div>
-                <p className="service-description">Processing of water reconnection upon settlement of outstanding balance.</p>
+                <div className="service-image">
+                  <img src="/images/disconnection.png" alt="Reconnection" />
+                </div>
+                <p className="service-description">
+                  Processing of water reconnection upon settlement of outstanding balance.
+                </p>
               </div>
+
               <div className="service-card" onClick={() => setSelectedService('repair-services')} role="button" tabIndex={0}>
                 <h3 className="service-title">REPAIR SERVICES</h3>
-                <div className="service-image"><img src="/images/repair.png" alt="Repair Services" /></div>
-                <p className="service-description">Addressing reported water line issues such as leakages and main line problems within the service area.</p>
+                <div className="service-image">
+                  <img src="/images/repair.png" alt="Repair Services" />
+                </div>
+                <p className="service-description">
+                  Addressing reported water line issues such as leakages and main line problems within the service area.
+                </p>
               </div>
             </div>
 
@@ -394,6 +410,7 @@ const LandingPage: React.FC = () => {
                 <button className="service-modal-close" onClick={() => setSelectedService(null)}>
                   <i className="fas fa-times"></i>
                 </button>
+                
                 {(() => {
                   const service = servicesData[selectedService as keyof typeof servicesData];
                   return (
@@ -402,15 +419,27 @@ const LandingPage: React.FC = () => {
                         <img src={service.image} alt={service.title} />
                         <h2>{service.title}</h2>
                       </div>
+                      
                       <p className="service-modal-description">{service.description}</p>
+                      
                       <div className="service-modal-section">
                         <h3><i className="fas fa-check-circle"></i> Service Details</h3>
-                        <ul>{service.details.map((detail, idx) => <li key={idx}>{detail}</li>)}</ul>
+                        <ul>
+                          {service.details.map((detail, idx) => (
+                            <li key={idx}>{detail}</li>
+                          ))}
+                        </ul>
                       </div>
+                      
                       <div className="service-modal-section">
                         <h3><i className="fas fa-file-alt"></i> Requirements</h3>
-                        <ul>{service.requirements.map((req, idx) => <li key={idx}>{req}</li>)}</ul>
+                        <ul>
+                          {service.requirements.map((req, idx) => (
+                            <li key={idx}>{req}</li>
+                          ))}
+                        </ul>
                       </div>
+                      
                       <div className="service-modal-fees">
                         <h3><i className="fas fa-money-bill-wave"></i> Fees</h3>
                         <p>{service.fees}</p>
@@ -433,7 +462,9 @@ const LandingPage: React.FC = () => {
         <div className="section-container">
           <div className="apply-header">
             <span className="section-label light">Application Process</span>
-            <h2 className="section-title light">HOW TO APPLY FOR<br />WATER CONNECTION</h2>
+            <h2 className="section-title light">
+              HOW TO APPLY FOR<br />WATER CONNECTION
+            </h2>
             <p className="section-subtitle light">
               Getting a water connection is simple. Follow these steps and our staff will guide you through the process.
             </p>
@@ -443,24 +474,42 @@ const LandingPage: React.FC = () => {
             <div className="step-card">
               <div className="step-number">01</div>
               <h3 className="step-title">Visit the Office or<br />Apply Online</h3>
-              <p className="step-description">Come to our office in person or submit your application through our water billing system.</p>
-              <p className="step-description">Either way, we'll walk you through everything you need to get started with your new water connection.</p>
+              <p className="step-description">
+                Come to our office in person or submit your application through our water billing system.
+              </p>
+              <p className="step-description">
+                Either way, we'll walk you through everything you need to get started with your new water connection.
+              </p>
             </div>
+
             <div className="step-card">
               <div className="step-number">02</div>
               <h3 className="step-title">Fill Out the<br />Application Form</h3>
-              <p className="step-description">Complete the application form and prepare your requirements: a valid Cedula and the total payment of ₱1,850 (₱300 connection fee, ₱50 membership fee, ₱1,500 water meter).</p>
-              <p className="step-description">Necessary pipe materials will be determined during the inspection.</p>
+              <p className="step-description">
+                Complete the application form and prepare your requirements: a valid Cedula and the total payment of ₱1,850 
+                (₱300 connection fee, ₱50 membership fee, ₱1,500 water meter).
+              </p>
+              <p className="step-description">
+                Necessary pipe materials will be determined during the inspection.
+              </p>
             </div>
+
             <div className="step-card">
               <div className="step-number">03</div>
               <h3 className="step-title">Site<br />Inspection</h3>
-              <p className="step-description">A site inspection will be conducted the next day after your application is submitted to verify your property's eligibility for connection.</p>
+              <p className="step-description">
+                A site inspection will be conducted the next day after your application is submitted to verify 
+                your property's eligibility for connection.
+              </p>
             </div>
+
             <div className="step-card">
               <div className="step-number">04</div>
               <h3 className="step-title"><br />Installation</h3>
-              <p className="step-description">Once the inspection is cleared, our team will proceed with the installation of your water connection and meter at your property.</p>
+              <p className="step-description">
+                Once the inspection is cleared, our team will proceed with the installation of your water 
+                connection and meter at your property.
+              </p>
             </div>
           </div>
 
@@ -477,9 +526,13 @@ const LandingPage: React.FC = () => {
                 <li><i className="fas fa-check-circle" /> Total Payment: ₱1,850</li>
               </ul>
             </div>
+
             <div className="note-card">
               <h3 className="note-title">NOTE:</h3>
-              <p className="note-text">Materials for the connection are to be purchased by the applicant (Consumer). Please contact our office for more details on material requirements specific to your property.</p>
+              <p className="note-text">
+                Materials for the connection are to be purchased by the applicant (Consumer). 
+                Please contact our office for more details on material requirements specific to your property.
+              </p>
             </div>
           </div>
         </div>
@@ -492,9 +545,11 @@ const LandingPage: React.FC = () => {
             <span className="section-label blue">Where to Find Us</span>
             <h2 className="section-title dark">VISIT OUR OFFICE</h2>
             <p className="section-subtitle dark">
-              We are conveniently located and accessible to all residents in our service area. Feel free to drop by during office hours.
+              We are conveniently located and accessible to all residents in our service area. 
+              Feel free to drop by during office hours.
             </p>
           </div>
+
           <div className="location-content">
             <div className="location-map">
               <iframe
@@ -508,22 +563,34 @@ const LandingPage: React.FC = () => {
                 title="San Lorenzo Ruiz Municipal Hall Location"
               />
             </div>
+
             <div className="location-info-card">
               <div className="info-block">
                 <h4 className="info-title">ADDRESS</h4>
-                <p className="info-text">San Lorenzo Ruiz Water Billing Office<br />Barangay San Lorenzo Ruiz<br />Camarines Norte, Philippines</p>
+                <p className="info-text">
+                  San Lorenzo Ruiz Water Billing Office<br />
+                  Barangay San Lorenzo Ruiz<br />
+                  Camarines Norte, Philippines
+                </p>
               </div>
+
               <div className="info-block">
                 <h4 className="info-title">PHONE / CONTACT</h4>
                 <p className="info-text">09123456789</p>
               </div>
+
               <div className="info-block">
                 <h4 className="info-title">INQUIRIES</h4>
                 <p className="info-text">Contact us in person at the billing office or through our system</p>
               </div>
+
               <div className="info-block">
                 <h4 className="info-title">HOW TO GET HERE</h4>
-                <p className="info-text">Our office is located inside the San Lorenzo Ruiz Municipal Hall. From Camambugan Terminal, ride a jeepney going to San Lorenzo Ruiz and get off in front of the Parish Church. Walk inside the Municipal Hall and look for the Water Billing Office. You may ask any personnel inside for directions.</p>
+                <p className="info-text">
+                  Our office is located inside the San Lorenzo Ruiz Municipal Hall. From Camambugan Terminal, 
+                  ride a jeepney going to San Lorenzo Ruiz and get off in front of the Parish Church. Walk inside 
+                  the Municipal Hall and look for the Water Billing Office. You may ask any personnel inside for directions.
+                </p>
               </div>
             </div>
           </div>
@@ -539,9 +606,14 @@ const LandingPage: React.FC = () => {
         <div className="section-container">
           <div className="schedule-header">
             <span className="section-label yellow">Schedule</span>
-            <h2 className="section-title light">OFFICE HOURS &<br />IMPORTANT DATES</h2>
-            <p className="section-subtitle light">Plan your visit accordingly. Walk-in services are available during regular office hours.</p>
+            <h2 className="section-title light">
+              OFFICE HOURS &<br />IMPORTANT DATES
+            </h2>
+            <p className="section-subtitle light">
+              Plan your visit accordingly. Walk-in services are available during regular office hours.
+            </p>
           </div>
+
           <div className="schedule-grid">
             <div className="schedule-card office-hours">
               <h3 className="schedule-card-title"><i className="fas fa-clock" /> Regular Office Hours</h3>
@@ -555,6 +627,7 @@ const LandingPage: React.FC = () => {
                 <div className="hours-row closed"><span>Sunday</span><span>Closed</span></div>
               </div>
             </div>
+
             <div className="schedule-info-cards">
               <div className="schedule-card billing-schedule">
                 <h3 className="schedule-card-title"><i className="fas fa-calendar-alt" /> Billing & Payment Schedule</h3>
@@ -567,6 +640,7 @@ const LandingPage: React.FC = () => {
                   <div className="schedule-row"><span>Reconnection Fee</span><span>₱50</span></div>
                 </div>
               </div>
+
               <div className="schedule-card other-info">
                 <h3 className="schedule-card-title"><i className="fas fa-info-circle" /> Other Important Info</h3>
                 <div className="schedule-table">
@@ -585,47 +659,88 @@ const LandingPage: React.FC = () => {
         <div className="section-container">
           <div className="contact-header">
             <span className="section-label blue">Get In Touch</span>
-            <h2 className="section-title dark">HAVE QUESTIONS OR NEED ASSISTANCE?</h2>
+            <h2 className="section-title dark">
+              HAVE QUESTIONS OR NEED ASSISTANCE?
+            </h2>
             <p className="section-subtitle dark">
               Our team is here to help. <span className="highlight">Visit us</span> during office hours or{' '}
               <span className="highlight">fill out the form below</span> and our staff will get back to you as soon as possible.
             </p>
           </div>
+
           <form className="contact-form" onSubmit={handleContactSubmit}>
             <div className="form-grid">
               <div className="form-left">
                 <div className="form-group">
                   <label className="form-label">Full Name</label>
-                  <input type="text" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} required />
+                  <input 
+                    type="text" 
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                    required
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Barangay</label>
-                  <input type="text" value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value})} required />
+                  <select
+                    value={formData.barangay}
+                    onChange={(e) => setFormData({...formData, barangay: e.target.value})}
+                    required
+                  >
+                    <option value="" disabled>Select barangay</option>
+                    {barangayOptions.map((barangayOption) => (
+                      <option key={barangayOption} value={barangayOption}>{barangayOption}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Contact Number</label>
-                  <input type="tel" value={formData.contactNumber} onChange={(e) => setFormData({...formData, contactNumber: e.target.value})} required />
+                  <input 
+                    type="tel" 
+                    value={formData.contactNumber}
+                    onChange={(e) => setFormData({...formData, contactNumber: e.target.value})}
+                    required
+                  />
                 </div>
               </div>
               <div className="form-right">
                 <div className="form-group">
                   <label className="form-label">Subject</label>
-                  <input type="text" value={formData.subject} onChange={(e) => setFormData({...formData, subject: e.target.value})} required />
+                  <select
+                    value={formData.subject}
+                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                    required
+                  >
+                    <option value="" disabled>Select subject</option>
+                    {subjectOptions.map((subjectOption) => (
+                      <option key={subjectOption} value={subjectOption}>{subjectOption}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Message</label>
-                  <textarea value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} rows={5} required />
+                  <textarea 
+                    value={formData.message}
+                    onChange={(e) => setFormData({...formData, message: e.target.value})}
+                    rows={5}
+                    required
+                  />
                 </div>
-                <div className="form-group">
-                  <button type="submit" className="btn-submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
-                  </button>
-                </div>
+              </div>
+              <div className="form-submit-row">
+                <button type="submit" className="btn-submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
+                </button>
               </div>
             </div>
             {submitSuccess && (
               <div className="form-success">
                 <i className="fas fa-check-circle" /> Thank you! Your message has been sent successfully.
+              </div>
+            )}
+            {submitError && (
+              <div className="form-error">
+                <i className="fas fa-exclamation-circle" /> {submitError}
               </div>
             )}
           </form>
@@ -642,166 +757,10 @@ const LandingPage: React.FC = () => {
           <p>© 2026 San Lorenzo Ruiz Water Billing Office. All rights reserved. | Serving our community with clean water access.</p>
         </div>
       </footer>
-
-      {/* ─── Apply Modal ─── */}
-      {showApplyModal && (
-        <div className="apply-modal-overlay" onClick={() => setShowApplyModal(false)}>
-          <div className="apply-modal" onClick={e => e.stopPropagation()}>
-            <button className="apply-modal-close" onClick={() => setShowApplyModal(false)}>
-              <i className="fas fa-times" />
-            </button>
-
-            <div className="apply-modal-header">
-              <h2>
-                {applySuccess ? 'Application Submitted!' :
-                  applyStep === 1 ? 'Apply for Water Connection' : 'Schedule Inspection'}
-              </h2>
-            </div>
-
-            <div className="apply-modal-body">
-              {applySuccess ? (
-                <div className="apply-success-view">
-                  <i className="fas fa-check-circle" style={{ fontSize: 52, color: '#16a34a', display: 'block', marginBottom: 16 }} />
-                  <p>Your application has been received and is now pending review by the office.</p>
-                  <div className="apply-ticket-number">{applySuccess}</div>
-                  {scheduleData.date && (
-                    <p style={{ fontSize: 13, color: '#64748b', marginTop: 12 }}>
-                      <i className="fas fa-calendar-check" style={{ color: '#2563eb', marginRight: 6 }} />
-                      Inspection scheduled: <strong>{scheduleData.date}</strong> at <strong>{scheduleData.slot}</strong>
-                    </p>
-                  )}
-                  <button className="apply-modal-btn-primary" onClick={() => setShowApplyModal(false)}>Done</button>
-                </div>
-              ) : applyStep === 1 ? (
-                <div className="apply-step-view">
-                  <div className="apply-steps-indicator">
-                    <div className="apply-step-dot active"><span>1</span> Personal Details</div>
-                    <div className="apply-step-line" />
-                    <div className="apply-step-dot"><span>2</span> Schedule</div>
-                  </div>
-                  {applyError && <div className="apply-error"><i className="fas fa-exclamation-circle" /> {applyError}</div>}
-                  <div className="apply-form-grid">
-                    <div className="apply-field">
-                      <label>First Name *</label>
-                      <input type="text" value={applyForm.firstName} onChange={e => setApplyForm(f => ({ ...f, firstName: e.target.value }))} placeholder="First name" />
-                    </div>
-                    <div className="apply-field">
-                      <label>Middle Name</label>
-                      <input type="text" value={applyForm.middleName} onChange={e => setApplyForm(f => ({ ...f, middleName: e.target.value }))} placeholder="Optional" />
-                    </div>
-                    <div className="apply-field full">
-                      <label>Last Name *</label>
-                      <input type="text" value={applyForm.lastName} onChange={e => setApplyForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Last name" />
-                    </div>
-                    <div className="apply-field full">
-                      <label>Contact Number *</label>
-                      <input type="tel" value={applyForm.phone} onChange={e => setApplyForm(f => ({ ...f, phone: e.target.value }))} placeholder="09XXXXXXXXX" />
-                    </div>
-                    <div className="apply-field">
-                      <label>Purok</label>
-                      <input type="text" value={applyForm.purok} onChange={e => setApplyForm(f => ({ ...f, purok: e.target.value }))} placeholder="Purok" />
-                    </div>
-                    <div className="apply-field">
-                      <label>Barangay *</label>
-                      <input type="text" value={applyForm.barangay} onChange={e => setApplyForm(f => ({ ...f, barangay: e.target.value }))} placeholder="Barangay" />
-                    </div>
-                    <div className="apply-field">
-                      <label>Municipality</label>
-                      <input type="text" value={applyForm.municipality} onChange={e => setApplyForm(f => ({ ...f, municipality: e.target.value }))} />
-                    </div>
-                    <div className="apply-field">
-                      <label>ZIP Code</label>
-                      <input type="text" value={applyForm.zipCode} onChange={e => setApplyForm(f => ({ ...f, zipCode: e.target.value }))} />
-                    </div>
-                  </div>
-                  <div className="apply-modal-footer">
-                    <button className="apply-modal-btn-secondary" onClick={() => setShowApplyModal(false)}>Cancel</button>
-                    <button className="apply-modal-btn-primary" onClick={() => {
-                      const f = applyForm;
-                      if (!f.firstName.trim() || !f.lastName.trim() || !f.phone.trim() || !f.barangay.trim()) {
-                        setApplyError('Please fill in all required fields.');
-                        return;
-                      }
-                      setApplyError('');
-                      setApplyStep(2);
-                    }}>Next — Pick Schedule →</button>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleApplySubmit} className="apply-step-view">
-                  <div className="apply-steps-indicator">
-                    <div className="apply-step-dot done"><span>✓</span> Personal Details</div>
-                    <div className="apply-step-line done" />
-                    <div className="apply-step-dot active"><span>2</span> Schedule</div>
-                  </div>
-                  {applyError && <div className="apply-error"><i className="fas fa-exclamation-circle" /> {applyError}</div>}
-                  <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Choose a preferred date and time. Sundays and past dates are unavailable.</p>
-                  <div className="apply-sched-grid">
-                    <div>
-                      <div className="apply-cal-nav">
-                        <button type="button" onClick={() => {
-                          if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
-                          else setCalMonth(m => m - 1);
-                        }}>‹</button>
-                        <span>{MONTHS[calMonth]} {calYear}</span>
-                        <button type="button" onClick={() => {
-                          if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
-                          else setCalMonth(m => m + 1);
-                        }}>›</button>
-                      </div>
-                      <div className="apply-cal-grid">
-                        {DAY_LABELS.map(d => <div key={d} className="apply-cal-hdr">{d}</div>)}
-                        {Array.from({ length: firstDay }, (_, i) => <div key={`e${i}`} />)}
-                        {Array.from({ length: daysInMonth }, (_, i) => {
-                          const d = i + 1;
-                          const dt = new Date(calYear, calMonth, d);
-                          const isPast = dt < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                          const isSun = dt.getDay() === 0;
-                          const label = `${MONTHS[calMonth]} ${d}, ${calYear}`;
-                          const isSelected = scheduleData.date === label;
-                          const isToday = dt.toDateString() === today.toDateString();
-                          let cls = 'apply-cal-day';
-                          if (isPast || isSun) cls += ' disabled';
-                          else if (isSelected) cls += ' selected';
-                          else if (isToday) cls += ' today';
-                          return <div key={d} className={cls} onClick={() => selectDate(d)}>{d}</div>;
-                        })}
-                      </div>
-                    </div>
-                    <div className="apply-slots">
-                      <div className="apply-slot-label">☀️ Morning</div>
-                      <div className="apply-slot-grid">
-                        {MORNING_SLOTS.map(s => (
-                          <button key={s} type="button" className={`apply-slot${scheduleData.slot === s ? ' selected' : ''}`} onClick={() => setScheduleData(sd => ({ ...sd, slot: s }))}>{s}</button>
-                        ))}
-                      </div>
-                      <div className="apply-slot-label" style={{ marginTop: 12 }}>🌤 Afternoon</div>
-                      <div className="apply-slot-grid">
-                        {AFTERNOON_SLOTS.map(s => (
-                          <button key={s} type="button" className={`apply-slot${scheduleData.slot === s ? ' selected' : ''}`} onClick={() => setScheduleData(sd => ({ ...sd, slot: s }))}>{s}</button>
-                        ))}
-                      </div>
-                      {scheduleData.date && scheduleData.slot && (
-                        <div className="apply-sched-summary">
-                          <i className="fas fa-calendar-check" /> {scheduleData.date} · {scheduleData.slot}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="apply-modal-footer">
-                    <button type="button" className="apply-modal-btn-secondary" onClick={() => { setApplyStep(1); setApplyError(''); }}>← Back</button>
-                    <button type="submit" className="apply-modal-btn-primary" disabled={applyLoading}>
-                      {applyLoading ? <><i className="fas fa-spinner fa-spin" /> Submitting...</> : <><i className="fas fa-paper-plane" /> Submit Application</>}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
 export default LandingPage;
+
+
