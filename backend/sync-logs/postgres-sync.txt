@@ -6472,3 +6472,1019 @@
 [2026-05-04T01:26:09.221Z] Preparing sync for table waterrates.
 [2026-05-04T01:26:09.656Z] Preparing sync for table consumer_concerns.
 [2026-05-04T01:26:09.839Z] Preparing sync for table public_contact_messages.
+[2026-05-04T01:27:01.219Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:27:02.264Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:02.494Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:02.690Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:03.098Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:03.328Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:27:03.510Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:03.772Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:03.981Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:04.178Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:04.362Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:04.529Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:27:05.371Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:05.545Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:27:05.729Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:05.905Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:06.085Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:06.265Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:27:06.441Z] Supabase pull cycle complete for 18 table(s).
+[2026-05-04T01:27:06.448Z] Preparing sync for table roles.
+[2026-05-04T01:27:06.613Z] Preparing sync for table zone.
+[2026-05-04T01:27:06.781Z] Preparing sync for table classification.
+[2026-05-04T01:27:06.947Z] Preparing sync for table accounts.
+[2026-05-04T01:27:07.162Z] Preparing sync for table consumer.
+[2026-05-04T01:27:07.679Z] Preparing sync for table meter.
+[2026-05-04T01:27:07.850Z] Preparing sync for table route.
+[2026-05-04T01:27:08.019Z] Preparing sync for table meterreadings.
+[2026-05-04T01:27:08.191Z] Preparing sync for table bills.
+[2026-05-04T01:27:08.365Z] Preparing sync for table payment.
+[2026-05-04T01:27:08.537Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:27:08.551Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:27:09.003Z] Preparing sync for table password_reset.
+[2026-05-04T01:27:09.018Z] Preparing sync for table account_review_log.
+[2026-05-04T01:27:09.184Z] Preparing sync for table backuplogs.
+[2026-05-04T01:27:09.360Z] Preparing sync for table waterrates.
+[2026-05-04T01:27:10.051Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:27:10.216Z] Preparing sync for table public_contact_messages.
+[2026-05-04T01:28:01.174Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:28:01.501Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:01.729Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:01.947Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:02.310Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:02.581Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:28:02.862Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:03.078Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:03.280Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:03.532Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:03.739Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:03.931Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:28:04.996Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:05.228Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:28:05.463Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:05.664Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:05.864Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:06.072Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:28:06.289Z] Supabase pull cycle complete for 18 table(s).
+[2026-05-04T01:28:06.302Z] Preparing sync for table roles.
+[2026-05-04T01:28:06.489Z] Preparing sync for table zone.
+[2026-05-04T01:28:06.668Z] Preparing sync for table classification.
+[2026-05-04T01:28:06.853Z] Preparing sync for table accounts.
+[2026-05-04T01:28:07.091Z] Preparing sync for table consumer.
+[2026-05-04T01:28:07.648Z] Preparing sync for table meter.
+[2026-05-04T01:28:07.829Z] Preparing sync for table route.
+[2026-05-04T01:28:08.020Z] Preparing sync for table meterreadings.
+[2026-05-04T01:28:08.205Z] Preparing sync for table bills.
+[2026-05-04T01:28:08.410Z] Preparing sync for table payment.
+[2026-05-04T01:28:08.593Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:28:08.603Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:28:08.982Z] Preparing sync for table password_reset.
+[2026-05-04T01:28:08.994Z] Preparing sync for table account_review_log.
+[2026-05-04T01:28:09.173Z] Preparing sync for table backuplogs.
+[2026-05-04T01:28:09.359Z] Preparing sync for table waterrates.
+[2026-05-04T01:28:09.772Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:28:09.946Z] Preparing sync for table public_contact_messages.
+[2026-05-04T01:29:01.508Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:29:01.883Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:02.169Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:02.381Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:02.898Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:03.412Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:29:03.652Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:03.856Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:04.080Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:04.294Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:04.534Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:04.732Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:29:05.820Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:06.134Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:29:06.453Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:06.657Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:06.881Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:07.072Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:29:07.292Z] Supabase pull cycle complete for 18 table(s).
+[2026-05-04T01:29:07.301Z] Preparing sync for table roles.
+[2026-05-04T01:29:07.531Z] Preparing sync for table zone.
+[2026-05-04T01:29:07.719Z] Preparing sync for table classification.
+[2026-05-04T01:29:07.907Z] Preparing sync for table accounts.
+[2026-05-04T01:29:08.143Z] Preparing sync for table consumer.
+[2026-05-04T01:29:08.683Z] Preparing sync for table meter.
+[2026-05-04T01:29:08.874Z] Preparing sync for table route.
+[2026-05-04T01:29:09.060Z] Preparing sync for table meterreadings.
+[2026-05-04T01:29:09.262Z] Preparing sync for table bills.
+[2026-05-04T01:29:09.450Z] Preparing sync for table payment.
+[2026-05-04T01:29:09.655Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:29:09.675Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:29:10.083Z] Preparing sync for table password_reset.
+[2026-05-04T01:29:10.092Z] Preparing sync for table account_review_log.
+[2026-05-04T01:29:10.278Z] Preparing sync for table backuplogs.
+[2026-05-04T01:29:10.462Z] Preparing sync for table waterrates.
+[2026-05-04T01:29:10.903Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:29:11.090Z] Preparing sync for table public_contact_messages.
+[2026-05-04T01:30:01.406Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:30:02.119Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:02.374Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:02.583Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:03.134Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:03.374Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:30:03.598Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:03.823Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:04.039Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:04.265Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:04.497Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:04.705Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:30:05.675Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:05.865Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:30:06.095Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:06.307Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:06.534Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:06.768Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:30:06.995Z] Supabase pull cycle complete for 18 table(s).
+[2026-05-04T01:30:07.006Z] Preparing sync for table roles.
+[2026-05-04T01:30:07.328Z] Preparing sync for table zone.
+[2026-05-04T01:30:07.519Z] Preparing sync for table classification.
+[2026-05-04T01:30:07.749Z] Preparing sync for table accounts.
+[2026-05-04T01:30:07.986Z] Preparing sync for table consumer.
+[2026-05-04T01:30:08.620Z] Preparing sync for table meter.
+[2026-05-04T01:30:08.804Z] Preparing sync for table route.
+[2026-05-04T01:30:09.016Z] Preparing sync for table meterreadings.
+[2026-05-04T01:30:09.229Z] Preparing sync for table bills.
+[2026-05-04T01:30:09.444Z] Preparing sync for table payment.
+[2026-05-04T01:30:09.676Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:30:09.695Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:30:10.132Z] Preparing sync for table password_reset.
+[2026-05-04T01:30:10.158Z] Preparing sync for table account_review_log.
+[2026-05-04T01:30:10.364Z] Preparing sync for table backuplogs.
+[2026-05-04T01:30:10.568Z] Preparing sync for table waterrates.
+[2026-05-04T01:30:11.012Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:30:11.230Z] Preparing sync for table public_contact_messages.
+[2026-05-04T01:31:01.334Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:31:02.283Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:02.480Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:02.649Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:03.170Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:03.363Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:31:03.546Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:03.717Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:03.924Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:04.108Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:04.305Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:04.465Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:31:05.362Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:05.517Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:31:05.721Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:05.896Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:06.077Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:06.251Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:06.421Z] Supabase pull cycle complete for 18 table(s).
+[2026-05-04T01:31:06.427Z] Preparing sync for table roles.
+[2026-05-04T01:31:06.612Z] Preparing sync for table zone.
+[2026-05-04T01:31:06.779Z] Preparing sync for table classification.
+[2026-05-04T01:31:06.944Z] Preparing sync for table accounts.
+[2026-05-04T01:31:07.184Z] Preparing sync for table consumer.
+[2026-05-04T01:31:07.664Z] Preparing sync for table meter.
+[2026-05-04T01:31:07.828Z] Preparing sync for table route.
+[2026-05-04T01:31:07.988Z] Preparing sync for table meterreadings.
+[2026-05-04T01:31:08.151Z] Preparing sync for table bills.
+[2026-05-04T01:31:08.318Z] Preparing sync for table payment.
+[2026-05-04T01:31:08.515Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:31:08.532Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:31:09.206Z] Preparing sync for table password_reset.
+[2026-05-04T01:31:09.218Z] Preparing sync for table account_review_log.
+[2026-05-04T01:31:09.391Z] Preparing sync for table backuplogs.
+[2026-05-04T01:31:09.549Z] Preparing sync for table waterrates.
+[2026-05-04T01:31:09.984Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:31:10.140Z] Preparing sync for table public_contact_messages.
+[2026-05-04T01:31:43.547Z] PostgreSQL connection established for database SLRWs.
+[2026-05-04T01:31:43.824Z] PostgreSQL initialization check completed.
+[2026-05-04T01:31:43.829Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:31:44.236Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:44.442Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:44.621Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:44.954Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:45.408Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:31:45.623Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:45.838Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:46.023Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:46.215Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:46.398Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:46.556Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:31:47.368Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:47.524Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:31:47.711Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:47.882Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:48.064Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:48.240Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:31:48.243Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:31:48.246Z] Initial Supabase to PostgreSQL sync complete for 17 table(s).
+[2026-05-04T01:31:48.259Z] Preparing sync for table roles.
+[2026-05-04T01:31:48.428Z] Preparing sync for table zone.
+[2026-05-04T01:31:48.589Z] Preparing sync for table classification.
+[2026-05-04T01:31:48.743Z] Preparing sync for table accounts.
+[2026-05-04T01:31:48.963Z] Preparing sync for table consumer.
+[2026-05-04T01:31:49.461Z] Preparing sync for table meter.
+[2026-05-04T01:31:49.617Z] Preparing sync for table route.
+[2026-05-04T01:31:49.779Z] Preparing sync for table meterreadings.
+[2026-05-04T01:31:49.944Z] Preparing sync for table bills.
+[2026-05-04T01:31:50.108Z] Preparing sync for table payment.
+[2026-05-04T01:31:50.273Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:31:50.283Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:31:50.743Z] Preparing sync for table password_reset.
+[2026-05-04T01:31:50.754Z] Preparing sync for table account_review_log.
+[2026-05-04T01:31:50.913Z] Preparing sync for table backuplogs.
+[2026-05-04T01:31:51.074Z] Preparing sync for table waterrates.
+[2026-05-04T01:31:51.899Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:32:52.212Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:32:52.722Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:52.962Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:53.164Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:53.585Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:53.825Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:32:54.047Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:54.253Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:54.484Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:54.703Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:54.937Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:55.207Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:32:56.354Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:56.546Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:32:56.785Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:57.013Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:57.266Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:57.521Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:32:57.524Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:32:57.532Z] Preparing sync for table roles.
+[2026-05-04T01:32:57.751Z] Preparing sync for table zone.
+[2026-05-04T01:32:57.949Z] Preparing sync for table classification.
+[2026-05-04T01:32:58.166Z] Preparing sync for table accounts.
+[2026-05-04T01:32:58.409Z] Preparing sync for table consumer.
+[2026-05-04T01:32:59.030Z] Preparing sync for table meter.
+[2026-05-04T01:32:59.221Z] Preparing sync for table route.
+[2026-05-04T01:32:59.412Z] Preparing sync for table meterreadings.
+[2026-05-04T01:32:59.607Z] Preparing sync for table bills.
+[2026-05-04T01:32:59.804Z] Preparing sync for table payment.
+[2026-05-04T01:33:00.007Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:33:00.036Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:33:00.419Z] Preparing sync for table password_reset.
+[2026-05-04T01:33:00.437Z] Preparing sync for table account_review_log.
+[2026-05-04T01:33:00.633Z] Preparing sync for table backuplogs.
+[2026-05-04T01:33:00.876Z] Preparing sync for table waterrates.
+[2026-05-04T01:33:01.321Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:33:52.219Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:33:53.229Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:53.465Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:53.704Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:54.148Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:54.386Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:33:54.584Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:54.788Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:54.984Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:55.225Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:55.428Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:55.620Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:33:56.790Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:57.147Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:33:57.383Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:57.587Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:57.782Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:58.059Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:33:58.061Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:33:58.065Z] Preparing sync for table roles.
+[2026-05-04T01:33:58.307Z] Preparing sync for table zone.
+[2026-05-04T01:33:58.522Z] Preparing sync for table classification.
+[2026-05-04T01:33:58.712Z] Preparing sync for table accounts.
+[2026-05-04T01:33:58.969Z] Preparing sync for table consumer.
+[2026-05-04T01:33:59.572Z] Preparing sync for table meter.
+[2026-05-04T01:33:59.755Z] Preparing sync for table route.
+[2026-05-04T01:33:59.927Z] Preparing sync for table meterreadings.
+[2026-05-04T01:34:00.107Z] Preparing sync for table bills.
+[2026-05-04T01:34:00.294Z] Preparing sync for table payment.
+[2026-05-04T01:34:00.483Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:34:00.501Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:34:00.944Z] Preparing sync for table password_reset.
+[2026-05-04T01:34:00.955Z] Preparing sync for table account_review_log.
+[2026-05-04T01:34:01.182Z] Preparing sync for table backuplogs.
+[2026-05-04T01:34:01.383Z] Preparing sync for table waterrates.
+[2026-05-04T01:34:01.860Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:34:52.456Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:34:53.037Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:53.283Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:53.490Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:53.945Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:54.188Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:34:54.409Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:54.626Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:54.842Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:55.052Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:55.270Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:55.451Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:34:56.607Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:56.821Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:34:57.051Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:57.252Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:57.471Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:57.663Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:34:57.667Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:34:57.675Z] Preparing sync for table roles.
+[2026-05-04T01:34:57.887Z] Preparing sync for table zone.
+[2026-05-04T01:34:58.078Z] Preparing sync for table classification.
+[2026-05-04T01:34:58.284Z] Preparing sync for table accounts.
+[2026-05-04T01:34:58.499Z] Preparing sync for table consumer.
+[2026-05-04T01:34:59.100Z] Preparing sync for table meter.
+[2026-05-04T01:34:59.327Z] Preparing sync for table route.
+[2026-05-04T01:34:59.533Z] Preparing sync for table meterreadings.
+[2026-05-04T01:34:59.733Z] Preparing sync for table bills.
+[2026-05-04T01:34:59.961Z] Preparing sync for table payment.
+[2026-05-04T01:35:00.184Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:35:00.206Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:35:00.593Z] Preparing sync for table password_reset.
+[2026-05-04T01:35:00.602Z] Preparing sync for table account_review_log.
+[2026-05-04T01:35:00.795Z] Preparing sync for table backuplogs.
+[2026-05-04T01:35:00.978Z] Preparing sync for table waterrates.
+[2026-05-04T01:35:01.435Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:35:52.359Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:35:53.023Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:53.235Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:53.417Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:53.761Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:53.964Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:35:54.159Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:54.349Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:54.546Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:54.761Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:54.949Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:55.108Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:35:55.818Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:55.973Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:35:56.156Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:56.333Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:56.508Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:56.685Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:35:56.689Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:35:56.695Z] Preparing sync for table roles.
+[2026-05-04T01:35:56.875Z] Preparing sync for table zone.
+[2026-05-04T01:35:57.043Z] Preparing sync for table classification.
+[2026-05-04T01:35:57.211Z] Preparing sync for table accounts.
+[2026-05-04T01:35:57.444Z] Preparing sync for table consumer.
+[2026-05-04T01:35:58.143Z] Preparing sync for table meter.
+[2026-05-04T01:35:58.309Z] Preparing sync for table route.
+[2026-05-04T01:35:58.482Z] Preparing sync for table meterreadings.
+[2026-05-04T01:35:58.669Z] Preparing sync for table bills.
+[2026-05-04T01:35:58.867Z] Preparing sync for table payment.
+[2026-05-04T01:35:59.064Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:35:59.103Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:35:59.558Z] Preparing sync for table password_reset.
+[2026-05-04T01:35:59.587Z] Preparing sync for table account_review_log.
+[2026-05-04T01:35:59.781Z] Preparing sync for table backuplogs.
+[2026-05-04T01:35:59.971Z] Preparing sync for table waterrates.
+[2026-05-04T01:36:00.386Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:36:52.642Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:36:53.736Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:53.979Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:54.182Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:54.621Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:54.864Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:36:55.082Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:55.288Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:55.491Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:55.702Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:55.906Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:56.091Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:36:57.219Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:57.420Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:36:57.651Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:57.852Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:58.092Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:58.332Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:36:58.340Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:36:58.354Z] Preparing sync for table roles.
+[2026-05-04T01:36:58.567Z] Preparing sync for table zone.
+[2026-05-04T01:36:58.753Z] Preparing sync for table classification.
+[2026-05-04T01:36:58.932Z] Preparing sync for table accounts.
+[2026-05-04T01:36:59.165Z] Preparing sync for table consumer.
+[2026-05-04T01:36:59.691Z] Preparing sync for table meter.
+[2026-05-04T01:36:59.890Z] Preparing sync for table route.
+[2026-05-04T01:37:00.091Z] Preparing sync for table meterreadings.
+[2026-05-04T01:37:00.280Z] Preparing sync for table bills.
+[2026-05-04T01:37:00.477Z] Preparing sync for table payment.
+[2026-05-04T01:37:00.672Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:37:00.686Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:37:01.048Z] Preparing sync for table password_reset.
+[2026-05-04T01:37:01.060Z] Preparing sync for table account_review_log.
+[2026-05-04T01:37:01.254Z] Preparing sync for table backuplogs.
+[2026-05-04T01:37:01.432Z] Preparing sync for table waterrates.
+[2026-05-04T01:37:01.882Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:37:52.258Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:37:52.538Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:52.798Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:52.992Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:53.349Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:53.566Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:37:53.788Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:53.974Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:54.175Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:54.375Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:54.598Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:54.811Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:37:56.038Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:56.228Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:37:56.429Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:56.612Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:56.802Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:56.977Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:37:56.980Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:37:56.984Z] Preparing sync for table roles.
+[2026-05-04T01:37:57.187Z] Preparing sync for table zone.
+[2026-05-04T01:37:57.364Z] Preparing sync for table classification.
+[2026-05-04T01:37:57.553Z] Preparing sync for table accounts.
+[2026-05-04T01:37:57.803Z] Preparing sync for table consumer.
+[2026-05-04T01:37:58.528Z] Preparing sync for table meter.
+[2026-05-04T01:37:58.805Z] Preparing sync for table route.
+[2026-05-04T01:37:58.992Z] Preparing sync for table meterreadings.
+[2026-05-04T01:37:59.733Z] Preparing sync for table bills.
+[2026-05-04T01:38:00.075Z] Preparing sync for table payment.
+[2026-05-04T01:38:00.273Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:38:00.285Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:38:00.684Z] Preparing sync for table password_reset.
+[2026-05-04T01:38:00.697Z] Preparing sync for table account_review_log.
+[2026-05-04T01:38:00.870Z] Preparing sync for table backuplogs.
+[2026-05-04T01:38:01.045Z] Preparing sync for table waterrates.
+[2026-05-04T01:38:01.427Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:38:52.318Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:38:52.973Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:53.206Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:53.399Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:53.780Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:53.981Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:38:54.177Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:54.382Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:54.569Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:54.763Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:54.954Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:55.116Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:38:56.005Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:56.350Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:38:56.535Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:56.703Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:56.906Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:57.136Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:38:57.140Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:38:57.148Z] Preparing sync for table roles.
+[2026-05-04T01:38:57.314Z] Preparing sync for table zone.
+[2026-05-04T01:38:57.474Z] Preparing sync for table classification.
+[2026-05-04T01:38:57.658Z] Preparing sync for table accounts.
+[2026-05-04T01:38:57.879Z] Preparing sync for table consumer.
+[2026-05-04T01:38:58.362Z] Preparing sync for table meter.
+[2026-05-04T01:38:58.520Z] Preparing sync for table route.
+[2026-05-04T01:38:58.689Z] Preparing sync for table meterreadings.
+[2026-05-04T01:38:58.853Z] Preparing sync for table bills.
+[2026-05-04T01:38:59.018Z] Preparing sync for table payment.
+[2026-05-04T01:38:59.176Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:38:59.184Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:38:59.655Z] Preparing sync for table password_reset.
+[2026-05-04T01:38:59.667Z] Preparing sync for table account_review_log.
+[2026-05-04T01:38:59.832Z] Preparing sync for table backuplogs.
+[2026-05-04T01:38:59.995Z] Preparing sync for table waterrates.
+[2026-05-04T01:39:00.448Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:39:52.217Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:39:52.522Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:52.779Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:52.980Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:53.520Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:54.115Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:39:54.666Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:55.038Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:55.431Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:55.815Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:56.193Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:56.557Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:39:57.658Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:58.233Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:39:58.448Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:58.743Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:59.160Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:59.429Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:39:59.431Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:39:59.435Z] Preparing sync for table roles.
+[2026-05-04T01:39:59.805Z] Preparing sync for table zone.
+[2026-05-04T01:40:00.075Z] Preparing sync for table classification.
+[2026-05-04T01:40:00.466Z] Preparing sync for table accounts.
+[2026-05-04T01:40:00.739Z] Preparing sync for table consumer.
+[2026-05-04T01:40:01.508Z] Preparing sync for table meter.
+[2026-05-04T01:40:01.792Z] Preparing sync for table route.
+[2026-05-04T01:40:01.975Z] Preparing sync for table meterreadings.
+[2026-05-04T01:40:02.241Z] Preparing sync for table bills.
+[2026-05-04T01:40:02.426Z] Preparing sync for table payment.
+[2026-05-04T01:40:02.614Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:40:02.625Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:40:03.012Z] Preparing sync for table password_reset.
+[2026-05-04T01:40:03.022Z] Preparing sync for table account_review_log.
+[2026-05-04T01:40:03.227Z] Preparing sync for table backuplogs.
+[2026-05-04T01:40:03.448Z] Preparing sync for table waterrates.
+[2026-05-04T01:40:04.145Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:40:52.341Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:40:52.901Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:53.111Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:53.286Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:53.607Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:53.797Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:40:53.977Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:54.148Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:54.324Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:54.510Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:54.683Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:54.839Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:40:55.662Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:55.826Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:40:56.011Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:56.209Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:56.435Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:56.658Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:40:56.662Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:40:56.677Z] Preparing sync for table roles.
+[2026-05-04T01:40:56.897Z] Preparing sync for table zone.
+[2026-05-04T01:40:57.071Z] Preparing sync for table classification.
+[2026-05-04T01:40:57.241Z] Preparing sync for table accounts.
+[2026-05-04T01:40:57.467Z] Preparing sync for table consumer.
+[2026-05-04T01:40:57.972Z] Preparing sync for table meter.
+[2026-05-04T01:40:58.133Z] Preparing sync for table route.
+[2026-05-04T01:40:58.299Z] Preparing sync for table meterreadings.
+[2026-05-04T01:40:58.464Z] Preparing sync for table bills.
+[2026-05-04T01:40:58.633Z] Preparing sync for table payment.
+[2026-05-04T01:40:58.802Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:40:58.811Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:40:59.356Z] Preparing sync for table password_reset.
+[2026-05-04T01:40:59.365Z] Preparing sync for table account_review_log.
+[2026-05-04T01:40:59.533Z] Preparing sync for table backuplogs.
+[2026-05-04T01:40:59.691Z] Preparing sync for table waterrates.
+[2026-05-04T01:41:00.113Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:41:52.329Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:41:52.854Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:53.060Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:53.228Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:53.545Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:53.768Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:41:53.979Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:54.155Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:54.323Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:54.504Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:54.685Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:54.842Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:41:55.542Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:55.698Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:41:55.879Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:56.044Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:56.213Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:56.387Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:41:56.388Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:41:56.390Z] Preparing sync for table roles.
+[2026-05-04T01:41:56.546Z] Preparing sync for table zone.
+[2026-05-04T01:41:56.705Z] Preparing sync for table classification.
+[2026-05-04T01:41:56.866Z] Preparing sync for table accounts.
+[2026-05-04T01:41:57.077Z] Preparing sync for table consumer.
+[2026-05-04T01:41:57.531Z] Preparing sync for table meter.
+[2026-05-04T01:41:57.691Z] Preparing sync for table route.
+[2026-05-04T01:41:57.854Z] Preparing sync for table meterreadings.
+[2026-05-04T01:41:58.016Z] Preparing sync for table bills.
+[2026-05-04T01:41:58.188Z] Preparing sync for table payment.
+[2026-05-04T01:41:58.353Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:41:58.365Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:41:58.777Z] Preparing sync for table password_reset.
+[2026-05-04T01:41:58.786Z] Preparing sync for table account_review_log.
+[2026-05-04T01:41:58.951Z] Preparing sync for table backuplogs.
+[2026-05-04T01:41:59.112Z] Preparing sync for table waterrates.
+[2026-05-04T01:41:59.955Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:42:52.237Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:42:52.936Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:53.206Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:53.426Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:53.792Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:54.004Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:42:54.197Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:54.398Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:54.589Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:54.786Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:55.025Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:55.219Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:42:56.233Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:56.432Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:42:56.638Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:56.830Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:57.046Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:57.250Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:42:57.252Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:42:57.256Z] Preparing sync for table roles.
+[2026-05-04T01:42:57.448Z] Preparing sync for table zone.
+[2026-05-04T01:42:57.642Z] Preparing sync for table classification.
+[2026-05-04T01:42:57.814Z] Preparing sync for table accounts.
+[2026-05-04T01:42:58.051Z] Preparing sync for table consumer.
+[2026-05-04T01:42:58.592Z] Preparing sync for table meter.
+[2026-05-04T01:42:58.804Z] Preparing sync for table route.
+[2026-05-04T01:42:59.016Z] Preparing sync for table meterreadings.
+[2026-05-04T01:42:59.197Z] Preparing sync for table bills.
+[2026-05-04T01:42:59.391Z] Preparing sync for table payment.
+[2026-05-04T01:42:59.580Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:42:59.592Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:43:00.276Z] Preparing sync for table password_reset.
+[2026-05-04T01:43:00.283Z] Preparing sync for table account_review_log.
+[2026-05-04T01:43:00.479Z] Preparing sync for table backuplogs.
+[2026-05-04T01:43:00.657Z] Preparing sync for table waterrates.
+[2026-05-04T01:43:01.073Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:43:52.204Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:43:53.057Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:53.254Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:53.424Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:53.729Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:53.905Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:43:54.083Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:54.242Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:54.401Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:54.559Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:54.719Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:54.871Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:43:55.717Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:55.869Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:43:56.052Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:56.212Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:56.375Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:56.536Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:43:56.537Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:43:56.539Z] Preparing sync for table roles.
+[2026-05-04T01:43:56.703Z] Preparing sync for table zone.
+[2026-05-04T01:43:56.878Z] Preparing sync for table classification.
+[2026-05-04T01:43:57.034Z] Preparing sync for table accounts.
+[2026-05-04T01:43:57.252Z] Preparing sync for table consumer.
+[2026-05-04T01:43:57.717Z] Preparing sync for table meter.
+[2026-05-04T01:43:57.879Z] Preparing sync for table route.
+[2026-05-04T01:43:58.036Z] Preparing sync for table meterreadings.
+[2026-05-04T01:43:58.196Z] Preparing sync for table bills.
+[2026-05-04T01:43:58.348Z] Preparing sync for table payment.
+[2026-05-04T01:43:58.509Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:43:58.515Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:43:58.931Z] Preparing sync for table password_reset.
+[2026-05-04T01:43:58.936Z] Preparing sync for table account_review_log.
+[2026-05-04T01:43:59.094Z] Preparing sync for table backuplogs.
+[2026-05-04T01:43:59.246Z] Preparing sync for table waterrates.
+[2026-05-04T01:43:59.846Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:44:52.249Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:44:52.793Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:53.019Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:53.199Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:53.570Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:53.777Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:44:53.976Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:54.179Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:54.653Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:54.838Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:55.037Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:55.213Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:44:56.249Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:56.495Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:44:56.757Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:57.034Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:57.369Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:57.621Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:44:57.623Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:44:57.625Z] Preparing sync for table roles.
+[2026-05-04T01:44:57.861Z] Preparing sync for table zone.
+[2026-05-04T01:44:58.063Z] Preparing sync for table classification.
+[2026-05-04T01:44:58.285Z] Preparing sync for table accounts.
+[2026-05-04T01:44:58.514Z] Preparing sync for table consumer.
+[2026-05-04T01:44:59.101Z] Preparing sync for table meter.
+[2026-05-04T01:44:59.292Z] Preparing sync for table route.
+[2026-05-04T01:44:59.482Z] Preparing sync for table meterreadings.
+[2026-05-04T01:44:59.684Z] Preparing sync for table bills.
+[2026-05-04T01:44:59.897Z] Preparing sync for table payment.
+[2026-05-04T01:45:00.096Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:45:00.106Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:45:00.579Z] Preparing sync for table password_reset.
+[2026-05-04T01:45:00.588Z] Preparing sync for table account_review_log.
+[2026-05-04T01:45:00.802Z] Preparing sync for table backuplogs.
+[2026-05-04T01:45:01.003Z] Preparing sync for table waterrates.
+[2026-05-04T01:45:01.453Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:45:52.251Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:45:52.542Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:52.745Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:52.936Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:53.270Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:53.439Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:45:53.620Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:53.789Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:53.956Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:54.148Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:54.327Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:54.490Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:45:55.362Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:55.536Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:45:55.703Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:55.881Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:56.064Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:56.256Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:45:56.257Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:45:56.259Z] Preparing sync for table roles.
+[2026-05-04T01:45:56.448Z] Preparing sync for table zone.
+[2026-05-04T01:45:56.625Z] Preparing sync for table classification.
+[2026-05-04T01:45:56.815Z] Preparing sync for table accounts.
+[2026-05-04T01:45:57.064Z] Preparing sync for table consumer.
+[2026-05-04T01:45:57.610Z] Preparing sync for table meter.
+[2026-05-04T01:45:57.782Z] Preparing sync for table route.
+[2026-05-04T01:45:57.969Z] Preparing sync for table meterreadings.
+[2026-05-04T01:45:58.164Z] Preparing sync for table bills.
+[2026-05-04T01:45:58.349Z] Preparing sync for table payment.
+[2026-05-04T01:45:58.531Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:45:58.537Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:45:58.887Z] Preparing sync for table password_reset.
+[2026-05-04T01:45:58.897Z] Preparing sync for table account_review_log.
+[2026-05-04T01:45:59.083Z] Preparing sync for table backuplogs.
+[2026-05-04T01:45:59.247Z] Preparing sync for table waterrates.
+[2026-05-04T01:46:00.109Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:46:52.331Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:46:53.014Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:53.257Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:53.446Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:53.773Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:53.985Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:46:54.179Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:54.398Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:54.607Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:54.796Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:54.975Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:55.180Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:46:56.274Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:56.435Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:46:56.633Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:56.819Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:57.025Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:57.285Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:46:57.286Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:46:57.289Z] Preparing sync for table roles.
+[2026-05-04T01:46:57.605Z] Preparing sync for table zone.
+[2026-05-04T01:46:57.812Z] Preparing sync for table classification.
+[2026-05-04T01:46:58.006Z] Preparing sync for table accounts.
+[2026-05-04T01:46:58.234Z] Preparing sync for table consumer.
+[2026-05-04T01:46:58.806Z] Preparing sync for table meter.
+[2026-05-04T01:46:58.982Z] Preparing sync for table route.
+[2026-05-04T01:46:59.175Z] Preparing sync for table meterreadings.
+[2026-05-04T01:46:59.364Z] Preparing sync for table bills.
+[2026-05-04T01:46:59.542Z] Preparing sync for table payment.
+[2026-05-04T01:46:59.731Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:46:59.734Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:47:00.080Z] Preparing sync for table password_reset.
+[2026-05-04T01:47:00.084Z] Preparing sync for table account_review_log.
+[2026-05-04T01:47:00.311Z] Preparing sync for table backuplogs.
+[2026-05-04T01:47:00.585Z] Preparing sync for table waterrates.
+[2026-05-04T01:47:01.009Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:47:52.242Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:47:52.504Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:52.731Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:52.901Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:53.263Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:53.448Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:47:53.627Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:53.811Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:54.009Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:54.183Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:54.369Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:54.547Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:47:55.448Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:55.646Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:47:55.838Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:56.010Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:56.206Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:56.407Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:47:56.409Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:47:56.413Z] Preparing sync for table roles.
+[2026-05-04T01:47:56.577Z] Preparing sync for table zone.
+[2026-05-04T01:47:56.798Z] Preparing sync for table classification.
+[2026-05-04T01:47:57.026Z] Preparing sync for table accounts.
+[2026-05-04T01:47:57.252Z] Preparing sync for table consumer.
+[2026-05-04T01:47:57.794Z] Preparing sync for table meter.
+[2026-05-04T01:47:57.980Z] Preparing sync for table route.
+[2026-05-04T01:47:58.150Z] Preparing sync for table meterreadings.
+[2026-05-04T01:47:58.314Z] Preparing sync for table bills.
+[2026-05-04T01:47:58.505Z] Preparing sync for table payment.
+[2026-05-04T01:47:58.686Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:47:58.694Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:47:59.044Z] Preparing sync for table password_reset.
+[2026-05-04T01:47:59.053Z] Preparing sync for table account_review_log.
+[2026-05-04T01:47:59.244Z] Preparing sync for table backuplogs.
+[2026-05-04T01:47:59.456Z] Preparing sync for table waterrates.
+[2026-05-04T01:47:59.847Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:48:52.259Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:48:52.613Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:52.884Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:53.081Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:53.413Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:53.625Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:48:53.822Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:54.026Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:54.284Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:54.494Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:54.695Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:54.920Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:48:55.775Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:55.958Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:48:56.176Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:56.367Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:56.734Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:56.922Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:48:56.923Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:48:56.925Z] Preparing sync for table roles.
+[2026-05-04T01:48:57.101Z] Preparing sync for table zone.
+[2026-05-04T01:48:57.267Z] Preparing sync for table classification.
+[2026-05-04T01:48:57.451Z] Preparing sync for table accounts.
+[2026-05-04T01:48:57.649Z] Preparing sync for table consumer.
+[2026-05-04T01:48:58.211Z] Preparing sync for table meter.
+[2026-05-04T01:48:58.395Z] Preparing sync for table route.
+[2026-05-04T01:48:58.587Z] Preparing sync for table meterreadings.
+[2026-05-04T01:48:58.771Z] Preparing sync for table bills.
+[2026-05-04T01:48:58.953Z] Preparing sync for table payment.
+[2026-05-04T01:48:59.143Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:48:59.152Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:48:59.530Z] Preparing sync for table password_reset.
+[2026-05-04T01:48:59.535Z] Preparing sync for table account_review_log.
+[2026-05-04T01:48:59.723Z] Preparing sync for table backuplogs.
+[2026-05-04T01:48:59.922Z] Preparing sync for table waterrates.
+[2026-05-04T01:49:00.559Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:49:52.265Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:49:52.563Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:52.791Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:52.990Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:53.319Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:53.490Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:49:53.659Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:53.835Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:54.089Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:54.362Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:54.543Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:54.727Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:49:55.541Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:55.741Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:49:55.941Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:56.152Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:56.362Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:56.564Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:49:56.565Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:49:56.567Z] Preparing sync for table roles.
+[2026-05-04T01:49:56.734Z] Preparing sync for table zone.
+[2026-05-04T01:49:56.922Z] Preparing sync for table classification.
+[2026-05-04T01:49:57.153Z] Preparing sync for table accounts.
+[2026-05-04T01:49:57.373Z] Preparing sync for table consumer.
+[2026-05-04T01:49:57.893Z] Preparing sync for table meter.
+[2026-05-04T01:49:58.071Z] Preparing sync for table route.
+[2026-05-04T01:49:58.241Z] Preparing sync for table meterreadings.
+[2026-05-04T01:49:58.408Z] Preparing sync for table bills.
+[2026-05-04T01:49:58.600Z] Preparing sync for table payment.
+[2026-05-04T01:49:58.782Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:49:58.791Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:49:59.115Z] Preparing sync for table password_reset.
+[2026-05-04T01:49:59.125Z] Preparing sync for table account_review_log.
+[2026-05-04T01:49:59.361Z] Preparing sync for table backuplogs.
+[2026-05-04T01:49:59.549Z] Preparing sync for table waterrates.
+[2026-05-04T01:50:00.158Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:50:52.272Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:50:53.023Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:53.214Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:53.381Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:53.685Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:53.876Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:50:54.046Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:54.213Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:54.380Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:54.544Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:54.711Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:54.866Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:50:55.461Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:55.621Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:50:55.808Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:55.969Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:56.136Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:56.296Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:50:56.297Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:50:56.299Z] Preparing sync for table roles.
+[2026-05-04T01:50:56.467Z] Preparing sync for table zone.
+[2026-05-04T01:50:56.626Z] Preparing sync for table classification.
+[2026-05-04T01:50:56.791Z] Preparing sync for table accounts.
+[2026-05-04T01:50:57.044Z] Preparing sync for table consumer.
+[2026-05-04T01:50:57.524Z] Preparing sync for table meter.
+[2026-05-04T01:50:57.691Z] Preparing sync for table route.
+[2026-05-04T01:50:57.851Z] Preparing sync for table meterreadings.
+[2026-05-04T01:50:58.015Z] Preparing sync for table bills.
+[2026-05-04T01:50:58.181Z] Preparing sync for table payment.
+[2026-05-04T01:50:58.345Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:50:58.350Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:50:59.043Z] Preparing sync for table password_reset.
+[2026-05-04T01:50:59.052Z] Preparing sync for table account_review_log.
+[2026-05-04T01:50:59.219Z] Preparing sync for table backuplogs.
+[2026-05-04T01:50:59.383Z] Preparing sync for table waterrates.
+[2026-05-04T01:50:59.764Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:51:52.263Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:51:52.567Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:52.769Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:52.929Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:53.201Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:53.371Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:51:53.532Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:53.698Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:53.855Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:54.019Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:54.182Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:54.332Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:51:54.861Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:55.021Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:51:55.191Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:55.346Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:55.508Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:55.668Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:51:55.670Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:51:55.672Z] Preparing sync for table roles.
+[2026-05-04T01:51:55.824Z] Preparing sync for table zone.
+[2026-05-04T01:51:55.979Z] Preparing sync for table classification.
+[2026-05-04T01:51:56.137Z] Preparing sync for table accounts.
+[2026-05-04T01:51:56.346Z] Preparing sync for table consumer.
+[2026-05-04T01:51:56.847Z] Preparing sync for table meter.
+[2026-05-04T01:51:57.004Z] Preparing sync for table route.
+[2026-05-04T01:51:57.157Z] Preparing sync for table meterreadings.
+[2026-05-04T01:51:57.337Z] Preparing sync for table bills.
+[2026-05-04T01:51:57.496Z] Preparing sync for table payment.
+[2026-05-04T01:51:57.658Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:51:57.667Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:51:58.049Z] Preparing sync for table password_reset.
+[2026-05-04T01:51:58.058Z] Preparing sync for table account_review_log.
+[2026-05-04T01:51:58.217Z] Preparing sync for table backuplogs.
+[2026-05-04T01:51:58.379Z] Preparing sync for table waterrates.
+[2026-05-04T01:51:59.193Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:52:52.253Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:52:52.920Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:53.157Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:53.354Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:53.687Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:53.903Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:52:54.100Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:54.293Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:54.542Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:54.734Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:54.941Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:55.133Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:52:56.093Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:56.266Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:52:56.484Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:56.718Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:56.947Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:57.165Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:52:57.167Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:52:57.171Z] Preparing sync for table roles.
+[2026-05-04T01:52:57.401Z] Preparing sync for table zone.
+[2026-05-04T01:52:57.610Z] Preparing sync for table classification.
+[2026-05-04T01:52:57.822Z] Preparing sync for table accounts.
+[2026-05-04T01:52:58.079Z] Preparing sync for table consumer.
+[2026-05-04T01:52:58.641Z] Preparing sync for table meter.
+[2026-05-04T01:52:58.831Z] Preparing sync for table route.
+[2026-05-04T01:52:59.029Z] Preparing sync for table meterreadings.
+[2026-05-04T01:52:59.234Z] Preparing sync for table bills.
+[2026-05-04T01:52:59.438Z] Preparing sync for table payment.
+[2026-05-04T01:52:59.653Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:52:59.657Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:53:00.046Z] Preparing sync for table password_reset.
+[2026-05-04T01:53:00.053Z] Preparing sync for table account_review_log.
+[2026-05-04T01:53:00.242Z] Preparing sync for table backuplogs.
+[2026-05-04T01:53:00.434Z] Preparing sync for table waterrates.
+[2026-05-04T01:53:00.872Z] Preparing sync for table consumer_concerns.
+[2026-05-04T01:53:52.324Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-04T01:53:52.640Z] Table roles: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:52.884Z] Table zone: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:53.092Z] Table classification: pulled 3 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:53.762Z] Table accounts: pulled 26 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:53.961Z] Table consumer: pulled 5 row(s) from Supabase with 9 conflict(s) held for review.
+[2026-05-04T01:53:54.152Z] Table meter: pulled 4 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:54.356Z] Table route: pulled 2 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:54.556Z] Table meterreadings: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:54.741Z] Table bills: pulled 5 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:54.947Z] Table payment: pulled 6 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:55.139Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-04T01:53:56.098Z] Table connection_ticket: pulled 12 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:56.273Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-04T01:53:56.502Z] Table account_review_log: pulled 10 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:56.681Z] Table backuplogs: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:56.870Z] Table waterrates: pulled 9 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:57.056Z] Table consumer_concerns: pulled 1 row(s) from Supabase with 0 conflict(s) held for review.
+[2026-05-04T01:53:57.058Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-04T01:53:57.062Z] Preparing sync for table roles.
+[2026-05-04T01:53:57.235Z] Preparing sync for table zone.
+[2026-05-04T01:53:57.419Z] Preparing sync for table classification.
+[2026-05-04T01:53:57.598Z] Preparing sync for table accounts.
+[2026-05-04T01:53:57.816Z] Preparing sync for table consumer.
+[2026-05-04T01:53:58.354Z] Preparing sync for table meter.
+[2026-05-04T01:53:58.551Z] Preparing sync for table route.
+[2026-05-04T01:53:58.732Z] Preparing sync for table meterreadings.
+[2026-05-04T01:53:58.926Z] Preparing sync for table bills.
+[2026-05-04T01:53:59.118Z] Preparing sync for table payment.
+[2026-05-04T01:53:59.300Z] Preparing sync for table ledger_entry.
+[2026-05-04T01:53:59.310Z] Preparing sync for table connection_ticket.
+[2026-05-04T01:53:59.751Z] Preparing sync for table password_reset.
+[2026-05-04T01:53:59.758Z] Preparing sync for table account_review_log.
+[2026-05-04T01:53:59.949Z] Preparing sync for table backuplogs.
+[2026-05-04T01:54:00.137Z] Preparing sync for table waterrates.
+[2026-05-04T01:54:00.551Z] Preparing sync for table consumer_concerns.

@@ -70,6 +70,8 @@ const logFiles = {
 };
 const adminSettingsFile = path.join(__dirname, 'data', 'admin-settings.json');
 const defaultSourceSiteId = process.env.SYNC_SOURCE_SITE_ID || process.env.REACT_APP_SOURCE_SITE_ID || 'postgres-local';
+const backendBuildMarker = '2026-05-04-google-consumer-address-fix-v2';
+console.log(`[BACKEND] Build marker: ${backendBuildMarker}`);
 const smsProvider = String(process.env.SMS_PROVIDER || 'mock').trim().toLowerCase();
 const hasSemaphoreApiKey = Boolean(String(process.env.SMS_SEMAPHORE_API_KEY || '').trim());
 if (smsProvider === 'semaphore' && !hasSemaphoreApiKey) {
@@ -2996,6 +2998,14 @@ async function initDb() {
   await ensureTableColumn('accounts', 'full_name', 'TEXT');
   await ensureTableColumn('accounts', 'email', 'VARCHAR(255)');
   await ensureTableColumn('accounts', 'contact_number', 'VARCHAR(20)');
+  await pool.query(`
+    ALTER TABLE consumer
+      ALTER COLUMN address SET DEFAULT 'Not Specified, Not Specified, San Lorenzo Ruiz, 4610',
+      ALTER COLUMN purok SET DEFAULT 'Not Specified',
+      ALTER COLUMN barangay SET DEFAULT 'Not Specified',
+      ALTER COLUMN municipality SET DEFAULT 'San Lorenzo Ruiz',
+      ALTER COLUMN zip_code SET DEFAULT '4610';
+  `);
   await ensureTableColumn('consumer_concerns', 'full_name', 'VARCHAR(160)');
   await ensureTableColumn('consumer_concerns', 'barangay', 'VARCHAR(120)');
   await ensureTableColumn('consumer_concerns', 'contact_number', 'VARCHAR(20)');
@@ -9532,6 +9542,11 @@ app.post('/api/auth/google', async (req, res) => {
     // New Google user — create account + consumer with Active status
     const [firstName = '', ...restName] = googleName.split(' ');
     const lastName = restName.join(' ') || firstName;
+    const defaultMunicipality = 'San Lorenzo Ruiz';
+    const defaultZipCode = '4610';
+    const defaultBarangay = 'Not Specified';
+    const defaultPurok = 'Not Specified';
+    const defaultAddress = [defaultPurok, defaultBarangay, defaultMunicipality, defaultZipCode].join(', ');
     const generatedUsername = await generateAvailableUsername(googleEmail.split('@')[0] || `google_${Date.now()}`);
     const generatedPassword = `google_${crypto.randomUUID()}`;
     const generatedPasswordHash = hashPassword(generatedPassword);
@@ -9556,9 +9571,31 @@ app.post('/api/auth/google', async (req, res) => {
           const accountId = accountRows[0].account_id;
 
           await client.query(`
-            INSERT INTO consumer (first_name, last_name, login_id, status, municipality, zip_code)
-            VALUES ($1, $2, $3, $4, $5, $6)
-          `, [firstName || generatedUsername, lastName || '', accountId, 'Active', 'San Lorenzo Ruiz', '4610']);
+            INSERT INTO consumer (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number)
+            VALUES (
+              $1,
+              $2,
+              $3,
+              $4,
+              COALESCE(NULLIF($5, ''), 'Not Specified, Not Specified, San Lorenzo Ruiz, 4610'),
+              COALESCE(NULLIF($6, ''), 'Not Specified'),
+              COALESCE(NULLIF($7, ''), 'Not Specified'),
+              COALESCE(NULLIF($8, ''), 'San Lorenzo Ruiz'),
+              COALESCE(NULLIF($9, ''), '4610'),
+              $10
+            )
+          `, [
+            firstName || generatedUsername,
+            lastName || '',
+            accountId,
+            'Active',
+            defaultAddress,
+            defaultPurok,
+            defaultBarangay,
+            defaultMunicipality,
+            defaultZipCode,
+            null,
+          ]);
 
           await client.query('COMMIT');
           return accountRows[0];
@@ -9593,8 +9630,12 @@ app.post('/api/auth/google', async (req, res) => {
             last_name: lastName || '',
             login_id: accountData.account_id,
             status: 'Active',
-            municipality: 'San Lorenzo Ruiz',
-            zip_code: '4610',
+            address: defaultAddress,
+            purok: defaultPurok,
+            barangay: defaultBarangay,
+            municipality: defaultMunicipality,
+            zip_code: defaultZipCode,
+            contact_number: null,
           }]);
         if (consumerError) throw consumerError;
 
