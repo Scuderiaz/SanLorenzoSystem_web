@@ -1635,5 +1635,3 @@ const ConsumerMain: React.FC = () => {
 };
 
 export default ConsumerMain;
-
-
