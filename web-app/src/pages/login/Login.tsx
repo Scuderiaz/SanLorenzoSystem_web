@@ -13,6 +13,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const GOOGLE_OAUTH_INTENT_KEY = 'google_oauth_intent';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +50,7 @@ const Login: React.FC = () => {
     }
 
     try {
+      sessionStorage.setItem(GOOGLE_OAUTH_INTENT_KEY, 'login');
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -57,9 +59,11 @@ const Login: React.FC = () => {
       });
 
       if (oauthError) {
+        sessionStorage.removeItem(GOOGLE_OAUTH_INTENT_KEY);
         setError(oauthError.message || 'Failed to start Google sign-in.');
       }
     } catch (err: any) {
+      sessionStorage.removeItem(GOOGLE_OAUTH_INTENT_KEY);
       setError(err.message || 'An error occurred starting Google sign-in.');
     }
   };

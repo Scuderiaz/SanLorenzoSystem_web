@@ -68,6 +68,8 @@ interface ConsumerInfo {
   account_number?: string | null;
   Status?: string | null;
   status?: string | null;
+  Contact_Number?: string | null;
+  contact_number?: string | null;
   Account_Status?: string | null;
   account_status?: string | null;
   Meter_Number?: string | null;
@@ -201,6 +203,39 @@ const formatName = (firstName?: string | null, middleName?: string | null, lastN
 const statusClassName = (value?: string | null) => {
   const normalized = String(value || '').trim().toLowerCase().replace(/\s+/g, '-');
   return normalized || 'unknown';
+};
+
+const isUnsetProfileField = (value?: string | null) => {
+  const normalized = String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!normalized) {
+    return true;
+  }
+  return ['not specified', 'n/a', 'na', 'none', 'null', 'undefined'].includes(normalized);
+};
+
+const getMissingProfileFieldsForApplication = (consumer: ConsumerInfo | null) => {
+  if (!consumer) {
+    return ['First name', 'Last name', 'Contact number', 'Purok', 'Barangay', 'Municipality', 'ZIP code'];
+  }
+
+  const firstName = String(consumer.First_Name ?? consumer.first_name ?? '').trim();
+  const lastName = String(consumer.Last_Name ?? consumer.last_name ?? '').trim();
+  const contactNumber = String(consumer.Contact_Number ?? consumer.contact_number ?? '').trim();
+  const purok = String(consumer.Purok ?? consumer.purok ?? '').trim();
+  const barangay = String(consumer.Barangay ?? consumer.barangay ?? '').trim();
+  const municipality = String(consumer.Municipality ?? consumer.municipality ?? '').trim();
+  const zipCode = String(consumer.Zip_Code ?? consumer.zip_code ?? '').trim();
+
+  const missing: string[] = [];
+  if (isUnsetProfileField(firstName)) missing.push('First name');
+  if (isUnsetProfileField(lastName)) missing.push('Last name');
+  if (isUnsetProfileField(contactNumber)) missing.push('Contact number');
+  if (isUnsetProfileField(purok)) missing.push('Purok');
+  if (isUnsetProfileField(barangay)) missing.push('Barangay');
+  if (isUnsetProfileField(municipality)) missing.push('Municipality');
+  if (isUnsetProfileField(zipCode)) missing.push('ZIP code');
+
+  return missing;
 };
 
 const CustomLabel = ({ x, y, value }: any) => {
@@ -498,6 +533,9 @@ const ConsumerMain: React.FC = () => {
       Consumer?.Zip_Code ?? Consumer?.zip_code,
     ].filter(Boolean).join(', ')
   ) || 'No service address recorded';
+  const missingProfileFieldsForApplication = getMissingProfileFieldsForApplication(Consumer);
+  const canApplyForConnection = missingProfileFieldsForApplication.length === 0;
+  const missingProfileSummary = missingProfileFieldsForApplication.join(', ');
 
   const offlineMessage = dataSource === 'supabase'
     ? 'Cloud fallback active. Dashboard data is currently loading from Supabase.'
@@ -511,6 +549,27 @@ const ConsumerMain: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleOpenApplyModal = () => {
+    if (!canApplyForConnection) {
+      navigate('/consumer/profile');
+      return;
+    }
+
+    setApplyForm({
+      firstName: String(Consumer?.First_Name ?? Consumer?.first_name ?? '').trim(),
+      middleName: String(Consumer?.Middle_Name ?? Consumer?.middle_name ?? '').trim(),
+      lastName: String(Consumer?.Last_Name ?? Consumer?.last_name ?? '').trim(),
+      phone: String(Consumer?.Contact_Number ?? Consumer?.contact_number ?? '').trim(),
+      purok: String(Consumer?.Purok ?? Consumer?.purok ?? '').trim(),
+      barangay: String(Consumer?.Barangay ?? Consumer?.barangay ?? '').trim(),
+      municipality: String(Consumer?.Municipality ?? Consumer?.municipality ?? 'San Lorenzo Ruiz').trim() || 'San Lorenzo Ruiz',
+      zipCode: String(Consumer?.Zip_Code ?? Consumer?.zip_code ?? '4610').trim() || '4610',
+    });
+    setApplySuccess('');
+    setApplyError('');
+    setShowApplyModal(true);
   };
 
   const handlePrintTicket = (tkt: Ticket) => {
@@ -641,6 +700,10 @@ const ConsumerMain: React.FC = () => {
 
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canApplyForConnection) {
+      setApplyError(`Please complete your profile first: ${missingProfileSummary}.`);
+      return;
+    }
     setApplyLoading(true);
     setApplyError('');
     try {
@@ -913,15 +976,18 @@ const ConsumerMain: React.FC = () => {
             <div className="cm-application-banner-body">
               <div className="cm-application-banner-title">No Water Connection Application</div>
               <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0' }}>
-                Apply for a water service connection to get started. The office will review your application.
+                {canApplyForConnection
+                  ? 'Apply for a water service connection to get started. The office will review your application.'
+                  : `Complete your profile first before applying. Missing: ${missingProfileSummary}.`}
               </p>
             </div>
             <button
               type="button"
               className="cm-application-banner-apply"
-              onClick={() => { setApplySuccess(''); setApplyError(''); setShowApplyModal(true); }}
+              onClick={handleOpenApplyModal}
+              title={canApplyForConnection ? 'Apply for Water Connection' : 'Complete your profile first'}
             >
-              <i className="fas fa-plus" /> Apply for Water Connection
+              <i className={`fas ${canApplyForConnection ? 'fa-plus' : 'fa-user-edit'}`} /> {canApplyForConnection ? 'Apply for Water Connection' : 'Complete Profile First'}
             </button>
           </div>
         ) : null}
@@ -1401,40 +1467,40 @@ const ConsumerMain: React.FC = () => {
                 <div className="cm-apply-error"><i className="fas fa-exclamation-circle" /> {applyError}</div>
               )}
               <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                Fill in your details below to apply for a water service connection. The office will review your application and contact you.
+                Your application details are pulled from your profile. Update your profile first if anything is incorrect.
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="cm-apply-field">
                   <label>First Name</label>
-                  <input type="text" value={applyForm.firstName} onChange={e => setApplyForm(f => ({ ...f, firstName: e.target.value }))} placeholder="First name" required />
+                  <input type="text" value={applyForm.firstName} onChange={e => setApplyForm(f => ({ ...f, firstName: e.target.value }))} placeholder="First name" required readOnly />
                 </div>
                 <div className="cm-apply-field">
                   <label>Middle Name</label>
-                  <input type="text" value={applyForm.middleName} onChange={e => setApplyForm(f => ({ ...f, middleName: e.target.value }))} placeholder="Middle name (optional)" />
+                  <input type="text" value={applyForm.middleName} onChange={e => setApplyForm(f => ({ ...f, middleName: e.target.value }))} placeholder="Middle name (optional)" readOnly />
                 </div>
                 <div className="cm-apply-field" style={{ gridColumn: '1 / -1' }}>
                   <label>Last Name</label>
-                  <input type="text" value={applyForm.lastName} onChange={e => setApplyForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Last name" required />
+                  <input type="text" value={applyForm.lastName} onChange={e => setApplyForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Last name" required readOnly />
                 </div>
                 <div className="cm-apply-field" style={{ gridColumn: '1 / -1' }}>
                   <label>Contact Number</label>
-                  <input type="tel" value={applyForm.phone} onChange={e => setApplyForm(f => ({ ...f, phone: e.target.value }))} placeholder="09XXXXXXXXX" required />
+                  <input type="tel" value={applyForm.phone} onChange={e => setApplyForm(f => ({ ...f, phone: e.target.value }))} placeholder="09XXXXXXXXX" required readOnly />
                 </div>
                 <div className="cm-apply-field">
                   <label>Purok</label>
-                  <input type="text" value={applyForm.purok} onChange={e => setApplyForm(f => ({ ...f, purok: e.target.value }))} placeholder="Purok" />
+                  <input type="text" value={applyForm.purok} onChange={e => setApplyForm(f => ({ ...f, purok: e.target.value }))} placeholder="Purok" readOnly />
                 </div>
                 <div className="cm-apply-field">
                   <label>Barangay</label>
-                  <input type="text" value={applyForm.barangay} onChange={e => setApplyForm(f => ({ ...f, barangay: e.target.value }))} placeholder="Barangay" required />
+                  <input type="text" value={applyForm.barangay} onChange={e => setApplyForm(f => ({ ...f, barangay: e.target.value }))} placeholder="Barangay" required readOnly />
                 </div>
                 <div className="cm-apply-field">
                   <label>Municipality</label>
-                  <input type="text" value={applyForm.municipality} onChange={e => setApplyForm(f => ({ ...f, municipality: e.target.value }))} placeholder="Municipality" />
+                  <input type="text" value={applyForm.municipality} onChange={e => setApplyForm(f => ({ ...f, municipality: e.target.value }))} placeholder="Municipality" readOnly />
                 </div>
                 <div className="cm-apply-field">
                   <label>ZIP Code</label>
-                  <input type="text" value={applyForm.zipCode} onChange={e => setApplyForm(f => ({ ...f, zipCode: e.target.value }))} placeholder="4610" />
+                  <input type="text" value={applyForm.zipCode} onChange={e => setApplyForm(f => ({ ...f, zipCode: e.target.value }))} placeholder="4610" readOnly />
                 </div>
               </div>
             </form>

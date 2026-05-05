@@ -19,6 +19,7 @@ const normalizePhoneInput = (value: string) => {
 };
 
 const SignUp: React.FC = () => {
+  const GOOGLE_OAUTH_INTENT_KEY = 'google_oauth_intent';
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -325,6 +326,7 @@ const SignUp: React.FC = () => {
     }
 
     try {
+      sessionStorage.setItem(GOOGLE_OAUTH_INTENT_KEY, 'signup');
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -333,9 +335,11 @@ const SignUp: React.FC = () => {
       });
 
       if (oauthError) {
+        sessionStorage.removeItem(GOOGLE_OAUTH_INTENT_KEY);
         setError(oauthError.message || 'Failed to start Google sign-in.');
       }
     } catch (err: any) {
+      sessionStorage.removeItem(GOOGLE_OAUTH_INTENT_KEY);
       setError(err.message || 'An error occurred starting Google sign-in.');
     }
   };

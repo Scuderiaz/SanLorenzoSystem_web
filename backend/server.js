@@ -2925,7 +2925,7 @@ async function ensureConsumerProfileForAccount(accountId, fullName = '', contact
         const inserted = await pool.query(
           `INSERT INTO consumer
             (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number)
-           VALUES ($1, $2, $3, 'Active', $4, $5, $6, $7, $8, $9)
+           VALUES ($1, $2, $3, 'Pending', $4, $5, $6, $7, $8, $9)
            RETURNING consumer_id`,
           [firstName, lastName, normalizedAccountId, address, defaults.purok, defaults.barangay, defaults.municipality, defaults.zipCode, contactNumber]
         );
@@ -2960,7 +2960,7 @@ async function ensureConsumerProfileForAccount(accountId, fullName = '', contact
           first_name: firstName,
           last_name: lastName,
           login_id: normalizedAccountId,
-          status: 'Active',
+          status: 'Pending',
           address,
           purok: defaults.purok,
           barangay: defaults.barangay,
@@ -2974,6 +2974,70 @@ async function ensureConsumerProfileForAccount(accountId, fullName = '', contact
       return Number(inserted?.consumer_id || 0) || null;
     }
   );
+}
+
+async function ensureConsumerProfileForConsumerAccount(accountId) {
+  const normalizedAccountId = normalizeRequiredForeignKeyId(accountId);
+  if (!normalizedAccountId) {
+    return null;
+  }
+
+  const account = await withPostgresPrimary(
+    'auth.google.fetchAccountForConsumerProfile',
+    async () => {
+      const { rows } = await pool.query(
+        `SELECT account_id, role_id, full_name, username, account_status
+         FROM accounts
+         WHERE account_id = $1
+         LIMIT 1`,
+        [normalizedAccountId]
+      );
+      return rows[0] || null;
+    },
+    async () => {
+      if (!supabase) return null;
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('account_id, role_id, full_name, username, account_status')
+        .eq('account_id', normalizedAccountId)
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    }
+  );
+
+  if (!account || Number(account.role_id) !== 5) {
+    return null;
+  }
+
+  const fallbackName = String(account.full_name || account.username || 'Consumer').trim() || 'Consumer';
+  return ensureConsumerProfileForAccount(normalizedAccountId, fallbackName, null);
+}
+
+function isUnsetConsumerProfileValue(value) {
+  const normalized = String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!normalized) {
+    return true;
+  }
+
+  return ['not specified', 'n/a', 'na', 'none', 'null', 'undefined'].includes(normalized);
+}
+
+function collectConsumerProfileMissingFields(consumerProfile) {
+  const missing = [];
+  if (!consumerProfile || typeof consumerProfile !== 'object') {
+    return ['first name', 'last name', 'contact number', 'purok', 'barangay', 'municipality', 'ZIP code'];
+  }
+
+  if (isUnsetConsumerProfileValue(consumerProfile.first_name)) missing.push('first name');
+  if (isUnsetConsumerProfileValue(consumerProfile.last_name)) missing.push('last name');
+  if (isUnsetConsumerProfileValue(consumerProfile.contact_number)) missing.push('contact number');
+  if (isUnsetConsumerProfileValue(consumerProfile.purok)) missing.push('purok');
+  if (isUnsetConsumerProfileValue(consumerProfile.barangay)) missing.push('barangay');
+  if (isUnsetConsumerProfileValue(consumerProfile.municipality)) missing.push('municipality');
+  if (isUnsetConsumerProfileValue(consumerProfile.zip_code)) missing.push('ZIP code');
+
+  return missing;
 }
 
 async function logPostgresEvent(message, options = {}) {
@@ -7939,8 +8003,14 @@ app.put('/api/bills/:id', async (req, res) => {
 
 // --- CONSUMER DASHBOARD ---
 app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
-  const { accountId } = req.params;
+  const normalizedAccountId = normalizeRequiredForeignKeyId(req.params.accountId);
+  if (!normalizedAccountId) {
+    return res.status(400).json({ success: false, message: 'Invalid account ID.' });
+  }
+
   try {
+    await ensureConsumerProfileForConsumerAccount(normalizedAccountId);
+
     const result = await withPostgresPrimary(
       'consumerDashboard.fetch',
       async () => {
@@ -7966,7 +8036,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
           ) m ON true
           WHERE c.login_id = $1
           LIMIT 1
-        `, [accountId]);
+        `, [normalizedAccountId]);
 
         const consumer = consumerResult.rows[0];
         if (!consumer) {
@@ -7977,7 +8047,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
           pool.query('SELECT * FROM bills WHERE consumer_id = $1 ORDER BY bill_date DESC', [consumer.consumer_id]),
           pool.query('SELECT * FROM payment WHERE consumer_id = $1 ORDER BY payment_date DESC', [consumer.consumer_id]),
           pool.query('SELECT * FROM meterreadings WHERE consumer_id = $1 ORDER BY reading_date DESC LIMIT 6', [consumer.consumer_id]),
-          pool.query('SELECT ticket_id, ticket_number, connection_type, status, application_date, approved_date, remarks FROM connection_ticket WHERE account_id = $1 ORDER BY ticket_id DESC LIMIT 1', [accountId]),
+          pool.query('SELECT ticket_id, ticket_number, connection_type, status, application_date, approved_date, remarks FROM connection_ticket WHERE account_id = $1 ORDER BY ticket_id DESC LIMIT 1', [normalizedAccountId]),
         ]);
 
         const mappedBills = billRows.rows.map((bill) => mapBillRecord(bill, new Map([[consumer.consumer_id, consumer]]), new Map([[consumer.classification_id, consumer.classification_name]])));
@@ -8011,7 +8081,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
         const { data: consumer, error: cErr } = await supabase
           .from('consumer')
           .select('*')
-          .eq('login_id', accountId)
+          .eq('login_id', normalizedAccountId)
           .maybeSingle();
         if (cErr) throw cErr;
         if (!consumer) {
@@ -8033,10 +8103,10 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
           supabase.from('payment').select('*').eq('consumer_id', consumerId).order('payment_date', { ascending: false }),
           supabase.from('meterreadings').select('*').eq('consumer_id', consumerId).order('reading_date', { ascending: false }).limit(6),
           supabase.from('meter').select('meter_serial_number, meter_status').eq('consumer_id', consumerId).order('meter_id', { ascending: false }).limit(1),
-          supabase.from('accounts').select('username, profile_picture_url, account_status').eq('account_id', accountId).maybeSingle(),
+          supabase.from('accounts').select('username, profile_picture_url, account_status').eq('account_id', normalizedAccountId).maybeSingle(),
           supabase.from('zone').select('zone_name').eq('zone_id', consumer.zone_id).maybeSingle(),
           supabase.from('classification').select('classification_name').eq('classification_id', consumer.classification_id).maybeSingle(),
-          supabase.from('connection_ticket').select('ticket_id, ticket_number, connection_type, status, application_date, approved_date, remarks').eq('account_id', accountId).order('ticket_id', { ascending: false }).limit(1),
+          supabase.from('connection_ticket').select('ticket_id, ticket_number, connection_type, status, application_date, approved_date, remarks').eq('account_id', normalizedAccountId).order('ticket_id', { ascending: false }).limit(1),
         ]);
         if (billsError) throw billsError;
         if (paymentsError) throw paymentsError;
@@ -8231,18 +8301,14 @@ app.post('/api/consumer/reconnection-request', async (req, res) => {
 
 // Consumer applies for water connection from within the dashboard
 app.post('/api/consumer/apply', async (req, res) => {
-  const { accountId, firstName, middleName, lastName, phone, purok, barangay, municipality, zipCode, classificationId, connectionType, sedulaImage } = req.body;
-  if (!accountId) return res.status(400).json({ success: false, message: 'Account ID is required.' });
+  const { accountId, classificationId, connectionType, sedulaImage } = req.body;
+  const normalizedAccountId = normalizeRequiredForeignKeyId(accountId);
+  if (!normalizedAccountId) return res.status(400).json({ success: false, message: 'Account ID is required.' });
   const normalizedClassificationId = classificationId === null || classificationId === undefined || classificationId === ''
     ? null
     : normalizeRequiredForeignKeyId(classificationId);
   if (classificationId !== null && classificationId !== undefined && classificationId !== '' && !normalizedClassificationId) {
     return res.status(400).json({ success: false, message: 'Classification must be a valid ID.' });
-  }
-  let normalizedPhone = null;
-  if (phone) {
-    normalizedPhone = normalizePhilippinePhoneNumber(phone);
-    if (!normalizedPhone) return res.status(400).json({ success: false, message: 'Phone number must be a valid Philippine mobile number.' });
   }
   let normalizedSedula = null;
   if (sedulaImage) {
@@ -8253,15 +8319,63 @@ app.post('/api/consumer/apply', async (req, res) => {
     if (normalizedClassificationId) {
       await validateClassificationExists(normalizedClassificationId);
     }
+
+    await ensureConsumerProfileForConsumerAccount(normalizedAccountId);
+
+    const consumerProfile = await withPostgresPrimary(
+      'consumer.apply.profile',
+      async () => {
+        const { rows } = await pool.query(
+          `SELECT consumer_id, first_name, middle_name, last_name, contact_number, purok, barangay, municipality, zip_code, classification_id
+           FROM consumer
+           WHERE login_id = $1
+           ORDER BY consumer_id DESC
+           LIMIT 1`,
+          [normalizedAccountId]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('consumer')
+          .select('consumer_id, first_name, middle_name, last_name, contact_number, purok, barangay, municipality, zip_code, classification_id')
+          .eq('login_id', normalizedAccountId)
+          .order('consumer_id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        return data || null;
+      }
+    );
+
+    if (!consumerProfile?.consumer_id) {
+      return res.status(404).json({ success: false, message: 'Consumer profile not found. Please complete your profile first.' });
+    }
+
+    const missingProfileFields = collectConsumerProfileMissingFields(consumerProfile);
+    if (missingProfileFields.length) {
+      return res.status(400).json({
+        success: false,
+        message: `Complete your profile first before applying. Missing: ${missingProfileFields.join(', ')}.`,
+      });
+    }
+
+    const normalizedProfilePhone = normalizePhilippinePhoneNumber(consumerProfile.contact_number);
+    if (!normalizedProfilePhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Complete your profile first before applying. Contact number must be a valid Philippine mobile number.',
+      });
+    }
+
     const existingTicket = await withPostgresPrimary(
       'consumer.apply.check',
-      async () => { const { rows } = await pool.query("SELECT ticket_id, ticket_number FROM connection_ticket WHERE account_id = $1 AND status IN ('Pending','Active') LIMIT 1", [accountId]); return rows[0] || null; },
-      async () => { const { data } = await supabase.from('connection_ticket').select('ticket_id, ticket_number').eq('account_id', accountId).in('status', ['Pending','Active']).limit(1); return data?.[0] || null; }
+      async () => { const { rows } = await pool.query("SELECT ticket_id, ticket_number FROM connection_ticket WHERE account_id = $1 AND status IN ('Pending','Active') LIMIT 1", [normalizedAccountId]); return rows[0] || null; },
+      async () => { const { data } = await supabase.from('connection_ticket').select('ticket_id, ticket_number').eq('account_id', normalizedAccountId).in('status', ['Pending','Active']).limit(1); return data?.[0] || null; }
     );
     if (existingTicket) return res.status(409).json({ success: false, message: `You already have a pending application (Ticket: ${existingTicket.ticket_number}).` });
     let ticketNumber = null;
-    const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
-    const address = [purok, barangay, municipality || 'San Lorenzo Ruiz', zipCode || '4610'].filter(Boolean).join(', ');
+    const fullName = [consumerProfile.first_name, consumerProfile.middle_name, consumerProfile.last_name].filter(Boolean).join(' ').trim();
     await withPostgresPrimary(
       'consumer.apply.create',
       async () => {
@@ -8271,41 +8385,32 @@ app.post('/api/consumer/apply', async (req, res) => {
           ticketNumber = await generateSequentialRegistrationTicketNumber({ pgClient: client });
           await client.query(
             `UPDATE consumer
-             SET first_name = COALESCE(NULLIF($1, ''), first_name),
-                 middle_name = COALESCE(NULLIF($2, ''), middle_name),
-                 last_name = COALESCE(NULLIF($3, ''), last_name),
-                 contact_number = COALESCE($4, contact_number),
-                 purok = COALESCE(NULLIF($5, ''), purok),
-                 barangay = COALESCE(NULLIF($6, ''), barangay),
-                 municipality = COALESCE(NULLIF($7, ''), municipality),
-                 zip_code = COALESCE(NULLIF($8, ''), zip_code),
-                 classification_id = COALESCE($9::int, classification_id),
-                 address = COALESCE(NULLIF($10, ''), address),
-                 status = 'Pending'
-             WHERE login_id = $11`,
-            [firstName || null, middleName || null, lastName || null, normalizedPhone, purok || null, barangay || null, municipality || null, zipCode || null, normalizedClassificationId || null, address || null, accountId]
+             SET status = 'Pending',
+                 classification_id = COALESCE($1::int, classification_id)
+             WHERE consumer_id = $2`,
+            [normalizedClassificationId || null, consumerProfile.consumer_id]
           );
-          const { rows: cRows } = await client.query('SELECT consumer_id FROM consumer WHERE login_id=$1 LIMIT 1', [accountId]);
-          if (!cRows[0]) throw new Error('Consumer record not found.');
           await client.query("INSERT INTO connection_ticket (consumer_id,account_id,ticket_number,connection_type,requirements_submitted,status) VALUES ($1,$2,$3,$4,$5,'Pending')",
-            [cRows[0].consumer_id,accountId,ticketNumber,connectionType||'New Connection',normalizedSedula]);
-          if (fullName) await client.query("UPDATE accounts SET full_name=$1 WHERE account_id=$2 AND (full_name IS NULL OR full_name='')", [fullName, accountId]);
+            [consumerProfile.consumer_id, normalizedAccountId, ticketNumber, connectionType || 'New Connection', normalizedSedula]);
+          if (fullName) await client.query("UPDATE accounts SET full_name=$1 WHERE account_id=$2 AND (full_name IS NULL OR full_name='')", [fullName, normalizedAccountId]);
           await client.query('COMMIT');
         } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
       },
       async () => {
         ticketNumber = await generateSequentialRegistrationTicketNumber({ useSupabase: true });
-        const { data: cData } = await supabase.from('consumer').select('consumer_id').eq('login_id', accountId).maybeSingle();
-        if (!cData?.consumer_id) throw new Error('Consumer record not found.');
-        await supabase.from('consumer').update({ first_name: firstName, middle_name: middleName, last_name: lastName, contact_number: normalizedPhone, purok, barangay, municipality, zip_code: zipCode, classification_id: normalizedClassificationId, address, status: 'Pending' }).eq('login_id', accountId);
-        await insertSupabaseRowWithPrimaryKeyRetry('connection_ticket', 'ticket_id', { consumer_id: cData.consumer_id, account_id: accountId, ticket_number: ticketNumber, connection_type: connectionType||'New Connection', requirements_submitted: normalizedSedula, status: 'Pending' }, 'ticket_id');
+        const { error: consumerUpdateError } = await supabase
+          .from('consumer')
+          .update({ classification_id: normalizedClassificationId || consumerProfile.classification_id || null, status: 'Pending' })
+          .eq('consumer_id', consumerProfile.consumer_id);
+        if (consumerUpdateError) throw consumerUpdateError;
+        await insertSupabaseRowWithPrimaryKeyRetry('connection_ticket', 'ticket_id', { consumer_id: consumerProfile.consumer_id, account_id: normalizedAccountId, ticket_number: ticketNumber, connection_type: connectionType || 'New Connection', requirements_submitted: normalizedSedula, status: 'Pending' }, 'ticket_id');
       }
     );
     scheduleImmediateSync('consumer-apply');    return res.json({ success: true, ticketNumber, message: 'Application submitted successfully.' });
   } catch (error) {
     await logRequestError(req, 'consumer.apply', error);
     console.error('Consumer apply error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error during application.' });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message || 'Internal server error during application.' });
   }
 });
 
@@ -9725,7 +9830,7 @@ app.post('/api/auth/google', async (req, res) => {
               firstName || candidateUsername,
               lastName || '',
               accountId,
-              'Active',
+              'Pending',
               defaultAddress,
               defaultPurok,
               defaultBarangay,
@@ -9782,7 +9887,7 @@ app.post('/api/auth/google', async (req, res) => {
               first_name: firstName || candidateUsername,
               last_name: lastName || '',
               login_id: accountData.account_id,
-              status: 'Active',
+              status: 'Pending',
               address: defaultAddress,
               purok: defaultPurok,
               barangay: defaultBarangay,

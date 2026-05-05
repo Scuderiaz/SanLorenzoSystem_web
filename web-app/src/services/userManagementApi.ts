@@ -1077,11 +1077,11 @@ export const loadConsumerDashboardWithFallback = async (accountId: number | stri
   `/consumer-dashboard/${accountId}`,
   async () => loadConsumerDashboardFromSupabase(accountId),
   (payload) => ({
-    Consumer: payload?.Consumer || null,
+    Consumer: payload?.Consumer || payload?.consumer || payload?.data?.Consumer || payload?.data?.consumer || null,
     bills: toArray(payload?.bills),
     payments: toArray(payload?.payments),
     readings: toArray(payload?.readings),
-    ticket: payload?.ticket || null,
+    ticket: payload?.ticket || payload?.data?.ticket || null,
   }),
   'Failed to load Consumer dashboard.',
   `dataset.consumerDashboard.${accountId}`
