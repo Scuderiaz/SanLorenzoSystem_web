@@ -19,6 +19,7 @@ const normalizePhoneInput = (value: string) => {
 };
 
 const SignUp: React.FC = () => {
+  const GOOGLE_OAUTH_INTENT_KEY = 'google_oauth_intent';
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -49,10 +50,25 @@ const SignUp: React.FC = () => {
     'Salvacion', 'San Antonio', 'San Isidro', 'San Ramon'
   ].sort();
 
+  const purokCountByBarangay: Record<string, number> = {
+    'Daculang Bolo': 8,
+    'Dagotdotan': 7,
+    'Laniton': 5,
+    'Langga': 2,
+    'Maisog': 3,
+    'Mampurog': 6,
+    'Matacong (Pob.)': 7,
+    'San Isidro': 4,
+    'San Ramon': 3,
+  };
+
   const puroksByBarangay: Record<string, string[]> = Object.fromEntries(
     barangays.map((barangay) => [
       barangay,
-      ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5'],
+      Array.from(
+        { length: purokCountByBarangay[barangay] || 5 },
+        (_, index) => `Purok ${index + 1}`
+      ),
     ])
   );
 
@@ -310,17 +326,20 @@ const SignUp: React.FC = () => {
     }
 
     try {
+      sessionStorage.setItem(GOOGLE_OAUTH_INTENT_KEY, 'signup');
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?intent=signup`,
         },
       });
 
       if (oauthError) {
+        sessionStorage.removeItem(GOOGLE_OAUTH_INTENT_KEY);
         setError(oauthError.message || 'Failed to start Google sign-in.');
       }
     } catch (err: any) {
+      sessionStorage.removeItem(GOOGLE_OAUTH_INTENT_KEY);
       setError(err.message || 'An error occurred starting Google sign-in.');
     }
   };

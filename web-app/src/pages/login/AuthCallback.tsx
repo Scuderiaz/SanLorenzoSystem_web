@@ -9,6 +9,7 @@ const AuthCallback: React.FC = () => {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const GOOGLE_OAUTH_INTENT_KEY = 'google_oauth_intent';
 
   useEffect(() => {
     let cancelled = false;
@@ -23,6 +24,19 @@ const AuthCallback: React.FC = () => {
     const getRedirectPathByRole = (roleId: number) => {
       if (roleId === 5) return '/consumer';
       return '/dashboard';
+    };
+
+    const getGoogleIntent = (): 'login' | 'signup' | 'auto' => {
+      const url = new URL(window.location.href);
+      const rawIntent = String(url.searchParams.get('intent') || '').trim().toLowerCase();
+      if (rawIntent === 'login' || rawIntent === 'signup') {
+        return rawIntent;
+      }
+      const storedIntent = String(sessionStorage.getItem(GOOGLE_OAUTH_INTENT_KEY) || '').trim().toLowerCase();
+      if (storedIntent === 'login' || storedIntent === 'signup') {
+        return storedIntent;
+      }
+      return 'auto';
     };
 
     const handleOAuthCallback = async () => {
@@ -62,7 +76,8 @@ const AuthCallback: React.FC = () => {
           return;
         }
 
-        const result = await authService.loginWithGoogle(accessToken);
+        const oauthIntent = getGoogleIntent();
+        const result = await authService.loginWithGoogle(accessToken, oauthIntent);
 
         if (cancelled) return;
 
@@ -77,6 +92,8 @@ const AuthCallback: React.FC = () => {
           console.error('OAuth callback error:', err);
           setError(err.message || 'An unexpected error occurred during Google sign-in.');
         }
+      } finally {
+        sessionStorage.removeItem(GOOGLE_OAUTH_INTENT_KEY);
       }
     };
 

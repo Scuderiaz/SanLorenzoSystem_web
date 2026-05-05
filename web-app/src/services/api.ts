@@ -135,9 +135,9 @@ export const authService = {
     }
   },
 
-  loginWithGoogle: async (accessToken: string) => {
+  loginWithGoogle: async (accessToken: string, intent: 'login' | 'signup' | 'auto' = 'auto') => {
     try {
-      const response = await api.post('/auth/google', { access_token: accessToken });
+      const response = await api.post('/auth/google', { access_token: accessToken, intent });
       return response.data;
     } catch (error: any) {
       const isConnectionError = error?.code === 'ERR_NETWORK' || !error?.response;
