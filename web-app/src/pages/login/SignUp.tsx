@@ -49,10 +49,25 @@ const SignUp: React.FC = () => {
     'Salvacion', 'San Antonio', 'San Isidro', 'San Ramon'
   ].sort();
 
+  const purokCountByBarangay: Record<string, number> = {
+    'Daculang Bolo': 8,
+    'Dagotdotan': 7,
+    'Laniton': 5,
+    'Langga': 2,
+    'Maisog': 3,
+    'Mampurog': 6,
+    'Matacong (Pob.)': 7,
+    'San Isidro': 4,
+    'San Ramon': 3,
+  };
+
   const puroksByBarangay: Record<string, string[]> = Object.fromEntries(
     barangays.map((barangay) => [
       barangay,
-      ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5'],
+      Array.from(
+        { length: purokCountByBarangay[barangay] || 5 },
+        (_, index) => `Purok ${index + 1}`
+      ),
     ])
   );
 
@@ -313,7 +328,7 @@ const SignUp: React.FC = () => {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?intent=signup`,
         },
       });
 

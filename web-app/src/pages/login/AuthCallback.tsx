@@ -25,6 +25,15 @@ const AuthCallback: React.FC = () => {
       return '/dashboard';
     };
 
+    const getGoogleIntent = (): 'login' | 'signup' | 'auto' => {
+      const url = new URL(window.location.href);
+      const rawIntent = String(url.searchParams.get('intent') || '').trim().toLowerCase();
+      if (rawIntent === 'login' || rawIntent === 'signup') {
+        return rawIntent;
+      }
+      return 'auto';
+    };
+
     const handleOAuthCallback = async () => {
       try {
         if (!supabase) {
@@ -62,7 +71,7 @@ const AuthCallback: React.FC = () => {
           return;
         }
 
-        const result = await authService.loginWithGoogle(accessToken);
+        const result = await authService.loginWithGoogle(accessToken, getGoogleIntent());
 
         if (cancelled) return;
 

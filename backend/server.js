@@ -2862,6 +2862,120 @@ async function generateAvailableUsername(baseUsername) {
   return candidate;
 }
 
+function isAccountsUsernameDuplicateError(error) {
+  const code = String(error?.code || '').trim();
+  const constraint = String(error?.constraint || '').trim();
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  return (
+    code === '23505' &&
+    (
+      constraint === 'accounts_username_key' ||
+      message.includes('accounts_username_key') ||
+      details.includes('(username)=') ||
+      message.includes('duplicate key value')
+    )
+  );
+}
+
+function splitPersonName(fullName, fallback = 'Consumer') {
+  const normalized = String(fullName || '').trim();
+  const fallbackName = String(fallback || 'Consumer').trim() || 'Consumer';
+  const source = normalized || fallbackName;
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (!parts.length) {
+    return { firstName: 'Consumer', lastName: 'User' };
+  }
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: parts[0] };
+  }
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' '),
+  };
+}
+
+async function ensureConsumerProfileForAccount(accountId, fullName = '', contactNumber = null) {
+  const normalizedAccountId = normalizeRequiredForeignKeyId(accountId);
+  if (!normalizedAccountId) {
+    return null;
+  }
+
+  const defaults = {
+    municipality: 'San Lorenzo Ruiz',
+    zipCode: '4610',
+    barangay: 'Not Specified',
+    purok: 'Not Specified',
+  };
+  const address = [defaults.purok, defaults.barangay, defaults.municipality, defaults.zipCode].join(', ');
+  const { firstName, lastName } = splitPersonName(fullName, 'Consumer');
+
+  return withPostgresPrimary(
+    'auth.google.ensureConsumerProfile',
+    async () => {
+      const existing = await pool.query(
+        'SELECT consumer_id FROM consumer WHERE login_id = $1 LIMIT 1',
+        [normalizedAccountId]
+      );
+      if (existing.rows[0]?.consumer_id) {
+        return Number(existing.rows[0].consumer_id);
+      }
+
+      try {
+        const inserted = await pool.query(
+          `INSERT INTO consumer
+            (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number)
+           VALUES ($1, $2, $3, 'Active', $4, $5, $6, $7, $8, $9)
+           RETURNING consumer_id`,
+          [firstName, lastName, normalizedAccountId, address, defaults.purok, defaults.barangay, defaults.municipality, defaults.zipCode, contactNumber]
+        );
+        return Number(inserted.rows[0]?.consumer_id || 0) || null;
+      } catch (error) {
+        if (String(error?.code || '') === '23505') {
+          const retry = await pool.query(
+            'SELECT consumer_id FROM consumer WHERE login_id = $1 LIMIT 1',
+            [normalizedAccountId]
+          );
+          return Number(retry.rows[0]?.consumer_id || 0) || null;
+        }
+        throw error;
+      }
+    },
+    async () => {
+      if (!supabase) return null;
+
+      const { data: existing, error: existingError } = await supabase
+        .from('consumer')
+        .select('consumer_id')
+        .eq('login_id', normalizedAccountId)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (existing?.consumer_id) {
+        return Number(existing.consumer_id);
+      }
+
+      const { data: inserted, error: insertError } = await supabase
+        .from('consumer')
+        .insert([{
+          first_name: firstName,
+          last_name: lastName,
+          login_id: normalizedAccountId,
+          status: 'Active',
+          address,
+          purok: defaults.purok,
+          barangay: defaults.barangay,
+          municipality: defaults.municipality,
+          zip_code: defaults.zipCode,
+          contact_number: contactNumber,
+        }])
+        .select('consumer_id')
+        .maybeSingle();
+      if (insertError) throw insertError;
+      return Number(inserted?.consumer_id || 0) || null;
+    }
+  );
+}
+
 async function logPostgresEvent(message, options = {}) {
   await logSyncEvent('postgres', message, options);
 }
@@ -9468,7 +9582,10 @@ app.post('/api/register', async (req, res) => {
 
 // --- GOOGLE OAUTH ---
 app.post('/api/auth/google', async (req, res) => {
-  const { access_token } = req.body;
+  const { access_token, intent: rawIntent } = req.body;
+  const intent = ['login', 'signup'].includes(String(rawIntent || '').toLowerCase())
+    ? String(rawIntent).toLowerCase()
+    : 'auto';
 
   if (!access_token) {
     return res.status(400).json({ success: false, message: 'Access token is required.' });
@@ -9524,6 +9641,14 @@ app.post('/api/auth/google', async (req, res) => {
         return res.status(401).json({ success: false, message: 'Your account is inactive. Please contact the office for assistance.' });
       }
 
+      if (Number(existingAccount.role_id) === 5) {
+        await ensureConsumerProfileForAccount(
+          existingAccount.account_id,
+          existingAccount.full_name || googleName || existingAccount.username || 'Consumer',
+          null
+        );
+      }
+
       return res.json({
         success: true,
         user: {
@@ -9539,6 +9664,13 @@ app.post('/api/auth/google', async (req, res) => {
       });
     }
 
+    if (intent === 'login') {
+      return res.status(404).json({
+        success: false,
+        message: 'No Google-linked account found. Please sign up with Google first.',
+      });
+    }
+
     // New Google user — create account + consumer with Active status
     const [firstName = '', ...restName] = googleName.split(' ');
     const lastName = restName.join(' ') || firstName;
@@ -9547,99 +9679,122 @@ app.post('/api/auth/google', async (req, res) => {
     const defaultBarangay = 'Not Specified';
     const defaultPurok = 'Not Specified';
     const defaultAddress = [defaultPurok, defaultBarangay, defaultMunicipality, defaultZipCode].join(', ');
-    const generatedUsername = await generateAvailableUsername(googleEmail.split('@')[0] || `google_${Date.now()}`);
+    const generatedUsernameSeed = googleEmail.split('@')[0] || `google_${Date.now()}`;
     const generatedPassword = `google_${crypto.randomUUID()}`;
     const generatedPasswordHash = hashPassword(generatedPassword);
 
     const createdAccount = await withPostgresPrimary(
       'auth.google.createAccount',
       async () => {
-        const client = await pool.connect();
-        try {
-          await client.query('BEGIN');
-          await synchronizePostgresSequences(client, [
-            { tableName: 'accounts', primaryKey: 'account_id' },
-            { tableName: 'consumer', primaryKey: 'consumer_id' },
-          ]);
+        const maxAttempts = 8;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          const suffix = attempt === 0 ? '' : `${Date.now().toString().slice(-4)}${attempt}`;
+          const candidateUsername = await generateAvailableUsername(`${generatedUsernameSeed}${suffix}`);
 
-          const { rows: accountRows } = await client.query(`
-            INSERT INTO accounts (username, password, email, full_name, role_id, account_status, auth_user_id, profile_picture_url)
-            VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8)
-            RETURNING account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url
-          `, [generatedUsername, generatedPasswordHash, googleEmail, googleName || generatedUsername, 5, 'Active', authUserId, googleAvatar]);
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN');
+            await synchronizePostgresSequences(client, [
+              { tableName: 'accounts', primaryKey: 'account_id' },
+              { tableName: 'consumer', primaryKey: 'consumer_id' },
+            ]);
 
-          const accountId = accountRows[0].account_id;
+            const { rows: accountRows } = await client.query(`
+              INSERT INTO accounts (username, password, email, full_name, role_id, account_status, auth_user_id, profile_picture_url)
+              VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8)
+              RETURNING account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url
+            `, [candidateUsername, generatedPasswordHash, googleEmail, googleName || candidateUsername, 5, 'Active', authUserId, googleAvatar]);
 
-          await client.query(`
-            INSERT INTO consumer (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number)
-            VALUES (
-              $1,
-              $2,
-              $3,
-              $4,
-              COALESCE(NULLIF($5, ''), 'Not Specified, Not Specified, San Lorenzo Ruiz, 4610'),
-              COALESCE(NULLIF($6, ''), 'Not Specified'),
-              COALESCE(NULLIF($7, ''), 'Not Specified'),
-              COALESCE(NULLIF($8, ''), 'San Lorenzo Ruiz'),
-              COALESCE(NULLIF($9, ''), '4610'),
-              $10
-            )
-          `, [
-            firstName || generatedUsername,
-            lastName || '',
-            accountId,
-            'Active',
-            defaultAddress,
-            defaultPurok,
-            defaultBarangay,
-            defaultMunicipality,
-            defaultZipCode,
-            null,
-          ]);
+            const accountId = accountRows[0].account_id;
 
-          await client.query('COMMIT');
-          return accountRows[0];
-        } catch (error) {
-          await client.query('ROLLBACK');
-          throw error;
-        } finally {
-          client.release();
+            await client.query(`
+              INSERT INTO consumer (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number)
+              VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                COALESCE(NULLIF($5, ''), 'Not Specified, Not Specified, San Lorenzo Ruiz, 4610'),
+                COALESCE(NULLIF($6, ''), 'Not Specified'),
+                COALESCE(NULLIF($7, ''), 'Not Specified'),
+                COALESCE(NULLIF($8, ''), 'San Lorenzo Ruiz'),
+                COALESCE(NULLIF($9, ''), '4610'),
+                $10
+              )
+            `, [
+              firstName || candidateUsername,
+              lastName || '',
+              accountId,
+              'Active',
+              defaultAddress,
+              defaultPurok,
+              defaultBarangay,
+              defaultMunicipality,
+              defaultZipCode,
+              null,
+            ]);
+
+            await client.query('COMMIT');
+            return accountRows[0];
+          } catch (error) {
+            await client.query('ROLLBACK');
+            if (isAccountsUsernameDuplicateError(error) && attempt < maxAttempts - 1) {
+              continue;
+            }
+            throw error;
+          } finally {
+            client.release();
+          }
         }
+        throw new Error('Unable to generate a unique username for Google sign-in.');
       },
       async () => {
-        const { data: accountData, error: accountError } = await supabase
-          .from('accounts')
-          .insert([{
-            username: generatedUsername,
-            password: generatedPasswordHash,
-            email: googleEmail,
-            full_name: googleName || generatedUsername,
-            role_id: 5,
-            account_status: 'Active',
-            auth_user_id: authUserId,
-            profile_picture_url: googleAvatar,
-          }])
-          .select('account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url')
-          .single();
-        if (accountError) throw accountError;
+        const maxAttempts = 8;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          const suffix = attempt === 0 ? '' : `${Date.now().toString().slice(-4)}${attempt}`;
+          const candidateUsername = await generateAvailableUsername(`${generatedUsernameSeed}${suffix}`);
 
-        const { error: consumerError } = await supabase
-          .from('consumer')
-          .insert([{
-            first_name: firstName || generatedUsername,
-            last_name: lastName || '',
-            login_id: accountData.account_id,
-            status: 'Active',
-            address: defaultAddress,
-            purok: defaultPurok,
-            barangay: defaultBarangay,
-            municipality: defaultMunicipality,
-            zip_code: defaultZipCode,
-            contact_number: null,
-          }]);
-        if (consumerError) throw consumerError;
+          const { data: accountData, error: accountError } = await supabase
+            .from('accounts')
+            .insert([{
+              username: candidateUsername,
+              password: generatedPasswordHash,
+              email: googleEmail,
+              full_name: googleName || candidateUsername,
+              role_id: 5,
+              account_status: 'Active',
+              auth_user_id: authUserId,
+              profile_picture_url: googleAvatar,
+            }])
+            .select('account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url')
+            .single();
 
-        return accountData;
+          if (accountError) {
+            if (isAccountsUsernameDuplicateError(accountError) && attempt < maxAttempts - 1) {
+              continue;
+            }
+            throw accountError;
+          }
+
+          const { error: consumerError } = await supabase
+            .from('consumer')
+            .insert([{
+              first_name: firstName || candidateUsername,
+              last_name: lastName || '',
+              login_id: accountData.account_id,
+              status: 'Active',
+              address: defaultAddress,
+              purok: defaultPurok,
+              barangay: defaultBarangay,
+              municipality: defaultMunicipality,
+              zip_code: defaultZipCode,
+              contact_number: null,
+            }]);
+          if (consumerError) throw consumerError;
+
+          return accountData;
+        }
+        throw new Error('Unable to generate a unique username for Google sign-in.');
       }
     );
 
