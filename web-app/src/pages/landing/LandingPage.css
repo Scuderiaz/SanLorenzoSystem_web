@@ -1930,3 +1930,46 @@
   .apply-modal-body { padding: 16px 18px 22px; }
   .apply-modal-header { padding: 22px 18px 0; }
 }
+
+/* ─── Apply Form Select & Locked Fields ─── */
+.apply-select {
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.93rem;
+  font-weight: 500;
+  outline: none;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.apply-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  background-color: #fff;
+}
+
+.apply-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.apply-input-locked {
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.93rem;
+  font-weight: 500;
+  width: 100%;
+  cursor: not-allowed;
+}

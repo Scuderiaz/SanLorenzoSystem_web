@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
 const LandingPage: React.FC = () => {
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -21,28 +20,6 @@ const LandingPage: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const barangayOptions = [
-    'Daculang Bolo',
-    'Dagotdotan',
-    'Laniton',
-    'Langga',
-    'Maisog',
-    'Mampurog',
-    'Matacong',
-    'San Isidro',
-    'San Ramon',
-  ];
-  const subjectOptions = [
-    'Water Billing Concern',
-    'New Connection Inquiry',
-    'Reconnection Inquiry',
-    'Meter Reading Concern',
-    'Water Leak / Repair Request',
-    'Payment Concern',
-    'Account/Profile Concern',
-    'Other Concern',
-  ];
 
   // Apply modal state
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -236,58 +213,12 @@ const LandingPage: React.FC = () => {
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitSuccess(false);
-    setSubmitError('');
-
-    const normalizedPayload = {
-      fullName: formData.fullName.trim(),
-      barangay: formData.barangay.trim(),
-      contactNumber: formData.contactNumber.trim(),
-      subject: formData.subject.trim(),
-      message: formData.message.trim(),
-    };
-
-    if (
-      !normalizedPayload.fullName ||
-      !normalizedPayload.barangay ||
-      !normalizedPayload.contactNumber ||
-      !normalizedPayload.subject ||
-      !normalizedPayload.message
-    ) {
-      setSubmitError('Please complete all fields before submitting.');
-      return;
-    }
-
     setIsSubmitting(true);
-<<<<<<< HEAD
     await new Promise(resolve => setTimeout(resolve, 1500));
     setIsSubmitting(false);
     setSubmitSuccess(true);
     setFormData({ fullName: '', barangay: '', contactNumber: '', subject: '', message: '' });
     setTimeout(() => setSubmitSuccess(false), 5000);
-=======
-
-    try {
-      const response = await fetch(`${API_URL}/public/contact`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizedPayload),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.message || 'Unable to submit your message right now.');
-      }
-
-      setSubmitSuccess(true);
-      setFormData({ fullName: '', barangay: '', contactNumber: '', subject: '', message: '' });
-      setTimeout(() => setSubmitSuccess(false), 5000);
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Unable to submit your message right now.');
-    } finally {
-      setIsSubmitting(false);
-    }
->>>>>>> 6d6acca84586ed97e472f2dcc910d247e500d99e
   };
 
   return (
@@ -296,7 +227,7 @@ const LandingPage: React.FC = () => {
       <nav className={`landing-nav ${isScrolled ? 'scrolled' : ''}`}>
         <div className="nav-container">
           <div className="nav-logo" onClick={() => scrollToSection('hero')}>
-            <img src="/slr-water-billing-logo.png" alt="SLR Water Billing Logo" />
+            <img src="/slr-logo.png" alt="San Lorenzo Ruiz Water Billing" />
           </div>
 
           <div className="nav-links-wrapper">
@@ -669,20 +600,7 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Barangay</label>
-<<<<<<< HEAD
                   <input type="text" value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value})} required />
-=======
-                  <select
-                    value={formData.barangay}
-                    onChange={(e) => setFormData({...formData, barangay: e.target.value})}
-                    required
-                  >
-                    <option value="" disabled>Select barangay</option>
-                    {barangayOptions.map((barangayOption) => (
-                      <option key={barangayOption} value={barangayOption}>{barangayOption}</option>
-                    ))}
-                  </select>
->>>>>>> 6d6acca84586ed97e472f2dcc910d247e500d99e
                 </div>
                 <div className="form-group">
                   <label className="form-label">Contact Number</label>
@@ -692,40 +610,22 @@ const LandingPage: React.FC = () => {
               <div className="form-right">
                 <div className="form-group">
                   <label className="form-label">Subject</label>
-<<<<<<< HEAD
                   <input type="text" value={formData.subject} onChange={(e) => setFormData({...formData, subject: e.target.value})} required />
-=======
-                  <select
-                    value={formData.subject}
-                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                    required
-                  >
-                    <option value="" disabled>Select subject</option>
-                    {subjectOptions.map((subjectOption) => (
-                      <option key={subjectOption} value={subjectOption}>{subjectOption}</option>
-                    ))}
-                  </select>
->>>>>>> 6d6acca84586ed97e472f2dcc910d247e500d99e
                 </div>
                 <div className="form-group">
                   <label className="form-label">Message</label>
                   <textarea value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} rows={5} required />
                 </div>
-              </div>
-              <div className="form-submit-row">
-                <button type="submit" className="btn-submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
-                </button>
+                <div className="form-group">
+                  <button type="submit" className="btn-submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
+                  </button>
+                </div>
               </div>
             </div>
             {submitSuccess && (
               <div className="form-success">
                 <i className="fas fa-check-circle" /> Thank you! Your message has been sent successfully.
-              </div>
-            )}
-            {submitError && (
-              <div className="form-error">
-                <i className="fas fa-exclamation-circle" /> {submitError}
               </div>
             )}
           </form>
@@ -798,27 +698,60 @@ const LandingPage: React.FC = () => {
                       <input type="tel" value={applyForm.phone} onChange={e => setApplyForm(f => ({ ...f, phone: e.target.value }))} placeholder="09XXXXXXXXX" />
                     </div>
                     <div className="apply-field">
-                      <label>Purok</label>
-                      <input type="text" value={applyForm.purok} onChange={e => setApplyForm(f => ({ ...f, purok: e.target.value }))} placeholder="Purok" />
+                      <label>Barangay *</label>
+                      <select
+                        value={applyForm.barangay}
+                        onChange={e => setApplyForm(f => ({ ...f, barangay: e.target.value, purok: '' }))}
+                        className="apply-select"
+                      >
+                        <option value="">Select Barangay</option>
+                        <option value="Daculang Bolo">Daculang Bolo</option>
+                        <option value="Dagotdotan">Dagotdotan</option>
+                        <option value="Laniton">Laniton</option>
+                        <option value="Langga">Langga</option>
+                        <option value="Maisog">Maisog</option>
+                        <option value="Mampurog">Mampurog</option>
+                        <option value="Matacong">Matacong</option>
+                        <option value="San Isidro">San Isidro</option>
+                        <option value="San Ramon">San Ramon</option>
+                      </select>
                     </div>
                     <div className="apply-field">
-                      <label>Barangay *</label>
-                      <input type="text" value={applyForm.barangay} onChange={e => setApplyForm(f => ({ ...f, barangay: e.target.value }))} placeholder="Barangay" />
+                      <label>Purok *</label>
+                      <select
+                        value={applyForm.purok}
+                        onChange={e => setApplyForm(f => ({ ...f, purok: e.target.value }))}
+                        className="apply-select"
+                        disabled={!applyForm.barangay}
+                      >
+                        <option value="">
+                          {applyForm.barangay ? 'Select Purok' : 'Select Barangay first'}
+                        </option>
+                        {applyForm.barangay === 'Daculang Bolo' && Array.from({ length: 8 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                        {applyForm.barangay === 'Dagotdotan' && Array.from({ length: 7 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                        {applyForm.barangay === 'Laniton' && Array.from({ length: 5 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                        {applyForm.barangay === 'Langga' && Array.from({ length: 2 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                        {applyForm.barangay === 'Maisog' && Array.from({ length: 3 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                        {applyForm.barangay === 'Mampurog' && Array.from({ length: 6 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                        {applyForm.barangay === 'Matacong' && Array.from({ length: 7 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                        {applyForm.barangay === 'San Isidro' && Array.from({ length: 4 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                        {applyForm.barangay === 'San Ramon' && Array.from({ length: 3 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
+                      </select>
                     </div>
                     <div className="apply-field">
                       <label>Municipality</label>
-                      <input type="text" value={applyForm.municipality} onChange={e => setApplyForm(f => ({ ...f, municipality: e.target.value }))} />
+                      <input type="text" value="San Lorenzo Ruiz" readOnly className="apply-input-locked" />
                     </div>
                     <div className="apply-field">
                       <label>ZIP Code</label>
-                      <input type="text" value={applyForm.zipCode} onChange={e => setApplyForm(f => ({ ...f, zipCode: e.target.value }))} />
+                      <input type="text" value="4610" readOnly className="apply-input-locked" />
                     </div>
                   </div>
                   <div className="apply-modal-footer">
                     <button className="apply-modal-btn-secondary" onClick={() => setShowApplyModal(false)}>Cancel</button>
                     <button className="apply-modal-btn-primary" onClick={() => {
                       const f = applyForm;
-                      if (!f.firstName.trim() || !f.lastName.trim() || !f.phone.trim() || !f.barangay.trim()) {
+                      if (!f.firstName.trim() || !f.lastName.trim() || !f.phone.trim() || !f.barangay.trim() || !f.purok.trim()) {
                         setApplyError('Please fill in all required fields.');
                         return;
                       }
