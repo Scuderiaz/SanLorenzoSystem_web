@@ -592,7 +592,14 @@ const BillingLedger: React.FC = () => {
           </div>
           <div className="card-body p-0">
             <div style={{ padding: '24px' }}>
-              <DataTable columns={columns} data={filteredData} loading={loading} emptyMessage="No ledger accounts found." />
+              <DataTable
+                columns={columns}
+                data={filteredData}
+                loading={loading}
+                enablePagination
+                pageSize={10}
+                emptyMessage="No ledger accounts found."
+              />
             </div>
           </div>
         </div>

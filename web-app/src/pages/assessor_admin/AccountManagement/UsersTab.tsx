@@ -388,7 +388,7 @@ const UsersTab: React.FC = () => {
       />
 
       <div className="users-card">
-        <DataTable columns={columns} data={filteredUsers} loading={loading} emptyMessage="No staff accounts found." />
+        <DataTable columns={columns} data={filteredUsers} loading={loading} enablePagination pageSize={10} emptyMessage="No staff accounts found." />
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser ? 'Edit System User' : 'Register New User'} size="medium"

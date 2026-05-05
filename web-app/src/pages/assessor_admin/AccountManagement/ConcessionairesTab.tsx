@@ -487,6 +487,8 @@ const ConcessionairesTab: React.FC = () => {
           columns={columns}
           data={filteredConcessionaires}
           loading={loading}
+          enablePagination
+          pageSize={10}
           emptyMessage="No concessionaires found matching your search criteria."
         />
       </div>

@@ -9067,36 +9067,50 @@ app.get('/api/public-contact-messages', async (req, res) => {
 
         if (statusFilter) {
           values.push(statusFilter);
-          clauses.push(`status = $${values.length}`);
+          clauses.push(`cc.status = $${values.length}`);
         }
 
         if (query) {
           values.push(`%${query}%`);
           clauses.push(
-            `(LOWER(COALESCE(full_name, '')) LIKE $${values.length}
-              OR LOWER(COALESCE(barangay, '')) LIKE $${values.length}
-              OR LOWER(COALESCE(subject, '')) LIKE $${values.length}
-              OR LOWER(COALESCE(description, '')) LIKE $${values.length}
-              OR LOWER(COALESCE(contact_number, '')) LIKE $${values.length})`
+            `(LOWER(COALESCE(
+                  NULLIF(cc.full_name, ''),
+                  NULLIF(CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name), ''),
+                  NULLIF(a.full_name, ''),
+                  a.username,
+                  ''
+                )) LIKE $${values.length}
+              OR LOWER(COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '')) LIKE $${values.length}
+              OR LOWER(COALESCE(cc.subject, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(cc.description, '')) LIKE $${values.length}
+              OR LOWER(COALESCE(NULLIF(cc.contact_number, ''), NULLIF(c.contact_number, ''), NULLIF(a.contact_number, ''), '')) LIKE $${values.length})`
           );
         }
 
-        const whereClause = `WHERE category = ANY($1::text[])${clauses.length ? ` AND ${clauses.join(' AND ')}` : ''}`;
+        const whereClause = `WHERE cc.category = ANY($1::text[])${clauses.length ? ` AND ${clauses.join(' AND ')}` : ''}`;
         const { rows } = await pool.query(
           `SELECT concern_id AS message_id,
-                  full_name,
-                  barangay,
-                  contact_number,
-                  subject,
-                  description AS message,
-                  status,
-                  created_at,
-                  resolved_at AS reviewed_at,
-                  resolved_by AS reviewed_by,
-                  remarks
-           FROM consumer_concerns
+                  COALESCE(
+                    NULLIF(cc.full_name, ''),
+                    NULLIF(CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name), ''),
+                    NULLIF(a.full_name, ''),
+                    a.username,
+                    ''
+                  ) AS full_name,
+                  COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '') AS barangay,
+                  COALESCE(NULLIF(cc.contact_number, ''), NULLIF(c.contact_number, ''), NULLIF(a.contact_number, ''), '') AS contact_number,
+                  cc.subject,
+                  cc.description AS message,
+                  cc.status,
+                  cc.created_at,
+                  cc.resolved_at AS reviewed_at,
+                  cc.resolved_by AS reviewed_by,
+                  cc.remarks
+           FROM consumer_concerns cc
+           LEFT JOIN consumer c ON c.consumer_id = cc.consumer_id
+           LEFT JOIN accounts a ON a.account_id = cc.account_id
            ${whereClause}
-           ORDER BY created_at DESC, message_id DESC
+           ORDER BY cc.created_at DESC, cc.concern_id DESC
            LIMIT 500`,
           values
         );
@@ -9105,7 +9119,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
       async () => {
         let builder = supabase
           .from('consumer_concerns')
-          .select('concern_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .select('concern_id, consumer_id, account_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
           .in('category', ['Public Contact', 'Public Concern'])
           .order('created_at', { ascending: false })
           .limit(500);
@@ -9117,7 +9131,55 @@ app.get('/api/public-contact-messages', async (req, res) => {
         const { data, error } = await builder;
         if (error) throw error;
 
-        const normalizedData = data || [];
+        const concerns = data || [];
+        const consumerIds = Array.from(new Set(
+          concerns
+            .map((row) => Number(row?.consumer_id || 0))
+            .filter((value) => Number.isInteger(value) && value > 0)
+        ));
+        const accountIds = Array.from(new Set(
+          concerns
+            .map((row) => Number(row?.account_id || 0))
+            .filter((value) => Number.isInteger(value) && value > 0)
+        ));
+
+        const [consumerResult, accountResult] = await Promise.all([
+          consumerIds.length
+            ? supabase
+                .from('consumer')
+                .select('consumer_id, first_name, middle_name, last_name, barangay, contact_number')
+                .in('consumer_id', consumerIds)
+            : Promise.resolve({ data: [], error: null }),
+          accountIds.length
+            ? supabase
+                .from('accounts')
+                .select('account_id, username, full_name, contact_number')
+                .in('account_id', accountIds)
+            : Promise.resolve({ data: [], error: null }),
+        ]);
+
+        if (consumerResult.error) throw consumerResult.error;
+        if (accountResult.error) throw accountResult.error;
+
+        const consumerMap = new Map((consumerResult.data || []).map((row) => [Number(row.consumer_id), row]));
+        const accountMap = new Map((accountResult.data || []).map((row) => [Number(row.account_id), row]));
+
+        const normalizedData = concerns.map((row) => {
+          const consumer = consumerMap.get(Number(row?.consumer_id || 0)) || null;
+          const account = accountMap.get(Number(row?.account_id || 0)) || null;
+          const consumerName = [consumer?.first_name, consumer?.middle_name, consumer?.last_name]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+
+          return {
+            ...row,
+            full_name: row?.full_name || consumerName || account?.full_name || account?.username || '',
+            barangay: row?.barangay || consumer?.barangay || '',
+            contact_number: row?.contact_number || consumer?.contact_number || account?.contact_number || '',
+          };
+        });
+
         if (!query) return normalizedData;
         return normalizedData.filter((row) => {
           const haystack = [
@@ -9690,7 +9752,7 @@ app.post('/api/auth/google', async (req, res) => {
   const { access_token, intent: rawIntent } = req.body;
   const intent = ['login', 'signup'].includes(String(rawIntent || '').toLowerCase())
     ? String(rawIntent).toLowerCase()
-    : 'auto';
+    : 'login';
 
   if (!access_token) {
     return res.status(400).json({ success: false, message: 'Access token is required.' });
@@ -9776,7 +9838,7 @@ app.post('/api/auth/google', async (req, res) => {
       });
     }
 
-    // New Google user — create account + consumer with Active status
+    // New Google user — create account + consumer in Pending state
     const [firstName = '', ...restName] = googleName.split(' ');
     const lastName = restName.join(' ') || firstName;
     const defaultMunicipality = 'San Lorenzo Ruiz';
@@ -9808,7 +9870,7 @@ app.post('/api/auth/google', async (req, res) => {
               INSERT INTO accounts (username, password, email, full_name, role_id, account_status, auth_user_id, profile_picture_url)
               VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8)
               RETURNING account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url
-            `, [candidateUsername, generatedPasswordHash, googleEmail, googleName || candidateUsername, 5, 'Active', authUserId, googleAvatar]);
+            `, [candidateUsername, generatedPasswordHash, googleEmail, googleName || candidateUsername, 5, 'Pending', authUserId, googleAvatar]);
 
             const accountId = accountRows[0].account_id;
 
@@ -9867,7 +9929,7 @@ app.post('/api/auth/google', async (req, res) => {
               email: googleEmail,
               full_name: googleName || candidateUsername,
               role_id: 5,
-              account_status: 'Active',
+              account_status: 'Pending',
               auth_user_id: authUserId,
               profile_picture_url: googleAvatar,
             }])
@@ -10020,6 +10082,10 @@ app.get('/api/treasurer/dashboard-summary', async (req, res) => {
 
 app.get('/api/treasurer/account-lookup', async (req, res) => {
   const query = String(req.query.q || '').trim();
+  const normalizedQuery = query.toLowerCase();
+  const normalizedAccountDigits = query.replace(/\D/g, '');
+  const queryLike = `%${query}%`;
+  const digitsLike = normalizedAccountDigits ? `%${normalizedAccountDigits}%` : null;
 
   if (!query) {
     return res.status(400).json({ success: false, message: 'Search query is required.' });
@@ -10043,12 +10109,27 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
             ORDER BY meter_id DESC
             LIMIT 1
           ) m ON true
-          WHERE (c.account_number = $1
-             OR CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) ILIKE $2)
+          WHERE (
+                c.account_number = $1
+                OR c.account_number ILIKE $2
+                OR (
+                  NULLIF($3, '') IS NOT NULL
+                  AND regexp_replace(COALESCE(c.account_number, ''), '[^0-9]', '', 'g') ILIKE $4
+                )
+                OR CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) ILIKE $2
+              )
             AND (c.login_id IS NULL OR COALESCE(a.account_status, 'Active') = 'Active')
-          ORDER BY CASE WHEN c.account_number = $1 THEN 0 ELSE 1 END, c.consumer_id DESC
+          ORDER BY
+            CASE
+              WHEN c.account_number = $1 THEN 0
+              WHEN c.account_number ILIKE $2 THEN 1
+              WHEN NULLIF($3, '') IS NOT NULL
+                AND regexp_replace(COALESCE(c.account_number, ''), '[^0-9]', '', 'g') ILIKE $4 THEN 2
+              ELSE 3
+            END,
+            c.consumer_id DESC
           LIMIT 1
-        `, [query, `%${query}%`]);
+        `, [query, queryLike, normalizedAccountDigits, digitsLike]);
 
         const consumer = consumerResult.rows[0];
         if (!consumer) {
@@ -10124,7 +10205,14 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
             return false;
           }
           const fullName = [consumer.first_name, consumer.middle_name, consumer.last_name].filter(Boolean).join(' ').toLowerCase();
-          return String(consumer.account_number || '').toLowerCase() === query.toLowerCase() || fullName.includes(query.toLowerCase());
+          const accountNumber = String(consumer.account_number || '');
+          const accountDigits = accountNumber.replace(/\D/g, '');
+          return (
+            accountNumber.toLowerCase() === normalizedQuery ||
+            accountNumber.toLowerCase().includes(normalizedQuery) ||
+            (!!normalizedAccountDigits && accountDigits.includes(normalizedAccountDigits)) ||
+            fullName.includes(normalizedQuery)
+          );
         });
 
         if (!matchedConsumer) {
@@ -11177,11 +11265,14 @@ function normalizeReadingSchedulePayload(rawSchedule, overrideDate = null) {
 }
 
 function mapPublicContactMessageRow(row) {
+  const fullName = String(row?.full_name || '').trim();
+  const barangay = String(row?.barangay || '').trim();
+  const contactNumber = String(row?.contact_number || '').trim();
   return {
     message_id: Number(row?.message_id || row?.concern_id || 0),
-    full_name: row?.full_name || '',
-    barangay: row?.barangay || '',
-    contact_number: row?.contact_number || '',
+    full_name: fullName || 'Unknown sender',
+    barangay: barangay || 'Not specified',
+    contact_number: contactNumber || 'Not provided',
     subject: row?.subject || '',
     message: row?.message || row?.description || '',
     status: row?.status || 'Pending',

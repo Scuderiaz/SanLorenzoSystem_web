@@ -296,6 +296,8 @@ const Users: React.FC = () => {
               columns={columns}
               data={filteredUsers}
               loading={loading}
+              enablePagination
+              pageSize={10}
               emptyMessage="No matching users found."
             />
           </div>

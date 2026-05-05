@@ -2,6 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const CONTACT_BARANGAYS = [
+  'Daculang Bolo',
+  'Dagotdotan',
+  'Laniton',
+  'Langga',
+  'Maisog',
+  'Mampurog',
+  'Matacong',
+  'San Isidro',
+  'San Ramon',
+];
+const CONTACT_SUBJECTS = [
+  'New Connection Inquiry',
+  'Billing Concern',
+  'Meter Reading Concern',
+  'Service Interruption',
+  'Leakage Report',
+  'Follow-up Request',
+  'Other',
+];
+
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -20,6 +42,7 @@ const LandingPage: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // Apply modal state
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -213,12 +236,36 @@ const LandingPage: React.FC = () => {
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
+    setSubmitSuccess(false);
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
-    setFormData({ fullName: '', barangay: '', contactNumber: '', subject: '', message: '' });
-    setTimeout(() => setSubmitSuccess(false), 5000);
+    try {
+      const response = await fetch(`${API_URL}/public/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: formData.fullName.trim(),
+          barangay: formData.barangay.trim(),
+          contactNumber: formData.contactNumber.trim(),
+          subject: formData.subject.trim(),
+          message: formData.message.trim(),
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.success) {
+        setSubmitError(String(data?.message || 'Failed to send your message. Please try again.'));
+        return;
+      }
+
+      setSubmitSuccess(true);
+      setFormData({ fullName: '', barangay: '', contactNumber: '', subject: '', message: '' });
+      setTimeout(() => setSubmitSuccess(false), 5000);
+    } catch {
+      setSubmitError('Unable to connect to the server right now. Please try again in a moment.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -600,17 +647,38 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Barangay</label>
-                  <input type="text" value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value})} required />
+                  <select value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value})} required>
+                    <option value="">Select barangay</option>
+                    {CONTACT_BARANGAYS.map((barangay) => (
+                      <option key={barangay} value={barangay}>
+                        {barangay}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Contact Number</label>
-                  <input type="tel" value={formData.contactNumber} onChange={(e) => setFormData({...formData, contactNumber: e.target.value})} required />
+                  <input
+                    type="tel"
+                    value={formData.contactNumber}
+                    onChange={(e) => setFormData({...formData, contactNumber: e.target.value})}
+                    placeholder="09XXXXXXXXX"
+                    maxLength={13}
+                    required
+                  />
                 </div>
               </div>
               <div className="form-right">
                 <div className="form-group">
                   <label className="form-label">Subject</label>
-                  <input type="text" value={formData.subject} onChange={(e) => setFormData({...formData, subject: e.target.value})} required />
+                  <select value={formData.subject} onChange={(e) => setFormData({...formData, subject: e.target.value})} required>
+                    <option value="">Select subject</option>
+                    {CONTACT_SUBJECTS.map((subject) => (
+                      <option key={subject} value={subject}>
+                        {subject}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Message</label>
@@ -626,6 +694,11 @@ const LandingPage: React.FC = () => {
             {submitSuccess && (
               <div className="form-success">
                 <i className="fas fa-check-circle" /> Thank you! Your message has been sent successfully.
+              </div>
+            )}
+            {submitError && (
+              <div className="form-error">
+                <i className="fas fa-exclamation-circle" /> {submitError}
               </div>
             )}
           </form>

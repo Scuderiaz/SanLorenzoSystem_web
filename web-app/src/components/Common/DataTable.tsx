@@ -32,6 +32,8 @@ interface DataTableProps {
   filterActions?: React.ReactNode;
   initialSortColumn?: string | null;
   initialSortDirection?: 'asc' | 'desc';
+  enablePagination?: boolean;
+  pageSize?: number;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -45,11 +47,14 @@ const DataTable: React.FC<DataTableProps> = ({
   filterActions,
   initialSortColumn = null,
   initialSortDirection = 'asc',
+  enablePagination = false,
+  pageSize = 10,
 }) => {
   const [sortColumn, setSortColumn] = useState<string | null>(initialSortColumn);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(initialSortDirection);
   const [searchQuery, setSearchQuery] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [currentPage, setCurrentPage] = useState(1);
 
   const getColumnFilterValue = (column: Column, row: any) => {
     const value = column.getFilterValue ? column.getFilterValue(row) : row[column.key];
@@ -171,6 +176,37 @@ const DataTable: React.FC<DataTableProps> = ({
     });
   }, [columns, filteredData, sortColumn, sortDirection]);
 
+  const normalizedPageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10;
+  const totalPages = enablePagination
+    ? Math.max(1, Math.ceil(sortedData.length / normalizedPageSize))
+    : 1;
+
+  const paginatedData = useMemo(() => {
+    if (!enablePagination) {
+      return sortedData;
+    }
+    const start = (currentPage - 1) * normalizedPageSize;
+    const end = start + normalizedPageSize;
+    return sortedData.slice(start, end);
+  }, [currentPage, enablePagination, normalizedPageSize, sortedData]);
+
+  useEffect(() => {
+    if (!enablePagination) {
+      setCurrentPage(1);
+      return;
+    }
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, enablePagination, totalPages]);
+
+  useEffect(() => {
+    if (!enablePagination) {
+      return;
+    }
+    setCurrentPage(1);
+  }, [enablePagination, searchQuery, columnFilters, sortColumn, sortDirection, data]);
+
   const hasActiveFilters = Boolean(
     searchQuery.trim() || Object.values(columnFilters).some((value) => value)
   );
@@ -178,6 +214,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const clearFilters = () => {
     setSearchQuery('');
     setColumnFilters({});
+    setCurrentPage(1);
   };
 
   const renderHeader = () => (
@@ -246,6 +283,36 @@ const DataTable: React.FC<DataTableProps> = ({
     );
   };
 
+  const renderPagination = () => {
+    if (!enablePagination || sortedData.length <= normalizedPageSize) {
+      return null;
+    }
+
+    return (
+      <div className="data-table-pagination">
+        <button
+          type="button"
+          className="data-table-pagination-btn"
+          disabled={currentPage <= 1}
+          onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+        >
+          Previous
+        </button>
+        <span className="data-table-pagination-info">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          type="button"
+          className="data-table-pagination-btn"
+          disabled={currentPage >= totalPages}
+          onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+        >
+          Next
+        </button>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="data-table-container">
@@ -288,7 +355,7 @@ const DataTable: React.FC<DataTableProps> = ({
       <table className="data-table">
         {renderHeader()}
         <tbody>
-          {sortedData.map((row, index) => (
+          {paginatedData.map((row, index) => (
             <tr
               key={index}
               onClick={() => onRowClick && onRowClick(row)}
@@ -303,6 +370,7 @@ const DataTable: React.FC<DataTableProps> = ({
           ))}
         </tbody>
       </table>
+      {renderPagination()}
     </div>
   );
 };

@@ -181,6 +181,8 @@ const CloseDay: React.FC = () => {
               ]}
               data={transactions}
               loading={loading}
+              enablePagination
+              pageSize={10}
               emptyMessage="No transactions recorded for this period."
               enableFiltering
               filterPlaceholder="Search by OR number, account, Consumer, or reference..."

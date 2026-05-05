@@ -54,6 +54,13 @@ const toOptionalNumber = (value: string) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const normalizeDateInputValue = (value?: string | null) => {
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  return raw.includes('T') ? raw.split('T')[0] : raw;
+};
+
 const normalizePhoneInput = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return '';
@@ -238,13 +245,13 @@ const Consumers: React.FC = () => {
       barangay: Consumer.Barangay || '',
       municipality: Consumer.Municipality || 'San Lorenzo Ruiz',
       zipCode: Consumer.Zip_Code || '4610',
-      zoneId: Consumer.Zone_ID.toString(),
-      classificationId: Consumer.Classification_ID.toString(),
-      accountNumber: Consumer.Account_Number,
-      meterNumber: Consumer.Meter_Number,
-      contactNumber: Consumer.Contact_Number,
-      connectionDate: Consumer.Connection_Date,
-      status: Consumer.Status,
+      zoneId: Consumer.Zone_ID ? String(Consumer.Zone_ID) : '',
+      classificationId: Consumer.Classification_ID ? String(Consumer.Classification_ID) : '',
+      accountNumber: Consumer.Account_Number || '',
+      meterNumber: Consumer.Meter_Number || '',
+      contactNumber: Consumer.Contact_Number || '',
+      connectionDate: normalizeDateInputValue(Consumer.Connection_Date),
+      status: Consumer.Status || 'Pending',
     });
     setIsFormModalOpen(true);
     setIsDetailsModalOpen(false);
@@ -487,6 +494,8 @@ const Consumers: React.FC = () => {
               columns={columns}
               data={filteredConsumers}
               loading={loading}
+              enablePagination
+              pageSize={10}
               emptyMessage="No consumers found matching your search criteria."
             />
           </div>
@@ -515,48 +524,48 @@ const Consumers: React.FC = () => {
           }
         >
           {selectedConsumer && (
-            <div className="Consumer-detail-modal">
-              <div className="Consumer-detail-grid">
-                <section className="Consumer-detail-section">
-                  <h3 className="Consumer-detail-section-title">
+            <div className="consumer-detail-modal">
+              <div className="consumer-detail-grid">
+                <section className="consumer-detail-section">
+                  <h3 className="consumer-detail-section-title">
                     <i className="fas fa-user"></i> Personal Data
                   </h3>
-                  <div className="Consumer-detail-row">
-                    <span className="Consumer-detail-label">Account No.</span>
-                    <span className="Consumer-detail-value">{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</span>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Account No.</span>
+                    <span className="consumer-detail-value">{formatAccountNumberForDisplay(selectedConsumer.Account_Number)}</span>
                   </div>
-                  <div className="Consumer-detail-row">
-                    <span className="Consumer-detail-label">Name</span>
-                    <span className="Consumer-detail-value Consumer-detail-value-name">
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Name</span>
+                    <span className="consumer-detail-value consumer-detail-value-name">
                       {selectedConsumer.First_Name} {selectedConsumer.Middle_Name ? `${selectedConsumer.Middle_Name} ` : ''}{selectedConsumer.Last_Name}
                     </span>
                   </div>
-                  <div className="Consumer-detail-row Consumer-detail-row-address">
-                    <span className="Consumer-detail-label">Address</span>
-                    <span className="Consumer-detail-value">{selectedConsumer.Address}</span>
+                  <div className="consumer-detail-row consumer-detail-row-address">
+                    <span className="consumer-detail-label">Address</span>
+                    <span className="consumer-detail-value">{selectedConsumer.Address}</span>
                   </div>
                 </section>
 
-                <section className="Consumer-detail-section">
-                  <h3 className="Consumer-detail-section-title">
+                <section className="consumer-detail-section">
+                  <h3 className="consumer-detail-section-title">
                     <i className="fas fa-credit-card"></i> Account Info
                   </h3>
-                  <div className="Consumer-detail-row">
-                    <span className="Consumer-detail-label">Map Zone</span>
-                    <span className="Consumer-detail-value">{formatZoneLabel(selectedConsumer.Zone_Name, selectedConsumer.Zone_ID)}</span>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Map Zone</span>
+                    <span className="consumer-detail-value">{formatZoneLabel(selectedConsumer.Zone_Name, selectedConsumer.Zone_ID)}</span>
                   </div>
-                  <div className="Consumer-detail-row">
-                    <span className="Consumer-detail-label">Classification</span>
-                    <span className="Consumer-detail-value">{selectedConsumer.Classification_Name}</span>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Classification</span>
+                    <span className="consumer-detail-value">{selectedConsumer.Classification_Name}</span>
                   </div>
-                  <div className="Consumer-detail-row">
-                    <span className="Consumer-detail-label">Meter Status</span>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Meter Status</span>
                     <span className={`status-badge status-${(selectedConsumer.Meter_Status || 'active').toLowerCase()}`}>
                       {selectedConsumer.Meter_Status || 'Active'}
                     </span>
                   </div>
-                  <div className="Consumer-detail-row">
-                    <span className="Consumer-detail-label">Status</span>
+                  <div className="consumer-detail-row">
+                    <span className="consumer-detail-label">Status</span>
                     <span className={`status-badge status-${(selectedConsumer.Status || 'unknown').toLowerCase()}`}>
                       {selectedConsumer.Status}
                     </span>
@@ -584,10 +593,10 @@ const Consumers: React.FC = () => {
             </>
           }
         >
-          <div className="Consumer-modal-grid">
+          <div className="consumer-modal-grid">
             {!editingConsumer && (
               <>
-                <div className="Consumer-modal-section-title">Account Access</div>
+                <div className="consumer-modal-section-title">Account Access</div>
                 <FormInput
                   label="Username"
                   value={formData.username}
@@ -605,7 +614,7 @@ const Consumers: React.FC = () => {
                 />
               </>
             )}
-            <div className="Consumer-modal-section-title">Personal Information</div>
+            <div className="consumer-modal-section-title">Personal Information</div>
             <FormInput
               label="First Name"
               value={formData.firstName}
@@ -640,7 +649,7 @@ const Consumers: React.FC = () => {
               onChange={(value) => setFormData({ ...formData, meterNumber: value })}
               icon="fa-tachometer-alt"
             />
-            <div className="Consumer-modal-section-title">Address Details</div>
+            <div className="consumer-modal-section-title">Address Details</div>
             <FormSelect
               label="Purok"
               value={formData.purok}
@@ -673,7 +682,7 @@ const Consumers: React.FC = () => {
               onChange={() => {}}
               icon="fa-map-marker-alt"
             />
-            <div className="Consumer-modal-section-title">Service Details</div>
+            <div className="consumer-modal-section-title">Service Details</div>
             <FormInput
               label="Contact Number"
               value={formData.contactNumber}

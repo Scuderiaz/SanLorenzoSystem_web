@@ -578,3 +578,141 @@
 [2026-05-05T04:11:02.700Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
 [2026-05-05T04:11:27.776Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-05-05T04:11:33.396Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:51:23.991Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:52:29.132Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T12:52:35.407Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:53:29.136Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T12:53:35.127Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:54:29.139Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T12:54:35.181Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:55:29.151Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T12:55:34.910Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:56:29.152Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T12:56:36.455Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:57:29.165Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T12:57:35.023Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:58:29.179Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T12:58:35.598Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T12:59:29.189Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T12:59:35.009Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:00:29.194Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:00:34.903Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:01:29.206Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:01:34.989Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:02:29.215Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:02:37.682Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:03:29.222Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:03:37.432Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:04:29.224Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:04:43.124Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:05:48.507Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:05:55.474Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:06:48.511Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:06:53.833Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:07:48.512Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:07:59.128Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:08:48.545Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:08:55.951Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:09:48.546Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:09:55.138Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:10:48.545Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:10:54.211Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:11:48.548Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:11:53.716Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:12:48.559Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:12:53.800Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:13:48.561Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:13:55.910Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:14:48.569Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:14:57.448Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:15:48.584Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:15:54.737Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:16:14.176Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-05T13:16:20.045Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:16:39.804Z] [public.contact.updateStatus] Semaphore SMS failed (403): Your account has not yet been approved for sending messages. Please either top-up your account or wait for your account to be approved. If your account has not been approved within 2 business days, please email support@semaphore.co | PATCH /api/public-contact-messages/2/status | params={"id":"2"} | query={} | body={"status":"In Progress","remarks":"wait lang","reviewedBy":3}
+[2026-05-05T13:16:44.096Z] [public.contact.updateStatus] Semaphore SMS failed (403): Your account has not yet been approved for sending messages. Please either top-up your account or wait for your account to be approved. If your account has not been approved within 2 business days, please email support@semaphore.co | PATCH /api/public-contact-messages/2/status | params={"id":"2"} | query={} | body={"status":"In Progress","remarks":"wait lang","reviewedBy":3}
+[2026-05-05T13:16:48.158Z] [public.contact.updateStatus] Semaphore SMS failed (403): Your account has not yet been approved for sending messages. Please either top-up your account or wait for your account to be approved. If your account has not been approved within 2 business days, please email support@semaphore.co | PATCH /api/public-contact-messages/2/status | params={"id":"2"} | query={} | body={"status":"In Progress","remarks":"wait lang","reviewedBy":3}
+[2026-05-05T13:16:48.585Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:16:52.224Z] [public.contact.updateStatus] Semaphore SMS failed (403): Your account has not yet been approved for sending messages. Please either top-up your account or wait for your account to be approved. If your account has not been approved within 2 business days, please email support@semaphore.co | PATCH /api/public-contact-messages/2/status | params={"id":"2"} | query={} | body={"status":"In Progress","remarks":"wait lang","reviewedBy":3}
+[2026-05-05T13:16:54.636Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:17:48.585Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:17:55.084Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:18:48.598Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:18:54.974Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:19:48.607Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:19:53.974Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:20:48.612Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:20:53.802Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:21:48.628Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:21:54.622Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:22:48.634Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:22:53.816Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:23:48.643Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:23:55.166Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:24:48.654Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:24:56.226Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:25:48.655Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:25:59.775Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:26:48.662Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:26:56.518Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:27:48.666Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:27:55.374Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:28:48.676Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:28:53.571Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:29:48.683Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:29:55.221Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:30:48.692Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:30:55.395Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:31:48.701Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:31:55.802Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:32:48.710Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:32:54.544Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:33:48.716Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:33:54.557Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:34:48.724Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:34:54.217Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:35:48.730Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:35:54.778Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:36:48.744Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:36:51.096Z] [public.contact.updateStatus] Semaphore SMS failed (403): Your account has not yet been approved for sending messages. Please either top-up your account or wait for your account to be approved. If your account has not been approved within 2 business days, please email support@semaphore.co | PATCH /api/public-contact-messages/2/status | params={"id":"2"} | query={} | body={"status":"In Progress","remarks":"opo wait po","reviewedBy":3}
+[2026-05-05T13:36:58.589Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:37:48.754Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:37:54.980Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:38:48.757Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:38:54.509Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:39:48.781Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:39:57.248Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:40:48.774Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:40:57.424Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:41:48.783Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:42:01.533Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:42:48.784Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:42:53.885Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:43:48.798Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:43:55.154Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:44:48.806Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:44:58.248Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:45:48.816Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:45:54.745Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:46:48.830Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:46:58.555Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:47:48.838Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:47:54.665Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:48:48.842Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:48:55.977Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:49:48.856Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:49:54.891Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:50:48.857Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:50:58.654Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:51:48.865Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:51:54.885Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:52:48.870Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:52:54.894Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:53:48.872Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:53:54.622Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:54:48.879Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:54:58.867Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:55:48.893Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:56:00.437Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-05T13:56:48.908Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-05T13:56:54.634Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint

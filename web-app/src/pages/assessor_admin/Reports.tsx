@@ -221,6 +221,8 @@ const Reports: React.FC = () => {
               columns={consumerReportColumns}
               data={consumerReports}
               loading={loading}
+              enablePagination
+              pageSize={10}
               emptyMessage="No Consumer data available"
               enableFiltering
               filterPlaceholder="Search Consumer report by zone or totals..."
@@ -242,6 +244,8 @@ const Reports: React.FC = () => {
               columns={monthlyReportColumns}
               data={monthlyReports}
               loading={loading}
+              enablePagination
+              pageSize={10}
               emptyMessage="No report data available"
               enableFiltering
               filterPlaceholder="Search monthly report by period or values..."

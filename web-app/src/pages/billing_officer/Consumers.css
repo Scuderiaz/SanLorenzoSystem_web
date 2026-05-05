@@ -259,12 +259,13 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .consumer-detail-section {
   display: flex;
   flex-direction: column;
+  height: 100%;
   gap: 8px;
   padding: 16px 18px;
   border: 1px solid #dbe3ef;

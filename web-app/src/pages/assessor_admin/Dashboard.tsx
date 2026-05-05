@@ -142,6 +142,8 @@ const Dashboard: React.FC = () => {
               columns={logColumns}
               data={logs}
               loading={loading}
+              enablePagination
+              pageSize={10}
               emptyMessage="No recent activity logs found"
               enableFiltering
               filterPlaceholder="Search logs by operator, category, or description..."

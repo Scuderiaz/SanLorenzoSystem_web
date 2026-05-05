@@ -309,6 +309,8 @@ const Maintenance: React.FC = () => {
               ]}
               data={logs}
               loading={loading}
+              enablePagination
+              pageSize={10}
               emptyMessage="Current ledger environment is clear."
               enableFiltering
               filterPlaceholder="Search logs by process, summary, or user..."
@@ -332,6 +334,8 @@ const Maintenance: React.FC = () => {
                   ]}
                   data={backups}
                   loading={loading}
+                  enablePagination
+                  pageSize={10}
                   emptyMessage="No backup snapshots found."
                   enableFiltering
                   filterPlaceholder="Search backups by name, type, or size..."

@@ -11,7 +11,6 @@ import AccountManagement from './pages/assessor_admin/AccountManagement';
 import Settings from './pages/assessor_admin/Settings';
 import Maintenance from './pages/assessor_admin/Maintenance';
 import Reports from './pages/assessor_admin/Reports';
-import CloseDay from './pages/assessor_admin/CloseDay';
 import BillingDashboard from './pages/billing_officer/Dashboard';
 import BillingConsumers from './pages/billing_officer/Consumers';
 import MeterReading from './pages/billing_officer/MeterReading';
@@ -173,14 +172,7 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/close-day"
-        element={
-          <ProtectedRoute>
-            <CloseDay />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/close-day" element={<Navigate to="/dashboard" replace />} />
       <Route
         path="/meter-reading"
         element={

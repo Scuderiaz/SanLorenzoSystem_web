@@ -51,7 +51,12 @@ const PublicConcerns: React.FC = () => {
         'Failed to load public concerns.'
       );
 
-      const loadedRows = result.data || [];
+      const loadedRows = (result.data || []).map((row) => ({
+        ...row,
+        full_name: String(row.full_name || '').trim() || 'Unknown sender',
+        barangay: String(row.barangay || '').trim() || 'Not specified',
+        contact_number: String(row.contact_number || '').trim() || 'Not provided',
+      }));
       setRows(loadedRows);
     } catch (error) {
       showToast(getErrorMessage(error, 'Failed to load public concerns.'), 'error');

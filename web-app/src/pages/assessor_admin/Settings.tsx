@@ -644,6 +644,8 @@ const Settings: React.FC = () => {
             columns={columns}
           data={waterRates}
           loading={loading}
+          enablePagination
+          pageSize={10}
           emptyMessage="No water rates found."
           enableFiltering={true}
           filterPlaceholder="Search classification, rate, or effective date..."

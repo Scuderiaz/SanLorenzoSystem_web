@@ -42,6 +42,31 @@
   border: 1px solid #e2e8f0;
 }
 
+.public-concerns-table-card .data-table th {
+  white-space: nowrap;
+}
+
+.public-concerns-table-card .data-table .data-table-header-content {
+  white-space: nowrap;
+  gap: 6px;
+}
+
+.public-concerns-table-card .data-table th:nth-child(1) {
+  min-width: 170px;
+}
+
+.public-concerns-table-card .data-table th:nth-child(4) {
+  min-width: 130px;
+}
+
+.public-concerns-table-card .data-table th:nth-child(5) {
+  min-width: 170px;
+}
+
+.public-concerns-table-card .data-table th:nth-child(8) {
+  min-width: 210px;
+}
+
 .public-concern-message-cell {
   max-width: 340px;
 }

@@ -22,7 +22,6 @@ const menuItems: MenuItem[] = [
   { path: '/maintenance',   icon: 'fas fa-tools',               label: 'System Maintenance',  roles: [1] },
   { path: '/public-concerns', icon: 'fas fa-inbox',             label: 'Public Concerns',      roles: [1, 2] },
   { path: '/pipeline-map',  icon: 'fas fa-map-marked-alt',      label: 'Pipeline Map',        roles: [1] },
-  { path: '/close-day',     icon: 'fas fa-lock',                label: 'Close Day',           roles: [1] },
   // --- Billing Officer (Role 2) ---
   { path: '/consumers',     icon: 'fas fa-users',               label: 'Concessionaire Management', roles: [2] },
   { path: '/meter-reading', icon: 'fas fa-calendar-alt',        label: 'Reader & Zone Setup', roles: [1, 2] },

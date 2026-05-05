@@ -23,6 +23,7 @@
   align-items: center;
   gap: 20px;
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .hub-search-main {
@@ -80,6 +81,7 @@
   padding-left: 0;
   background: #f8fafc;
   margin-left: auto;
+  flex-wrap: wrap;
 }
 
 .registry-submit-btn {
@@ -213,11 +215,13 @@
 }
 
 .registry-stat-card .name {
-  font-size: 28px;
+  font-size: clamp(20px, 2.3vw, 28px);
   line-height: 1.1;
   font-weight: 900;
   color: #1B1B63;
   letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .registry-stat-card .value {
@@ -411,7 +415,102 @@
   transition: none;
 }
 
+/* Ledger table responsiveness */
+.treasurer-ledger-page .card-body.p-0 {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.treasurer-ledger-page .data-table-container {
+  min-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.treasurer-ledger-page .data-table {
+  min-width: 1450px;
+}
+
+.treasurer-ledger-page .data-table th,
+.treasurer-ledger-page .data-table td {
+  white-space: nowrap;
+}
+
+.treasurer-ledger-page .data-table th:nth-child(2),
+.treasurer-ledger-page .data-table td:nth-child(2),
+.treasurer-ledger-page .data-table th:nth-child(10),
+.treasurer-ledger-page .data-table td:nth-child(10) {
+  white-space: normal;
+}
+
+.treasurer-ledger-page .data-table td:last-child .btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .hub-layout {
+    align-items: stretch;
+  }
+
+  .hub-search-main {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .hub-filters {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    padding-left: 8px;
+  }
+
+  .registry-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1440px) {
+  .treasurer-ledger-page .data-table {
+    min-width: 1320px;
+  }
+
+  .treasurer-ledger-page .data-table th,
+  .treasurer-ledger-page .data-table td {
+    padding: 16px 20px;
+  }
+}
+
 @media (max-width: 768px) {
+  .hub-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hub-search-main {
+    min-width: 0;
+  }
+
+  .hub-filters {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .hub-filters > div {
+    width: 100%;
+  }
+
+  .hub-filters > div .form-control {
+    min-width: 100% !important;
+  }
+
+  .btn-sync-registry {
+    width: 100%;
+  }
+
+  .treasurer-ledger-page .data-table {
+    min-width: 1180px;
+  }
+
   .registry-stats-grid {
     width: 100%;
     grid-template-columns: 1fr;

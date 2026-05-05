@@ -19,6 +19,12 @@ const toAmount = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const normalizeLookupText = (value: unknown) =>
+  String(value || '').trim().toLowerCase();
+
+const normalizeAccountDigits = (value: unknown) =>
+  String(value || '').replace(/\D/g, '');
+
 interface ConsumerLookup {
   Consumer_ID: number;
   Consumer_Name: string;
@@ -167,9 +173,11 @@ const ProcessPayment: React.FC = () => {
       setLoading(true);
       const result = await loadAccountLookupWithFallback(query);
       const lookup = result.data || {};
-      const Consumer = lookup.Consumer || null;
+      const Consumer = lookup.Consumer || lookup.consumer || null;
       const summary = lookup.summary || {};
-      const currentBill = lookup.currentBill || null;
+      const billRows = Array.isArray(lookup.bills) ? lookup.bills : [];
+      const fallbackCurrentBill = billRows.find((bill: any) => normalizeLookupText(bill?.Status || bill?.status) !== 'paid') || null;
+      const currentBill = lookup.currentBill || fallbackCurrentBill || null;
 
       if (!Consumer) {
         setSelectedConsumer(null);
@@ -178,8 +186,10 @@ const ProcessPayment: React.FC = () => {
         return;
       }
 
-      const totalDue = toAmount(summary.totalDue ?? currentBill?.Total_Amount ?? 0);
-      const isPaidOrNoBill = !currentBill || totalDue === 0;
+      const totalDue = toAmount(summary.totalDue ?? currentBill?.Total_Amount ?? currentBill?.Amount_Due ?? 0);
+      const hasAnyBillRecord = billRows.length > 0 || Boolean(currentBill);
+      const hasOutstandingBalance = totalDue > 0;
+      const hasNoBillOnRecord = !hasAnyBillRecord;
 
       const mappedConsumer: BillInfo = {
         Bill_ID: currentBill?.Bill_ID ?? 0,
@@ -188,7 +198,7 @@ const ProcessPayment: React.FC = () => {
         Consumer_Name: Consumer.Consumer_Name,
         Address: Consumer.Address,
         Classification: Consumer.Classification,
-        Billing_Month: currentBill?.Billing_Month || summary.billingMonth || 'â€”',
+        Billing_Month: currentBill?.Billing_Month || summary.billingMonth || 'N/A',
         Due_Date: currentBill?.Due_Date || summary.dueDate || null,
         Basic_Charge: toAmount(currentBill?.Basic_Charge),
         Environmental_Fee: toAmount(currentBill?.Environmental_Fee),
@@ -199,24 +209,25 @@ const ProcessPayment: React.FC = () => {
         Late_Fee_Percentage: toAmount(summary.lateFeePercentage),
         Is_Overdue: Boolean(summary.isOverdue),
         Total_Amount_Due: totalDue,
-        Status: isPaidOrNoBill ? 'Paid' : (currentBill?.Status || 'Unpaid'),
+        Status: hasOutstandingBalance ? (currentBill?.Status || 'Unpaid') : 'Paid',
       };
 
       setConsumerProfile(Consumer);
       setSelectedConsumer(mappedConsumer);
       setSearchTerm(query);
       setShowSearchSuggestions(false);
-      setAmountPaid(isPaidOrNoBill ? '0' : String(totalDue));
+      setAmountPaid(hasOutstandingBalance ? String(totalDue) : '0');
 
       if (result.source === 'supabase') {
         showToast('Account lookup used Supabase fallback.', 'warning');
       }
 
-      if (isPaidOrNoBill) {
-        showToast(
-          currentBill ? 'Account is fully paid â€” no outstanding balance.' : 'Consumer found â€” no current bill on record.',
-          'info'
-        );
+      if (!hasOutstandingBalance) {
+        if (hasNoBillOnRecord) {
+          showToast('Consumer found - no bill on record yet.', 'info');
+        } else {
+          showToast('Account is fully paid - no outstanding balance.', 'info');
+        }
       } else {
         showToast('Valid statement for settlement identified.', 'success');
       }
@@ -424,6 +435,8 @@ const ProcessPayment: React.FC = () => {
 
   const searchSuggestions = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
+    const normalizedQuery = normalizeLookupText(searchTerm);
+    const normalizedQueryDigits = normalizeAccountDigits(searchTerm);
 
     const mapped = quickLookupAccounts.map((account) => ({
       ...account,
@@ -432,9 +445,10 @@ const ProcessPayment: React.FC = () => {
 
     const filtered = query
       ? mapped.filter((account) =>
-          account.Account_Number?.toLowerCase().includes(query) ||
-          account.Consumer_Name.toLowerCase().includes(query) ||
-          account.Address?.toLowerCase().includes(query)
+          normalizeLookupText(account.Account_Number).includes(normalizedQuery) ||
+          normalizeLookupText(account.Consumer_Name).includes(normalizedQuery) ||
+          normalizeLookupText(account.Address).includes(normalizedQuery) ||
+          (!!normalizedQueryDigits && normalizeAccountDigits(account.Account_Number).includes(normalizedQueryDigits))
         )
       : mapped;
 

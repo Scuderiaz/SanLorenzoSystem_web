@@ -79,6 +79,44 @@
   font-weight: 600;
 }
 
+.data-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+.data-table-pagination-info {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.data-table-pagination-btn {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.data-table-pagination-btn:hover:not(:disabled) {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.data-table-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Badge styling for status within tables */
 .status-badge {
   padding: 7px 14px;
@@ -105,5 +143,9 @@
 
   .data-table {
     min-width: 720px;
+  }
+
+  .data-table-pagination {
+    justify-content: center;
   }
 }

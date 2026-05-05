@@ -9367,3 +9367,2359 @@
 [2026-05-05T04:11:35.799Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
 [2026-05-05T04:11:35.974Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
 [2026-05-05T04:11:35.976Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:51:17.751Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:51:18.244Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:51:18.429Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:51:18.624Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:51:18.955Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:51:19.155Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:51:19.382Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:51:19.578Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:51:19.782Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:51:19.984Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:51:20.184Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:51:20.378Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:51:21.610Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:51:21.803Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:51:22.014Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:51:22.217Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:51:22.425Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:51:22.605Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:51:22.782Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:22.957Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:23.151Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:23.432Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:24.165Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:24.341Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:24.505Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:24.716Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:24.956Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:24.960Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:51:26.289Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:26.301Z] Table password_reset: no rows to sync.
+[2026-05-05T12:51:26.590Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:26.889Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:28.755Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:29.103Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:51:29.105Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:51:29.107Z] Initial PostgreSQL to Supabase sync complete for 17 table(s).
+[2026-05-05T12:51:29.109Z] Supabase sync scheduler started with interval 60000ms.
+[2026-05-05T12:51:29.114Z] Server started on port 3001 in Hybrid Mode.
+[2026-05-05T12:52:29.158Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:52:29.707Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:52:29.917Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:52:30.095Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:52:30.435Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:52:30.625Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:52:30.818Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:52:31.045Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:52:31.238Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:52:31.425Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:52:31.608Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:52:31.769Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:52:33.061Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:52:33.267Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:52:33.453Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:52:33.624Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:52:33.797Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:52:33.966Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:52:34.212Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:34.393Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:34.585Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:34.899Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:35.585Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:35.756Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:35.954Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:36.121Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:36.289Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:36.311Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:52:37.337Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:37.344Z] Table password_reset: no rows to sync.
+[2026-05-05T12:52:37.514Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:37.677Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:38.088Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:38.250Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:52:38.252Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:53:29.151Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:53:29.410Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:53:29.599Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:53:29.788Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:53:30.125Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:53:30.326Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:53:30.511Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:53:30.717Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:53:30.909Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:53:31.149Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:53:31.327Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:53:31.508Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:53:32.681Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:53:32.882Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:53:33.074Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:53:33.265Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:53:33.467Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:53:33.664Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:53:33.855Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:34.051Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:34.248Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:34.516Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:35.334Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:35.535Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:35.747Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:35.923Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:36.116Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:36.126Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:53:36.803Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:36.816Z] Table password_reset: no rows to sync.
+[2026-05-05T12:53:37.029Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:37.202Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:37.656Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:37.828Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:53:37.831Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:54:29.200Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:54:30.172Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:54:30.346Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:54:30.510Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:54:30.820Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:54:30.995Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:54:31.158Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:54:31.319Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:54:31.486Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:54:31.657Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:54:31.832Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:54:31.988Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:54:33.104Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:54:33.267Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:54:33.441Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:54:33.606Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:54:33.771Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:54:33.933Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:54:34.113Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:34.274Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:34.447Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:34.699Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:35.346Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:35.509Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:35.681Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:35.846Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:36.012Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:36.021Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:54:37.007Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:37.028Z] Table password_reset: no rows to sync.
+[2026-05-05T12:54:37.196Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:37.436Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:38.040Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:38.201Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:54:38.205Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:55:29.239Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:55:29.536Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:55:29.734Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:55:29.899Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:55:30.222Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:55:30.407Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:55:30.598Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:55:30.766Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:55:30.952Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:55:31.128Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:55:31.328Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:55:31.503Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:55:32.634Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:55:32.832Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:55:33.039Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:55:33.234Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:55:33.421Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:55:33.592Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:55:33.772Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:33.946Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:34.137Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:34.359Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:35.074Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:35.257Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:35.456Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:35.639Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:35.803Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:35.807Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:55:37.022Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:37.034Z] Table password_reset: no rows to sync.
+[2026-05-05T12:55:37.206Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:37.392Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:37.798Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:37.969Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:55:37.971Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:56:29.206Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:56:30.518Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:56:30.714Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:56:30.939Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:56:31.422Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:56:31.674Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:56:31.891Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:56:32.120Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:56:32.332Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:56:32.537Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:56:32.726Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:56:32.925Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:56:34.168Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:56:34.401Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:56:34.584Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:56:34.776Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:56:34.983Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:56:35.174Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:56:35.352Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:35.527Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:35.718Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:35.942Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:36.665Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:36.907Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:37.133Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:37.301Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:37.486Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:37.496Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:56:38.002Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:38.007Z] Table password_reset: no rows to sync.
+[2026-05-05T12:56:38.194Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:38.380Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:39.266Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:39.447Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:56:39.465Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:57:29.283Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:57:29.662Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:57:29.854Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:57:30.029Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:57:30.333Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:57:30.521Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:57:30.712Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:57:30.911Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:57:31.106Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:57:31.295Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:57:31.470Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:57:31.640Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:57:32.805Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:57:32.979Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:57:33.171Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:57:33.345Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:57:33.530Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:57:33.728Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:57:33.901Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:34.083Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:34.260Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:34.519Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:35.207Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:35.379Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:35.553Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:35.723Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:35.899Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:35.926Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:57:36.516Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:36.529Z] Table password_reset: no rows to sync.
+[2026-05-05T12:57:36.696Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:36.874Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:37.327Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:37.498Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:57:37.502Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:58:29.412Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:58:29.908Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:58:30.103Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:58:30.307Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:58:30.631Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:58:30.842Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:58:31.054Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:58:31.260Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:58:31.443Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:58:31.638Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:58:31.816Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:58:32.157Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:58:33.291Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:58:33.490Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:58:33.683Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:58:33.881Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:58:34.070Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:58:34.269Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:58:34.456Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:34.665Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:34.850Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:35.074Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:35.781Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:35.959Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:36.152Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:36.332Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:36.529Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:36.538Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:58:37.034Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:37.043Z] Table password_reset: no rows to sync.
+[2026-05-05T12:58:37.222Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:37.393Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:38.023Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:38.184Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:58:38.186Z] Sync cycle complete for 17 table(s).
+[2026-05-05T12:59:29.257Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T12:59:29.598Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T12:59:29.781Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T12:59:29.961Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T12:59:30.286Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T12:59:30.482Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T12:59:30.660Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T12:59:30.829Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T12:59:31.003Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T12:59:31.189Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T12:59:31.360Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T12:59:31.515Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T12:59:32.649Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T12:59:32.817Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T12:59:33.001Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T12:59:33.182Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T12:59:33.351Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T12:59:33.531Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T12:59:33.698Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:33.905Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:34.071Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:34.508Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:35.175Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:35.341Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:35.512Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:35.689Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:35.857Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:35.864Z] Table ledger_entry: no rows to sync.
+[2026-05-05T12:59:36.978Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:36.988Z] Table password_reset: no rows to sync.
+[2026-05-05T12:59:37.153Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:37.318Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:37.734Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:37.900Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T12:59:37.902Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:00:29.302Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:00:29.703Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:00:29.897Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:00:30.096Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:00:30.416Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:00:30.617Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:00:30.795Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:00:30.979Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:00:31.155Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:00:31.345Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:00:31.516Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:00:31.673Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:00:32.778Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:00:32.949Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:00:33.124Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:00:33.302Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:00:33.477Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:00:33.661Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:00:33.834Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:34.003Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:34.173Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:34.409Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:35.078Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:35.256Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:35.435Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:35.612Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:35.785Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:35.796Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:00:36.434Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:36.439Z] Table password_reset: no rows to sync.
+[2026-05-05T13:00:36.612Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:36.796Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:37.438Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:37.607Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:00:37.610Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:01:29.296Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:01:29.589Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:01:29.777Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:01:29.950Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:01:30.317Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:01:30.504Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:01:30.685Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:01:30.859Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:01:31.051Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:01:31.240Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:01:31.476Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:01:31.650Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:01:32.853Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:01:33.027Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:01:33.215Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:01:33.399Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:01:33.576Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:01:33.755Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:01:33.922Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:34.093Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:34.280Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:34.503Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:35.174Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:35.338Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:35.510Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:35.672Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:35.844Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:35.858Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:01:36.444Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:36.461Z] Table password_reset: no rows to sync.
+[2026-05-05T13:01:36.644Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:36.823Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:37.261Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:37.447Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:01:37.450Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:02:29.227Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:02:29.892Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:02:30.065Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:02:30.234Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:02:30.557Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:02:30.740Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:02:30.930Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:02:31.117Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:02:31.312Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:02:31.514Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:02:31.695Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:02:31.862Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:02:32.887Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:02:33.071Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:02:33.263Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:02:33.457Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:02:33.811Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:02:34.414Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:02:35.064Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:35.444Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:35.825Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:36.592Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:37.944Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:38.335Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:38.595Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:38.984Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:39.254Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:39.268Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:02:40.581Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:40.597Z] Table password_reset: no rows to sync.
+[2026-05-05T13:02:41.022Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:41.302Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:42.244Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:42.495Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:02:42.498Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:03:29.261Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:03:29.744Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:03:29.994Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:03:30.197Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:03:30.562Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:03:30.744Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:03:30.929Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:03:31.118Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:03:31.306Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:03:31.498Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:03:31.671Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:03:31.839Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:03:32.872Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:03:33.151Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:03:33.481Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:03:33.788Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:03:34.101Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:03:34.430Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:03:34.804Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:35.569Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:35.950Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:36.648Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:37.718Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:38.005Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:38.303Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:38.693Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:38.988Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:38.998Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:03:41.091Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:41.098Z] Table password_reset: no rows to sync.
+[2026-05-05T13:03:41.625Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:41.903Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:42.313Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:42.464Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:03:42.465Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:04:29.252Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:04:30.415Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:04:30.595Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:04:30.760Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:04:31.079Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:04:35.058Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:04:35.597Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:04:35.778Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:04:35.941Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:04:36.233Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:04:36.439Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:04:36.597Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:04:36.780Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:04:36.951Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:04:37.110Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:04:37.263Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:04:37.409Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:04:38.860Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:04:39.013Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:04:39.192Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:04:39.347Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:04:39.509Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:04:39.681Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:04:40.228Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:40.578Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:40.916Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:41.636Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:43.477Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:43.670Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:43.963Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:44.154Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:44.449Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:44.453Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:04:45.883Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:45.897Z] Table password_reset: no rows to sync.
+[2026-05-05T13:04:46.351Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:46.622Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:47.913Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:48.491Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:04:48.493Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:04:48.494Z] Initial PostgreSQL to Supabase sync complete for 17 table(s).
+[2026-05-05T13:04:48.498Z] Supabase sync scheduler started with interval 60000ms.
+[2026-05-05T13:04:48.507Z] Server started on port 3001 in Hybrid Mode.
+[2026-05-05T13:05:48.587Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:05:49.648Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:05:49.837Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:05:50.037Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:05:50.382Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:05:50.594Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:05:50.782Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:05:50.968Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:05:51.151Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:05:51.342Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:05:51.526Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:05:51.706Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:05:53.241Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:05:53.412Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:05:53.600Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:05:53.781Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:05:53.963Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:05:54.139Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:05:54.313Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:54.507Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:54.681Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:54.907Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:55.656Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:55.835Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:56.026Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:56.192Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:56.369Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:56.382Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:05:57.031Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:57.040Z] Table password_reset: no rows to sync.
+[2026-05-05T13:05:57.223Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:57.392Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:57.852Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:58.011Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:05:58.013Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:06:48.553Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:06:48.823Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:06:48.997Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:06:49.166Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:06:49.510Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:06:49.684Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:06:49.863Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:06:50.058Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:06:50.236Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:06:50.413Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:06:50.586Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:06:50.737Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:06:51.815Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:06:51.982Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:06:52.158Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:06:52.325Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:06:52.518Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:06:52.688Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:06:52.849Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:53.017Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:53.173Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:53.382Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:54.032Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:54.191Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:54.342Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:54.508Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:54.679Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:54.691Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:06:55.322Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:55.360Z] Table password_reset: no rows to sync.
+[2026-05-05T13:06:55.557Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:55.726Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:56.153Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:56.319Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:06:56.322Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:07:48.535Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:07:49.224Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:07:49.415Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:07:49.631Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:07:49.967Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:07:50.420Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:07:50.733Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:07:51.087Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:07:51.367Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:07:51.768Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:07:52.144Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:07:52.515Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:07:54.952Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:07:55.432Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:07:55.750Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:07:56.135Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:07:56.461Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:07:56.860Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:07:57.133Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:07:57.428Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:07:57.697Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:07:58.392Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:07:59.304Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:07:59.480Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:07:59.656Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:07:59.834Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:00.016Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:00.031Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:08:00.639Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:00.653Z] Table password_reset: no rows to sync.
+[2026-05-05T13:08:00.818Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:00.996Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:01.423Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:01.591Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:01.595Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:08:48.820Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:08:49.555Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:08:49.756Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:08:49.936Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:08:50.327Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:08:50.542Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:08:50.722Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:08:50.922Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:08:51.110Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:08:51.298Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:08:51.525Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:08:51.710Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:08:53.537Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:08:53.719Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:08:53.915Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:08:54.119Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:08:54.318Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:08:54.499Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:08:54.668Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:54.836Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:55.022Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:55.449Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:56.138Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:56.305Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:56.492Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:56.683Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:56.865Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:56.887Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:08:57.548Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:57.561Z] Table password_reset: no rows to sync.
+[2026-05-05T13:08:57.921Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:58.238Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:59.177Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:59.559Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:08:59.562Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:09:48.747Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:09:49.666Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:09:49.847Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:09:50.011Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:09:50.424Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:09:50.601Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:09:50.783Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:09:50.961Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:09:51.141Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:09:51.314Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:09:51.488Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:09:51.647Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:09:53.100Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:09:53.272Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:09:53.446Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:09:53.607Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:09:53.783Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:09:53.948Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:09:54.108Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:54.279Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:54.441Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:54.660Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:55.320Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:55.485Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:55.658Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:55.826Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:55.992Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:56.003Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:09:57.124Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:57.145Z] Table password_reset: no rows to sync.
+[2026-05-05T13:09:57.304Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:57.490Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:58.015Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:58.180Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:09:58.187Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:10:48.593Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:10:48.964Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:10:49.163Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:10:49.372Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:10:49.874Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:10:50.088Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:10:50.280Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:10:50.472Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:10:50.654Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:10:50.823Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:10:50.986Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:10:51.138Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:10:52.187Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:10:52.346Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:10:52.536Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:10:52.713Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:10:52.878Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:10:53.041Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:10:53.202Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:53.361Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:53.521Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:53.736Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:54.371Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:54.535Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:54.708Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:54.869Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:55.038Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:55.048Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:10:55.591Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:55.598Z] Table password_reset: no rows to sync.
+[2026-05-05T13:10:55.766Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:55.922Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:56.394Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:56.557Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:10:56.559Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:11:48.567Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:11:49.119Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:11:49.277Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:11:49.434Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:11:49.716Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:11:49.892Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:11:50.057Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:11:50.221Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:11:50.381Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:11:50.546Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:11:50.716Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:11:50.868Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:11:51.729Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:11:51.896Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:11:52.062Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:11:52.220Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:11:52.396Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:11:52.562Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:11:52.726Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:52.886Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:53.038Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:53.246Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:53.892Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:54.050Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:54.210Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:54.383Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:54.549Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:54.558Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:11:55.053Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:55.061Z] Table password_reset: no rows to sync.
+[2026-05-05T13:11:55.219Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:55.375Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:56.235Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:56.389Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:11:56.391Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:12:48.585Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:12:48.882Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:12:49.090Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:12:49.259Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:12:49.544Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:12:49.718Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:12:49.885Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:12:50.056Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:12:50.235Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:12:50.413Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:12:50.587Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:12:50.749Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:12:51.698Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:12:51.862Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:12:52.039Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:12:52.204Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:12:52.392Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:12:52.567Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:12:52.732Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:52.899Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:53.067Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:53.297Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:53.962Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:54.127Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:54.295Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:54.464Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:54.629Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:54.635Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:12:55.159Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:55.200Z] Table password_reset: no rows to sync.
+[2026-05-05T13:12:55.399Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:55.589Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:56.204Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:56.363Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:12:56.364Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:13:48.572Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:13:49.030Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:13:49.223Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:13:49.400Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:13:49.709Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:13:49.915Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:13:50.125Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:13:50.340Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:13:50.524Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:13:50.732Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:13:50.913Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:13:51.103Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:13:52.162Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:13:52.338Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:13:52.520Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:13:52.707Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:13:53.031Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:13:53.348Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:13:53.694Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:54.038Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:54.379Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:54.763Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:56.242Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:56.597Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:56.889Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:57.177Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:57.571Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:57.577Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:13:58.928Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:58.938Z] Table password_reset: no rows to sync.
+[2026-05-05T13:13:59.119Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:13:59.418Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:00.512Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:00.838Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:00.840Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:14:48.800Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:14:50.447Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:14:50.723Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:14:51.006Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:14:51.444Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:14:51.890Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:14:52.072Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:14:52.312Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:14:52.531Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:14:52.740Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:14:52.957Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:14:53.141Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:14:54.784Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:14:55.005Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:14:55.244Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:14:55.512Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:14:55.725Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:14:55.952Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:14:56.197Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:56.420Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:56.623Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:56.869Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:57.640Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:57.861Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:58.080Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:58.268Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:58.463Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:58.469Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:14:59.174Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:59.196Z] Table password_reset: no rows to sync.
+[2026-05-05T13:14:59.417Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:59.594Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:14:59.996Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:00.183Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:00.188Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:15:48.769Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:15:49.578Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:15:49.780Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:15:49.952Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:15:50.320Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:15:50.530Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:15:50.697Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:15:50.886Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:15:51.061Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:15:51.234Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:15:51.415Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:15:51.574Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:15:52.613Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:15:52.776Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:15:52.964Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:15:53.134Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:15:53.314Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:15:53.481Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:15:53.661Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:53.821Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:53.984Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:54.215Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:54.917Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:55.086Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:55.253Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:55.416Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:55.584Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:55.595Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:15:56.143Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:56.159Z] Table password_reset: no rows to sync.
+[2026-05-05T13:15:56.452Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:56.632Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:57.057Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:57.227Z] Table consumer_concerns: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:15:57.230Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:16:14.184Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:16:14.428Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:16:14.633Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:16:14.816Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:16:15.173Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:16:15.383Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:16:15.585Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:16:15.772Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:16:15.983Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:16:16.164Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:16:16.370Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:16:16.548Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:16:17.757Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:16:17.936Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:16:18.143Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:16:18.331Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:16:18.543Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:16:18.726Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:16:18.922Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:19.097Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:19.287Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:19.494Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:20.230Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:20.414Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:20.588Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:20.785Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:20.961Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:20.972Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:16:21.853Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:21.867Z] Table password_reset: no rows to sync.
+[2026-05-05T13:16:22.134Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:22.472Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:22.994Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:23.188Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:23.190Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:16:48.610Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:16:48.854Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:16:49.061Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:16:49.269Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:16:49.679Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:16:49.893Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:16:50.104Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:16:50.280Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:16:50.467Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:16:50.659Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:16:50.865Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:16:51.038Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:16:52.344Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:16:52.524Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:16:52.741Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:16:52.939Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:16:53.154Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:16:53.337Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:16:53.530Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:53.703Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:53.896Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:54.114Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:54.817Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:55.033Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:55.214Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:55.399Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:55.582Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:55.591Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:16:56.276Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:56.289Z] Table password_reset: no rows to sync.
+[2026-05-05T13:16:56.588Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:56.922Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:57.943Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:58.323Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:16:58.326Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:17:48.656Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:17:49.592Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:17:49.777Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:17:49.979Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:17:50.315Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:17:50.510Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:17:50.687Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:17:50.862Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:17:51.045Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:17:51.231Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:17:51.421Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:17:51.591Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:17:52.895Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:17:53.062Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:17:53.250Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:17:53.427Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:17:53.601Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:17:53.785Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:17:53.959Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:54.142Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:54.328Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:54.572Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:55.268Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:55.438Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:55.611Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:55.782Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:55.951Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:55.961Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:17:56.481Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:56.503Z] Table password_reset: no rows to sync.
+[2026-05-05T13:17:56.671Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:56.842Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:57.256Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:57.436Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:17:57.439Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:18:48.651Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:18:49.420Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:18:49.591Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:18:49.757Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:18:50.061Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:18:50.243Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:18:50.410Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:18:50.584Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:18:50.758Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:18:50.927Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:18:51.090Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:18:51.244Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:18:52.621Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:18:52.786Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:18:52.959Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:18:53.120Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:18:53.290Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:18:53.760Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:18:53.930Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:54.098Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:54.264Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:54.492Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:55.139Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:55.304Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:55.472Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:55.642Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:55.808Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:55.815Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:18:56.429Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:56.444Z] Table password_reset: no rows to sync.
+[2026-05-05T13:18:56.624Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:56.794Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:57.201Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:57.365Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:18:57.367Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:19:48.682Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:19:49.212Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:19:49.370Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:19:49.534Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:19:49.817Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:19:49.979Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:19:50.141Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:19:50.303Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:19:50.468Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:19:50.625Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:19:50.781Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:19:50.935Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:19:52.006Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:19:52.162Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:19:52.323Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:19:52.485Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:19:52.645Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:19:52.800Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:19:52.954Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:53.117Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:53.271Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:53.509Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:54.137Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:54.286Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:54.447Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:54.606Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:54.762Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:54.769Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:19:55.707Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:55.717Z] Table password_reset: no rows to sync.
+[2026-05-05T13:19:55.879Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:56.031Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:56.871Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:57.019Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:19:57.021Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:20:48.785Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:20:49.337Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:20:49.504Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:20:49.661Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:20:49.950Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:20:50.131Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:20:50.291Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:20:50.450Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:20:50.612Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:20:50.778Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:20:50.938Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:20:51.094Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:20:51.863Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:20:52.018Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:20:52.184Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:20:52.340Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:20:52.493Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:20:52.652Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:20:52.810Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:52.963Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:53.127Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:53.342Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:53.967Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:54.121Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:54.286Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:54.448Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:54.601Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:54.610Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:20:55.130Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:55.139Z] Table password_reset: no rows to sync.
+[2026-05-05T13:20:55.317Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:55.483Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:55.926Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:56.086Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:20:56.087Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:21:48.797Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:21:49.370Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:21:49.542Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:21:49.707Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:21:50.018Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:21:50.207Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:21:50.382Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:21:50.567Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:21:50.776Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:21:50.950Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:21:51.127Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:21:51.299Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:21:52.457Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:21:52.618Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:21:52.809Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:21:52.980Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:21:53.152Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:21:53.328Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:21:53.499Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:53.668Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:53.844Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:54.099Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:54.793Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:54.970Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:55.137Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:55.304Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:55.472Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:55.482Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:21:56.085Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:56.089Z] Table password_reset: no rows to sync.
+[2026-05-05T13:21:56.259Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:56.426Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:56.841Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:57.008Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:21:57.009Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:22:48.681Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:22:49.128Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:22:49.330Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:22:49.489Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:22:49.788Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:22:49.959Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:22:50.125Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:22:50.290Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:22:50.467Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:22:50.644Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:22:50.799Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:22:50.948Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:22:51.795Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:22:51.947Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:22:52.115Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:22:52.277Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:22:52.447Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:22:52.612Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:22:52.779Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:52.933Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:53.094Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:53.339Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:53.993Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:54.158Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:54.340Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:54.507Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:54.666Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:54.677Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:22:55.291Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:55.302Z] Table password_reset: no rows to sync.
+[2026-05-05T13:22:55.460Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:55.615Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:56.022Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:56.184Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:22:56.186Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:23:48.803Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:23:49.712Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:23:49.909Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:23:50.083Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:23:50.429Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:23:50.628Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:23:50.820Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:23:51.009Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:23:51.209Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:23:51.385Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:23:51.575Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:23:51.758Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:23:53.044Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:23:53.211Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:23:53.405Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:23:53.570Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:23:53.752Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:23:53.935Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:23:54.112Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:54.276Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:54.462Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:54.650Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:55.327Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:55.523Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:55.700Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:55.875Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:56.038Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:56.047Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:23:56.506Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:56.512Z] Table password_reset: no rows to sync.
+[2026-05-05T13:23:56.690Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:56.876Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:57.487Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:57.659Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:23:57.662Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:24:48.826Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:24:49.937Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:24:50.298Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:24:50.518Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:24:50.947Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:24:51.156Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:24:51.358Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:24:51.582Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:24:51.785Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:24:51.974Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:24:52.156Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:24:52.315Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:24:54.016Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:24:54.199Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:24:54.376Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:24:54.546Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:24:54.750Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:24:54.936Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:24:55.142Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:55.309Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:55.484Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:55.721Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:56.409Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:56.584Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:56.744Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:56.911Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:57.102Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:57.114Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:24:57.845Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:57.859Z] Table password_reset: no rows to sync.
+[2026-05-05T13:24:58.031Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:58.205Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:58.841Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:59.004Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:24:59.013Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:25:48.784Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:25:49.348Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:25:49.667Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:25:49.948Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:25:50.364Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:25:50.994Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:25:51.379Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:25:51.756Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:25:52.145Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:25:52.522Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:25:52.873Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:25:53.206Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:25:56.989Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:25:57.519Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:25:57.930Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:25:58.247Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:25:58.408Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:25:58.578Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:25:58.750Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:25:58.909Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:25:59.065Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:25:59.282Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:25:59.941Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:00.107Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:00.274Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:00.435Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:00.602Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:00.607Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:26:01.209Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:01.215Z] Table password_reset: no rows to sync.
+[2026-05-05T13:26:01.375Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:01.537Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:01.935Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:02.090Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:02.092Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:26:48.876Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:26:49.324Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:26:49.508Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:26:49.684Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:26:49.983Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:26:50.158Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:26:50.346Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:26:50.514Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:26:50.677Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:26:50.839Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:26:51.000Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:26:51.156Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:26:52.042Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:26:52.224Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:26:52.597Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:26:52.912Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:26:53.238Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:26:53.572Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:26:53.909Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:54.281Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:54.662Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:55.432Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:56.812Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:57.106Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:57.393Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:57.682Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:57.980Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:57.989Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:26:59.263Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:26:59.275Z] Table password_reset: no rows to sync.
+[2026-05-05T13:26:59.927Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:00.118Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:00.947Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:01.107Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:01.112Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:27:48.686Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:27:49.357Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:27:49.533Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:27:49.739Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:27:50.098Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:27:50.312Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:27:50.486Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:27:50.676Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:27:50.855Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:27:51.078Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:27:51.257Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:27:51.430Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:27:52.884Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:27:53.068Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:27:53.243Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:27:53.429Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:27:53.621Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:27:53.822Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:27:54.006Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:54.195Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:54.369Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:54.589Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:55.578Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:55.755Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:55.951Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:56.129Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:56.322Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:56.339Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:27:56.928Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:56.935Z] Table password_reset: no rows to sync.
+[2026-05-05T13:27:57.114Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:57.299Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:57.742Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:57.913Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:27:57.916Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:28:48.768Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:28:49.052Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:28:49.218Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:28:49.389Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:28:49.669Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:28:49.837Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:28:49.994Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:28:50.151Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:28:50.305Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:28:50.458Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:28:50.618Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:28:50.764Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:28:51.661Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:28:51.811Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:28:51.972Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:28:52.125Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:28:52.279Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:28:52.443Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:28:52.599Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:52.759Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:52.915Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:53.122Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:53.728Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:53.879Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:54.032Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:54.183Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:54.337Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:54.346Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:28:54.875Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:54.882Z] Table password_reset: no rows to sync.
+[2026-05-05T13:28:55.036Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:55.195Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:55.593Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:55.746Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:28:55.748Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:29:48.788Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:29:49.463Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:29:49.627Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:29:49.782Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:29:50.056Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:29:50.218Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:29:50.380Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:29:50.541Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:29:50.711Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:29:50.870Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:29:51.043Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:29:51.194Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:29:51.955Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:29:52.110Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:29:52.279Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:29:52.432Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:29:52.598Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:29:52.755Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:29:52.918Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:53.499Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:53.876Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:54.168Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:55.604Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:55.986Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:56.367Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:56.666Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:56.858Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:56.864Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:29:58.316Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:58.327Z] Table password_reset: no rows to sync.
+[2026-05-05T13:29:58.593Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:29:58.799Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:00.239Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:00.421Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:00.424Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:30:48.780Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:30:49.733Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:30:49.927Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:30:50.111Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:30:50.467Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:30:50.655Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:30:50.842Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:30:51.043Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:30:51.224Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:30:51.443Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:30:51.615Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:30:51.784Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:30:53.239Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:30:53.424Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:30:53.612Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:30:53.782Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:30:53.956Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:30:54.133Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:30:54.333Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:54.505Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:54.666Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:54.905Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:55.568Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:55.726Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:55.893Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:56.057Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:56.232Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:56.244Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:30:57.017Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:57.031Z] Table password_reset: no rows to sync.
+[2026-05-05T13:30:57.210Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:57.373Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:57.832Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:58.005Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:30:58.008Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:31:48.934Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:31:49.799Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:31:50.004Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:31:50.191Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:31:50.582Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:31:50.786Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:31:50.979Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:31:51.151Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:31:51.338Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:31:51.512Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:31:51.708Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:31:51.874Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:31:53.561Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:31:53.733Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:31:53.938Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:31:54.110Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:31:54.300Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:31:54.478Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:31:54.680Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:54.853Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:55.038Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:55.250Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:55.993Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:56.180Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:56.356Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:56.548Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:56.725Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:56.734Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:31:57.287Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:57.301Z] Table password_reset: no rows to sync.
+[2026-05-05T13:31:57.537Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:57.765Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:58.163Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:58.335Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:31:58.338Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:32:48.898Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:32:49.294Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:32:49.495Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:32:49.668Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:32:49.992Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:32:50.168Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:32:50.340Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:32:50.521Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:32:50.684Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:32:50.855Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:32:51.023Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:32:51.187Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:32:52.369Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:32:52.535Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:32:52.713Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:32:52.884Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:32:53.071Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:32:53.255Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:32:53.424Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:53.599Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:53.768Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:54.025Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:54.729Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:54.896Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:55.069Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:55.244Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:55.418Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:55.426Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:32:56.114Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:56.123Z] Table password_reset: no rows to sync.
+[2026-05-05T13:32:56.420Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:56.781Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:58.226Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:58.610Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:32:58.614Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:33:48.772Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:33:49.644Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:33:49.813Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:33:49.990Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:33:50.278Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:33:50.441Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:33:50.613Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:33:50.773Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:33:50.955Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:33:51.116Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:33:51.278Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:33:51.433Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:33:52.560Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:33:52.710Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:33:52.885Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:33:53.058Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:33:53.215Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:33:53.372Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:33:53.536Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:53.690Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:53.846Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:54.076Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:54.711Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:54.866Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:55.019Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:55.181Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:55.333Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:55.340Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:33:56.302Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:56.311Z] Table password_reset: no rows to sync.
+[2026-05-05T13:33:56.477Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:56.639Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:57.476Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:57.633Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:33:57.635Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:34:48.791Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:34:49.060Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:34:49.243Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:34:49.410Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:34:49.742Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:34:49.915Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:34:50.105Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:34:50.286Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:34:50.466Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:34:50.634Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:34:50.811Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:34:50.971Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:34:52.087Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:34:52.249Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:34:52.447Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:34:52.620Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:34:52.801Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:34:52.974Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:34:53.145Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:53.299Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:53.483Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:53.690Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:54.386Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:54.567Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:54.749Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:54.926Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:55.092Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:55.102Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:34:55.570Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:55.582Z] Table password_reset: no rows to sync.
+[2026-05-05T13:34:55.741Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:55.931Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:56.543Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:56.728Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:34:56.730Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:35:48.789Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:35:49.478Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:35:49.670Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:35:49.839Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:35:50.154Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:35:50.341Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:35:50.516Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:35:50.675Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:35:50.849Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:35:51.024Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:35:51.206Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:35:51.357Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:35:52.639Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:35:52.804Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:35:52.999Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:35:53.171Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:35:53.350Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:35:53.549Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:35:53.716Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:53.881Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:54.060Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:54.286Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:54.945Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:55.121Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:55.287Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:55.451Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:55.613Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:55.622Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:35:56.303Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:56.322Z] Table password_reset: no rows to sync.
+[2026-05-05T13:35:56.484Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:56.641Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:57.657Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:57.951Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:35:57.953Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:36:48.828Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:36:50.091Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:36:50.767Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:36:51.175Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:36:51.731Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:36:52.190Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:36:52.390Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:36:52.677Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:36:52.880Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:36:53.146Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:36:53.432Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:36:53.716Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:36:56.118Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:36:56.298Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:36:56.486Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:36:56.668Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:36:56.862Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:36:57.055Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:36:57.223Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:57.391Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:57.565Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:58.103Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:58.763Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:58.935Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:59.106Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:59.291Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:59.466Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:36:59.482Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:37:00.140Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:00.155Z] Table password_reset: no rows to sync.
+[2026-05-05T13:37:00.330Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:00.516Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:01.174Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:01.343Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:01.345Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:37:49.044Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:37:49.490Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:37:49.689Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:37:49.870Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:37:50.235Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:37:50.429Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:37:50.624Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:37:50.811Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:37:50.991Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:37:51.179Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:37:51.360Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:37:51.530Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:37:52.758Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:37:52.932Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:37:53.132Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:37:53.312Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:37:53.503Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:37:53.717Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:37:53.892Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:54.068Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:54.235Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:54.471Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:55.150Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:55.321Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:55.495Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:55.672Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:55.844Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:55.853Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:37:56.537Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:56.552Z] Table password_reset: no rows to sync.
+[2026-05-05T13:37:56.733Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:56.904Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:57.352Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:57.519Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:37:57.521Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:38:48.843Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:38:49.463Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:38:49.652Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:38:49.831Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:38:50.147Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:38:50.340Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:38:50.531Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:38:50.727Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:38:50.925Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:38:51.112Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:38:51.284Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:38:51.439Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:38:52.377Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:38:52.530Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:38:52.709Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:38:52.873Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:38:53.063Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:38:53.255Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:38:53.415Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:53.596Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:53.756Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:54.045Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:54.688Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:54.891Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:55.111Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:55.290Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:55.531Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:55.552Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:38:56.563Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:56.578Z] Table password_reset: no rows to sync.
+[2026-05-05T13:38:56.738Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:56.905Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:57.946Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:58.110Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:38:58.112Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:39:48.952Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:39:49.620Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:39:49.824Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:39:50.019Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:39:50.357Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:39:50.566Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:39:50.759Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:39:50.943Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:39:51.124Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:39:51.314Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:39:51.532Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:39:51.714Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:39:52.895Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:39:53.077Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:39:53.508Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:39:53.784Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:39:54.159Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:39:54.447Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:39:54.822Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:55.210Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:55.592Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:56.352Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:57.582Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:57.777Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:58.053Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:58.348Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:58.646Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:39:58.655Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:40:01.343Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:01.378Z] Table password_reset: no rows to sync.
+[2026-05-05T13:40:01.643Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:01.827Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:02.436Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:02.611Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:02.614Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:40:48.849Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:40:49.580Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:40:49.771Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:40:49.956Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:40:50.311Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:40:50.496Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:40:50.671Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:40:50.853Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:40:51.042Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:40:51.219Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:40:51.407Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:40:51.593Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:40:53.038Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:40:53.377Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:40:53.705Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:40:54.042Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:40:54.398Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:40:54.723Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:40:55.091Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:55.472Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:55.855Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:56.576Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:57.986Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:58.177Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:58.475Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:58.672Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:58.952Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:40:58.968Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:41:00.778Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:41:00.797Z] Table password_reset: no rows to sync.
+[2026-05-05T13:41:00.976Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:41:01.258Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:41:01.938Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:41:02.204Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:41:02.211Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:41:48.893Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:41:50.414Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:41:50.806Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:41:51.173Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:41:51.581Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:41:51.897Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:41:52.250Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:41:52.689Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:41:53.404Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:41:53.944Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:41:54.250Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:41:54.434Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:41:56.432Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:41:56.810Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:41:57.131Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:41:57.479Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:41:58.222Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:41:58.816Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:41:59.185Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:41:59.568Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:41:59.954Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:00.684Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:01.729Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:02.026Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:02.417Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:02.717Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:02.923Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:02.935Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:42:04.553Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:04.564Z] Table password_reset: no rows to sync.
+[2026-05-05T13:42:04.858Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:05.441Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:06.347Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:06.511Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:06.512Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:42:48.863Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:42:49.182Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:42:49.359Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:42:49.520Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:42:49.814Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:42:49.999Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:42:50.169Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:42:50.342Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:42:50.515Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:42:50.685Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:42:50.863Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:42:51.034Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:42:51.809Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:42:51.974Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:42:52.140Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:42:52.308Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:42:52.493Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:42:52.666Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:42:52.840Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:53.007Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:53.173Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:53.400Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:54.054Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:54.217Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:54.401Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:54.567Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:54.739Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:54.745Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:42:55.286Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:55.303Z] Table password_reset: no rows to sync.
+[2026-05-05T13:42:55.472Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:55.644Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:56.082Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:56.242Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:42:56.244Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:43:48.815Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:43:49.516Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:43:49.682Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:43:49.853Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:43:50.184Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:43:50.355Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:43:50.528Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:43:50.692Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:43:50.868Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:43:51.035Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:43:51.204Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:43:51.361Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:43:53.072Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:43:53.235Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:43:53.405Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:43:53.573Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:43:53.737Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:43:53.929Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:43:54.108Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:54.272Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:54.438Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:54.657Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:55.316Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:55.494Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:55.666Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:55.835Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:56.004Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:56.014Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:43:56.600Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:56.614Z] Table password_reset: no rows to sync.
+[2026-05-05T13:43:56.786Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:56.948Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:57.377Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:57.551Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:43:57.554Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:44:48.965Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:44:50.339Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:44:50.721Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:44:51.093Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:44:51.516Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:44:51.823Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:44:52.177Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:44:52.473Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:44:52.756Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:44:53.157Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:44:53.451Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:44:53.730Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:44:55.508Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:44:55.819Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:44:56.138Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:44:56.422Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:44:56.719Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:44:57.021Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:44:57.288Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:57.440Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:57.597Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:57.789Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:58.401Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:58.556Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:58.712Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:58.876Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:59.030Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:59.036Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:44:59.568Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:59.578Z] Table password_reset: no rows to sync.
+[2026-05-05T13:44:59.733Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:44:59.915Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:00.548Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:00.734Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:00.741Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:45:48.991Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:45:49.604Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:45:49.797Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:45:49.968Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:45:50.298Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:45:50.492Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:45:50.658Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:45:50.833Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:45:51.002Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:45:51.187Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:45:51.368Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:45:51.533Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:45:52.683Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:45:52.840Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:45:53.028Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:45:53.196Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:45:53.359Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:45:53.534Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:45:53.704Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:53.862Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:54.023Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:54.249Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:54.918Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:55.086Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:55.270Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:55.454Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:55.627Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:55.636Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:45:56.144Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:56.155Z] Table password_reset: no rows to sync.
+[2026-05-05T13:45:56.325Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:56.718Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:57.170Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:57.331Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:45:57.333Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:46:48.848Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:46:49.915Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:46:50.294Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:46:50.660Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:46:51.095Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:46:51.771Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:46:52.117Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:46:52.502Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:46:52.811Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:46:52.989Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:46:53.306Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:46:53.581Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:46:56.071Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:46:56.414Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:46:56.629Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:46:56.886Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:46:57.098Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:46:57.315Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:46:57.487Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:57.649Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:57.810Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:58.034Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:58.770Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:58.963Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:59.165Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:59.369Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:59.587Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:46:59.609Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:47:00.120Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:00.134Z] Table password_reset: no rows to sync.
+[2026-05-05T13:47:00.321Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:00.504Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:00.906Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:01.101Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:01.108Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:47:48.960Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:47:49.428Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:47:49.624Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:47:49.823Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:47:50.158Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:47:50.356Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:47:50.571Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:47:50.774Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:47:50.967Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:47:51.175Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:47:51.346Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:47:51.516Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:47:52.402Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:47:52.578Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:47:52.755Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:47:52.995Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:47:53.185Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:47:53.392Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:47:53.565Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:53.737Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:53.906Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:54.143Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:54.845Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:55.024Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:55.194Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:55.386Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:55.548Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:55.559Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:47:56.004Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:56.017Z] Table password_reset: no rows to sync.
+[2026-05-05T13:47:56.204Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:56.392Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:57.049Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:57.229Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:47:57.233Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:48:48.995Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:48:50.235Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:48:50.542Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:48:50.922Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:48:51.246Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:48:51.420Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:48:51.732Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:48:51.931Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:48:52.243Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:48:52.415Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:48:52.585Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:48:52.737Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:48:53.892Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:48:54.043Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:48:54.210Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:48:54.365Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:48:54.659Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:48:54.822Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:48:54.980Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:55.137Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:55.295Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:55.506Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:56.131Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:56.316Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:56.472Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:56.635Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:56.808Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:56.926Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:48:57.476Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:57.490Z] Table password_reset: no rows to sync.
+[2026-05-05T13:48:57.666Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:57.819Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:58.615Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:58.769Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:48:58.770Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:49:48.994Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:49:49.502Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:49:49.703Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:49:49.882Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:49:50.196Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:49:50.396Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:49:50.627Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:49:50.829Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:49:51.076Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:49:51.333Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:49:51.586Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:49:51.813Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:49:52.788Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:49:52.957Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:49:53.127Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:49:53.298Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:49:53.462Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:49:53.639Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:49:53.812Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:53.984Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:54.155Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:54.374Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:55.076Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:55.248Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:55.423Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:55.640Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:55.818Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:55.827Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:49:56.303Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:56.315Z] Table password_reset: no rows to sync.
+[2026-05-05T13:49:56.486Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:56.664Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:57.068Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:57.246Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:49:57.249Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:50:48.900Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:50:49.355Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:50:49.552Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:50:49.723Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:50:50.115Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:50:50.307Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:50:50.493Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:50:51.100Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:50:51.473Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:50:51.806Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:50:52.131Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:50:52.495Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:50:55.260Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:50:55.625Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:50:56.049Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:50:56.293Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:50:56.512Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:50:56.767Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:50:57.035Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:57.320Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:57.607Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:57.896Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:59.135Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:59.419Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:59.598Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:59.785Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:59.967Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:50:59.977Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:51:00.494Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:00.504Z] Table password_reset: no rows to sync.
+[2026-05-05T13:51:00.669Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:00.837Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:01.506Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:01.670Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:01.673Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:51:48.886Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:51:49.425Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:51:49.620Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:51:49.800Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:51:50.140Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:51:50.316Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:51:50.486Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:51:50.665Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:51:50.834Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:51:51.000Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:51:51.170Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:51:51.332Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:51:52.694Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:51:52.873Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:51:53.046Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:51:53.216Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:51:53.402Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:51:53.571Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:51:53.768Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:53.944Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:54.115Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:54.363Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:55.062Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:55.230Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:55.403Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:55.581Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:55.754Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:55.769Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:51:56.503Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:56.510Z] Table password_reset: no rows to sync.
+[2026-05-05T13:51:56.681Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:56.852Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:57.232Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:57.396Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:51:57.398Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:52:48.898Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:52:49.599Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:52:49.807Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:52:49.979Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:52:50.304Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:52:50.483Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:52:50.684Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:52:50.866Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:52:51.045Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:52:51.219Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:52:51.400Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:52:51.567Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:52:52.719Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:52:52.886Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:52:53.060Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:52:53.231Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:52:53.406Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:52:53.586Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:52:53.774Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:53.953Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:54.129Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:54.359Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:55.089Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:55.269Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:55.494Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:55.694Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:55.898Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:55.911Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:52:56.490Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:56.496Z] Table password_reset: no rows to sync.
+[2026-05-05T13:52:56.663Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:56.834Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:57.956Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:58.253Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:52:58.256Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:53:48.896Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:53:49.558Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:53:49.758Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:53:49.918Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:53:50.213Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:53:50.392Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:53:50.560Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:53:50.732Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:53:50.905Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:53:51.079Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:53:51.260Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:53:51.419Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:53:52.527Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:53:52.688Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:53:52.868Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:53:53.032Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:53:53.204Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:53:53.371Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:53:53.546Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:53.712Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:53.875Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:54.124Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:54.782Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:54.942Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:55.104Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:55.273Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:55.437Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:55.448Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:53:56.050Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:56.079Z] Table password_reset: no rows to sync.
+[2026-05-05T13:53:56.244Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:56.408Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:57.195Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:57.353Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:53:57.356Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:54:48.905Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:54:50.604Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:54:50.944Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:54:51.298Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:54:51.654Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:54:52.085Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:54:52.378Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:54:52.764Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:54:53.022Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:54:53.310Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:54:53.630Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:54:53.797Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:54:56.919Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:54:57.071Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:54:57.234Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:54:57.389Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:54:57.548Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:54:57.705Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:54:57.862Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:58.013Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:58.165Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:58.397Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:59.028Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:59.179Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:59.335Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:59.489Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:59.653Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:54:59.663Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:55:00.616Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:55:00.626Z] Table password_reset: no rows to sync.
+[2026-05-05T13:55:00.783Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:55:01.050Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:55:01.479Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:55:01.634Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:55:01.636Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:55:49.066Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:55:50.160Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:55:50.356Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:55:50.736Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:55:51.080Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:55:51.837Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:55:52.452Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:55:52.824Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:55:53.216Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:55:53.613Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:55:53.931Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:55:54.272Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:55:57.062Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:55:57.598Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:55:58.200Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:55:58.471Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:55:58.681Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:55:58.964Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:55:59.338Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:55:59.505Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:55:59.683Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:55:59.931Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:00.656Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:00.829Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:01.008Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:01.195Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:01.376Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:01.384Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:56:02.145Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:02.150Z] Table password_reset: no rows to sync.
+[2026-05-05T13:56:02.334Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:02.507Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:02.931Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:03.112Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:03.114Z] Sync cycle complete for 17 table(s).
+[2026-05-05T13:56:48.998Z] Preparing PostgreSQL pull for table roles.
+[2026-05-05T13:56:49.457Z] Preparing PostgreSQL pull for table zone.
+[2026-05-05T13:56:49.635Z] Preparing PostgreSQL pull for table classification.
+[2026-05-05T13:56:49.804Z] Preparing PostgreSQL pull for table accounts.
+[2026-05-05T13:56:50.217Z] Preparing PostgreSQL pull for table consumer.
+[2026-05-05T13:56:50.398Z] Preparing PostgreSQL pull for table meter.
+[2026-05-05T13:56:50.569Z] Preparing PostgreSQL pull for table route.
+[2026-05-05T13:56:50.748Z] Preparing PostgreSQL pull for table meterreadings.
+[2026-05-05T13:56:50.930Z] Preparing PostgreSQL pull for table bills.
+[2026-05-05T13:56:51.102Z] Preparing PostgreSQL pull for table payment.
+[2026-05-05T13:56:51.273Z] Preparing PostgreSQL pull for table ledger_entry.
+[2026-05-05T13:56:51.454Z] Preparing PostgreSQL pull for table connection_ticket.
+[2026-05-05T13:56:52.579Z] Preparing PostgreSQL pull for table password_reset.
+[2026-05-05T13:56:52.751Z] Preparing PostgreSQL pull for table account_review_log.
+[2026-05-05T13:56:52.935Z] Preparing PostgreSQL pull for table backuplogs.
+[2026-05-05T13:56:53.102Z] Preparing PostgreSQL pull for table waterrates.
+[2026-05-05T13:56:53.270Z] Preparing PostgreSQL pull for table consumer_concerns.
+[2026-05-05T13:56:53.437Z] Starting PostgreSQL to Supabase sync cycle.
+[2026-05-05T13:56:53.600Z] Table roles: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:53.766Z] Table zone: synced 12 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:53.934Z] Table classification: synced 3 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:54.157Z] Table accounts: synced 30 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:54.796Z] Table meter: synced 4 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:54.957Z] Table route: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:55.132Z] Table meterreadings: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:55.308Z] Table bills: synced 5 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:55.472Z] Table payment: synced 6 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:55.481Z] Table ledger_entry: no rows to sync.
+[2026-05-05T13:56:56.088Z] Table connection_ticket: synced 13 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:56.099Z] Table password_reset: no rows to sync.
+[2026-05-05T13:56:56.265Z] Table account_review_log: synced 10 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:56.434Z] Table backuplogs: synced 1 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:57.009Z] Table waterrates: synced 9 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:57.174Z] Table consumer_concerns: synced 2 row(s) with 0 conflict(s) held for review.
+[2026-05-05T13:56:57.177Z] Sync cycle complete for 17 table(s).

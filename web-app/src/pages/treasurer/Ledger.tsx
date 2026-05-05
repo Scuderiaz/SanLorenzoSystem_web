@@ -324,7 +324,7 @@ const TreasurerLedger: React.FC = () => {
     },
     {
       key: 'Unpaid_Bills',
-      label: 'UNPAID BILLS',
+      label: 'UNPD BILLS',
       sortable: true,
       render: (value: number) => (
         <span className={toAmount(value) > 0 ? 'balance-due' : 'balance-paid'}>
@@ -334,7 +334,7 @@ const TreasurerLedger: React.FC = () => {
     },
     {
       key: 'Months_Unpaid',
-      label: 'MONTHS UNPAID',
+      label: 'MOS UNPD',
       sortable: true,
       render: (value: number) => (
         <span className={toAmount(value) > 0 ? 'balance-due' : 'balance-paid'}>
@@ -445,6 +445,8 @@ const TreasurerLedger: React.FC = () => {
               columns={columns}
               data={filteredRegistryRows}
               loading={loading}
+              enablePagination
+              pageSize={10}
               emptyMessage="No Consumer financial records found."
             />
           </div>
