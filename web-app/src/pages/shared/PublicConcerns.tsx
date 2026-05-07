@@ -65,6 +65,23 @@ const PublicConcerns: React.FC = () => {
     }
   }, [search, showToast, statusFilter]);
 
+  const handleDelete = useCallback(async (messageId: number) => {
+    if (!window.confirm('Are you sure you want to delete this concern?')) {
+      return;
+    }
+    try {
+      await requestJson<{ success: boolean; message?: string }>(
+        `/public-contact-messages/${messageId}`,
+        { method: 'DELETE' },
+        'Failed to delete concern.'
+      );
+      showToast('Concern deleted successfully.', 'success');
+      await loadConcerns();
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Failed to delete concern.'), 'error');
+    }
+  }, [loadConcerns, showToast]);
+
   useEffect(() => {
     loadConcerns();
   }, [loadConcerns]);
@@ -81,7 +98,7 @@ const PublicConcerns: React.FC = () => {
 
     setIsSendingReply(true);
     try {
-      const nextStatus: ConcernStatus = replyTarget.status === 'Pending' ? 'In Progress' : replyTarget.status;
+      const nextStatus: ConcernStatus = 'Resolved';
       await requestJson<{ success: boolean; message: string; data: PublicConcern }>(
         `/public-contact-messages/${replyTarget.message_id}/status`,
         {
@@ -157,12 +174,12 @@ const PublicConcerns: React.FC = () => {
       render: (value: ConcernStatus) => <span className={`public-concern-status status-${String(value).toLowerCase().replace(/\s+/g, '-')}`}>{value}</span>,
     },
     {
-      key: 'reply',
-      label: 'Reply',
+      key: 'actions',
+      label: 'Actions',
       sortable: false,
       filterable: false,
       render: (_: unknown, row: PublicConcern) => (
-        <div className="public-concern-reply-cell">
+        <div className="public-concern-actions-cell">
           {row.remarks ? (
             <div className="public-concern-reply-preview" title={row.remarks}>
               {row.remarks}
@@ -170,22 +187,32 @@ const PublicConcerns: React.FC = () => {
           ) : (
             <div className="public-concern-reply-empty">No reply yet</div>
           )}
-          {canReply && (
+          <div className="action-buttons-inline">
+            {canReply && (
+              <button
+                type="button"
+                className="btn btn-primary public-concern-reply-btn"
+                onClick={() => {
+                  setReplyTarget(row);
+                  setReplyMessage('');
+                }}
+              >
+                Reply
+              </button>
+            )}
             <button
               type="button"
-              className="btn btn-primary public-concern-reply-btn"
-              onClick={() => {
-                setReplyTarget(row);
-                setReplyMessage('');
-              }}
+              className="btn-icon btn-danger"
+              title="Delete"
+              onClick={() => handleDelete(row.message_id)}
             >
-              Reply
+              <i className="fas fa-trash"></i>
             </button>
-          )}
+          </div>
         </div>
       ),
     },
-  ]), [canReply, expandedMessageIds]);
+  ]), [canReply, expandedMessageIds, handleDelete]);
 
   return (
     <MainLayout title="Public Concerns">

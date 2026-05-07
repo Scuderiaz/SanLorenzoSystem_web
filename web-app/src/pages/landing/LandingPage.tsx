@@ -44,64 +44,6 @@ const LandingPage: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Apply modal state
-  const [showApplyModal, setShowApplyModal] = useState(false);
-  const [applyStep, setApplyStep] = useState<1 | 2>(1);
-  const [applyForm, setApplyForm] = useState({
-    firstName: '', middleName: '', lastName: '', phone: '',
-    purok: '', barangay: '', municipality: 'San Lorenzo Ruiz', zipCode: '4610',
-  });
-  const [scheduleData, setScheduleData] = useState<{ date: string; slot: string }>({ date: '', slot: '' });
-  const [applyError, setApplyError] = useState('');
-  const [applyLoading, setApplyLoading] = useState(false);
-  const [applySuccess, setApplyTicketNumber] = useState('');
-
-  // Calendar state for apply modal
-  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-  const MORNING_SLOTS = ['08:00–08:30','08:30–09:00','09:00–09:30','09:30–10:00','10:00–10:30','10:30–11:00'];
-  const AFTERNOON_SLOTS = ['01:00–01:30','01:30–02:00','02:00–02:30','02:30–03:00','03:00–03:30','03:30–04:00'];
-
-  const today = new Date();
-  const [calMonth, setCalMonth] = useState(today.getMonth());
-  const [calYear, setCalYear] = useState(today.getFullYear());
-
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-
-  const selectDate = (d: number) => {
-    const dt = new Date(calYear, calMonth, d);
-    if (dt.getDay() === 0 || dt < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return;
-    setScheduleData(s => ({ ...s, date: `${MONTHS[calMonth]} ${d}, ${calYear}` }));
-  };
-
-  const handleApplySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scheduleData.date || !scheduleData.slot) {
-      setApplyError('Please select an inspection date and time slot.');
-      return;
-    }
-    setApplyLoading(true);
-    setApplyError('');
-    try {
-      const res = await fetch('/api/consumer/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...applyForm, preferredDate: scheduleData.date, preferredSlot: scheduleData.slot }),
-      });
-      const data = await res.json();
-      if (data?.success) {
-        setApplyTicketNumber(data.ticketNumber);
-      } else {
-        setApplyError(data?.message || 'Submission failed. Please try again.');
-      }
-    } catch {
-      setApplyError('Failed to submit. Please try again.');
-    } finally {
-      setApplyLoading(false);
-    }
-  };
-
   // Service data with full details
   const servicesData = {
     'water-supply': {
@@ -119,6 +61,7 @@ const LandingPage: React.FC = () => {
       requirements: [
         'Valid ID (Barangay Clearance or Government ID)',
         'Proof of residence or business ownership',
+        'Cedula or Tax Certificate',
         'Completed application form'
       ],
       fees: 'Connection fee based on classification'
@@ -150,7 +93,7 @@ const LandingPage: React.FC = () => {
         'Site inspection and feasibility assessment',
         'Professional meter installation by trained technicians',
         'Connection to nearest water main line',
-        'Water quality testing before activation',
+        'Water Quality Testing',
         'Consumer orientation on proper water usage',
         'Issuance of official receipt and contract'
       ],
@@ -158,11 +101,11 @@ const LandingPage: React.FC = () => {
         'Barangay Clearance',
         "Valid ID (Passport, Driver's License, etc.)",
         'Proof of property ownership or lease',
-        'Sedula or Tax Certificate',
+        'Cedula or Tax Certificate',
         '2x2 ID photo (2 copies)',
         'Completed application form with classification'
       ],
-      fees: 'Connection Fee: PHP 300, Membership Fee: PHP 50, Meter Deposit: PHP 1,500'
+      fees: 'Connection Fee: PHP 300, Membership Fee: PHP 50, Meter Full Payment: PHP 1,500'
     },
     'reconnection': {
       title: 'Reconnection Service',
@@ -173,7 +116,6 @@ const LandingPage: React.FC = () => {
         'Online payment verification system',
         'Flexible payment arrangements for large balances',
         'Automatic reconnection scheduling',
-        'Clearance issuance after reconnection',
         'Prevention of future disconnection advice'
       ],
       requirements: [
@@ -203,6 +145,46 @@ const LandingPage: React.FC = () => {
         'For private lines: authorization letter'
       ],
       fees: 'Free for main line issues; Private line repairs may incur costs'
+    },
+    'bacterial-testing': {
+      title: 'Bacterial Logical Testing',
+      image: '/images/testing.png',
+      description: 'Comprehensive bacterial analysis of water samples to ensure safety and compliance with health standards.',
+      details: [
+        'Monthly bacterial testing schedule',
+        'Laboratory-grade analysis equipment',
+        'Detection of coliform and harmful bacteria',
+        'Detailed test reports with recommendations',
+        'Immediate alerts for contamination issues',
+        'Compliance with DOH water quality standards'
+      ],
+      requirements: [
+        'Water sample collection from source',
+        'Scheduled appointment for testing',
+        'Previous test history (if available)',
+        'Access to water source location'
+      ],
+      fees: 'Free for registered concessionaires'
+    },
+    'physical-examination': {
+      title: 'Physical Examination',
+      image: '/images/examination.png',
+      description: 'Annual physical and chemical testing of water quality to assess clarity, odor, and overall physical properties.',
+      details: [
+        'Annual comprehensive water testing',
+        'Physical property assessment (clarity, odor, color)',
+        'Chemical composition analysis',
+        'pH level and turbidity measurement',
+        'Comparison with national standards',
+        'Long-term water quality trend monitoring'
+      ],
+      requirements: [
+        'Annual scheduled appointment',
+        'Access to main water source',
+        'Previous year test records',
+        'Property ownership verification'
+      ],
+      fees: 'Free for registered concessionaires'
     }
   };
 
@@ -214,9 +196,9 @@ const LandingPage: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Lock body scroll when modals are open
+  // Lock body scroll when service modal is open
   useEffect(() => {
-    if (selectedService || showApplyModal) {
+    if (selectedService) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -224,7 +206,7 @@ const LandingPage: React.FC = () => {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [selectedService, showApplyModal]);
+  }, [selectedService]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -325,13 +307,7 @@ const LandingPage: React.FC = () => {
             <div className="hero-buttons">
               <button
                 className="btn-apply"
-                onClick={() => {
-                  setApplyStep(1);
-                  setScheduleData({ date: '', slot: '' });
-                  setApplyError('');
-                  setApplyTicketNumber('');
-                  setShowApplyModal(true);
-                }}
+                onClick={() => navigate('/signup')}
               >
                 APPLY NOW
               </button>
@@ -423,6 +399,16 @@ const LandingPage: React.FC = () => {
                 <h3 className="service-title">REPAIR SERVICES</h3>
                 <div className="service-image"><img src="/images/repair.png" alt="Repair Services" /></div>
                 <p className="service-description">Addressing reported water line issues such as leakages and main line problems within the service area.</p>
+              </div>
+              <div className="service-card" onClick={() => setSelectedService('bacterial-testing')} role="button" tabIndex={0}>
+                <h3 className="service-title">BACTERIAL TESTING</h3>
+                <div className="service-image"><img src="/images/testing.png" alt="Bacterial Logical Testing" /></div>
+                <p className="service-description">Monthly bacterial analysis of water samples to ensure safety and compliance with health standards.</p>
+              </div>
+              <div className="service-card" onClick={() => setSelectedService('physical-examination')} role="button" tabIndex={0}>
+                <h3 className="service-title">PHYSICAL EXAMINATION</h3>
+                <div className="service-image"><img src="/images/examination.png" alt="Physical Examination" /></div>
+                <p className="service-description">Annual physical and chemical testing of water quality to assess clarity, odor, and overall properties.</p>
               </div>
             </div>
 
@@ -716,196 +702,6 @@ const LandingPage: React.FC = () => {
         </div>
       </footer>
 
-      {/* ─── Apply Modal ─── */}
-      {showApplyModal && (
-        <div className="apply-modal-overlay" onClick={() => setShowApplyModal(false)}>
-          <div className="apply-modal" onClick={e => e.stopPropagation()}>
-            <button className="apply-modal-close" onClick={() => setShowApplyModal(false)}>
-              <i className="fas fa-times" />
-            </button>
-
-            <div className="apply-modal-header">
-              <h2>
-                {applySuccess ? 'Application Submitted!' :
-                  applyStep === 1 ? 'Apply for Water Connection' : 'Schedule Inspection'}
-              </h2>
-            </div>
-
-            <div className="apply-modal-body">
-              {applySuccess ? (
-                <div className="apply-success-view">
-                  <i className="fas fa-check-circle" style={{ fontSize: 52, color: '#16a34a', display: 'block', marginBottom: 16 }} />
-                  <p>Your application has been received and is now pending review by the office.</p>
-                  <div className="apply-ticket-number">{applySuccess}</div>
-                  {scheduleData.date && (
-                    <p style={{ fontSize: 13, color: '#64748b', marginTop: 12 }}>
-                      <i className="fas fa-calendar-check" style={{ color: '#2563eb', marginRight: 6 }} />
-                      Inspection scheduled: <strong>{scheduleData.date}</strong> at <strong>{scheduleData.slot}</strong>
-                    </p>
-                  )}
-                  <button className="apply-modal-btn-primary" onClick={() => setShowApplyModal(false)}>Done</button>
-                </div>
-              ) : applyStep === 1 ? (
-                <div className="apply-step-view">
-                  <div className="apply-steps-indicator">
-                    <div className="apply-step-dot active"><span>1</span> Personal Details</div>
-                    <div className="apply-step-line" />
-                    <div className="apply-step-dot"><span>2</span> Schedule</div>
-                  </div>
-                  {applyError && <div className="apply-error"><i className="fas fa-exclamation-circle" /> {applyError}</div>}
-                  <div className="apply-form-grid">
-                    <div className="apply-field">
-                      <label>First Name *</label>
-                      <input type="text" value={applyForm.firstName} onChange={e => setApplyForm(f => ({ ...f, firstName: e.target.value }))} placeholder="First name" />
-                    </div>
-                    <div className="apply-field">
-                      <label>Middle Name</label>
-                      <input type="text" value={applyForm.middleName} onChange={e => setApplyForm(f => ({ ...f, middleName: e.target.value }))} placeholder="Optional" />
-                    </div>
-                    <div className="apply-field full">
-                      <label>Last Name *</label>
-                      <input type="text" value={applyForm.lastName} onChange={e => setApplyForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Last name" />
-                    </div>
-                    <div className="apply-field full">
-                      <label>Contact Number *</label>
-                      <input type="tel" value={applyForm.phone} onChange={e => setApplyForm(f => ({ ...f, phone: e.target.value }))} placeholder="09XXXXXXXXX" />
-                    </div>
-                    <div className="apply-field">
-                      <label>Barangay *</label>
-                      <select
-                        value={applyForm.barangay}
-                        onChange={e => setApplyForm(f => ({ ...f, barangay: e.target.value, purok: '' }))}
-                        className="apply-select"
-                      >
-                        <option value="">Select Barangay</option>
-                        <option value="Daculang Bolo">Daculang Bolo</option>
-                        <option value="Dagotdotan">Dagotdotan</option>
-                        <option value="Laniton">Laniton</option>
-                        <option value="Langga">Langga</option>
-                        <option value="Maisog">Maisog</option>
-                        <option value="Mampurog">Mampurog</option>
-                        <option value="Matacong">Matacong</option>
-                        <option value="San Isidro">San Isidro</option>
-                        <option value="San Ramon">San Ramon</option>
-                      </select>
-                    </div>
-                    <div className="apply-field">
-                      <label>Purok *</label>
-                      <select
-                        value={applyForm.purok}
-                        onChange={e => setApplyForm(f => ({ ...f, purok: e.target.value }))}
-                        className="apply-select"
-                        disabled={!applyForm.barangay}
-                      >
-                        <option value="">
-                          {applyForm.barangay ? 'Select Purok' : 'Select Barangay first'}
-                        </option>
-                        {applyForm.barangay === 'Daculang Bolo' && Array.from({ length: 8 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                        {applyForm.barangay === 'Dagotdotan' && Array.from({ length: 7 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                        {applyForm.barangay === 'Laniton' && Array.from({ length: 5 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                        {applyForm.barangay === 'Langga' && Array.from({ length: 2 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                        {applyForm.barangay === 'Maisog' && Array.from({ length: 3 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                        {applyForm.barangay === 'Mampurog' && Array.from({ length: 6 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                        {applyForm.barangay === 'Matacong' && Array.from({ length: 7 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                        {applyForm.barangay === 'San Isidro' && Array.from({ length: 4 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                        {applyForm.barangay === 'San Ramon' && Array.from({ length: 3 }, (_, i) => <option key={i+1} value={`Purok ${i+1}`}>Purok {i+1}</option>)}
-                      </select>
-                    </div>
-                    <div className="apply-field">
-                      <label>Municipality</label>
-                      <input type="text" value="San Lorenzo Ruiz" readOnly className="apply-input-locked" />
-                    </div>
-                    <div className="apply-field">
-                      <label>ZIP Code</label>
-                      <input type="text" value="4610" readOnly className="apply-input-locked" />
-                    </div>
-                  </div>
-                  <div className="apply-modal-footer">
-                    <button className="apply-modal-btn-secondary" onClick={() => setShowApplyModal(false)}>Cancel</button>
-                    <button className="apply-modal-btn-primary" onClick={() => {
-                      const f = applyForm;
-                      if (!f.firstName.trim() || !f.lastName.trim() || !f.phone.trim() || !f.barangay.trim() || !f.purok.trim()) {
-                        setApplyError('Please fill in all required fields.');
-                        return;
-                      }
-                      setApplyError('');
-                      setApplyStep(2);
-                    }}>Next — Pick Schedule →</button>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleApplySubmit} className="apply-step-view">
-                  <div className="apply-steps-indicator">
-                    <div className="apply-step-dot done"><span>✓</span> Personal Details</div>
-                    <div className="apply-step-line done" />
-                    <div className="apply-step-dot active"><span>2</span> Schedule</div>
-                  </div>
-                  {applyError && <div className="apply-error"><i className="fas fa-exclamation-circle" /> {applyError}</div>}
-                  <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Choose a preferred date and time. Sundays and past dates are unavailable.</p>
-                  <div className="apply-sched-grid">
-                    <div>
-                      <div className="apply-cal-nav">
-                        <button type="button" onClick={() => {
-                          if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
-                          else setCalMonth(m => m - 1);
-                        }}>‹</button>
-                        <span>{MONTHS[calMonth]} {calYear}</span>
-                        <button type="button" onClick={() => {
-                          if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
-                          else setCalMonth(m => m + 1);
-                        }}>›</button>
-                      </div>
-                      <div className="apply-cal-grid">
-                        {DAY_LABELS.map(d => <div key={d} className="apply-cal-hdr">{d}</div>)}
-                        {Array.from({ length: firstDay }, (_, i) => <div key={`e${i}`} />)}
-                        {Array.from({ length: daysInMonth }, (_, i) => {
-                          const d = i + 1;
-                          const dt = new Date(calYear, calMonth, d);
-                          const isPast = dt < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                          const isSun = dt.getDay() === 0;
-                          const label = `${MONTHS[calMonth]} ${d}, ${calYear}`;
-                          const isSelected = scheduleData.date === label;
-                          const isToday = dt.toDateString() === today.toDateString();
-                          let cls = 'apply-cal-day';
-                          if (isPast || isSun) cls += ' disabled';
-                          else if (isSelected) cls += ' selected';
-                          else if (isToday) cls += ' today';
-                          return <div key={d} className={cls} onClick={() => selectDate(d)}>{d}</div>;
-                        })}
-                      </div>
-                    </div>
-                    <div className="apply-slots">
-                      <div className="apply-slot-label">☀️ Morning</div>
-                      <div className="apply-slot-grid">
-                        {MORNING_SLOTS.map(s => (
-                          <button key={s} type="button" className={`apply-slot${scheduleData.slot === s ? ' selected' : ''}`} onClick={() => setScheduleData(sd => ({ ...sd, slot: s }))}>{s}</button>
-                        ))}
-                      </div>
-                      <div className="apply-slot-label" style={{ marginTop: 12 }}>🌤 Afternoon</div>
-                      <div className="apply-slot-grid">
-                        {AFTERNOON_SLOTS.map(s => (
-                          <button key={s} type="button" className={`apply-slot${scheduleData.slot === s ? ' selected' : ''}`} onClick={() => setScheduleData(sd => ({ ...sd, slot: s }))}>{s}</button>
-                        ))}
-                      </div>
-                      {scheduleData.date && scheduleData.slot && (
-                        <div className="apply-sched-summary">
-                          <i className="fas fa-calendar-check" /> {scheduleData.date} · {scheduleData.slot}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="apply-modal-footer">
-                    <button type="button" className="apply-modal-btn-secondary" onClick={() => { setApplyStep(1); setApplyError(''); }}>← Back</button>
-                    <button type="submit" className="apply-modal-btn-primary" disabled={applyLoading}>
-                      {applyLoading ? <><i className="fas fa-spinner fa-spin" /> Submitting...</> : <><i className="fas fa-paper-plane" /> Submit Application</>}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

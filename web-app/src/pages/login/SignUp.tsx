@@ -705,13 +705,15 @@ const SignUp: React.FC = () => {
           </form>
         )}
 
-        <div className="signup-footer">
-          <span>Already have an account? </span>
-          <Link to="/login">Login</Link>
-        </div>
+        {!ticketNumber && (
+          <div className="signup-footer">
+            <span>Already have an account? </span>
+            <Link to="/login">Login</Link>
+          </div>
+        )}
 
         <div className="signup-copyright">
-          Â© 2026 Municipality of San Lorenzo Ruiz
+          © 2026 Municipality of San Lorenzo Ruiz
         </div>
       </div>
     </div>

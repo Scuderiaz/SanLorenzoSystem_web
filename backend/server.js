@@ -9375,6 +9375,60 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
   }
 });
 
+app.delete('/api/public-contact-messages/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const actorAccountId = normalizeRequiredForeignKeyId(req.body?.actorAccountId || req.headers['x-actor-account-id']);
+
+  if (!id || id < 1) {
+    return res.status(400).json({ success: false, message: 'A valid message ID is required.' });
+  }
+
+  try {
+    const deleted = await withPostgresPrimary(
+      'public.contact.delete',
+      async () => {
+        const { rows } = await pool.query(
+          `DELETE FROM consumer_concerns
+            WHERE concern_id = $1
+              AND category = ANY($2::text[])
+            RETURNING concern_id`,
+          [id, ['Public Contact', 'Public Concern']]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data, error } = await supabase
+          .from('consumer_concerns')
+          .delete()
+          .eq('concern_id', id)
+          .in('category', ['Public Contact', 'Public Concern'])
+          .select('concern_id')
+          .maybeSingle();
+        if (error) throw error;
+        return data || null;
+      }
+    );
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Public concern not found.' });
+    }
+
+    await writeSystemLog(`[public-contact] Message #${id} deleted.`, {
+      userId: actorAccountId || defaultSystemLogAccountId,
+      role: 'Billing Officer',
+    });
+    scheduleImmediateSync('public-contact-delete');
+
+    return res.json({
+      success: true,
+      message: 'Concern deleted successfully.',
+    });
+  } catch (error) {
+    await logRequestError(req, 'public.contact.delete', error);
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+  }
+});
+
 app.post('/api/forgot-password/verify-otp', async (req, res) => {
   const username = String(req.body?.username || '').trim();
   const code = String(req.body?.code || '').trim();

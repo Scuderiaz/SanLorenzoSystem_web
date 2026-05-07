@@ -358,9 +358,11 @@ const PendingApplications: React.FC = () => {
           <button className="btn-icon" title="View Details" onClick={(event) => { event.stopPropagation(); setSelectedApplication(row); }}>
             <i className="fas fa-eye"></i>
           </button>
-          <button className="btn-icon" title="Edit Application" onClick={(event) => { event.stopPropagation(); openEdit(row, { returnToDetails: false }); }}>
-            <i className="fas fa-edit"></i>
-          </button>
+          {row.Application_Status !== 'Rejected' && (
+            <button className="btn-icon" title="Edit Application" onClick={(event) => { event.stopPropagation(); openEdit(row, { returnToDetails: false }); }}>
+              <i className="fas fa-edit"></i>
+            </button>
+          )}
           {row.Application_Status === 'Pending' && (
             <>
               <button className="btn-icon btn-success" title="Approve" onClick={(event) => { event.stopPropagation(); openConfirmAction('approve', row); }}>
@@ -488,9 +490,11 @@ const PendingApplications: React.FC = () => {
             selectedApplication ? (
               <>
                 <button className="btn btn-secondary" onClick={() => setSelectedApplication(null)}>Close</button>
-                <button className="btn btn-secondary" onClick={() => openEdit(selectedApplication, { returnToDetails: true })}>
-                  <i className="fas fa-edit"></i> Edit
-                </button>
+                {selectedApplication.Application_Status !== 'Rejected' && (
+                  <button className="btn btn-secondary" onClick={() => openEdit(selectedApplication, { returnToDetails: true })}>
+                    <i className="fas fa-edit"></i> Edit
+                  </button>
+                )}
                 {selectedApplication.Application_Status === 'Pending' && (
                   <>
                     <button className="btn btn-danger" onClick={() => openConfirmAction('reject', selectedApplication)}>

@@ -578,6 +578,12 @@
   position: relative;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.service-modal::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes slideUp {

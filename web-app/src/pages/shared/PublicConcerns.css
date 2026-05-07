@@ -141,6 +141,35 @@
   min-width: 220px;
 }
 
+.public-concern-actions-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.public-concern-actions-cell .action-buttons-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.public-concern-actions-cell .btn-icon.btn-danger {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.public-concern-actions-cell .btn-icon.btn-danger:hover {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
 .public-concern-reply-preview {
   max-width: 240px;
   font-size: 12px;

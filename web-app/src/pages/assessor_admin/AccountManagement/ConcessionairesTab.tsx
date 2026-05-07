@@ -516,49 +516,49 @@ const ConcessionairesTab: React.FC = () => {
         }
       >
         {selectedConcessionaire && (
-          <div className="Consumer-detail-modal">
-            <div className="Consumer-detail-grid">
-              <section className="Consumer-detail-section">
-                <h3 className="Consumer-detail-section-title">
+          <div className="consumer-detail-modal">
+            <div className="consumer-detail-grid">
+              <section className="consumer-detail-section">
+                <h3 className="consumer-detail-section-title">
                   <i className="fas fa-user-circle"></i> Personal Data
                 </h3>
-                <div className="Consumer-detail-row">
-                  <span className="Consumer-detail-label">Account No.</span>
-                  <span className="Consumer-detail-value">{formatAccountNumberForDisplay(selectedConcessionaire.Account_Number)}</span>
+                <div className="consumer-detail-row">
+                  <span className="consumer-detail-label">Account No.</span>
+                  <span className="consumer-detail-value">{formatAccountNumberForDisplay(selectedConcessionaire.Account_Number)}</span>
                 </div>
-                <div className="Consumer-detail-row">
-                  <span className="Consumer-detail-label">Name</span>
-                  <span className="Consumer-detail-value Consumer-detail-value-name">
+                <div className="consumer-detail-row">
+                  <span className="consumer-detail-label">Name</span>
+                  <span className="consumer-detail-value consumer-detail-value-name">
                     {selectedConcessionaire.First_Name} {selectedConcessionaire.Middle_Name ? `${selectedConcessionaire.Middle_Name} ` : ''}{selectedConcessionaire.Last_Name}
                   </span>
                 </div>
-                <div className="Consumer-detail-row Consumer-detail-row-address">
-                  <span className="Consumer-detail-label">Address</span>
-                  <span className="Consumer-detail-value">{selectedConcessionaire.Address}</span>
+                <div className="consumer-detail-row consumer-detail-row-address">
+                  <span className="consumer-detail-label">Address</span>
+                  <span className="consumer-detail-value">{selectedConcessionaire.Address}</span>
                 </div>
               </section>
 
-              <section className="Consumer-detail-section">
-                <h3 className="Consumer-detail-section-title">
+              <section className="consumer-detail-section">
+                <h3 className="consumer-detail-section-title">
                   <i className="fas fa-id-card"></i> Account Info
                 </h3>
-                <div className="Consumer-detail-row">
-                  <span className="Consumer-detail-label">Map Zone</span>
-                  <span className="Consumer-detail-value">{formatZoneLabel(selectedConcessionaire.Zone_Name, selectedConcessionaire.Zone_ID)}</span>
+                <div className="consumer-detail-row">
+                  <span className="consumer-detail-label">Map Zone</span>
+                  <span className="consumer-detail-value">{formatZoneLabel(selectedConcessionaire.Zone_Name, selectedConcessionaire.Zone_ID)}</span>
                 </div>
-                <div className="Consumer-detail-row">
-                  <span className="Consumer-detail-label">Classification</span>
-                  <span className="Consumer-detail-value">{selectedConcessionaire.Classification_Name}</span>
+                <div className="consumer-detail-row">
+                  <span className="consumer-detail-label">Classification</span>
+                  <span className="consumer-detail-value">{selectedConcessionaire.Classification_Name}</span>
                 </div>
-                <div className="Consumer-detail-row">
-                  <span className="Consumer-detail-label">Meter Status</span>
+                <div className="consumer-detail-row">
+                  <span className="consumer-detail-label">Meter Status</span>
                   <span className={`status-badge status-${(selectedConcessionaire.Meter_Status || 'active').toLowerCase()}`}>
                     {selectedConcessionaire.Meter_Status || 'Active'}
                   </span>
                 </div>
-                <div className="Consumer-detail-row">
-                  <span className="Consumer-detail-label">Status</span>
-                  <span className={`status-badge status-${(selectedConcessionaire.Status || 'active').toLowerCase()}`}>
+                <div className="consumer-detail-row">
+                  <span className="consumer-detail-label">Status</span>
+                  <span className={`status-badge status-${(selectedConcessionaire.Status || 'unknown').toLowerCase()}`}>
                     {selectedConcessionaire.Status}
                   </span>
                 </div>
@@ -581,15 +581,15 @@ const ConcessionairesTab: React.FC = () => {
           </>
         }
       >
-        <div className="Consumer-modal-grid">
+        <div className="consumer-modal-grid">
           {!editingConcessionaire && (
             <>
-              <div className="Consumer-modal-section-title">Account Access</div>
+              <div className="consumer-modal-section-title">Account Access</div>
               <FormInput label="Username" value={formData.username} onChange={(v) => setFormData({ ...formData, username: v })} required />
               <FormInput label="Password" type="password" value={formData.password} onChange={(v) => setFormData({ ...formData, password: v })} required />
             </>
           )}
-          <div className="Consumer-modal-section-title">Personal Information</div>
+          <div className="consumer-modal-section-title">Personal Information</div>
           <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
           <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
           <FormInput label="Last Name" value={formData.lastName} onChange={(v) => setFormData({ ...formData, lastName: v })} required />
@@ -606,13 +606,13 @@ const ConcessionairesTab: React.FC = () => {
               { value: 'Disconnected', label: 'Disconnected' },
             ]}
           />
-          <div className="Consumer-modal-section-title">Address Details</div>
+          <div className="consumer-modal-section-title">Address Details</div>
           <FormSelect label="Purok" value={formData.purok} onChange={(v) => setFormData({ ...formData, purok: v })} options={PUROK_OPTIONS.map((item) => ({ value: item, label: item }))} />
           <FormSelect label="Barangay" value={formData.barangay} onChange={(v) => setFormData({ ...formData, barangay: v })} options={BARANGAYS.map((item) => ({ value: item, label: item }))} />
           <FormInput label="Municipality" value={formData.municipality} onChange={(v) => setFormData({ ...formData, municipality: v })} />
           <FormInput label="Zip Code" value={formData.zipCode} onChange={(v) => setFormData({ ...formData, zipCode: v })} />
           <FormInput label="Address" value={formData.address} onChange={() => {}} />
-          <div className="Consumer-modal-section-title">Service Details</div>
+          <div className="consumer-modal-section-title">Service Details</div>
           <FormInput label="Contact #" value={formData.contactNumber} onChange={(v) => setFormData({ ...formData, contactNumber: normalizePhoneInput(v) })} />
           <FormSelect label="Zone" value={formData.zoneId} onChange={(v) => setFormData({ ...formData, zoneId: v })} options={zoneOptions} required />
           <FormSelect label="Type" value={formData.classificationId} onChange={(v) => setFormData({ ...formData, classificationId: v })} options={classificationOptions} required />

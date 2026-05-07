@@ -38,6 +38,45 @@
   margin-bottom: 0;
 }
 
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.control-group .form-input-group .form-label,
+.control-group .form-select-group .form-label {
+  color: #64748b !important;
+  display: flex !important;
+  visibility: visible !important;
+}
+
+.form-label i {
+  color: #1B1B63;
+  font-size: 14px;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  color: #374151;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #1B1B63;
+}
+
 .report-actions {
   display: flex;
   gap: 12px;
