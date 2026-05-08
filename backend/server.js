@@ -3321,9 +3321,11 @@ async function initDb() {
       'Zone 2',
     ]);
 
-    await pool.query('INSERT INTO classification (classification_name) VALUES ($1), ($2)', [
+    await pool.query('INSERT INTO classification (classification_name) VALUES ($1), ($2), ($3), ($4)', [
       'Residential',
       'Commercial',
+      'Institutional',
+      'Industrial',
     ]);
   }
 
@@ -5763,6 +5765,533 @@ app.get('/api/classifications', async (req, res) => {
     await logRequestError(req, 'classifications.fetch', error);
     console.error('Error fetching classifications:', error);
     return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+const IMPORT_ALLOWED_ROLES = new Set([1, 2]);
+
+const IMPORT_TEMPLATES = {
+  consumers: [
+    'account_number,first_name,middle_name,last_name,contact_number,purok,barangay,municipality,zip_code,zone,classification,status,connection_date,address,username,password',
+    '01-R-201-3,Ricardo,,Mendoza,09181234568,Purok 3,Dagotdotan,San Lorenzo Ruiz,4610,Zone 1,Commercial,Active,2018-10-01,"Purok 3, Dagotdotan, San Lorenzo Ruiz, 4610",ricardo.mendoza,Consumer@123',
+  ].join('\n'),
+  bills: [
+    'account_number,bill_date,due_date,billing_month,previous_reading,current_reading,consumption,class_cost,water_charge,meter_maintenance_fee,connection_fee,previous_balance,previous_penalty,penalty,total_amount,amount_due,total_after_due_date,status',
+    '01-R-201-3,2026-04-30,2026-05-15,April 2026,120,134,14,120,120,20,0,0,0,0,140,140,140,Unpaid',
+  ].join('\n'),
+  payments: [
+    'account_number,bill_date,payment_date,amount_paid,or_number,payment_method,reference_number,status',
+    '01-R-201-3,2026-04-30,2026-05-08,140,OR-2026-001,Cash,,Validated',
+  ].join('\n'),
+  consumer_bundle: [
+    'sample_row,account_number,first_name,middle_name,last_name,contact_number,purok,barangay,municipality,zip_code,zone,classification,status,connection_date,address,username,password,meter_serial_number,bill_date,due_date,billing_month,previous_reading,current_reading,consumption,class_cost,water_charge,meter_maintenance_fee,connection_fee,previous_balance,previous_penalty,penalty,total_amount,amount_due,total_after_due_date,bill_status,payment_date,amount_paid,or_number,payment_method,reference_number,payment_status',
+    'YES,SAMPLE-001,Juan,,Dela Cruz,09171234567,Purok 1,Matacong (Pob.),San Lorenzo Ruiz,4610,Zone 1,Residential,Active,2024-01-15,"Purok 1, Matacong (Pob.), San Lorenzo Ruiz, 4610",juan.delacruz,Consumer@123,MTR-SAMPLE-001,2026-04-30,2026-05-15,April 2026,100,112,12,100,100,20,0,0,0,0,120,120,120,Paid,2026-05-05,120,OR-SAMPLE-001,Cash,,Validated',
+  ].join('\n'),
+};
+
+const normalizeImportText = (value) => String(value || '').trim();
+const normalizeImportKey = (value) => normalizeImportText(value).toLowerCase();
+const normalizeOptionalImportDate = (value) => {
+  const raw = normalizeImportText(value);
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+const parseImportAmount = (value, fallback = 0) => {
+  if (value === null || value === undefined || String(value).trim() === '') return fallback;
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : fallback;
+};
+const parseImportMeterValue = (value) => {
+  const numeric = parseImportAmount(value, 0);
+  return numeric < 0 ? 0 : numeric;
+};
+
+const ensureImportAccess = (actorRoleId) => {
+  const normalizedRoleId = Number(actorRoleId);
+  if (!Number.isInteger(normalizedRoleId) || !IMPORT_ALLOWED_ROLES.has(normalizedRoleId)) {
+    throw createHttpError('Only Admin and Billing Officer can use data import.', 403);
+  }
+  return normalizedRoleId;
+};
+
+const resolveLookupId = (rawValue, byIdMap, byNameMap) => {
+  const normalized = normalizeImportText(rawValue);
+  if (!normalized) return null;
+  const numeric = Number(normalized);
+  if (Number.isInteger(numeric) && byIdMap.has(numeric)) return numeric;
+  return byNameMap.get(normalizeImportKey(normalized)) || null;
+};
+
+const normalizeImportDatasets = (datasets = {}) => {
+  const hasCombined = Array.isArray(datasets.consumer_bundle) && datasets.consumer_bundle.length > 0;
+  if (!hasCombined) {
+    return {
+      consumers: Array.isArray(datasets.consumers) ? datasets.consumers : [],
+      bills: Array.isArray(datasets.bills) ? datasets.bills : [],
+      payments: Array.isArray(datasets.payments) ? datasets.payments : [],
+    };
+  }
+
+  const consumersByAccount = new Map();
+  const bills = [];
+  const payments = [];
+
+  const isSampleRow = (row = {}) => {
+    const marker = normalizeImportKey(row.sample_row);
+    return marker === 'yes' || marker === 'true' || marker === '1' || marker === 'sample';
+  };
+
+  for (const rawRow of datasets.consumer_bundle) {
+    const row = rawRow || {};
+    if (isSampleRow(row)) continue;
+    const accountNumber = normalizeImportText(row.account_number);
+    if (!accountNumber) continue;
+    const accountKey = normalizeImportKey(accountNumber);
+
+    if (!consumersByAccount.has(accountKey)) {
+      consumersByAccount.set(accountKey, {
+        account_number: accountNumber,
+        first_name: row.first_name,
+        middle_name: row.middle_name,
+        last_name: row.last_name,
+        contact_number: row.contact_number,
+        purok: row.purok,
+        barangay: row.barangay,
+        municipality: row.municipality,
+        zip_code: row.zip_code,
+        zone: row.zone,
+        classification: row.classification,
+        status: row.status,
+        connection_date: row.connection_date,
+        address: row.address,
+        username: row.username,
+        password: row.password,
+        meter_serial_number: row.meter_serial_number,
+      });
+    }
+
+    if (normalizeImportText(row.bill_date)) {
+      bills.push({
+        account_number: accountNumber,
+        bill_date: row.bill_date,
+        due_date: row.due_date,
+        billing_month: row.billing_month,
+        previous_reading: row.previous_reading,
+        current_reading: row.current_reading,
+        consumption: row.consumption,
+        class_cost: row.class_cost,
+        water_charge: row.water_charge,
+        meter_maintenance_fee: row.meter_maintenance_fee,
+        connection_fee: row.connection_fee,
+        previous_balance: row.previous_balance,
+        previous_penalty: row.previous_penalty,
+        penalty: row.penalty,
+        total_amount: row.total_amount,
+        amount_due: row.amount_due,
+        total_after_due_date: row.total_after_due_date,
+        status: row.bill_status || row.status || 'Unpaid',
+      });
+    }
+
+    if (normalizeImportText(row.payment_date) || normalizeImportText(row.amount_paid)) {
+      payments.push({
+        account_number: accountNumber,
+        bill_date: row.bill_date,
+        payment_date: row.payment_date,
+        amount_paid: row.amount_paid,
+        or_number: row.or_number,
+        payment_method: row.payment_method,
+        reference_number: row.reference_number,
+        status: row.payment_status || 'Validated',
+      });
+    }
+  }
+
+  return {
+    consumers: Array.from(consumersByAccount.values()),
+    bills,
+    payments,
+  };
+};
+
+const validateImportDatasets = async (datasets = {}) => {
+  const normalizedDatasets = normalizeImportDatasets(datasets);
+  const consumers = normalizedDatasets.consumers;
+  const bills = normalizedDatasets.bills;
+  const payments = normalizedDatasets.payments;
+  const errors = [];
+  const warnings = [];
+
+  const [zoneResult, classificationResult] = await Promise.all([
+    pool.query('SELECT zone_id, zone_name FROM zone'),
+    pool.query('SELECT classification_id, classification_name FROM classification'),
+  ]);
+
+  const zoneById = new Map(zoneResult.rows.map((row) => [Number(row.zone_id), Number(row.zone_id)]));
+  const zoneByName = new Map(zoneResult.rows.map((row) => [normalizeImportKey(row.zone_name), Number(row.zone_id)]));
+  const classificationById = new Map(classificationResult.rows.map((row) => [Number(row.classification_id), Number(row.classification_id)]));
+  const classificationByName = new Map(classificationResult.rows.map((row) => [normalizeImportKey(row.classification_name), Number(row.classification_id)]));
+
+  const seenAccountNumbers = new Set();
+  for (let index = 0; index < consumers.length; index += 1) {
+    const row = consumers[index] || {};
+    const accountNumber = normalizeImportText(row.account_number);
+    const firstName = normalizeImportText(row.first_name);
+    const lastName = normalizeImportText(row.last_name);
+    const zoneId = resolveLookupId(row.zone, zoneById, zoneByName);
+    const classificationId = resolveLookupId(row.classification, classificationById, classificationByName);
+
+    if (!accountNumber) errors.push(`consumers row ${index + 1}: account_number is required.`);
+    if (!firstName) errors.push(`consumers row ${index + 1}: first_name is required.`);
+    if (!lastName) errors.push(`consumers row ${index + 1}: last_name is required.`);
+    if (!zoneId) errors.push(`consumers row ${index + 1}: zone must match an existing zone ID/name.`);
+    if (!classificationId) errors.push(`consumers row ${index + 1}: classification must match an existing classification ID/name.`);
+
+    if (accountNumber) {
+      const normalizedKey = normalizeImportKey(accountNumber);
+      if (seenAccountNumbers.has(normalizedKey)) {
+        errors.push(`consumers row ${index + 1}: duplicate account_number in import payload.`);
+      }
+      seenAccountNumbers.add(normalizedKey);
+    }
+  }
+
+  const consumerAccountSet = new Set(consumers.map((row) => normalizeImportKey(row?.account_number)).filter(Boolean));
+  for (let index = 0; index < bills.length; index += 1) {
+    const row = bills[index] || {};
+    const accountNumber = normalizeImportText(row.account_number);
+    const billDate = normalizeOptionalImportDate(row.bill_date);
+    if (!accountNumber) errors.push(`bills row ${index + 1}: account_number is required.`);
+    if (!billDate) errors.push(`bills row ${index + 1}: bill_date must be a valid date.`);
+    if (accountNumber && !consumerAccountSet.has(normalizeImportKey(accountNumber))) {
+      warnings.push(`bills row ${index + 1}: account_number is not in consumers payload (will rely on existing DB consumer).`);
+    }
+  }
+
+  for (let index = 0; index < payments.length; index += 1) {
+    const row = payments[index] || {};
+    const accountNumber = normalizeImportText(row.account_number);
+    const billDate = normalizeOptionalImportDate(row.bill_date);
+    const paymentDate = normalizeOptionalImportDate(row.payment_date);
+    const amountPaid = parseImportAmount(row.amount_paid, NaN);
+    if (!accountNumber) errors.push(`payments row ${index + 1}: account_number is required.`);
+    if (!billDate) errors.push(`payments row ${index + 1}: bill_date must be a valid date.`);
+    if (!paymentDate) errors.push(`payments row ${index + 1}: payment_date must be a valid date.`);
+    if (!Number.isFinite(amountPaid) || amountPaid < 0) errors.push(`payments row ${index + 1}: amount_paid must be a valid non-negative number.`);
+  }
+
+  return {
+    ok: errors.length === 0,
+    counts: { consumers: consumers.length, bills: bills.length, payments: payments.length },
+    errors,
+    warnings,
+  };
+};
+
+app.get('/api/import/templates/:dataset', async (req, res) => {
+  try {
+    const dataset = normalizeImportKey(req.params.dataset);
+    const actorRoleId = Number(req.query.actorRoleId || req.query.actor_role_id);
+    ensureImportAccess(actorRoleId);
+    const template = IMPORT_TEMPLATES[dataset];
+    if (!template) {
+      return res.status(404).json({ success: false, message: 'Unknown template dataset.' });
+    }
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${dataset}-template.csv"`);
+    return res.status(200).send(template);
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    if (status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    await logRequestError(req, 'import.template.fetch', error);
+    return res.status(500).json({ success: false, message: error.message || 'Failed to fetch import template.' });
+  }
+});
+
+app.post('/api/import/legacy/validate', async (req, res) => {
+  try {
+    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id);
+    ensureImportAccess(actorRoleId);
+    const report = await validateImportDatasets(req.body?.datasets || {});
+    return res.json({ success: report.ok, report });
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    if (status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    await logRequestError(req, 'import.legacy.validate', error);
+    return res.status(500).json({ success: false, message: error.message || 'Failed to validate import payload.' });
+  }
+});
+
+app.post('/api/import/legacy/apply', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id);
+    ensureImportAccess(actorRoleId);
+    const datasets = req.body?.datasets || {};
+    const report = await validateImportDatasets(datasets);
+    if (!report.ok) {
+      return res.status(400).json({ success: false, message: 'Import validation failed.', report });
+    }
+
+    const normalizedDatasets = normalizeImportDatasets(datasets);
+    const consumers = normalizedDatasets.consumers;
+    const bills = normalizedDatasets.bills;
+    const payments = normalizedDatasets.payments;
+    const defaultConsumerPassword = String(process.env.IMPORT_DEFAULT_CONSUMER_PASSWORD || 'Consumer@123');
+    const hashedDefaultPassword = hashPassword(defaultConsumerPassword);
+
+    await client.query('BEGIN');
+
+    const zoneLookup = await client.query('SELECT zone_id, zone_name FROM zone');
+    const classificationLookup = await client.query('SELECT classification_id, classification_name FROM classification');
+    const zoneById = new Map(zoneLookup.rows.map((row) => [Number(row.zone_id), Number(row.zone_id)]));
+    const zoneByName = new Map(zoneLookup.rows.map((row) => [normalizeImportKey(row.zone_name), Number(row.zone_id)]));
+    const classificationById = new Map(classificationLookup.rows.map((row) => [Number(row.classification_id), Number(row.classification_id)]));
+    const classificationByName = new Map(classificationLookup.rows.map((row) => [normalizeImportKey(row.classification_name), Number(row.classification_id)]));
+
+    const consumerIdByAccount = new Map();
+    const meterIdByAccount = new Map();
+    const billIdByAccountDate = new Map();
+    const applied = { consumers: 0, accounts: 0, meters: 0, bills: 0, payments: 0, readings: 0 };
+
+    for (const consumerRow of consumers) {
+      const accountNumber = normalizeImportText(consumerRow.account_number);
+      const firstName = normalizeImportText(consumerRow.first_name);
+      const middleName = normalizeImportText(consumerRow.middle_name) || null;
+      const lastName = normalizeImportText(consumerRow.last_name);
+      const contactNumber = normalizeImportText(consumerRow.contact_number) || null;
+      const purok = normalizeImportText(consumerRow.purok) || null;
+      const barangay = normalizeImportText(consumerRow.barangay) || null;
+      const municipality = normalizeImportText(consumerRow.municipality) || 'San Lorenzo Ruiz';
+      const zipCode = normalizeImportText(consumerRow.zip_code) || '4610';
+      const zoneId = resolveLookupId(consumerRow.zone, zoneById, zoneByName);
+      const classificationId = resolveLookupId(consumerRow.classification, classificationById, classificationByName);
+      const status = normalizeImportText(consumerRow.status) || 'Active';
+      const connectionDate = normalizeOptionalImportDate(consumerRow.connection_date);
+      const address = normalizeImportText(consumerRow.address) || [purok, barangay, municipality, zipCode].filter(Boolean).join(', ');
+      const meterSerialNumber = normalizeImportText(consumerRow.meter_serial_number || consumerRow.meter_number);
+
+      const consumerCheck = await client.query(
+        'SELECT consumer_id, account_number, login_id FROM consumer WHERE account_number = $1 LIMIT 1',
+        [accountNumber]
+      );
+
+      let consumerId = null;
+      if (consumerCheck.rows[0]) {
+        consumerId = Number(consumerCheck.rows[0].consumer_id);
+      } else {
+        const preferredUsername = normalizeImportText(consumerRow.username) || `consumer_${accountNumber.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase()}`;
+        let username = preferredUsername;
+        let suffix = 1;
+        while (true) {
+          const usernameCheck = await client.query('SELECT account_id FROM accounts WHERE username = $1 LIMIT 1', [username]);
+          if (!usernameCheck.rows[0]) break;
+          suffix += 1;
+          username = `${preferredUsername}_${suffix}`;
+        }
+
+        const accountPassword = normalizeImportText(consumerRow.password) || defaultConsumerPassword;
+        const accountResult = await client.query(
+          `INSERT INTO accounts (username, password, full_name, contact_number, role_id, account_status)
+           VALUES ($1, $2, $3, $4, 5, 'Active')
+           RETURNING account_id`,
+          [username, accountPassword === defaultConsumerPassword ? hashedDefaultPassword : hashPassword(accountPassword), `${firstName} ${lastName}`.trim(), contactNumber]
+        );
+        const accountId = Number(accountResult.rows[0].account_id);
+        applied.accounts += 1;
+
+        const insertConsumerResult = await client.query(
+          `INSERT INTO consumer (
+             first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code,
+             zone_id, classification_id, login_id, account_number, status, contact_number, connection_date
+           ) VALUES (
+             $1, $2, $3, $4, $5, $6, $7, $8,
+             $9, $10, $11, $12, $13, $14, $15
+           )
+           RETURNING consumer_id`,
+          [
+            firstName, middleName, lastName, address, purok, barangay, municipality, zipCode,
+            zoneId, classificationId, accountId, accountNumber, status, contactNumber, connectionDate,
+          ]
+        );
+        consumerId = Number(insertConsumerResult.rows[0].consumer_id);
+        applied.consumers += 1;
+
+        if (meterSerialNumber) {
+          const meterResult = await client.query(
+            `INSERT INTO meter (consumer_id, meter_serial_number, meter_status, installed_date)
+             VALUES ($1, $2, 'Active', $3)
+             ON CONFLICT (meter_serial_number) DO UPDATE SET consumer_id = EXCLUDED.consumer_id
+             RETURNING meter_id`,
+            [consumerId, meterSerialNumber, connectionDate]
+          );
+          meterIdByAccount.set(normalizeImportKey(accountNumber), Number(meterResult.rows[0].meter_id));
+          applied.meters += 1;
+        }
+      }
+
+      consumerIdByAccount.set(normalizeImportKey(accountNumber), consumerId);
+    }
+
+    const existingConsumerRows = await client.query('SELECT consumer_id, account_number FROM consumer WHERE account_number IS NOT NULL');
+    for (const row of existingConsumerRows.rows) {
+      const accountKey = normalizeImportKey(row.account_number);
+      if (!consumerIdByAccount.has(accountKey)) {
+        consumerIdByAccount.set(accountKey, Number(row.consumer_id));
+      }
+    }
+
+    const existingMeterRows = await client.query(
+      `SELECT c.account_number, m.meter_id
+       FROM meter m
+       JOIN consumer c ON c.consumer_id = m.consumer_id
+       WHERE c.account_number IS NOT NULL
+       ORDER BY m.meter_id DESC`
+    );
+    for (const row of existingMeterRows.rows) {
+      const accountKey = normalizeImportKey(row.account_number);
+      if (!meterIdByAccount.has(accountKey)) {
+        meterIdByAccount.set(accountKey, Number(row.meter_id));
+      }
+    }
+
+    for (const billRow of bills) {
+      const accountKey = normalizeImportKey(billRow.account_number);
+      const consumerId = consumerIdByAccount.get(accountKey);
+      if (!consumerId) continue;
+
+      const billDate = normalizeOptionalImportDate(billRow.bill_date);
+      const dueDate = normalizeOptionalImportDate(billRow.due_date);
+      const readingDate = billDate || new Date().toISOString();
+      const previousReading = parseImportMeterValue(billRow.previous_reading);
+      const currentReading = parseImportMeterValue(billRow.current_reading);
+      const rawConsumption = parseImportMeterValue(billRow.consumption);
+      const consumption = rawConsumption > 0 ? rawConsumption : Math.max(0, currentReading - previousReading);
+      const excessConsumption = parseImportMeterValue(billRow.excess_consumption);
+
+      const readingInsert = await client.query(
+        `INSERT INTO meterreadings (
+           consumer_id, meter_id, reading_status, previous_reading, current_reading, consumption, excess_consumption, reading_date
+         ) VALUES ($1, $2, 'Recorded', $3, $4, $5, $6, $7)
+         RETURNING reading_id`,
+        [consumerId, meterIdByAccount.get(accountKey) || null, previousReading, currentReading, consumption, excessConsumption, readingDate]
+      );
+      const readingId = Number(readingInsert.rows[0].reading_id);
+      applied.readings += 1;
+
+      const totalAmount = parseImportAmount(billRow.total_amount, 0);
+      const amountDue = parseImportAmount(billRow.amount_due, totalAmount);
+      const totalAfterDueDate = parseImportAmount(billRow.total_after_due_date, totalAmount);
+
+      const billInsert = await client.query(
+        `INSERT INTO bills (
+           consumer_id, reading_id, billing_month, bill_date, due_date,
+           class_cost, water_charge, meter_maintenance_fee, connection_fee,
+           previous_balance, previous_penalty, penalty,
+           total_amount, amount_due, total_after_due_date, status
+         ) VALUES (
+           $1, $2, $3, $4, $5,
+           $6, $7, $8, $9,
+           $10, $11, $12,
+           $13, $14, $15, $16
+         )
+         RETURNING bill_id`,
+        [
+          consumerId,
+          readingId,
+          normalizeImportText(billRow.billing_month) || null,
+          billDate || new Date().toISOString(),
+          dueDate,
+          parseImportAmount(billRow.class_cost, 0),
+          parseImportAmount(billRow.water_charge, 0),
+          parseImportAmount(billRow.meter_maintenance_fee, 0),
+          parseImportAmount(billRow.connection_fee, 0),
+          parseImportAmount(billRow.previous_balance, 0),
+          parseImportAmount(billRow.previous_penalty, 0),
+          parseImportAmount(billRow.penalty, 0),
+          totalAmount,
+          amountDue,
+          totalAfterDueDate,
+          normalizeImportText(billRow.status) || 'Unpaid',
+        ]
+      );
+      const billId = Number(billInsert.rows[0].bill_id);
+      applied.bills += 1;
+      billIdByAccountDate.set(`${accountKey}|${String(billDate || '').slice(0, 10)}`, billId);
+    }
+
+    if (billIdByAccountDate.size === 0) {
+      const existingBills = await client.query(
+        `SELECT c.account_number, DATE(b.bill_date) AS bill_date, b.bill_id
+         FROM bills b
+         JOIN consumer c ON c.consumer_id = b.consumer_id
+         WHERE c.account_number IS NOT NULL`
+      );
+      for (const row of existingBills.rows) {
+        billIdByAccountDate.set(`${normalizeImportKey(row.account_number)}|${String(row.bill_date).slice(0, 10)}`, Number(row.bill_id));
+      }
+    }
+
+    for (const paymentRow of payments) {
+      const accountKey = normalizeImportKey(paymentRow.account_number);
+      const consumerId = consumerIdByAccount.get(accountKey);
+      if (!consumerId) continue;
+      const billDateIso = normalizeOptionalImportDate(paymentRow.bill_date);
+      const billKey = `${accountKey}|${String(billDateIso || '').slice(0, 10)}`;
+      let billId = billIdByAccountDate.get(billKey);
+      if (!billId) {
+        const fallbackBill = await client.query(
+          `SELECT b.bill_id
+           FROM bills b
+           WHERE b.consumer_id = $1 AND DATE(b.bill_date) = $2::date
+           ORDER BY b.bill_id DESC
+           LIMIT 1`,
+          [consumerId, String(billDateIso).slice(0, 10)]
+        );
+        billId = fallbackBill.rows[0] ? Number(fallbackBill.rows[0].bill_id) : null;
+      }
+      if (!billId) continue;
+
+      await client.query(
+        `INSERT INTO payment (
+           consumer_id, bill_id, payment_date, amount_paid, or_number, payment_method, reference_number, status
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          consumerId,
+          billId,
+          normalizeOptionalImportDate(paymentRow.payment_date) || new Date().toISOString(),
+          parseImportAmount(paymentRow.amount_paid, 0),
+          normalizeImportText(paymentRow.or_number) || null,
+          normalizeImportText(paymentRow.payment_method) || 'Cash',
+          normalizeImportText(paymentRow.reference_number) || null,
+          normalizeImportText(paymentRow.status) || 'Validated',
+        ]
+      );
+      applied.payments += 1;
+    }
+
+    await client.query('COMMIT');
+    return res.json({
+      success: true,
+      message: 'Legacy data import completed.',
+      report,
+      applied,
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    const status = Number(error?.status || 500);
+    if (status === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
+    await logRequestError(req, 'import.legacy.apply', error);
+    return res.status(500).json({ success: false, message: error.message || 'Failed to import legacy data.' });
+  } finally {
+    client.release();
   }
 });
 

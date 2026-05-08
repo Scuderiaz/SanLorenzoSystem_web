@@ -30,7 +30,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const clearToastTimer = useCallback((id: number) => {
     const timerId = timersRef.current.get(id);
-    if (timerId) {
+    if (timerId !== undefined) {
       window.clearTimeout(timerId);
       timersRef.current.delete(id);
     }

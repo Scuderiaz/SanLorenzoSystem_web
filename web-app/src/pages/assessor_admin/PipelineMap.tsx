@@ -5,7 +5,7 @@ import { loadConsumersWithFallback } from '../../services/userManagementApi';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type Mode = 'grab' | 'junction' | 'mainline' | 'pipe' | 'Consumer';
-type ConsumerType = 'Residential' | 'Commercial' | 'Institutional';
+type ConsumerType = 'Residential' | 'Commercial' | 'Institutional' | 'Industrial';
 
 interface JunctionPoint { id: number; lat: number; lng: number; marker: any; }
 interface PipeLine      { from: number; to: number; line: any; type: 'mainline' | 'pipe'; }
@@ -46,7 +46,7 @@ const MODE_CONFIG: Record<Mode, { label: string; icon: string; hint: string }> =
   junction: { label:'Add Junction',  icon:'fas fa-map-pin',         hint:'Click anywhere on the map to place a junction (branching) point.' },
   mainline: { label:'Main Line',     icon:'fas fa-grip-lines',      hint:'Click a junction point to start, then click another to draw the MAIN transmission line.' },
   pipe:     { label:'Branch Pipe',   icon:'fas fa-project-diagram', hint:'Click a junction point to start, then click another to draw a distribution branch pipe.' },
-  Consumer: { label:'Add Consumer',  icon:'fas fa-user-circle',     hint:'Click on the map near a junction to place a Residential, Commercial, or Institutional Consumer.' },
+  Consumer: { label:'Add Consumer',  icon:'fas fa-user-circle',     hint:'Click on the map near a junction to place a Residential, Commercial, Institutional, or Industrial Consumer.' },
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -382,6 +382,7 @@ const handleConsumerSearch = useCallback((query: string) => {
            <div class="legend-row"><div class="legend-dot" style="background:#1565c0"></div> Residential</div>
            <div class="legend-row"><div class="legend-dot" style="background:#e65100"></div> Commercial</div>
            <div class="legend-row"><div class="legend-dot" style="background:#2e7d32"></div> Institutional</div>
+           <div class="legend-row"><div class="legend-dot" style="background:#6a1b9a"></div> Industrial</div>
       `;
         return div;
       };
@@ -477,7 +478,14 @@ const handleConsumerSearch = useCallback((query: string) => {
                 {filteredConsumers.length > 0 && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', zIndex: 10000, maxHeight: 220, overflowY: 'auto', marginTop: 4 }}>
                     {filteredConsumers.map((c, i) => {
-                      const classColor = c.Classification_Name === 'Commercial' ? '#e65100' : c.Classification_Name === 'Institutional' ? '#2e7d32' : '#1565c0';
+                      const classColor =
+                        c.Classification_Name === 'Commercial'
+                          ? '#e65100'
+                          : c.Classification_Name === 'Institutional'
+                            ? '#2e7d32'
+                            : c.Classification_Name === 'Industrial'
+                              ? '#6a1b9a'
+                              : '#1565c0';
                       return (
                         <button key={i} type="button"
                           onClick={() => {
@@ -610,7 +618,7 @@ const handleConsumerSearch = useCallback((query: string) => {
             <div className="stat-icon orange"><i className="fas fa-store"></i></div>
             <div className="stat-info">
               <div className="stat-value">{consumersRef.current.filter(c => c.type !== 'Residential').length}</div>
-              <div className="stat-label">Commercial / Institutional</div>
+              <div className="stat-label">Commercial / Institutional / Industrial</div>
             </div>
           </div>
         </div>

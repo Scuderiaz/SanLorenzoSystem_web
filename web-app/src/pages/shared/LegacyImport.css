@@ -1,0 +1,150 @@
+.legacy-import-page {
+  padding: 12px 16px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%);
+  min-height: calc(100vh - 90px);
+  color: #1e293b;
+  margin-top: -34px;
+}
+
+.legacy-import-card {
+  background: #ffffff;
+  border: 1px solid #dbe7ff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  font-family: inherit;
+}
+
+.legacy-import-card h3 {
+  margin: 0 0 8px;
+  color: #1e293b;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.legacy-import-card p {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.legacy-import-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.legacy-import-tile {
+  border: 1px solid #dbe7ff;
+  border-radius: 12px;
+  padding: 14px;
+  background: #f8fbff;
+}
+
+.legacy-import-tile h4 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.legacy-file-name {
+  margin: -6px 0 12px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.legacy-import-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legacy-import-actions button,
+.legacy-upload-btn,
+.legacy-main-actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.legacy-upload-btn {
+  display: inline-flex;
+  align-items: center;
+}
+
+.legacy-upload-btn input {
+  display: none;
+}
+
+.legacy-main-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.legacy-main-actions button:last-child {
+  background: #15803d;
+}
+
+.legacy-main-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.legacy-report {
+  margin-top: 18px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+  background: #f8fbff;
+  border-radius: 10px;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: 8px;
+}
+
+.legacy-report h4,
+.legacy-report h5 {
+  margin: 0 0 8px;
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.legacy-report ul {
+  margin: 0 0 10px 18px;
+  color: #334155;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .legacy-import-page {
+    padding: 8px 10px;
+    margin-top: -12px;
+  }
+
+  .legacy-import-card {
+    padding: 12px;
+  }
+
+  .legacy-main-actions button,
+  .legacy-import-actions button,
+  .legacy-upload-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}
