@@ -75,8 +75,8 @@ const PendingApplications: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
-  const [zoneFilter, setZoneFilter] = useState('');
   const [classificationFilter, setClassificationFilter] = useState('');
+  const [barangayFilter, setBarangayFilter] = useState('');
   const [selectedApplication, setSelectedApplication] = useState<PendingApplication | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [returnToDetailsAfterEdit, setReturnToDetailsAfterEdit] = useState(false);
@@ -316,8 +316,8 @@ const PendingApplications: React.FC = () => {
       const matchesStatus = statusFilter === 'active'
         ? application.Application_Status !== 'Rejected'
         : statusFilter === 'all' || application.Application_Status === statusFilter;
-      const matchesZone = !zoneFilter || String(application.Zone_ID || '') === zoneFilter;
       const matchesClassification = !classificationFilter || String(application.Classification_ID || '') === classificationFilter;
+      const matchesBarangay = !barangayFilter || String(application.Barangay || '').trim() === barangayFilter;
       const matchesSearch = !query || [
         application.Ticket_Number,
         application.Consumer_Name,
@@ -330,9 +330,9 @@ const PendingApplications: React.FC = () => {
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
-      return matchesStatus && matchesZone && matchesClassification && matchesSearch;
+      return matchesStatus && matchesClassification && matchesBarangay && matchesSearch;
     });
-  }, [applications, canViewUsername, classificationFilter, searchQuery, statusFilter, zoneFilter]);
+  }, [applications, barangayFilter, canViewUsername, classificationFilter, searchQuery, statusFilter]);
 
   const columns: Column[] = [
     { key: 'Ticket_Number', label: 'Ticket No.', sortable: true },
@@ -404,6 +404,12 @@ const PendingApplications: React.FC = () => {
 
   const requirementPreviewImage = isImageDataUrl(formData.requirementsSubmitted) ? formData.requirementsSubmitted : '';
   const selectedRequirementImage = isImageDataUrl(selectedApplication?.Requirements_Submitted) ? selectedApplication?.Requirements_Submitted : '';
+  const barangayOptions = useMemo(
+    () =>
+      Array.from(new Set(applications.map((application) => String(application.Barangay || '').trim()).filter(Boolean)))
+        .sort((left, right) => left.localeCompare(right)),
+    [applications]
+  );
 
   const handleConfirmAction = async () => {
     if (!confirmAction) {
@@ -437,16 +443,16 @@ const PendingApplications: React.FC = () => {
           </div>
           <div className="applications-toolbar-actions">
           <div className="filters">
-            <select value={zoneFilter} onChange={(event) => setZoneFilter(event.target.value)}>
-              <option value="">All Zones</option>
-              {zones.map((zone) => (
-                <option key={zone.id} value={zone.id}>{zone.name}</option>
-              ))}
-            </select>
             <select value={classificationFilter} onChange={(event) => setClassificationFilter(event.target.value)}>
               <option value="">All Classifications</option>
               {classifications.map((classification) => (
                 <option key={classification.id} value={classification.id}>{classification.name}</option>
+              ))}
+            </select>
+            <select value={barangayFilter} onChange={(event) => setBarangayFilter(event.target.value)}>
+              <option value="">All Barangays</option>
+              {barangayOptions.map((barangay) => (
+                <option key={barangay} value={barangay}>{barangay}</option>
               ))}
             </select>
             <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>

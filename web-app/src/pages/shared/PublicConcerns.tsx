@@ -31,18 +31,23 @@ const PublicConcerns: React.FC = () => {
   const [rows, setRows] = useState<PublicConcern[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [barangayFilter, setBarangayFilter] = useState('');
   const [search, setSearch] = useState('');
   const [replyTarget, setReplyTarget] = useState<PublicConcern | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<PublicConcern | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
   const canReply = [1, 2].includes(Number(user?.role_id || 0));
+  const canDelete = [1, 2].includes(Number(user?.role_id || 0));
 
   const loadConcerns = useCallback(async () => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams();
       if (statusFilter) queryParams.set('status', statusFilter);
+      if (barangayFilter) queryParams.set('barangay', barangayFilter);
       if (search.trim()) queryParams.set('q', search.trim());
 
       const result = await requestJson<{ success: boolean; data: PublicConcern[] }>(
@@ -63,24 +68,31 @@ const PublicConcerns: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, showToast, statusFilter]);
+  }, [barangayFilter, search, showToast, statusFilter]);
 
   const handleDelete = useCallback(async (messageId: number) => {
-    if (!window.confirm('Are you sure you want to delete this concern?')) {
-      return;
-    }
     try {
+      setIsDeleting(true);
       await requestJson<{ success: boolean; message?: string }>(
         `/public-contact-messages/${messageId}`,
-        { method: 'DELETE' },
+        {
+          method: 'DELETE',
+          headers: {
+            'x-actor-account-id': String(user?.id || ''),
+            'x-actor-role-id': String(user?.role_id || ''),
+          },
+        },
         'Failed to delete concern.'
       );
       showToast('Concern deleted successfully.', 'success');
+      setDeleteTarget(null);
       await loadConcerns();
     } catch (error) {
       showToast(getErrorMessage(error, 'Failed to delete concern.'), 'error');
+    } finally {
+      setIsDeleting(false);
     }
-  }, [loadConcerns, showToast]);
+  }, [loadConcerns, showToast, user?.id, user?.role_id]);
 
   useEffect(() => {
     loadConcerns();
@@ -200,19 +212,33 @@ const PublicConcerns: React.FC = () => {
                 Reply
               </button>
             )}
-            <button
-              type="button"
-              className="btn-icon btn-danger"
-              title="Delete"
-              onClick={() => handleDelete(row.message_id)}
-            >
-              <i className="fas fa-trash"></i>
-            </button>
+            {canDelete && (
+                <button
+                  type="button"
+                  className="btn-icon btn-danger"
+                  title="Delete"
+                  onClick={() => setDeleteTarget(row)}
+                >
+                  <i className="fas fa-trash"></i>
+                </button>
+            )}
           </div>
         </div>
       ),
     },
-  ]), [canReply, expandedMessageIds, handleDelete]);
+  ]), [canDelete, canReply, expandedMessageIds]);
+
+  const barangayOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows
+            .map((row) => String(row.barangay || '').trim())
+            .filter(Boolean)
+        )
+      ).sort((left, right) => left.localeCompare(right)),
+    [rows]
+  );
 
   return (
     <MainLayout title="Public Concerns">
@@ -240,6 +266,16 @@ const PublicConcerns: React.FC = () => {
               <option value="">All Statuses</option>
               {statusOptions.map((statusOption) => (
                 <option key={statusOption} value={statusOption}>{statusOption}</option>
+              ))}
+            </select>
+            <select
+              className="form-control"
+              value={barangayFilter}
+              onChange={(event) => setBarangayFilter(event.target.value)}
+            >
+              <option value="">All Barangays</option>
+              {barangayOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
               ))}
             </select>
             <button type="button" className="btn btn-secondary" onClick={loadConcerns}>
@@ -308,6 +344,43 @@ const PublicConcerns: React.FC = () => {
             disabled={isSendingReply}
           />
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => {
+          if (!isDeleting) {
+            setDeleteTarget(null);
+          }
+        }}
+        title="Delete Public Concern"
+        size="small"
+        footer={(
+          <>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={isDeleting}
+              onClick={() => setDeleteTarget(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              disabled={isDeleting || !deleteTarget}
+              onClick={() => deleteTarget && handleDelete(deleteTarget.message_id)}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </>
+        )}
+      >
+        {deleteTarget && (
+          <p style={{ margin: 0 }}>
+            Delete concern from <strong>{deleteTarget.full_name}</strong> about <strong>{deleteTarget.subject}</strong>? This action cannot be undone.
+          </p>
+        )}
       </Modal>
     </MainLayout>
   );

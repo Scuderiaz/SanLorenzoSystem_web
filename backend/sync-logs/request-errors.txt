@@ -829,3 +829,98 @@
 [2026-05-08T13:17:33.486Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-05-08T13:18:33.484Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-05-08T13:19:33.499Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:29:38.521Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:30:38.536Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:31:38.545Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:32:38.547Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:33:38.549Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:34:38.557Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:35:38.579Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:36:38.587Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:37:38.594Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:38:38.596Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:39:38.605Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:40:38.608Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:41:38.612Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:42:38.618Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:43:38.621Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:44:38.626Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:45:38.628Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:46:38.636Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:47:38.636Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:48:38.641Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:49:38.659Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:50:38.670Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:51:38.685Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:52:38.696Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:53:38.703Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:54:38.705Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:55:38.717Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:56:38.733Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:57:38.734Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:58:38.748Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T13:59:38.756Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T14:00:38.757Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T14:01:38.769Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T14:02:38.777Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T14:29:17.771Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T14:29:18.320Z] [postgres.sync.roles] TypeError: fetch failed
+[2026-05-08T14:29:18.535Z] [postgres.sync.zone] TypeError: fetch failed
+[2026-05-08T14:29:18.554Z] [postgres.sync.classification] TypeError: fetch failed
+[2026-05-08T14:29:18.577Z] [postgres.sync.accounts] TypeError: fetch failed
+[2026-05-08T14:29:18.607Z] [postgres.sync.consumer] TypeError: fetch failed
+[2026-05-08T14:29:18.623Z] [postgres.sync.meter] TypeError: fetch failed
+[2026-05-08T14:29:18.633Z] [postgres.sync.route] TypeError: fetch failed
+[2026-05-08T14:29:18.648Z] [postgres.sync.meterreadings] TypeError: fetch failed
+[2026-05-08T22:00:20.799Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:01:20.811Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:02:20.796Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:03:20.821Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:04:20.827Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:05:20.831Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:05:29.704Z] [public.contact.updateStatus] Semaphore SMS failed (403): Your account has not yet been approved for sending messages. Please either top-up your account or wait for your account to be approved. If your account has not been approved within 2 business days, please email support@semaphore.co | PATCH /api/public-contact-messages/2/status | params={"id":"2"} | query={} | body={"status":"Resolved","remarks":"oki","reviewedBy":3}
+[2026-05-08T22:06:20.843Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:07:20.873Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:08:20.866Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:09:20.871Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:10:20.884Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:11:20.884Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:12:20.887Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:13:20.947Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:14:20.918Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:15:20.930Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:16:20.945Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:17:20.945Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:18:20.953Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:19:20.964Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:20:20.968Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:21:20.975Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:22:11.115Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-delete.
+[2026-05-08T22:22:20.973Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:23:20.977Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:24:20.976Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:25:20.975Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:26:20.971Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:27:20.982Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:28:20.976Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:29:20.977Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:30:20.989Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:31:20.996Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:32:20.986Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:33:21.003Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:34:20.999Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:35:20.991Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:36:20.997Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:37:20.995Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:38:20.993Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:39:21.004Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:40:21.006Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:41:21.026Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:42:21.043Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:43:21.048Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:44:21.037Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:45:21.041Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:46:21.059Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:47:21.054Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:48:21.051Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-08T22:49:21.091Z] [sync.cycle] Hybrid sync cycle started via scheduler.

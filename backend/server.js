@@ -9586,6 +9586,7 @@ app.post('/api/public/contact', async (req, res) => {
 app.get('/api/public-contact-messages', async (req, res) => {
   const query = String(req.query?.q || '').trim().toLowerCase();
   const statusFilter = String(req.query?.status || '').trim();
+  const barangayFilter = String(req.query?.barangay || '').trim();
 
   try {
     const rows = await withPostgresPrimary(
@@ -9597,6 +9598,13 @@ app.get('/api/public-contact-messages', async (req, res) => {
         if (statusFilter) {
           values.push(statusFilter);
           clauses.push(`cc.status = $${values.length}`);
+        }
+
+        if (barangayFilter) {
+          values.push(barangayFilter.toLowerCase());
+          clauses.push(
+            `LOWER(COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '')) = $${values.length}`
+          );
         }
 
         if (query) {
@@ -9709,8 +9717,14 @@ app.get('/api/public-contact-messages', async (req, res) => {
           };
         });
 
-        if (!query) return normalizedData;
-        return normalizedData.filter((row) => {
+        const filteredByBarangay = barangayFilter
+          ? normalizedData.filter(
+              (row) => String(row.barangay || '').trim().toLowerCase() === barangayFilter.toLowerCase()
+            )
+          : normalizedData;
+
+        if (!query) return filteredByBarangay;
+        return filteredByBarangay.filter((row) => {
           const haystack = [
             row.full_name,
             row.barangay,
@@ -9907,9 +9921,13 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
 app.delete('/api/public-contact-messages/:id', async (req, res) => {
   const id = Number(req.params.id);
   const actorAccountId = normalizeRequiredForeignKeyId(req.body?.actorAccountId || req.headers['x-actor-account-id']);
+  const actorRoleId = Number(req.body?.actorRoleId || req.headers['x-actor-role-id'] || 0);
 
   if (!id || id < 1) {
     return res.status(400).json({ success: false, message: 'A valid message ID is required.' });
+  }
+  if (!Number.isInteger(actorRoleId) || ![1, 2].includes(actorRoleId)) {
+    return res.status(403).json({ success: false, message: 'Only Admin and Billing Officer can delete public concerns.' });
   }
 
   try {
@@ -9923,7 +9941,11 @@ app.delete('/api/public-contact-messages/:id', async (req, res) => {
             RETURNING concern_id`,
           [id, ['Public Contact', 'Public Concern']]
         );
-        return rows[0] || null;
+        const deletedRow = rows[0] || null;
+        if (deletedRow) {
+          await mirrorDeleteToSupabase('consumer_concerns', 'concern_id', id);
+        }
+        return deletedRow;
       },
       async () => {
         const { data, error } = await supabase
@@ -9944,7 +9966,7 @@ app.delete('/api/public-contact-messages/:id', async (req, res) => {
 
     await writeSystemLog(`[public-contact] Message #${id} deleted.`, {
       userId: actorAccountId || defaultSystemLogAccountId,
-      role: 'Billing Officer',
+      role: actorRoleId === 1 ? 'Admin' : 'Billing Officer',
     });
     scheduleImmediateSync('public-contact-delete');
 
@@ -10429,6 +10451,39 @@ app.post('/api/auth/google', async (req, res) => {
     const defaultBarangay = 'Not Specified';
     const defaultPurok = 'Not Specified';
     const defaultAddress = [defaultPurok, defaultBarangay, defaultMunicipality, defaultZipCode].join(', ');
+    const [defaultZoneId, defaultClassificationId] = await withPostgresPrimary(
+      'auth.google.lookupDefaults',
+      async () => {
+        const [zoneResult, classificationResult] = await Promise.all([
+          pool.query('SELECT zone_id FROM zone ORDER BY zone_id ASC LIMIT 1'),
+          pool.query('SELECT classification_id FROM classification ORDER BY classification_id ASC LIMIT 1'),
+        ]);
+        return {
+          zoneId: Number(zoneResult.rows?.[0]?.zone_id || 0) || null,
+          classificationId: Number(classificationResult.rows?.[0]?.classification_id || 0) || null,
+        };
+      },
+      async () => {
+        const [zoneResult, classificationResult] = await Promise.all([
+          supabase.from('zone').select('zone_id').order('zone_id', { ascending: true }).limit(1).maybeSingle(),
+          supabase.from('classification').select('classification_id').order('classification_id', { ascending: true }).limit(1).maybeSingle(),
+        ]);
+        if (zoneResult.error) throw zoneResult.error;
+        if (classificationResult.error) throw classificationResult.error;
+        return {
+          zoneId: Number(zoneResult.data?.zone_id || 0) || null,
+          classificationId: Number(classificationResult.data?.classification_id || 0) || null,
+        };
+      }
+    );
+
+    if (!defaultZoneId || !defaultClassificationId) {
+      return res.status(500).json({
+        success: false,
+        message: 'Google sign-up is temporarily unavailable. Please contact support.',
+      });
+    }
+
     const generatedUsernameSeed = googleEmail.split('@')[0] || `google_${Date.now()}`;
     const generatedPassword = `google_${crypto.randomUUID()}`;
     const generatedPasswordHash = hashPassword(generatedPassword);
@@ -10458,7 +10513,7 @@ app.post('/api/auth/google', async (req, res) => {
             const accountId = accountRows[0].account_id;
 
             await client.query(`
-              INSERT INTO consumer (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number)
+              INSERT INTO consumer (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number, zone_id, classification_id)
               VALUES (
                 $1,
                 $2,
@@ -10469,7 +10524,9 @@ app.post('/api/auth/google', async (req, res) => {
                 COALESCE(NULLIF($7, ''), 'Not Specified'),
                 COALESCE(NULLIF($8, ''), 'San Lorenzo Ruiz'),
                 COALESCE(NULLIF($9, ''), '4610'),
-                $10
+                $10,
+                $11,
+                $12
               )
             `, [
               firstName || candidateUsername,
@@ -10482,6 +10539,8 @@ app.post('/api/auth/google', async (req, res) => {
               defaultMunicipality,
               defaultZipCode,
               null,
+              defaultZoneId,
+              defaultClassificationId,
             ]);
 
             await client.query('COMMIT');
@@ -10539,8 +10598,13 @@ app.post('/api/auth/google', async (req, res) => {
               municipality: defaultMunicipality,
               zip_code: defaultZipCode,
               contact_number: null,
+              zone_id: defaultZoneId,
+              classification_id: defaultClassificationId,
             }]);
-          if (consumerError) throw consumerError;
+          if (consumerError) {
+            await supabase.from('accounts').delete().eq('account_id', accountData.account_id).catch(() => {});
+            throw consumerError;
+          }
 
           return accountData;
         }
@@ -10580,7 +10644,10 @@ app.post('/api/auth/google', async (req, res) => {
       });
     }
 
-    return res.status(500).json({ success: false, message: error.message || 'Google authentication failed.' });
+    return res.status(500).json({
+      success: false,
+      message: 'Google sign-up failed. Please try again or contact support.',
+    });
   }
 });
 

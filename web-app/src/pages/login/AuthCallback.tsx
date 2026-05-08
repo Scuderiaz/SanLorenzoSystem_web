@@ -13,6 +13,32 @@ const AuthCallback: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    const defaultGoogleErrorMessage = 'Unable to complete Google sign-in right now. Please try again.';
+
+    const toUserFriendlyError = (value: unknown) => {
+      const raw = String(value || '').trim();
+      const lowered = raw.toLowerCase();
+      if (!raw) return defaultGoogleErrorMessage;
+      if (lowered.includes('already exists')) {
+        return 'An account with this email already exists. Please log in instead.';
+      }
+      if (
+        lowered.includes('null value') ||
+        lowered.includes('violates') ||
+        lowered.includes('relation') ||
+        lowered.includes('column') ||
+        lowered.includes('constraint')
+      ) {
+        return defaultGoogleErrorMessage;
+      }
+      if (lowered.includes('invalid or expired google token')) {
+        return 'Your Google session expired. Please sign in again.';
+      }
+      if (lowered.includes('failed to fetch') || lowered.includes('network')) {
+        return 'Network issue detected while signing in. Please check your connection and try again.';
+      }
+      return raw.length > 180 ? defaultGoogleErrorMessage : raw;
+    };
 
     const readAccessTokenFromHash = () => {
       const hash = String(window.location.hash || '');
@@ -54,7 +80,7 @@ const AuthCallback: React.FC = () => {
         if (!accessToken && authCode) {
           const { data: exchanged, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode);
           if (exchangeError) {
-            setError(exchangeError.message || 'Failed to complete Google sign-in.');
+            setError(toUserFriendlyError(exchangeError.message));
             return;
           }
           accessToken = String(exchanged?.session?.access_token || '').trim();
@@ -65,7 +91,7 @@ const AuthCallback: React.FC = () => {
           const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           if (sessionError) {
             console.error('Supabase session error:', sessionError);
-            setError(sessionError.message || 'Failed to retrieve Google session.');
+            setError(toUserFriendlyError(sessionError.message));
             return;
           }
           accessToken = String(session?.access_token || '').trim();
@@ -85,12 +111,14 @@ const AuthCallback: React.FC = () => {
           login(result.user);
           navigate(getRedirectPathByRole(Number(result.user?.role_id || 5)));
         } else {
-          setError(result.message || 'Google sign-in failed.');
+          setError(toUserFriendlyError(result.message || 'Google sign-in failed.'));
+          await supabase.auth.signOut().catch(() => {});
         }
       } catch (err: any) {
         if (!cancelled) {
           console.error('OAuth callback error:', err);
-          setError(err.message || 'An unexpected error occurred during Google sign-in.');
+          setError(toUserFriendlyError(err?.message));
+          await supabase?.auth?.signOut?.().catch(() => {});
         }
       } finally {
         sessionStorage.removeItem(GOOGLE_OAUTH_INTENT_KEY);

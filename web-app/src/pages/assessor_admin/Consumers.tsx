@@ -41,6 +41,9 @@ interface Classification {
   Classification_Name: string;
 }
 
+const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
+  zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
 const ACCOUNT_NUMBER_PATTERN = /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+(-[A-Z0-9]+)?$/i;
 const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
 const BARANGAYS = [
@@ -83,8 +86,8 @@ const Consumers: React.FC = () => {
   const [consumerToDelete, setConsumerToDelete] = useState<Consumer | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [zoneFilter, setZoneFilter] = useState('');
   const [classificationFilter, setClassificationFilter] = useState('');
+  const [barangayFilter, setBarangayFilter] = useState('');
   const [meterStatusFilter, setMeterStatusFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -116,7 +119,7 @@ const Consumers: React.FC = () => {
 
   useEffect(() => {
     filterConsumers();
-  }, [consumers, searchTerm, zoneFilter, classificationFilter, meterStatusFilter, statusFilter]);
+  }, [consumers, searchTerm, classificationFilter, barangayFilter, meterStatusFilter, statusFilter]);
 
   useEffect(() => {
     const composedAddress = [formData.purok, formData.barangay, formData.municipality, formData.zipCode]
@@ -184,12 +187,12 @@ const Consumers: React.FC = () => {
       );
     }
 
-    if (zoneFilter) {
-      filtered = filtered.filter((c) => c.Zone_ID === parseInt(zoneFilter));
-    }
-
     if (classificationFilter) {
       filtered = filtered.filter((c) => String(c.Classification_ID) === classificationFilter);
+    }
+
+    if (barangayFilter) {
+      filtered = filtered.filter((c) => String(c.Barangay || '').trim() === barangayFilter);
     }
 
     if (meterStatusFilter) {
@@ -417,6 +420,11 @@ const Consumers: React.FC = () => {
     value: c.Classification_ID,
     label: c.Classification_Name,
   }));
+  const barangayOptions = Array.from(
+    new Set(consumers.map((consumer) => String(consumer.Barangay || '').trim()).filter(Boolean))
+  )
+    .sort((left, right) => left.localeCompare(right))
+    .map((barangay) => ({ value: barangay, label: barangay }));
   const meterStatusOptions = [
     { value: 'Active', label: 'Active Meter' },
     { value: 'Inactive', label: 'Inactive Meter' },
@@ -454,17 +462,17 @@ const Consumers: React.FC = () => {
           <div className="filters">
             <FormSelect
               label=""
-              value={zoneFilter}
-              onChange={setZoneFilter}
-              options={zoneOptions}
-              placeholder="All Map Zones"
-            />
-            <FormSelect
-              label=""
               value={classificationFilter}
               onChange={setClassificationFilter}
               options={classificationOptions}
               placeholder="All Concessionaire Types"
+            />
+            <FormSelect
+              label=""
+              value={barangayFilter}
+              onChange={setBarangayFilter}
+              options={barangayOptions}
+              placeholder="All Barangays"
             />
             <FormSelect
               label=""
