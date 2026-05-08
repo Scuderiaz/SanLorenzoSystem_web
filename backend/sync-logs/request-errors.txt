@@ -765,3 +765,5 @@
 [2026-05-07T12:25:26.214Z] [server.start] AggregateError
 [2026-05-07T12:26:01.056Z] [users.reject] new row for relation "consumer" violates check constraint "consumer_status_check" | POST /api/admin/reject-user | params={} | query={} | body={"accountId":39,"approvedBy":1,"remarks":"sabi mo eh"}
 [2026-05-07T12:26:17.622Z] [users.reject] new row for relation "consumer" violates check constraint "consumer_status_check" | POST /api/admin/reject-user | params={} | query={} | body={"accountId":39,"approvedBy":1,"remarks":"sabi mo eh"}
+[2026-05-07T12:41:03.670Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-delete.
+[2026-05-08T09:43:14.733Z] [server.start] AggregateError

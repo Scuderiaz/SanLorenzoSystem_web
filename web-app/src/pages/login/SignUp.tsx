@@ -650,17 +650,6 @@ const SignUp: React.FC = () => {
                   )}
                 </div>
               </div>
-
-              <div className="signup-charges">
-                <h4>Registration Charges</h4>
-                <div className="signup-charge-row"><span>Connection Fee</span><span>₱300.00</span></div>
-                <div className="signup-charge-row"><span>Membership Fee</span><span>₱50.00</span></div>
-                <div className="signup-charge-row"><span>Meter Full Deposit</span><span>₱1,500.00</span></div>
-                <div className="signup-charge-row signup-charge-total"><span>Total Amount</span><span>₱1,850.00</span></div>
-                <p style={{ margin: '10px 0 0', color: '#5f6368', fontSize: 13 }}>
-                  You can use the concessionaire dashboard after submitting registration.
-                </p>
-              </div>
               </>
               )}
             </div>

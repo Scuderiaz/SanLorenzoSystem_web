@@ -76,26 +76,29 @@ const LandingPage: React.FC = () => {
         'Multiple payment options (office, online, mobile)',
         'Detailed billing breakdown and usage history',
         'SMS/email notifications for bill generation',
-        'Dispute resolution for billing concerns'
+        'Dispute resolution for billing concerns',
+        'Consumer Types: Residential, Commercial, Institutional, Industrial'
       ],
       requirements: [
         'Active water service connection',
         'Updated contact information',
         'Accessible meter location'
       ],
-      fees: 'Monthly consumption-based billing'
+      fees: 'Rate: ₱10 per cubic meter. Note: Institutional includes government facilities, poultry, construction, etc. Commercial includes business establishments.'
     },
     'new-connection': {
       title: 'New Water Connection',
       image: '/images/connection.png',
-      description: 'Processing of applications for new water connections including site inspection and installation.',
+      description: 'Processing of applications for new water connections including site inspection and installation. Note: New connection cannot be established if a water line already exists at the property.',
       details: [
         'Site inspection and feasibility assessment',
         'Professional meter installation by trained technicians',
         'Connection to nearest water main line',
-        'Water Quality Testing',
+        'Bacterial Testing — monthly',
+        'Physical Examination — annually',
         'Consumer orientation on proper water usage',
-        'Issuance of official receipt and contract'
+        'Issuance of official receipt and contract',
+        'Note: Cannot connect new line if existing connection is already present'
       ],
       requirements: [
         'Barangay Clearance',
@@ -168,7 +171,7 @@ const LandingPage: React.FC = () => {
     },
     'physical-examination': {
       title: 'Physical Examination',
-      image: '/images/examination.png',
+      image: '/images/examination.jpg',
       description: 'Annual physical and chemical testing of water quality to assess clarity, odor, and overall physical properties.',
       details: [
         'Annual comprehensive water testing',
@@ -475,25 +478,26 @@ const LandingPage: React.FC = () => {
           <div className="steps-grid">
             <div className="step-card">
               <div className="step-number">01</div>
-              <h3 className="step-title">Visit the Office or<br />Apply Online</h3>
-              <p className="step-description">Come to our office in person or submit your application through our water billing system.</p>
-              <p className="step-description">Either way, we'll walk you through everything you need to get started with your new water connection.</p>
+              <h3 className="step-title">Visit the Office to<br />Inquire</h3>
+              <p className="step-description">Come to our office in person to inquire about the water connection process and request a site inspection for your property.</p>
+              <p className="step-description">Our staff will explain the requirements and schedule your inspection.</p>
             </div>
             <div className="step-card">
               <div className="step-number">02</div>
-              <h3 className="step-title">Fill Out the<br />Application Form</h3>
-              <p className="step-description">Complete the application form and prepare your requirements: a valid Cedula and the total payment of ₱1,850 (₱300 connection fee, ₱50 membership fee, ₱1,500 water meter).</p>
-              <p className="step-description">Necessary pipe materials will be determined during the inspection.</p>
+              <h3 className="step-title">Site<br />Inspection</h3>
+              <p className="step-description">Our team will visit your property to assess if the water system can be properly installed at your location.</p>
+              <p className="step-description">We will check the feasibility of connecting your property to the nearest water main line.</p>
             </div>
             <div className="step-card">
               <div className="step-number">03</div>
-              <h3 className="step-title">Site<br />Inspection</h3>
-              <p className="step-description">A site inspection will be conducted the next day after your application is submitted to verify your property's eligibility for connection.</p>
+              <h3 className="step-title">Complete Application<br />& Payment</h3>
+              <p className="step-description">Return to the office to fill out the application form and submit requirements: valid Cedula and total payment of ₱1,850 (₱300 connection fee, ₱50 membership fee, ₱1,500 water meter).</p>
+              <p className="step-description">Necessary pipe materials will be determined based on inspection results.</p>
             </div>
             <div className="step-card">
               <div className="step-number">04</div>
               <h3 className="step-title"><br />Installation</h3>
-              <p className="step-description">Once the inspection is cleared, our team will proceed with the installation of your water connection and meter at your property.</p>
+              <p className="step-description">Once the inspection is cleared and payment is confirmed, our team will proceed with the installation of your water connection and meter at your property.</p>
             </div>
           </div>
 
@@ -511,8 +515,17 @@ const LandingPage: React.FC = () => {
               </ul>
             </div>
             <div className="note-card">
-              <h3 className="note-title">NOTE:</h3>
-              <p className="note-text">Materials for the connection are to be purchased by the applicant (Consumer). Please contact our office for more details on material requirements specific to your property.</p>
+              <h3 className="note-title">NOTE: Materials</h3>
+              <p className="note-text">The following materials are to be purchased by the applicant (Consumer):</p>
+              <ul className="req-list" style={{ marginTop: '8px', marginBottom: '12px' }}>
+                <li><i className="fas fa-check-circle" /> Saddle Clamp</li>
+                <li><i className="fas fa-check-circle" /> Ball Valve</li>
+                <li><i className="fas fa-check-circle" /> Brass St. Coupling</li>
+                <li><i className="fas fa-check-circle" /> P.E Pipe</li>
+                <li><i className="fas fa-check-circle" /> G.I Elbow</li>
+                <li><i className="fas fa-check-circle" /> Tapelone</li>
+              </ul>
+              <p className="note-text">Please contact our office for more details on specific quantities and requirements for your property.</p>
             </div>
           </div>
         </div>
@@ -548,7 +561,7 @@ const LandingPage: React.FC = () => {
               </div>
               <div className="info-block">
                 <h4 className="info-title">PHONE / CONTACT</h4>
-                <p className="info-text">09123456789</p>
+                <p className="info-text">09562063036</p>
               </div>
               <div className="info-block">
                 <h4 className="info-title">INQUIRIES</h4>
@@ -575,7 +588,7 @@ const LandingPage: React.FC = () => {
             <h2 className="section-title light">OFFICE HOURS &<br />IMPORTANT DATES</h2>
             <p className="section-subtitle light">Plan your visit accordingly. Walk-in services are available during regular office hours.</p>
           </div>
-          <div className="schedule-grid">
+          <div className="schedule-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             <div className="schedule-card office-hours">
               <h3 className="schedule-card-title"><i className="fas fa-clock" /> Regular Office Hours</h3>
               <div className="hours-list">
@@ -588,27 +601,39 @@ const LandingPage: React.FC = () => {
                 <div className="hours-row closed"><span>Sunday</span><span>Closed</span></div>
               </div>
             </div>
-            <div className="schedule-info-cards">
-              <div className="schedule-card billing-schedule">
-                <h3 className="schedule-card-title"><i className="fas fa-calendar-alt" /> Billing & Payment Schedule</h3>
-                <div className="schedule-table">
-                  <div className="schedule-row"><span>Billing Period</span><span>Monthly</span></div>
-                  <div className="schedule-row"><span>Meter Reading</span><span>1st–2nd week of the month</span></div>
-                  <div className="schedule-row"><span>Due Date</span><span>3rd–last week of the month</span></div>
-                  <div className="schedule-row"><span>Penalty (if unpaid)</span><span>+10% (one time only)</span></div>
-                  <div className="schedule-row"><span>Disconnection</span><span>After 3 consecutive unpaid months</span></div>
-                  <div className="schedule-row"><span>Reconnection Fee</span><span>₱50</span></div>
-                </div>
+            <div className="schedule-card billing-schedule">
+              <h3 className="schedule-card-title"><i className="fas fa-calendar-alt" /> Billing & Payment Schedule</h3>
+              <div className="schedule-table">
+                <div className="schedule-row"><span>Billing Period</span><span>Monthly</span></div>
+                <div className="schedule-row"><span>Meter Reading</span><span>1st–2nd week of the month</span></div>
+                <div className="schedule-row"><span>Due Date</span><span>3rd–last week of the month</span></div>
+                <div className="schedule-row"><span>Penalty (if unpaid)</span><span>+10% (one time only)</span></div>
+                <div className="schedule-row"><span>Disconnection</span><span>After 3 consecutive unpaid months</span></div>
+                <div className="schedule-row"><span>Reconnection Fee</span><span>₱50</span></div>
               </div>
-              <div className="schedule-card other-info">
-                <h3 className="schedule-card-title"><i className="fas fa-info-circle" /> Other Important Info</h3>
+            </div>
+          </div>
+
+          <div className="schedule-card other-info" style={{ marginTop: '24px' }}>
+            <h3 className="schedule-card-title"><i className="fas fa-info-circle" /> Other Important Info</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+              <div>
                 <div className="schedule-table">
                   <div className="schedule-row"><span>Penalty</span><span>10% of bill (once only)</span></div>
                   <div className="schedule-row"><span>Disconnection Threshold</span><span>3 consecutive missed payments</span></div>
-                  <div className="schedule-row"><span>Illegal Connection Fine</span><span>₱2,500</span></div>
+                </div>
+              </div>
+              <div style={{ borderLeft: '1px solid rgba(0,0,0,0.1)', paddingLeft: '20px' }}>
+                <h4 style={{ fontSize: '12px', fontWeight: 700, color: '#1B1B63', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}><i className="fas fa-exclamation-triangle" style={{ marginRight: '6px' }} /> Penalties & Violations</h4>
+                <div className="schedule-table">
+                  <div className="schedule-row"><span>Illegal Tapping</span><span>₱2,500 + 6 years imprisonment</span></div>
+                  <div className="schedule-row"><span>Illegal Connection</span><span>₱2,000</span></div>
+                  <div className="schedule-row"><span>Illegal Disconnection</span><span>₱2,000</span></div>
+                  <div className="schedule-row"><span>Meter Tampering</span><span>₱2,000 + 6 years imprisonment</span></div>
                 </div>
               </div>
             </div>
+            <p style={{ fontSize: '13px', color: '#64748b', marginTop: '16px', fontStyle: 'italic', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '12px' }}><strong>NOTE:</strong> Penalty rate is 10% for all consumer types (residential, commercial, institutional, industrial).</p>
           </div>
         </div>
       </section>
