@@ -35,6 +35,10 @@ interface QuickLookupResult {
   billingMonth: string | null;
 }
 
+interface QuickLookupConsumer {
+  Account_Number?: string | null;
+}
+
 interface QuickLookupAccount {
   Consumer_ID: number;
   Account_Number: string;
@@ -55,6 +59,7 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [quickSearch, setQuickSearch] = useState('');
   const [quickViewBill, setQuickViewBill] = useState<QuickLookupResult | null>(null);
+  const [resolvedQuickAccount, setResolvedQuickAccount] = useState('');
   const [quickLookupAccounts, setQuickLookupAccounts] = useState<QuickLookupAccount[]>([]);
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
   const quickLookupRef = useRef<HTMLDivElement | null>(null);
@@ -118,12 +123,16 @@ const Dashboard: React.FC = () => {
     setLoading(true);
     try {
       const result = await loadAccountLookupWithFallback(query);
-      if (!result.data?.Consumer) {
+      const resolvedConsumer: QuickLookupConsumer | null =
+        result.data?.Consumer || result.data?.consumer || null;
+      if (!resolvedConsumer) {
         throw new Error('Account not found.');
       }
 
       setQuickViewBill(result.data.summary || null);
-      setQuickSearch(query);
+      const resolvedAccountNumber = String(resolvedConsumer.Account_Number || query).trim();
+      setQuickSearch(resolvedAccountNumber);
+      setResolvedQuickAccount(resolvedAccountNumber);
       setShowQuickSuggestions(false);
       if (result.source === 'supabase') {
         showToast('Account lookup used Supabase fallback.', 'warning');
@@ -131,6 +140,7 @@ const Dashboard: React.FC = () => {
     } catch (error: any) {
       console.error('Quick lookup failed:', error);
       setQuickViewBill(null);
+      setResolvedQuickAccount('');
       showToast(getErrorMessage(error, 'Account not found.'), 'error');
     } finally {
       setLoading(false);
@@ -276,7 +286,7 @@ const Dashboard: React.FC = () => {
                 <div className="quick-actions">
                   <button
                     className="btn btn-primary"
-                    onClick={() => navigate(`/payments?account=${encodeURIComponent(quickSearch.trim())}`)}
+                    onClick={() => navigate(`/payments?account=${encodeURIComponent((resolvedQuickAccount || quickSearch).trim())}`)}
                   >
                     <i className="fas fa-file-invoice"></i> View Full Bill & Pay
                   </button>

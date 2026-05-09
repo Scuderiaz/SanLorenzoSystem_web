@@ -20,6 +20,8 @@ const normalizePhoneInput = (value: string) => {
 
 const SignUp: React.FC = () => {
   const GOOGLE_OAUTH_INTENT_KEY = 'google_oauth_intent';
+  const googleRedirectUrl =
+    process.env.REACT_APP_GOOGLE_OAUTH_REDIRECT_URL || `${window.location.origin}/auth/callback`;
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -330,7 +332,7 @@ const SignUp: React.FC = () => {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?intent=signup`,
+          redirectTo: `${googleRedirectUrl}?intent=signup`,
         },
       });
 

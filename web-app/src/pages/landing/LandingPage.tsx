@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const resolveDefaultApiUrl = () => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:3001/api';
+  }
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:3001/api`;
+};
+
+const API_URL = process.env.REACT_APP_API_URL || resolveDefaultApiUrl();
 const CONTACT_BARANGAYS = [
   'Daculang Bolo',
   'Dagotdotan',
@@ -37,6 +45,7 @@ const LandingPage: React.FC = () => {
     fullName: '',
     barangay: '',
     contactNumber: '',
+    email: '',
     subject: '',
     message: ''
   });
@@ -232,6 +241,7 @@ const LandingPage: React.FC = () => {
           fullName: formData.fullName.trim(),
           barangay: formData.barangay.trim(),
           contactNumber: formData.contactNumber.trim(),
+          email: formData.email.trim(),
           subject: formData.subject.trim(),
           message: formData.message.trim(),
         }),
@@ -244,7 +254,7 @@ const LandingPage: React.FC = () => {
       }
 
       setSubmitSuccess(true);
-      setFormData({ fullName: '', barangay: '', contactNumber: '', subject: '', message: '' });
+      setFormData({ fullName: '', barangay: '', contactNumber: '', email: '', subject: '', message: '' });
       setTimeout(() => setSubmitSuccess(false), 5000);
     } catch {
       setSubmitError('Unable to connect to the server right now. Please try again in a moment.');
@@ -675,6 +685,16 @@ const LandingPage: React.FC = () => {
                     onChange={(e) => setFormData({...formData, contactNumber: e.target.value})}
                     placeholder="09XXXXXXXXX"
                     maxLength={13}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    placeholder="name@example.com"
                     required
                   />
                 </div>

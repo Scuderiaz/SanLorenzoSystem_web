@@ -14,6 +14,7 @@ type PublicConcern = {
   full_name: string;
   barangay: string;
   contact_number: string;
+  email: string;
   subject: string;
   message: string;
   status: ConcernStatus;
@@ -39,6 +40,7 @@ const PublicConcerns: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<PublicConcern | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
+  const [hiddenConcernIds, setHiddenConcernIds] = useState<Record<number, boolean>>({});
   const canReply = [1, 2].includes(Number(user?.role_id || 0));
   const canDelete = [1, 2].includes(Number(user?.role_id || 0));
 
@@ -61,14 +63,20 @@ const PublicConcerns: React.FC = () => {
         full_name: String(row.full_name || '').trim() || 'Unknown sender',
         barangay: String(row.barangay || '').trim() || 'Not specified',
         contact_number: String(row.contact_number || '').trim() || 'Not provided',
+        email: String(row.email || '').trim() || 'Not provided',
       }));
-      setRows(loadedRows);
+      const inboxRows = loadedRows.filter((row) => {
+        const normalizedStatus = String(row.status || '').trim().toLowerCase();
+        const hasReply = Boolean(String(row.remarks || '').trim());
+        return !hiddenConcernIds[row.message_id] && !hasReply && normalizedStatus !== 'resolved' && normalizedStatus !== 'closed';
+      });
+      setRows(inboxRows);
     } catch (error) {
       showToast(getErrorMessage(error, 'Failed to load public concerns.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [barangayFilter, search, showToast, statusFilter]);
+  }, [barangayFilter, hiddenConcernIds, search, showToast, statusFilter]);
 
   const handleDelete = useCallback(async (messageId: number) => {
     try {
@@ -126,6 +134,8 @@ const PublicConcerns: React.FC = () => {
       );
 
       showToast(`Reply sent for concern #${replyTarget.message_id}.`, 'success');
+      setHiddenConcernIds((current) => ({ ...current, [replyTarget.message_id]: true }));
+      setRows((current) => current.filter((row) => row.message_id !== replyTarget.message_id));
       setReplyTarget(null);
       setReplyMessage('');
       await loadConcerns();
@@ -147,6 +157,7 @@ const PublicConcerns: React.FC = () => {
     { key: 'full_name', label: 'Full Name', sortable: true },
     { key: 'barangay', label: 'Barangay', sortable: true, filterType: 'select', filterLabel: 'Barangay' },
     { key: 'contact_number', label: 'Contact #', sortable: true },
+    { key: 'email', label: 'Email', sortable: true },
     { key: 'subject', label: 'Subject', sortable: true, filterType: 'select', filterLabel: 'Subject' },
     {
       key: 'message',

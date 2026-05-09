@@ -142,10 +142,26 @@
   }
 
   .data-table {
-    min-width: 720px;
+    min-width: 640px;
   }
 
   .data-table-pagination {
     justify-content: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .data-table th {
+    padding: 14px 16px;
+    font-size: 12px;
+  }
+
+  .data-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+
+  .data-table {
+    min-width: 560px;
   }
 }

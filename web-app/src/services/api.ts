@@ -23,7 +23,15 @@ const ensurePendingRegistrationAccountNumber = (userData: any) => ({
   accountNumber: String(userData?.accountNumber || '').trim() || generatePendingAccountNumber(),
 });
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const resolveDefaultApiUrl = () => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:3001/api';
+  }
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:3001/api`;
+};
+
+const API_URL = process.env.REACT_APP_API_URL || resolveDefaultApiUrl();
 
 export const api = axios.create({
   baseURL: API_URL,

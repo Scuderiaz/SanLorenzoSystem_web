@@ -17,6 +17,19 @@
   padding: 48px;
   background-color: #f8fafc;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 1440px) {
+  .main-content {
+    padding: 36px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .main-content {
+    padding: 28px;
+  }
 }
 
 @media (max-width: 768px) {

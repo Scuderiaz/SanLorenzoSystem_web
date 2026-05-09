@@ -271,20 +271,22 @@ const BillingReports: React.FC = () => {
     },
     {
       id: 'monthly',
-      label: 'Billing & Collection',
+      label: 'Monthly Billing & Collection Report',
       content: (
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Billing and Collection Summary</h2>
+            <h2 className="card-title">Monthly Billing & Collection Summary</h2>
           </div>
           <div className="card-body">
             <DataTable
               columns={monthlyReportColumns}
               data={monthlyReports}
               loading={loading}
-              emptyMessage="No billing data available."
+              enablePagination
+              pageSize={10}
+              emptyMessage="No report data available"
               enableFiltering
-              filterPlaceholder="Search billing summary by period or totals..."
+              filterPlaceholder="Search monthly report by period or values..."
             />
           </div>
         </div>

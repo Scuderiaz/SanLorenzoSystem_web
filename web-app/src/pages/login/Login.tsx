@@ -14,6 +14,8 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const GOOGLE_OAUTH_INTENT_KEY = 'google_oauth_intent';
+  const googleRedirectUrl =
+    process.env.REACT_APP_GOOGLE_OAUTH_REDIRECT_URL || `${window.location.origin}/auth/callback`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +56,7 @@ const Login: React.FC = () => {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?intent=login`,
+          redirectTo: `${googleRedirectUrl}?intent=login`,
         },
       });
 

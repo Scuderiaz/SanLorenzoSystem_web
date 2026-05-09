@@ -276,6 +276,7 @@ const syncTableColumns = {
     'full_name',
     'barangay',
     'contact_number',
+    'email',
   ],
 };
 
@@ -3253,6 +3254,7 @@ async function initDb() {
   await ensureTableColumn('consumer_concerns', 'full_name', 'VARCHAR(160)');
   await ensureTableColumn('consumer_concerns', 'barangay', 'VARCHAR(120)');
   await ensureTableColumn('consumer_concerns', 'contact_number', 'VARCHAR(20)');
+  await ensureTableColumn('consumer_concerns', 'email', 'VARCHAR(255)');
   await ensureTableColumn('waterrates', 'classification_id', 'INTEGER');
   await ensureWaterRatesEffectiveDateColumnIsDate();
   await pool.query(`
@@ -4590,6 +4592,11 @@ app.get('/api/applications', async (req, res) => {
 const updatePendingApplicationHandler = async (req, res) => {
   const { accountId } = req.params;
   const payload = req.body || {};
+  const actorAccountId = normalizeRequiredForeignKeyId(
+    payload.updatedBy || payload.actorAccountId || req.headers['x-actor-account-id']
+  ) || defaultSystemLogAccountId;
+  const actorRoleId = Number(payload.actorRoleId || req.headers['x-actor-role-id'] || 0);
+  const actorRoleName = actorRoleId === 1 ? 'Admin' : actorRoleId === 2 ? 'Billing Officer' : 'Staff';
   const normalizedUsername = String(payload.username || '').trim();
   const normalizedZoneId = Number(payload.zoneId);
   const normalizedClassificationId = Number(payload.classificationId);
@@ -4794,6 +4801,10 @@ const updatePendingApplicationHandler = async (req, res) => {
       }
     );
 
+    await writeSystemLog(
+      `[applications.update] Pending application account #${accountId} was updated.`,
+      { userId: actorAccountId, role: actorRoleName }
+    );
     scheduleImmediateSync('applications-update');
     return res.json({ success: true, message: 'Application updated successfully.' });
   } catch (error) {
@@ -4955,11 +4966,11 @@ app.post('/api/admin/reject-user', async (req, res) => {
 
           await client.query(
             'UPDATE accounts SET account_status = $1 WHERE account_id = $2',
-            ['Rejected', accountId]
+            ['Inactive', accountId]
           );
           await client.query(
             'UPDATE consumer SET status = $1 WHERE login_id = $2',
-            ['Rejected', accountId]
+            ['Inactive', accountId]
           );
 
           const { rows: ticketRows } = await client.query(
@@ -5043,13 +5054,13 @@ app.post('/api/admin/reject-user', async (req, res) => {
 
           const { error: mirroredAccountError } = await supabase
             .from('accounts')
-            .update({ account_status: 'Rejected' })
+            .update({ account_status: 'Inactive' })
             .eq('account_id', accountId);
           if (mirroredAccountError) throw mirroredAccountError;
 
           const { error: mirroredConsumerError } = await supabase
             .from('consumer')
-            .update({ status: 'Rejected' })
+            .update({ status: 'Inactive' })
             .eq('login_id', accountId);
           if (mirroredConsumerError) throw mirroredConsumerError;
 
@@ -5122,13 +5133,13 @@ app.post('/api/admin/reject-user', async (req, res) => {
 
         const { error: accountError } = await supabase
           .from('accounts')
-          .update({ account_status: 'Rejected' })
+          .update({ account_status: 'Inactive' })
           .eq('account_id', accountId);
         if (accountError) throw accountError;
 
         const { error: consumerError } = await supabase
           .from('consumer')
-          .update({ status: 'Rejected' })
+          .update({ status: 'Inactive' })
           .eq('login_id', accountId);
         if (consumerError) throw consumerError;
 
@@ -5654,6 +5665,9 @@ app.put('/api/users/:id/profile-picture', async (req, res) => {
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   const accountId = Number(id);
+  const actorAccountId = normalizeRequiredForeignKeyId(req.body?.actorAccountId || req.headers['x-actor-account-id']) || defaultSystemLogAccountId;
+  const actorRoleId = Number(req.body?.actorRoleId || req.headers['x-actor-role-id'] || 0);
+  const actorRoleName = actorRoleId === 1 ? 'Admin' : actorRoleId === 2 ? 'Billing Officer' : 'Staff';
 
   if (!Number.isInteger(accountId) || accountId <= 0) {
     return res.status(400).json({ success: false, message: 'A valid user ID is required.' });
@@ -5723,7 +5737,7 @@ app.delete('/api/users/:id', async (req, res) => {
     );
     await writeSystemLog(
       `[applications.delete] Account #${accountId} was deleted from user management.`,
-      { userId: defaultSystemLogAccountId, role: 'Admin' }
+      { userId: actorAccountId, role: actorRoleName }
     );
     return res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
@@ -7160,6 +7174,7 @@ app.post('/api/consumers', async (req, res) => {
     const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
     const meterStatus = String(consumer.Meter_Status || consumer.meter_status || 'Active').trim() || 'Active';
     const consumerStatus = String(consumer.Status || 'Pending').trim() || 'Pending';
+    const effectiveMeterStatus = consumerStatus === 'Active' ? meterStatus : 'Inactive';
     const accountStatus =
       consumerStatus === 'Inactive'
         ? 'Inactive'
@@ -7256,7 +7271,7 @@ app.post('/api/consumers', async (req, res) => {
             await client.query(`
               INSERT INTO meter (consumer_id, meter_serial_number, meter_status)
               VALUES ($1, $2, $3)
-            `, [rows[0].consumer_id, meterNumber, meterStatus]);
+            `, [rows[0].consumer_id, meterNumber, effectiveMeterStatus]);
           }
 
           if (consumerStatus === 'Pending') {
@@ -7349,7 +7364,7 @@ app.post('/api/consumers', async (req, res) => {
         if (meterNumber) {
           const { error: meterError } = await supabase
             .from('meter')
-            .insert([{ consumer_id: dataRow.consumer_id, meter_serial_number: meterNumber, meter_status: meterStatus }]);
+            .insert([{ consumer_id: dataRow.consumer_id, meter_serial_number: meterNumber, meter_status: effectiveMeterStatus }]);
           if (meterError) throw meterError;
         }
 
@@ -7384,7 +7399,7 @@ app.post('/api/consumers', async (req, res) => {
         Municipality: municipality,
         Zip_Code: zipCode,
         Meter_Number: meterNumber || null,
-        Meter_Status: meterNumber ? meterStatus : null,
+        Meter_Status: meterNumber ? effectiveMeterStatus : null,
       },
     });
   } catch (error) {
@@ -7691,6 +7706,8 @@ app.put('/api/consumers/:id', async (req, res) => {
   const normalizedClassificationId = normalizeRequiredForeignKeyId(consumer.Classification_ID || consumer.classification_id);
   const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
   const meterStatus = String(consumer.Meter_Status || consumer.meter_status || 'Active').trim() || 'Active';
+  const consumerStatus = String(consumer.Status || consumer.status || 'Pending').trim() || 'Pending';
+  const effectiveMeterStatus = consumerStatus === 'Active' ? meterStatus : 'Inactive';
 
   if (normalizedAccountNumber && !isValidConsumerAccountNumber(normalizedAccountNumber)) {
     return res.status(400).json({
@@ -7767,12 +7784,12 @@ app.put('/api/consumers/:id', async (req, res) => {
                 SET meter_serial_number = $1,
                     meter_status = $2
                 WHERE meter_id = $3
-              `, [meterNumber, meterStatus, existingMeters[0].meter_id]);
+              `, [meterNumber, effectiveMeterStatus, existingMeters[0].meter_id]);
             } else {
               await client.query(`
                 INSERT INTO meter (consumer_id, meter_serial_number, meter_status)
                 VALUES ($1, $2, $3)
-              `, [id, meterNumber, meterStatus]);
+              `, [id, meterNumber, effectiveMeterStatus]);
             }
           }
 
@@ -7818,13 +7835,13 @@ app.put('/api/consumers/:id', async (req, res) => {
           if (existingMeters?.length) {
             const { error: meterUpdateError } = await supabase
               .from('meter')
-              .update({ meter_serial_number: meterNumber, meter_status: meterStatus })
+              .update({ meter_serial_number: meterNumber, meter_status: effectiveMeterStatus })
               .eq('meter_id', existingMeters[0].meter_id);
             if (meterUpdateError) throw meterUpdateError;
           } else {
             const { error: meterInsertError } = await supabase
               .from('meter')
-              .insert([{ consumer_id: Number(id), meter_serial_number: meterNumber, meter_status: meterStatus }]);
+              .insert([{ consumer_id: Number(id), meter_serial_number: meterNumber, meter_status: effectiveMeterStatus }]);
             if (meterInsertError) throw meterInsertError;
           }
         }
@@ -9162,6 +9179,11 @@ app.get('/api/payments', async (req, res) => {
 app.post('/api/payments', async (req, res) => {
   try {
     const payment = req.body;
+    const actorAccountId = normalizeRequiredForeignKeyId(
+      payment?.validated_by || payment?.validatedBy || payment?.actorAccountId || req.headers['x-actor-account-id']
+    ) || defaultSystemLogAccountId;
+    const actorRoleId = Number(payment?.actorRoleId || req.headers['x-actor-role-id'] || 0);
+    const actorRoleName = actorRoleId === 1 ? 'Admin' : actorRoleId === 3 ? 'Treasurer' : actorRoleId === 2 ? 'Billing Officer' : 'Staff';
     const adminSettings = await loadResolvedAdminSettings();
     const payload = {
       bill_id: payment.Bill_ID,
@@ -9282,6 +9304,10 @@ app.post('/api/payments', async (req, res) => {
         return { ...data, Payment_ID: data.payment_id };
       }
     );
+    await writeSystemLog(
+      `[payments.create] Payment #${row?.Payment_ID || row?.payment_id || 'N/A'} recorded for bill #${payload.bill_id}.`,
+      { userId: actorAccountId, role: actorRoleName }
+    );
     scheduleImmediateSync('payments-create');
     return res.json(row);
   } catch (error) {
@@ -9295,6 +9321,11 @@ app.put('/api/payments/:id', async (req, res) => {
   const { id } = req.params;
   const orNumber = String(req.body?.OR_Number || req.body?.or_number || '').trim();
   const referenceNumber = String(req.body?.Reference_No || req.body?.Reference_Number || req.body?.reference_number || orNumber).trim();
+  const actorAccountId = normalizeRequiredForeignKeyId(
+    req.body?.updatedBy || req.body?.actorAccountId || req.headers['x-actor-account-id']
+  ) || defaultSystemLogAccountId;
+  const actorRoleId = Number(req.body?.actorRoleId || req.headers['x-actor-role-id'] || 0);
+  const actorRoleName = actorRoleId === 1 ? 'Admin' : actorRoleId === 3 ? 'Treasurer' : actorRoleId === 2 ? 'Billing Officer' : 'Staff';
 
   if (!orNumber) {
     return res.status(400).json({ success: false, message: 'Official receipt number is required.' });
@@ -9333,6 +9364,10 @@ app.put('/api/payments/:id', async (req, res) => {
       }
     );
 
+    await writeSystemLog(
+      `[payments.update] Payment #${id} receipt details were updated.`,
+      { userId: actorAccountId, role: actorRoleName }
+    );
     scheduleImmediateSync('payments-update');
     return res.json({ success: true, data: updatedPayment });
   } catch (error) {
@@ -9345,6 +9380,11 @@ app.put('/api/payments/:id', async (req, res) => {
 app.put('/api/payments/:id/status', async (req, res) => {
   const { id } = req.params;
   const normalizedStatus = String(req.body?.status || '').trim();
+  const actorAccountId = normalizeRequiredForeignKeyId(
+    req.body?.validatedBy || req.body?.validated_by || req.body?.actorAccountId || req.headers['x-actor-account-id']
+  ) || defaultSystemLogAccountId;
+  const actorRoleId = Number(req.body?.actorRoleId || req.headers['x-actor-role-id'] || 0);
+  const actorRoleName = actorRoleId === 1 ? 'Admin' : actorRoleId === 3 ? 'Treasurer' : actorRoleId === 2 ? 'Billing Officer' : 'Staff';
 
   if (!normalizedStatus) {
     return res.status(400).json({ success: false, message: 'Payment status is required.' });
@@ -9390,6 +9430,10 @@ app.put('/api/payments/:id/status', async (req, res) => {
       }
     );
 
+    await writeSystemLog(
+      `[payments.status] Payment #${id} status changed to ${normalizedStatus}.`,
+      { userId: actorAccountId, role: actorRoleName }
+    );
     scheduleImmediateSync('payments-status-update');
     return res.json({ success: true, message: 'Payment status updated successfully.' });
   } catch (error) {
@@ -9528,6 +9572,69 @@ function buildPublicConcernSmsReply(subject, replyText) {
     .join('\n');
 }
 
+function isValidEmailAddress(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+}
+
+async function sendEmailViaResend(toEmail, subject, messageText) {
+  const apiKey = String(process.env.RESEND_API_KEY || '').trim();
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is missing. Configure it in backend/.env.');
+  }
+  const sender = String(process.env.RESEND_FROM_EMAIL || 'no-reply@sanlorenzowater.local').trim();
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: sender,
+      to: [toEmail],
+      subject: subject || 'San Lorenzo Ruiz Waterworks System',
+      text: messageText,
+    }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`Resend email failed (${response.status}): ${JSON.stringify(payload)}`);
+  }
+  return { success: true, provider: 'resend', response: payload };
+}
+
+async function sendConcernEmailReply(toEmail, concernSubject, replyText) {
+  const provider = String(process.env.EMAIL_PROVIDER || 'mock').trim().toLowerCase();
+  const normalizedEmail = String(toEmail || '').trim().toLowerCase();
+  if (!isValidEmailAddress(normalizedEmail)) {
+    throw new Error('Recipient email is invalid.');
+  }
+  const subject = `Re: ${String(concernSubject || 'Public Concern').trim()}`;
+  const messageText = [
+    'San Lorenzo Ruiz Waterworks System',
+    '',
+    String(replyText || '').trim(),
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  if (provider === 'mock') {
+    console.log('\n--- MOCK EMAIL SENT ---');
+    console.log(`To: ${normalizedEmail}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Message: ${messageText}`);
+    console.log('-----------------------\n');
+    return { success: true, provider: 'mock', recipient: normalizedEmail };
+  }
+
+  if (provider === 'resend') {
+    return sendEmailViaResend(normalizedEmail, subject, messageText);
+  }
+
+  throw new Error(`Unsupported EMAIL_PROVIDER "${provider}". Use "resend" or "mock".`);
+}
+
 // --- FORGOT PASSWORD ENDPOINTS ---
 app.post('/api/forgot-password/request', async (req, res) => {
   const username = String(req.body?.username || '').trim();
@@ -9618,10 +9725,16 @@ app.post('/api/public/contact', async (req, res) => {
   const fullName = String(req.body?.fullName || '').trim();
   const barangay = String(req.body?.barangay || '').trim();
   const rawContactNumber = String(req.body?.contactNumber || '').trim();
+  const email = String(
+    req.body?.email ||
+    req.body?.contactEmail ||
+    req.body?.emailAddress ||
+    ''
+  ).trim().toLowerCase();
   const subject = String(req.body?.subject || '').trim();
   const message = String(req.body?.message || '').trim();
 
-  if (!fullName || !barangay || !rawContactNumber || !subject || !message) {
+  if (!fullName || !barangay || !rawContactNumber || !email || !subject || !message) {
     return res.status(400).json({ success: false, message: 'All required fields must be provided.' });
   }
 
@@ -9633,6 +9746,9 @@ app.post('/api/public/contact', async (req, res) => {
   if (message.length < 10) {
     return res.status(400).json({ success: false, message: 'Message must be at least 10 characters long.' });
   }
+  if (!isValidEmailAddress(email)) {
+    return res.status(400).json({ success: false, message: 'Email must be a valid address.' });
+  }
 
   try {
     await withPostgresPrimary(
@@ -9640,9 +9756,9 @@ app.post('/api/public/contact', async (req, res) => {
       async () => {
         await pool.query(
           `INSERT INTO consumer_concerns
-            (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number)
-           VALUES (NULL, $1, $2, $3, $4, 'Normal', 'Pending', $5, $6, $7)`,
-          [defaultSystemLogAccountId, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber]
+            (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number, email)
+           VALUES (NULL, $1, $2, $3, $4, 'Normal', 'Pending', $5, $6, $7, $8)`,
+          [defaultSystemLogAccountId, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber, email]
         );
       },
       async () => {
@@ -9657,6 +9773,7 @@ app.post('/api/public/contact', async (req, res) => {
           full_name: fullName,
           barangay,
           contact_number: normalizedContactNumber,
+          email,
         }]);
         if (error) throw error;
       }
@@ -9708,7 +9825,8 @@ app.get('/api/public-contact-messages', async (req, res) => {
               OR LOWER(COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '')) LIKE $${values.length}
               OR LOWER(COALESCE(cc.subject, '')) LIKE $${values.length}
               OR LOWER(COALESCE(cc.description, '')) LIKE $${values.length}
-              OR LOWER(COALESCE(NULLIF(cc.contact_number, ''), NULLIF(c.contact_number, ''), NULLIF(a.contact_number, ''), '')) LIKE $${values.length})`
+              OR LOWER(COALESCE(NULLIF(cc.contact_number, ''), NULLIF(c.contact_number, ''), NULLIF(a.contact_number, ''), '')) LIKE $${values.length}
+              OR LOWER(COALESCE(NULLIF(cc.email, ''), NULLIF(a.email, ''), '')) LIKE $${values.length})`
           );
         }
 
@@ -9724,6 +9842,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
                   ) AS full_name,
                   COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '') AS barangay,
                   COALESCE(NULLIF(cc.contact_number, ''), NULLIF(c.contact_number, ''), NULLIF(a.contact_number, ''), '') AS contact_number,
+                  COALESCE(NULLIF(cc.email, ''), NULLIF(a.email, ''), '') AS email,
                   cc.subject,
                   cc.description AS message,
                   cc.status,
@@ -9744,7 +9863,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
       async () => {
         let builder = supabase
           .from('consumer_concerns')
-          .select('concern_id, consumer_id, account_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .select('concern_id, consumer_id, account_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
           .in('category', ['Public Contact', 'Public Concern'])
           .order('created_at', { ascending: false })
           .limit(500);
@@ -9777,8 +9896,8 @@ app.get('/api/public-contact-messages', async (req, res) => {
             : Promise.resolve({ data: [], error: null }),
           accountIds.length
             ? supabase
-                .from('accounts')
-                .select('account_id, username, full_name, contact_number')
+              .from('accounts')
+              .select('account_id, username, full_name, contact_number, email')
                 .in('account_id', accountIds)
             : Promise.resolve({ data: [], error: null }),
         ]);
@@ -9802,6 +9921,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
             full_name: row?.full_name || consumerName || account?.full_name || account?.username || '',
             barangay: row?.barangay || consumer?.barangay || '',
             contact_number: row?.contact_number || consumer?.contact_number || account?.contact_number || '',
+            email: row?.email || account?.email || '',
           };
         });
 
@@ -9819,6 +9939,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
             row.subject,
             row.description,
             row.contact_number,
+            row.email,
           ]
             .map((value) => String(value || '').toLowerCase())
             .join(' ');
@@ -9868,7 +9989,7 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
                   END
             WHERE concern_id = $4
               AND category = ANY($5::text[])
-            RETURNING concern_id AS message_id, full_name, barangay, contact_number, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
+            RETURNING concern_id AS message_id, full_name, barangay, contact_number, email, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
           [nextStatus, remarks, reviewedBy, id, ['Public Contact', 'Public Concern']]
         );
         return rows[0] || null;
@@ -9885,7 +10006,7 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
           .update(payload)
           .eq('concern_id', id)
           .in('category', ['Public Contact', 'Public Concern'])
-          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
           .maybeSingle();
         if (error) throw error;
         return data || null;
@@ -9896,12 +10017,11 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Public concern not found.' });
     }
 
-    if (remarks && updated.contact_number) {
-      const smsReply = buildPublicConcernSmsReply(updated.subject, remarks);
-      await sendSMS(updated.contact_number, smsReply);
+    if (remarks && updated.email) {
+      await sendConcernEmailReply(updated.email, updated.subject, remarks);
     }
 
-    await writeSystemLog(`[public-contact] Message #${id} marked ${nextStatus}.`, {
+    await writeSystemLog(`[public-contact] Concern #${id} responded and marked ${nextStatus}.`, {
       userId: reviewedBy || defaultSystemLogAccountId,
       role: 'Admin',
     });
@@ -9943,7 +10063,7 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
                   status = CASE WHEN status = 'Pending' THEN 'In Progress' ELSE status END
             WHERE concern_id = $3
               AND category = ANY($4::text[])
-            RETURNING concern_id AS message_id, full_name, barangay, contact_number, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
+            RETURNING concern_id AS message_id, full_name, barangay, contact_number, email, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
           [reply, reviewedBy, id, ['Public Contact', 'Public Concern']]
         );
         return rows[0] || null;
@@ -9959,7 +10079,7 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
           .update(payload)
           .eq('concern_id', id)
           .in('category', ['Public Contact', 'Public Concern'])
-          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
           .maybeSingle();
         if (error) throw error;
         if (!data) return null;
@@ -9970,7 +10090,7 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
             .update({ status: 'In Progress' })
             .eq('concern_id', id)
             .in('category', ['Public Contact', 'Public Concern'])
-            .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number')
+            .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
             .maybeSingle();
           if (statusError) throw statusError;
           return updatedStatusData || data;
@@ -9984,12 +10104,11 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Public concern not found.' });
     }
 
-    if (updated.contact_number) {
-      const smsReply = buildPublicConcernSmsReply(updated.subject, reply);
-      await sendSMS(updated.contact_number, smsReply);
+    if (updated.email) {
+      await sendConcernEmailReply(updated.email, updated.subject, reply);
     }
 
-    await writeSystemLog(`[public-contact] Message #${id} replied.`, {
+    await writeSystemLog(`[public-contact] Concern #${id} responded via email.`, {
       userId: reviewedBy || defaultSystemLogAccountId,
       role: 'Billing Officer',
     });
@@ -10531,7 +10650,7 @@ app.post('/api/auth/google', async (req, res) => {
       });
     }
 
-    // New Google user — create account + consumer in Pending state
+    // New Google user — create account + consumer as Active (no application ticket flow)
     const [firstName = '', ...restName] = googleName.split(' ');
     const lastName = restName.join(' ') || firstName;
     const defaultMunicipality = 'San Lorenzo Ruiz';
@@ -10596,7 +10715,7 @@ app.post('/api/auth/google', async (req, res) => {
               INSERT INTO accounts (username, password, email, full_name, role_id, account_status, auth_user_id, profile_picture_url)
               VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8)
               RETURNING account_id, username, email, full_name, role_id, account_status, auth_user_id, profile_picture_url
-            `, [candidateUsername, generatedPasswordHash, googleEmail, googleName || candidateUsername, 5, 'Pending', authUserId, googleAvatar]);
+            `, [candidateUsername, generatedPasswordHash, googleEmail, googleName || candidateUsername, 5, 'Active', authUserId, googleAvatar]);
 
             const accountId = accountRows[0].account_id;
 
@@ -10620,7 +10739,7 @@ app.post('/api/auth/google', async (req, res) => {
               firstName || candidateUsername,
               lastName || '',
               accountId,
-              'Pending',
+              'Active',
               defaultAddress,
               defaultPurok,
               defaultBarangay,
@@ -10659,7 +10778,7 @@ app.post('/api/auth/google', async (req, res) => {
               email: googleEmail,
               full_name: googleName || candidateUsername,
               role_id: 5,
-              account_status: 'Pending',
+              account_status: 'Active',
               auth_user_id: authUserId,
               profile_picture_url: googleAvatar,
             }])
@@ -10679,7 +10798,7 @@ app.post('/api/auth/google', async (req, res) => {
               first_name: firstName || candidateUsername,
               last_name: lastName || '',
               login_id: accountData.account_id,
-              status: 'Pending',
+              status: 'Active',
               address: defaultAddress,
               purok: defaultPurok,
               barangay: defaultBarangay,
@@ -12021,11 +12140,13 @@ function mapPublicContactMessageRow(row) {
   const fullName = String(row?.full_name || '').trim();
   const barangay = String(row?.barangay || '').trim();
   const contactNumber = String(row?.contact_number || '').trim();
+  const email = String(row?.email || '').trim().toLowerCase();
   return {
     message_id: Number(row?.message_id || row?.concern_id || 0),
     full_name: fullName || 'Unknown sender',
     barangay: barangay || 'Not specified',
     contact_number: contactNumber || 'Not provided',
+    email: email || 'Not provided',
     subject: row?.subject || '',
     message: row?.message || row?.description || '',
     status: row?.status || 'Pending',

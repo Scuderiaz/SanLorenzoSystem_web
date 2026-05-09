@@ -11,3 +11,56 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 1024px) {
+  .main-content .btn {
+    min-width: 0 !important;
+  }
+
+  .main-content .action-buttons,
+  .main-content .report-actions,
+  .main-content .toolbar-actions {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    overflow-x: hidden;
+  }
+
+  .main-content .btn,
+  .main-content .btn-primary,
+  .main-content .btn-secondary,
+  .main-content .btn-danger {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .main-content .form-input-group,
+  .main-content .form-select-group {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .main-content .card,
+  .main-content .report-controls,
+  .main-content .settings-card,
+  .main-content .table-card {
+    padding: 16px !important;
+  }
+}

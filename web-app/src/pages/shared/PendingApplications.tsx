@@ -50,6 +50,14 @@ interface ConfirmActionState {
   application: PendingApplication;
 }
 
+const REJECTION_REASON_OPTIONS = [
+  'Incomplete documentary requirements',
+  'Invalid or inconsistent submitted information',
+  'Unverified service location',
+  'Duplicate application record',
+  'Other',
+];
+
 const PHONE_PATTERN = /^(09\d{9}|639\d{9}|\+639\d{9})$/;
 
 const normalizePhoneInput = (value: string) => {
@@ -83,6 +91,7 @@ const PendingApplications: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmActionState | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionReasonOption, setRejectionReasonOption] = useState('');
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [zones, setZones] = useState<OptionRow[]>([]);
   const [classifications, setClassifications] = useState<OptionRow[]>([]);
@@ -222,6 +231,7 @@ const PendingApplications: React.FC = () => {
   const openConfirmAction = (type: ConfirmActionState['type'], application: PendingApplication) => {
     setConfirmAction({ type, application });
     setRejectionReason('');
+    setRejectionReasonOption('');
   };
 
   const closeConfirmAction = (force = false) => {
@@ -230,6 +240,7 @@ const PendingApplications: React.FC = () => {
     }
     setConfirmAction(null);
     setRejectionReason('');
+    setRejectionReasonOption('');
   };
 
   const handleApprove = async (accountId: number) => {
@@ -421,7 +432,10 @@ const PendingApplications: React.FC = () => {
       if (confirmAction.type === 'approve') {
         await handleApprove(confirmAction.application.Account_ID);
       } else {
-        await handleReject(confirmAction.application.Account_ID, rejectionReason);
+        const resolvedReason = rejectionReasonOption === 'Other'
+          ? rejectionReason.trim()
+          : rejectionReasonOption.trim();
+        await handleReject(confirmAction.application.Account_ID, resolvedReason);
       }
     } finally {
       setActionSubmitting(false);
@@ -803,7 +817,7 @@ const PendingApplications: React.FC = () => {
                 <button
                   className={`btn ${confirmAction.type === 'approve' ? 'btn-primary' : 'btn-danger'}`}
                   onClick={handleConfirmAction}
-                  disabled={actionSubmitting || (confirmAction.type === 'reject' && !rejectionReason.trim())}
+                  disabled={actionSubmitting || (confirmAction.type === 'reject' && !(rejectionReasonOption === 'Other' ? rejectionReason.trim() : rejectionReasonOption.trim()))}
                 >
                   {actionSubmitting ? 'Saving...' : confirmAction.type === 'approve' ? 'Approve' : 'Reject'}
                 </button>
@@ -813,22 +827,41 @@ const PendingApplications: React.FC = () => {
         >
           {confirmAction && (
             <div>
-              <p><strong>Applicant:</strong> {confirmAction.application.Consumer_Name || 'N/A'}</p>
-              <p><strong>Ticket Number:</strong> {confirmAction.application.Ticket_Number}</p>
+              <p className="pending-app-action-summary-line">
+                <span className="pending-app-action-summary-label">Applicant:</span>{' '}
+                <span className="pending-app-action-summary-value">{confirmAction.application.Consumer_Name || 'N/A'}</span>
+              </p>
+              <p className="pending-app-action-summary-line">
+                <span className="pending-app-action-summary-label">Ticket Number:</span>{' '}
+                <span className="pending-app-action-summary-value">{confirmAction.application.Ticket_Number}</span>
+              </p>
               <p>{confirmActionMessage}</p>
               {confirmAction.type === 'reject' && (
                 <div className="pending-app-reject-form">
                   <label className="pending-app-reject-label" htmlFor="pending-app-rejection-reason">
                     Rejection Reason
                   </label>
-                  <textarea
+                  <select
                     id="pending-app-rejection-reason"
-                    className="application-textarea pending-app-reject-textarea"
-                    value={rejectionReason}
-                    onChange={(event) => setRejectionReason(event.target.value)}
-                    placeholder="Explain why this application is being rejected."
-                    rows={4}
-                  />
+                    className="form-control"
+                    value={rejectionReasonOption}
+                    onChange={(event) => setRejectionReasonOption(event.target.value)}
+                  >
+                    <option value="">Select reason</option>
+                    {REJECTION_REASON_OPTIONS.map((reason) => (
+                      <option key={reason} value={reason}>{reason}</option>
+                    ))}
+                  </select>
+                  {rejectionReasonOption === 'Other' && (
+                    <textarea
+                      id="pending-app-rejection-details"
+                      className="application-textarea pending-app-reject-textarea"
+                      value={rejectionReason}
+                      onChange={(event) => setRejectionReason(event.target.value)}
+                      placeholder="Specify the reason for rejection."
+                      rows={4}
+                    />
+                  )}
                   <p className="pending-app-reject-hint">A reason is required and will stay attached to the rejected application.</p>
                 </div>
               )}
