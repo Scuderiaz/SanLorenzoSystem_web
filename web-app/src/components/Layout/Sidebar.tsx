@@ -13,30 +13,40 @@ interface MenuItem {
 // Role IDs: 1=Admin, 2=Billing Officer, 3=Meter Reader, 4=Treasurer, 5=Consumer
 const menuItems: MenuItem[] = [
   // --- Admin (Role 1) ---
-  { path: '/dashboard',     icon: 'fas fa-tachometer-alt',      label: 'Dashboard',          roles: [1, 2, 3, 4] },
-  { path: '/accounts',      icon: 'fas fa-address-book',        label: 'Account Management', roles: [1] },
-  { path: '/applications',  icon: 'fas fa-file-signature',      label: 'Applications',       roles: [1, 2] },
-  { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Reports',             roles: [1] },
-  { path: '/ledger',        icon: 'fas fa-book',                label: 'Delinquents & Ledger',roles: [1] },
-  { path: '/settings',      icon: 'fas fa-cogs',                label: 'System Settings',     roles: [1] },
-  { path: '/maintenance',   icon: 'fas fa-tools',               label: 'System Maintenance',  roles: [1] },
-  { path: '/public-concerns', icon: 'fas fa-inbox',             label: 'Public Concerns',      roles: [1, 2] },
-  { path: '/data-import',     icon: 'fas fa-file-upload',       label: 'Data Import',          roles: [1, 2] },
-  { path: '/pipeline-map',  icon: 'fas fa-map-marked-alt',      label: 'Pipeline Map',        roles: [1] },
-  // --- Billing Officer (Role 2) ---
-  { path: '/consumers',     icon: 'fas fa-users',               label: 'Concessionaire Management', roles: [2] },
-  { path: '/meter-reading', icon: 'fas fa-calendar-alt',        label: 'Reader & Zone Setup', roles: [1, 2] },
-  { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Bills Registry',      roles: [2] },
-  { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Billing Reports',     roles: [2] },
-  { path: '/ledger',        icon: 'fas fa-book',                label: 'Account Ledger',      roles: [2] },
-  { path: '/billing-logs',  icon: 'fas fa-clipboard-list',      label: 'Billing Logs',        roles: [2] },
+  { path: '/dashboard',      icon: 'fas fa-tachometer-alt',      label: 'Dashboard',             roles: [1] },
+  { path: '/accounts',       icon: 'fas fa-address-book',        label: 'Account Management',    roles: [1] },
+  { path: '/applications',   icon: 'fas fa-file-signature',      label: 'Applications',          roles: [1] },
+  { path: '/meter-reading',  icon: 'fas fa-calendar-alt',        label: 'Reader & Zone Setup',   roles: [1] },
+  { path: '/reports',        icon: 'fas fa-chart-bar',           label: 'Reports',               roles: [1] },
+  { path: '/ledger',         icon: 'fas fa-book',                label: 'Delinquents & Ledger',  roles: [1] },
+  { path: '/settings',       icon: 'fas fa-cogs',                label: 'System Settings',       roles: [1] },
+  { path: '/maintenance',    icon: 'fas fa-tools',               label: 'System Maintenance',    roles: [1] },
+  { path: '/public-concerns',icon: 'fas fa-inbox',               label: 'Public Concerns',       roles: [1] },
+  { path: '/data-import',    icon: 'fas fa-file-upload',         label: 'Data Import',           roles: [1] },
+  { path: '/pipeline-map',   icon: 'fas fa-map-marked-alt',      label: 'Pipeline Map',          roles: [1] },
+
+  // --- Billing Officer (Role 2): aligned sequence with Admin ---
+  { path: '/dashboard',      icon: 'fas fa-tachometer-alt',      label: 'Dashboard',             roles: [2] },
+  { path: '/consumers',      icon: 'fas fa-users',               label: 'Concessionaire Management', roles: [2] },
+  { path: '/applications',   icon: 'fas fa-file-signature',      label: 'Applications',          roles: [2] },
+  { path: '/meter-reading',  icon: 'fas fa-calendar-alt',        label: 'Reader & Zone Setup',   roles: [2] },
+  { path: '/generate-bills', icon: 'fas fa-file-invoice-dollar', label: 'Bills Registry',        roles: [2] },
+  { path: '/reports',        icon: 'fas fa-chart-bar',           label: 'Reports',               roles: [2] },
+  { path: '/ledger',         icon: 'fas fa-book',                label: 'Ledger',                roles: [2] },
+  { path: '/public-concerns',icon: 'fas fa-inbox',               label: 'Public Concerns',       roles: [2] },
+  { path: '/data-import',    icon: 'fas fa-file-upload',         label: 'Data Import',           roles: [2] },
+  { path: '/billing-logs',   icon: 'fas fa-clipboard-list',      label: 'Billing Logs',          roles: [2] },
+
   // --- Meter Reader (Role 3) ---
-  { path: '/consumers',     icon: 'fas fa-users',               label: 'Concessionaire Management', roles: [3] },
-  { path: '/generate-bills',icon: 'fas fa-file-invoice-dollar', label: 'Bills Review',        roles: [3] },
+  { path: '/dashboard',      icon: 'fas fa-tachometer-alt',      label: 'Dashboard',             roles: [3] },
+  { path: '/consumers',      icon: 'fas fa-users',               label: 'Concessionaire Management', roles: [3] },
+  { path: '/generate-bills', icon: 'fas fa-file-invoice-dollar', label: 'Bills Review',          roles: [3] },
+
   // --- Treasurer (Role 4) ---
-  { path: '/payments',      icon: 'fas fa-money-bill-wave',     label: 'Process Payment',     roles: [4] },
-  { path: '/ledger',        icon: 'fas fa-book',                label: 'Digital Ledger',      roles: [4] },
-  { path: '/reports',       icon: 'fas fa-chart-bar',           label: 'Report',              roles: [4] },
+  { path: '/dashboard',      icon: 'fas fa-tachometer-alt',      label: 'Dashboard',             roles: [4] },
+  { path: '/payments',       icon: 'fas fa-money-bill-wave',     label: 'Process Payment',       roles: [4] },
+  { path: '/ledger',         icon: 'fas fa-book',                label: 'Digital Ledger',        roles: [4] },
+  { path: '/reports',        icon: 'fas fa-chart-bar',           label: 'Report',                roles: [4] },
 ];
 
 const Sidebar: React.FC = () => {
@@ -45,7 +55,7 @@ const Sidebar: React.FC = () => {
   const [pendingCount, setPendingCount] = React.useState(0);
   const [pendingConcernCount, setPendingConcernCount] = React.useState(0);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  const API_URL = process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.hostname}:3001/api`;
 
   const loadPendingCount = React.useCallback(async () => {
     try {

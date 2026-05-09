@@ -100,7 +100,7 @@ const LegacyImport: React.FC = () => {
     setDownloadingTemplate(true);
     try {
       const response = await fetch(
-        `${(process.env.REACT_APP_API_URL || 'http://localhost:3001/api')}/import/templates/consumer_bundle?actorRoleId=${encodeURIComponent(String(actorRoleId))}`
+        `${(process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.hostname}:3001/api`)}/import/templates/consumer_bundle?actorRoleId=${encodeURIComponent(String(actorRoleId))}`
       );
       if (!response.ok) {
         const raw = await response.text();

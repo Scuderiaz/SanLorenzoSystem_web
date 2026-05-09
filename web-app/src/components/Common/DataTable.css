@@ -1,7 +1,8 @@
 .data-table-container {
   background: #ffffff;
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
   border: 1px solid #f1f5f9;
 }
@@ -61,6 +62,8 @@
   color: #334155;
   font-size: 15px;
   font-weight: 600;
+  vertical-align: top;
+  word-break: break-word;
 }
 
 .data-table tr:last-child td {

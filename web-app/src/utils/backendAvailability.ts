@@ -1,4 +1,12 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const resolveDefaultApiUrl = () => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:3001/api';
+  }
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:3001/api`;
+};
+
+const API_URL = process.env.REACT_APP_API_URL || resolveDefaultApiUrl();
 const HEALTH_URL = API_URL.replace(/\/api\/?$/, '') + '/health';
 const CACHE_TTL_MS = 5000;
 const REQUEST_TIMEOUT_MS = 1500;

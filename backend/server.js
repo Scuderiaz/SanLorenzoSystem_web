@@ -9798,7 +9798,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
       'public.contact.list',
       async () => {
         const clauses = [];
-        const values = [['Public Contact', 'Public Concern']];
+        const values = [];
 
         if (statusFilter) {
           values.push(statusFilter);
@@ -9830,7 +9830,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
           );
         }
 
-        const whereClause = `WHERE cc.category = ANY($1::text[])${clauses.length ? ` AND ${clauses.join(' AND ')}` : ''}`;
+        const whereClause = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
         const { rows } = await pool.query(
           `SELECT concern_id AS message_id,
                   COALESCE(
@@ -9845,6 +9845,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
                   COALESCE(NULLIF(cc.email, ''), NULLIF(a.email, ''), '') AS email,
                   cc.subject,
                   cc.description AS message,
+                  cc.category,
                   cc.status,
                   cc.created_at,
                   cc.resolved_at AS reviewed_at,
@@ -9864,7 +9865,6 @@ app.get('/api/public-contact-messages', async (req, res) => {
         let builder = supabase
           .from('consumer_concerns')
           .select('concern_id, consumer_id, account_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
-          .in('category', ['Public Contact', 'Public Concern'])
           .order('created_at', { ascending: false })
           .limit(500);
 
@@ -9940,6 +9940,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
             row.description,
             row.contact_number,
             row.email,
+            row.category,
           ]
             .map((value) => String(value || '').toLowerCase())
             .join(' ');
@@ -9988,9 +9989,8 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
                     ELSE resolved_at
                   END
             WHERE concern_id = $4
-              AND category = ANY($5::text[])
-            RETURNING concern_id AS message_id, full_name, barangay, contact_number, email, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
-          [nextStatus, remarks, reviewedBy, id, ['Public Contact', 'Public Concern']]
+            RETURNING concern_id AS message_id, full_name, barangay, contact_number, email, subject, description AS message, category, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
+          [nextStatus, remarks, reviewedBy, id]
         );
         return rows[0] || null;
       },
@@ -10005,8 +10005,7 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
           .from('consumer_concerns')
           .update(payload)
           .eq('concern_id', id)
-          .in('category', ['Public Contact', 'Public Concern'])
-          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
+          .select('concern_id, subject, description, category, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
           .maybeSingle();
         if (error) throw error;
         return data || null;
@@ -10017,8 +10016,14 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Public concern not found.' });
     }
 
+    let emailWarning = null;
     if (remarks && updated.email) {
-      await sendConcernEmailReply(updated.email, updated.subject, remarks);
+      try {
+        await sendConcernEmailReply(updated.email, updated.subject, remarks);
+      } catch (emailError) {
+        emailWarning = 'Concern updated, but email delivery failed.';
+        await logRequestError(req, 'public.contact.updateStatus.email', emailError);
+      }
     }
 
     await writeSystemLog(`[public-contact] Concern #${id} responded and marked ${nextStatus}.`, {
@@ -10029,7 +10034,7 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Public concern status updated successfully.',
+      message: emailWarning || 'Public concern status updated successfully.',
       data: mapPublicContactMessageRow(updated),
     });
   } catch (error) {
@@ -10062,9 +10067,8 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
                   resolved_at = NOW(),
                   status = CASE WHEN status = 'Pending' THEN 'In Progress' ELSE status END
             WHERE concern_id = $3
-              AND category = ANY($4::text[])
-            RETURNING concern_id AS message_id, full_name, barangay, contact_number, email, subject, description AS message, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
-          [reply, reviewedBy, id, ['Public Contact', 'Public Concern']]
+            RETURNING concern_id AS message_id, full_name, barangay, contact_number, email, subject, description AS message, category, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
+          [reply, reviewedBy, id]
         );
         return rows[0] || null;
       },
@@ -10078,8 +10082,7 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
           .from('consumer_concerns')
           .update(payload)
           .eq('concern_id', id)
-          .in('category', ['Public Contact', 'Public Concern'])
-          .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
+          .select('concern_id, subject, description, category, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
           .maybeSingle();
         if (error) throw error;
         if (!data) return null;
@@ -10089,8 +10092,7 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
             .from('consumer_concerns')
             .update({ status: 'In Progress' })
             .eq('concern_id', id)
-            .in('category', ['Public Contact', 'Public Concern'])
-            .select('concern_id, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
+            .select('concern_id, subject, description, category, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
             .maybeSingle();
           if (statusError) throw statusError;
           return updatedStatusData || data;
@@ -10104,8 +10106,14 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Public concern not found.' });
     }
 
+    let emailWarning = null;
     if (updated.email) {
-      await sendConcernEmailReply(updated.email, updated.subject, reply);
+      try {
+        await sendConcernEmailReply(updated.email, updated.subject, reply);
+      } catch (emailError) {
+        emailWarning = 'Reply saved, but email delivery failed.';
+        await logRequestError(req, 'public.contact.reply.email', emailError);
+      }
     }
 
     await writeSystemLog(`[public-contact] Concern #${id} responded via email.`, {
@@ -10116,7 +10124,7 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Reply sent successfully.',
+      message: emailWarning || 'Reply sent successfully.',
       data: mapPublicContactMessageRow(updated),
     });
   } catch (error) {
@@ -10144,9 +10152,8 @@ app.delete('/api/public-contact-messages/:id', async (req, res) => {
         const { rows } = await pool.query(
           `DELETE FROM consumer_concerns
             WHERE concern_id = $1
-              AND category = ANY($2::text[])
             RETURNING concern_id`,
-          [id, ['Public Contact', 'Public Concern']]
+          [id]
         );
         const deletedRow = rows[0] || null;
         if (deletedRow) {
@@ -10159,7 +10166,6 @@ app.delete('/api/public-contact-messages/:id', async (req, res) => {
           .from('consumer_concerns')
           .delete()
           .eq('concern_id', id)
-          .in('category', ['Public Contact', 'Public Concern'])
           .select('concern_id')
           .maybeSingle();
         if (error) throw error;
@@ -10411,6 +10417,26 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Username is already taken.' });
     }
 
+    const rollbackFailedRegistration = async (accountId) => {
+      if (!accountId) return;
+
+      // Best-effort cleanup across both storage backends so failed sign-up does not persist.
+      await Promise.allSettled([
+        (async () => {
+          if (!pool) return;
+          await pool.query('DELETE FROM connection_ticket WHERE account_id = $1', [accountId]);
+          await pool.query('DELETE FROM consumer WHERE login_id = $1', [accountId]);
+          await pool.query('DELETE FROM accounts WHERE account_id = $1', [accountId]);
+        })(),
+        (async () => {
+          if (!supabase) return;
+          await supabase.from('connection_ticket').delete().eq('account_id', accountId);
+          await supabase.from('consumer').delete().eq('login_id', accountId);
+          await supabase.from('accounts').delete().eq('account_id', accountId);
+        })(),
+      ]);
+    };
+
     let ticketNumber = null;
     let createdAccountId = null;
     let authUserId = null;
@@ -10538,12 +10564,18 @@ app.post('/api/register', async (req, res) => {
     );
 
     if (createdAccountId) {
-      authUserId = await ensureAccountAuthUser({
-        accountId: createdAccountId,
-        username,
-        password,
-        authUserId: null,
-      });
+      try {
+        authUserId = await ensureAccountAuthUser({
+          accountId: createdAccountId,
+          username,
+          password,
+          authUserId: null,
+        });
+      } catch (authProvisionError) {
+        await rollbackFailedRegistration(createdAccountId);
+        console.error('Registration auth-user sync failed; registration rolled back:', authProvisionError);
+        throw createHttpError('Registration failed to complete. Please try signing up again.', 500);
+      }
     }
 
     return res.json({
@@ -12141,12 +12173,19 @@ function mapPublicContactMessageRow(row) {
   const barangay = String(row?.barangay || '').trim();
   const contactNumber = String(row?.contact_number || '').trim();
   const email = String(row?.email || '').trim().toLowerCase();
+  const category = String(row?.category || '').trim();
+  const normalizedCategory = category.toLowerCase();
+  const sourceLabel = (normalizedCategory === 'public contact' || normalizedCategory === 'public concern')
+    ? 'Public Form'
+    : 'Consumer App';
   return {
     message_id: Number(row?.message_id || row?.concern_id || 0),
     full_name: fullName || 'Unknown sender',
     barangay: barangay || 'Not specified',
     contact_number: contactNumber || 'Not provided',
     email: email || 'Not provided',
+    source: sourceLabel,
+    category: category || 'General',
     subject: row?.subject || '',
     message: row?.message || row?.description || '',
     status: row?.status || 'Pending',

@@ -15,6 +15,8 @@ type PublicConcern = {
   barangay: string;
   contact_number: string;
   email: string;
+  source?: string;
+  category?: string;
   subject: string;
   message: string;
   status: ConcernStatus;
@@ -155,6 +157,7 @@ const PublicConcerns: React.FC = () => {
       getSortValue: (row: PublicConcern) => new Date(row.created_at || 0).getTime(),
     },
     { key: 'full_name', label: 'Full Name', sortable: true },
+    { key: 'source', label: 'Source', sortable: true, filterType: 'select', filterLabel: 'Source' },
     { key: 'barangay', label: 'Barangay', sortable: true, filterType: 'select', filterLabel: 'Barangay' },
     { key: 'contact_number', label: 'Contact #', sortable: true },
     { key: 'email', label: 'Email', sortable: true },
@@ -258,7 +261,7 @@ const PublicConcerns: React.FC = () => {
           <div>
             <h2 className="public-concerns-title">Public Concerns Inbox</h2>
             <p className="public-concerns-subtitle">
-              Review website concern submissions and send replies.
+              Review public-form and consumer-app concern submissions and send replies.
             </p>
           </div>
           <div className="public-concerns-actions">

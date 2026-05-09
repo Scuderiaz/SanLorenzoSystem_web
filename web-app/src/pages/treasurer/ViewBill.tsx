@@ -32,7 +32,7 @@ const ViewBill: React.FC = () => {
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  const API_URL = process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.hostname}:3001/api`;
 
   const handleSearchBill = async () => {
     if (!searchTerm.trim()) {
