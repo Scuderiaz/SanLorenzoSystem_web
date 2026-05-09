@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage, loadConsumerDashboardWithFallback } from '../../services/userManagementApi';
@@ -39,6 +39,7 @@ interface Concern {
   status: string;
   priority: string;
   created_at: string;
+  resolved_at?: string | null;
   remarks?: string | null;
 }
 
@@ -203,6 +204,25 @@ const formatName = (firstName?: string | null, middleName?: string | null, lastN
 const statusClassName = (value?: string | null) => {
   const normalized = String(value || '').trim().toLowerCase().replace(/\s+/g, '-');
   return normalized || 'unknown';
+};
+
+const formatDateTime = (dateStr?: string | null) => {
+  if (!dateStr) {
+    return 'N/A';
+  }
+
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/A';
+  }
+
+  return parsed.toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 };
 
 const isUnsetProfileField = (value?: string | null) => {
@@ -438,41 +458,61 @@ const ConsumerMain: React.FC = () => {
     priority: 'Normal'
   });
 
+  const fetchDashboard = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const { data, source } = await loadConsumerDashboardWithFallback(user.id);
+      setDataSource(source);
+      setConsumer(data.Consumer as ConsumerInfo);
+      setBills((data.bills || []) as Bill[]);
+      setPayments((data.payments || []) as Payment[]);
+      setReadings((data.readings || []) as Reading[]);
+      setTicket((data as any).ticket || null);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load dashboard.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  const fetchConcerns = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await api.get(`/consumer/concerns/${user.id}`);
+      if (res.data?.success) {
+        setConcerns(res.data.concerns || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch concerns:', err);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user?.id) {
       return;
     }
 
-    const fetchDashboard = async () => {
+    const load = async () => {
       try {
-        const { data, source } = await loadConsumerDashboardWithFallback(user.id);
-        setDataSource(source);
-        setConsumer(data.Consumer as ConsumerInfo);
-        setBills((data.bills || []) as Bill[]);
-        setPayments((data.payments || []) as Payment[]);
-        setReadings((data.readings || []) as Reading[]);
-        setTicket((data as any).ticket || null);
-      } catch (err) {
-        setError(getErrorMessage(err, 'Failed to load dashboard.'));
-      } finally {
-        setLoading(false);
+        await Promise.all([fetchDashboard(), fetchConcerns()]);
+      } catch {
+        // Individual loaders already handle their own errors.
       }
     };
 
-    const fetchConcerns = async () => {
-      try {
-        const res = await api.get(`/consumer/concerns/${user.id}`);
-        if (res.data?.success) {
-          setConcerns(res.data.concerns);
-        }
-      } catch (err) {
-        console.error('Failed to fetch concerns:', err);
-      }
-    };
+    void load();
+  }, [fetchConcerns, fetchDashboard, user?.id]);
 
-    void fetchDashboard();
+  useEffect(() => {
+    if (!showHistoryModal) return;
+
     void fetchConcerns();
-  }, [user?.id]);
+    const intervalId = window.setInterval(() => {
+      void fetchConcerns();
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchConcerns, showHistoryModal]);
 
   const sortedBills = [...bills].sort((left, right) =>
     new Date(right.Bill_Date || right.Due_Date || '').getTime() - new Date(left.Bill_Date || left.Due_Date || '').getTime()
@@ -732,8 +772,7 @@ const ConsumerMain: React.FC = () => {
         setConcernSuccess('Problem reported successfully! Our team will review it.');
         setConcernForm({ category: 'Leakage', subject: '', description: '', priority: 'Normal' });
         // Refresh concerns
-        const refreshRes = await api.get(`/consumer/concerns/${user?.id}`);
-        if (refreshRes.data?.success) setConcerns(refreshRes.data.concerns);
+        await fetchConcerns();
       } else {
         setConcernError(res.data?.message || 'Submission failed.');
       }
@@ -1531,25 +1570,25 @@ const ConsumerMain: React.FC = () => {
           }
         >
           {concernSuccess ? (
-            <div style={{ textAlign: 'center', padding: '24px 16px' }}>
-              <i className="fas fa-check-circle" style={{ fontSize: '52px', color: '#16a34a', marginBottom: '16px', display: 'block' }} />
-              <h3 style={{ color: '#0f172a', marginBottom: '8px' }}>Report Submitted!</h3>
-              <p style={{ color: '#64748b', marginBottom: '20px' }}>{concernSuccess}</p>
+            <div className="cm-concern-success-panel">
+              <i className="fas fa-check-circle cm-concern-success-icon" />
+              <h3>Report Submitted!</h3>
+              <p>{concernSuccess}</p>
             </div>
           ) : (
-            <form id="concern-form" onSubmit={handleConcernSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form id="concern-form" onSubmit={handleConcernSubmit} className="cm-concern-form">
               {concernError && (
                 <div className="cm-apply-error"><i className="fas fa-exclamation-circle" /> {concernError}</div>
               )}
-              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+              <p className="cm-concern-help">
                 Please provide details about the issue you're experiencing. Our technical team will investigate it as soon as possible.
               </p>
               <div className="cm-apply-field">
                 <label>Issue Category</label>
-                <select 
+                <select
                   value={concernForm.category} 
                   onChange={e => setConcernForm(f => ({ ...f, category: e.target.value }))}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', background: '#fff', fontSize: '14px' }}
+                  className="cm-concern-select"
                 >
                   <option value="Leakage">Water Leakage</option>
                   <option value="No Water">No Water Supply</option>
@@ -1571,19 +1610,19 @@ const ConsumerMain: React.FC = () => {
               </div>
               <div className="cm-apply-field">
                 <label>Description</label>
-                <textarea 
+                <textarea
                   value={concernForm.description} 
                   onChange={e => setConcernForm(f => ({ ...f, description: e.target.value }))} 
                   placeholder="Please describe the problem in detail..." 
                   required 
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', minHeight: '120px', resize: 'vertical', fontSize: '14px' }}
+                  className="cm-concern-textarea"
                 />
               </div>
               <div className="cm-apply-field">
                 <label>Urgency</label>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                <div className="cm-concern-priority-group">
                   {['Low', 'Normal', 'High'].map(p => (
-                    <label key={p} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: '#475569' }}>
+                    <label key={p} className="cm-concern-priority-option">
                       <input 
                         type="radio" 
                         name="priority" 
@@ -1664,12 +1703,12 @@ const ConsumerMain: React.FC = () => {
           }
         >
           {concerns.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <i className="fas fa-clipboard-check" style={{ fontSize: '48px', color: '#cbd5e1', marginBottom: '16px', display: 'block' }} />
-              <p style={{ color: '#64748b' }}>You haven't reported any problems yet.</p>
+            <div className="cm-history-empty">
+              <i className="fas fa-clipboard-check" />
+              <p>You haven't reported any problems yet.</p>
             </div>
           ) : (
-            <div className="cm-table-wrapper" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+            <div className="cm-table-wrapper cm-history-table-wrapper">
               <table className="cm-table">
                 <thead>
                   <tr>
@@ -1677,16 +1716,27 @@ const ConsumerMain: React.FC = () => {
                     <th>Category</th>
                     <th>Subject</th>
                     <th>Status</th>
+                    <th>Office Update</th>
                   </tr>
                 </thead>
                 <tbody>
                   {concerns.map(c => (
                     <tr key={c.concern_id}>
-                      <td data-label="Date" style={{ whiteSpace: 'nowrap' }}>{formatDate(c.created_at)}</td>
+                      <td data-label="Date" className="cm-history-date-cell">{formatDate(c.created_at)}</td>
                       <td data-label="Category">{c.category}</td>
                       <td data-label="Subject">{c.subject}</td>
                       <td data-label="Status">
                         <span className={`cm-status-badge ${statusClassName(c.status)}`}>{c.status}</span>
+                      </td>
+                      <td data-label="Office Update">
+                        {c.remarks ? (
+                          <div className="cm-concern-office-update">
+                            <p>{c.remarks}</p>
+                            <small>{c.resolved_at ? `Updated ${formatDateTime(c.resolved_at)}` : 'Updated by office'}</small>
+                          </div>
+                        ) : (
+                          <span className="cm-concern-office-update-empty">No reply yet</span>
+                        )}
                       </td>
                     </tr>
                   ))}

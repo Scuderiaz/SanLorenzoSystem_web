@@ -19,14 +19,6 @@ const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
   const [draftProfileImage, setDraftProfileImage] = useState<string | null>(user?.profile_picture_url || null);
   const [isSavingProfileImage, setIsSavingProfileImage] = useState(false);
 
-  const roleLabels: { [key: number]: string } = {
-    1: 'Assessor Admin',
-    2: 'Billing Officer',
-    3: 'Meter Reader',
-    4: 'Cashier / Treasurer',
-    5: 'Consumer',
-  };
-
   useEffect(() => {
     if (!isProfileModalOpen) {
       setDraftProfileImage(user?.profile_picture_url || null);
@@ -99,7 +91,6 @@ const Header: React.FC<HeaderProps> = ({ title = 'Dashboard' }) => {
             </div>
             <div className="user-info">
               <span className="user-name">{user?.fullName || user?.username || 'User'}</span>
-              <span className="user-role">{roleLabels[user?.role_id!] || 'Staff'}</span>
             </div>
           </button>
         </div>

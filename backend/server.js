@@ -9758,13 +9758,13 @@ app.post('/api/public/contact', async (req, res) => {
           `INSERT INTO consumer_concerns
             (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number, email)
            VALUES (NULL, $1, $2, $3, $4, 'Normal', 'Pending', $5, $6, $7, $8)`,
-          [defaultSystemLogAccountId, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber, email]
+          [null, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber, email]
         );
       },
       async () => {
         const { error } = await supabase.from('consumer_concerns').insert([{
           consumer_id: null,
-          account_id: defaultSystemLogAccountId,
+          account_id: null,
           category: 'Public Contact',
           subject,
           description: message,
@@ -9992,7 +9992,26 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
             RETURNING concern_id AS message_id, full_name, barangay, contact_number, email, subject, description AS message, category, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
           [nextStatus, remarks, reviewedBy, id]
         );
-        return rows[0] || null;
+        const updatedRow = rows[0] || null;
+        if (updatedRow && supabase) {
+          const mirrorPayload = {
+            status: nextStatus,
+            remarks: remarks,
+            resolved_by: reviewedBy,
+            resolved_at: ['Resolved', 'Closed'].includes(nextStatus) ? new Date().toISOString() : null,
+          };
+          const { error: mirrorError } = await supabase
+            .from('consumer_concerns')
+            .update(mirrorPayload)
+            .eq('concern_id', id);
+          if (mirrorError) {
+            throw createHttpError(
+              `Concern status update was saved locally but failed to mirror to Supabase: ${mirrorError.message || 'Unknown mirror error'}`,
+              502
+            );
+          }
+        }
+        return updatedRow;
       },
       async () => {
         const payload = {
@@ -10070,7 +10089,36 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
             RETURNING concern_id AS message_id, full_name, barangay, contact_number, email, subject, description AS message, category, status, created_at, resolved_at AS reviewed_at, resolved_by AS reviewed_by, remarks`,
           [reply, reviewedBy, id]
         );
-        return rows[0] || null;
+        const updatedRow = rows[0] || null;
+        if (updatedRow && supabase) {
+          const mirrorPayload = {
+            remarks: reply,
+            resolved_by: reviewedBy,
+            resolved_at: new Date().toISOString(),
+          };
+          const { error: mirrorError } = await supabase
+            .from('consumer_concerns')
+            .update(mirrorPayload)
+            .eq('concern_id', id);
+          if (mirrorError) {
+            throw createHttpError(
+              `Concern reply was saved locally but failed to mirror to Supabase: ${mirrorError.message || 'Unknown mirror error'}`,
+              502
+            );
+          } else if (String(updatedRow.status || '').trim().toLowerCase() === 'pending') {
+            const { error: mirrorStatusError } = await supabase
+              .from('consumer_concerns')
+              .update({ status: 'In Progress' })
+              .eq('concern_id', id);
+            if (mirrorStatusError) {
+              throw createHttpError(
+                `Concern reply status failed to mirror to Supabase: ${mirrorStatusError.message || 'Unknown mirror error'}`,
+                502
+              );
+            }
+          }
+        }
+        return updatedRow;
       },
       async () => {
         const payload = {

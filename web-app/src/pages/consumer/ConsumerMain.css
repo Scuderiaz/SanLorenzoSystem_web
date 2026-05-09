@@ -1788,6 +1788,122 @@
   background: #ffffff;
 }
 
+.cm-concern-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cm-concern-help {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.cm-concern-select,
+.cm-concern-textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  outline: none;
+  background: #fff;
+  font-size: 14px;
+}
+
+.cm-concern-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.cm-concern-select:focus,
+.cm-concern-textarea:focus {
+  border-color: var(--cm-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.cm-concern-priority-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.cm-concern-priority-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #475569;
+}
+
+.cm-concern-success-panel {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.cm-concern-success-panel h3 {
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.cm-concern-success-panel p {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.cm-concern-success-icon {
+  font-size: 52px;
+  color: #16a34a;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.cm-history-empty {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.cm-history-empty i {
+  font-size: 48px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.cm-history-empty p {
+  color: #64748b;
+}
+
+.cm-history-table-wrapper {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.cm-history-date-cell {
+  white-space: nowrap;
+}
+
+.cm-concern-office-update p {
+  margin: 0;
+  color: #1e293b;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.cm-concern-office-update small {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.cm-concern-office-update-empty {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
 .cm-application-ticket-number {
   display: inline-block;
   padding: 14px 28px;
