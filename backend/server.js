@@ -2559,6 +2559,35 @@ function mapDashboardActivityLogRow(row) {
   };
 }
 
+function toClientSafeMessage(error, fallbackMessage = 'Request failed.') {
+  const fallback = String(fallbackMessage || 'Request failed.');
+  const raw = String(error?.message || '').trim();
+  const status = getRequestFailureStatusCode(error);
+  if (!raw) {
+    return fallback;
+  }
+
+  // Keep user-actionable validation/permission messages for 4xx responses.
+  if (status >= 400 && status < 500) {
+    return raw;
+  }
+
+  const lowered = raw.toLowerCase();
+  if (
+    lowered.includes('relation') ||
+    lowered.includes('constraint') ||
+    lowered.includes('sql') ||
+    lowered.includes('column') ||
+    lowered.includes('syntax error') ||
+    lowered.includes('duplicate key') ||
+    lowered.includes('violates')
+  ) {
+    return fallback;
+  }
+
+  return raw.length > 180 ? fallback : raw;
+}
+
 function mapBackupRow(row) {
   return {
     id: row.backup_id,
@@ -2921,13 +2950,35 @@ async function ensureConsumerProfileForAccount(accountId, fullName = '', contact
         return Number(existing.rows[0].consumer_id);
       }
 
+      const [zoneResult, classificationResult] = await Promise.all([
+        pool.query('SELECT zone_id FROM zone ORDER BY zone_id ASC LIMIT 1'),
+        pool.query('SELECT classification_id FROM classification ORDER BY classification_id ASC LIMIT 1'),
+      ]);
+      const defaultZoneId = Number(zoneResult.rows?.[0]?.zone_id || 0) || null;
+      const defaultClassificationId = Number(classificationResult.rows?.[0]?.classification_id || 0) || null;
+      if (!defaultZoneId || !defaultClassificationId) {
+        throw new Error('Default zone/classification is missing for consumer profile creation.');
+      }
+
       try {
         const inserted = await pool.query(
           `INSERT INTO consumer
-            (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number)
-           VALUES ($1, $2, $3, 'Pending', $4, $5, $6, $7, $8, $9)
+            (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number, zone_id, classification_id)
+           VALUES ($1, $2, $3, 'Pending', $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING consumer_id`,
-          [firstName, lastName, normalizedAccountId, address, defaults.purok, defaults.barangay, defaults.municipality, defaults.zipCode, contactNumber]
+          [
+            firstName,
+            lastName,
+            normalizedAccountId,
+            address,
+            defaults.purok,
+            defaults.barangay,
+            defaults.municipality,
+            defaults.zipCode,
+            contactNumber,
+            defaultZoneId,
+            defaultClassificationId,
+          ]
         );
         return Number(inserted.rows[0]?.consumer_id || 0) || null;
       } catch (error) {
@@ -2954,6 +3005,19 @@ async function ensureConsumerProfileForAccount(accountId, fullName = '', contact
         return Number(existing.consumer_id);
       }
 
+      const [zoneResult, classificationResult] = await Promise.all([
+        supabase.from('zone').select('zone_id').order('zone_id', { ascending: true }).limit(1).maybeSingle(),
+        supabase.from('classification').select('classification_id').order('classification_id', { ascending: true }).limit(1).maybeSingle(),
+      ]);
+      if (zoneResult.error) throw zoneResult.error;
+      if (classificationResult.error) throw classificationResult.error;
+
+      const defaultZoneId = Number(zoneResult.data?.zone_id || 0) || null;
+      const defaultClassificationId = Number(classificationResult.data?.classification_id || 0) || null;
+      if (!defaultZoneId || !defaultClassificationId) {
+        throw new Error('Default zone/classification is missing for consumer profile creation.');
+      }
+
       const { data: inserted, error: insertError } = await supabase
         .from('consumer')
         .insert([{
@@ -2967,6 +3031,8 @@ async function ensureConsumerProfileForAccount(accountId, fullName = '', contact
           municipality: defaults.municipality,
           zip_code: defaults.zipCode,
           contact_number: contactNumber,
+          zone_id: defaultZoneId,
+          classification_id: defaultClassificationId,
         }])
         .select('consumer_id')
         .maybeSingle();
@@ -3327,6 +3393,20 @@ async function initDb() {
       'Institutional',
       'Industrial',
     ]);
+  }
+
+  // Ensure lookup defaults remain available even in partially-seeded or manually-edited databases.
+  const zoneCountRes = await pool.query('SELECT COUNT(*)::int AS count FROM zone');
+  if (Number(zoneCountRes.rows?.[0]?.count || 0) === 0) {
+    await pool.query('INSERT INTO zone (zone_name) VALUES ($1)', ['Zone 1']);
+  }
+
+  const classificationCountRes = await pool.query('SELECT COUNT(*)::int AS count FROM classification');
+  if (Number(classificationCountRes.rows?.[0]?.count || 0) === 0) {
+    await pool.query(
+      'INSERT INTO classification (classification_name) VALUES ($1), ($2), ($3), ($4)',
+      ['Residential', 'Commercial', 'Institutional', 'Industrial']
+    );
   }
 
   await loadAdminSettingsFromPostgres();
@@ -5718,7 +5798,7 @@ app.post('/api/login', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'auth.login', error);
     console.error('Login error:', error);
-    return res.status(500).json({ success: false, message: 'Database error: ' + error.message });
+    return res.status(500).json({ success: false, message: 'Unable to log in right now. Please try again shortly.' });
   }
 });
 
@@ -5811,6 +5891,14 @@ const ensureImportAccess = (actorRoleId) => {
   const normalizedRoleId = Number(actorRoleId);
   if (!Number.isInteger(normalizedRoleId) || !IMPORT_ALLOWED_ROLES.has(normalizedRoleId)) {
     throw createHttpError('Only Admin and Billing Officer can use data import.', 403);
+  }
+  return normalizedRoleId;
+};
+
+const ensureAdminSyncAccess = (actorRoleId) => {
+  const normalizedRoleId = Number(actorRoleId);
+  if (!Number.isInteger(normalizedRoleId) || normalizedRoleId !== 1) {
+    throw createHttpError('Only Admin can manage synchronization.', 403);
   }
   return normalizedRoleId;
 };
@@ -5992,7 +6080,7 @@ const validateImportDatasets = async (datasets = {}) => {
 app.get('/api/import/templates/:dataset', async (req, res) => {
   try {
     const dataset = normalizeImportKey(req.params.dataset);
-    const actorRoleId = Number(req.query.actorRoleId || req.query.actor_role_id);
+    const actorRoleId = Number(req.query.actorRoleId || req.query.actor_role_id || req.headers['x-actor-role-id']);
     ensureImportAccess(actorRoleId);
     const template = IMPORT_TEMPLATES[dataset];
     if (!template) {
@@ -6002,7 +6090,7 @@ app.get('/api/import/templates/:dataset', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${dataset}-template.csv"`);
     return res.status(200).send(template);
   } catch (error) {
-    const status = Number(error?.status || 500);
+    const status = Number(error?.statusCode || error?.status || 500);
     if (status === 403) {
       return res.status(403).json({ success: false, message: error.message });
     }
@@ -6013,12 +6101,12 @@ app.get('/api/import/templates/:dataset', async (req, res) => {
 
 app.post('/api/import/legacy/validate', async (req, res) => {
   try {
-    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id);
+    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id || req.headers['x-actor-role-id']);
     ensureImportAccess(actorRoleId);
     const report = await validateImportDatasets(req.body?.datasets || {});
     return res.json({ success: report.ok, report });
   } catch (error) {
-    const status = Number(error?.status || 500);
+    const status = Number(error?.statusCode || error?.status || 500);
     if (status === 403) {
       return res.status(403).json({ success: false, message: error.message });
     }
@@ -6030,7 +6118,7 @@ app.post('/api/import/legacy/validate', async (req, res) => {
 app.post('/api/import/legacy/apply', async (req, res) => {
   const client = await pool.connect();
   try {
-    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id);
+    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id || req.headers['x-actor-role-id']);
     ensureImportAccess(actorRoleId);
     const datasets = req.body?.datasets || {};
     const report = await validateImportDatasets(datasets);
@@ -6284,7 +6372,7 @@ app.post('/api/import/legacy/apply', async (req, res) => {
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    const status = Number(error?.status || 500);
+    const status = Number(error?.statusCode || error?.status || 500);
     if (status === 403) {
       return res.status(403).json({ success: false, message: error.message });
     }
@@ -9745,7 +9833,7 @@ app.get('/api/public-contact-messages', async (req, res) => {
     });
   } catch (error) {
     await logRequestError(req, 'public.contact.list', error);
-    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to load public concerns.') });
   }
 });
 
@@ -9826,7 +9914,7 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
     });
   } catch (error) {
     await logRequestError(req, 'public.contact.updateStatus', error);
-    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to update concern status.') });
   }
 });
 
@@ -9914,7 +10002,7 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
     });
   } catch (error) {
     await logRequestError(req, 'public.contact.reply', error);
-    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to send reply.') });
   }
 });
 
@@ -9976,7 +10064,7 @@ app.delete('/api/public-contact-messages/:id', async (req, res) => {
     });
   } catch (error) {
     await logRequestError(req, 'public.contact.delete', error);
-    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to delete concern.') });
   }
 });
 
@@ -10644,6 +10732,18 @@ app.post('/api/auth/google', async (req, res) => {
       });
     }
 
+    const normalizedMessage = String(error?.message || '').toLowerCase();
+    if (
+      normalizedMessage.includes('zone') ||
+      normalizedMessage.includes('classification') ||
+      normalizedMessage.includes('default zone/classification')
+    ) {
+      return res.status(500).json({
+        success: false,
+        message: 'Google sign-up is temporarily unavailable. Please contact support.',
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: 'Google sign-up failed. Please try again or contact support.',
@@ -10961,12 +11061,13 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
             FROM system_logs sl
             LEFT JOIN accounts a ON a.account_id = sl.account_id
             ORDER BY sl.timestamp DESC
-            LIMIT 200
+            LIMIT 1000
           `),
         ]);
 
-        const recentLogs = (logsResult.rows || [])
-          .filter((row) => !isTechnicalSystemAction(row.action))
+        const dashboardLogSource = logsResult.rows || [];
+        const businessLogs = dashboardLogSource.filter((row) => !isTechnicalSystemAction(row.action));
+        const recentLogs = (businessLogs.length > 0 ? businessLogs : dashboardLogSource)
           .map(mapDashboardActivityLogRow)
           .slice(0, 10);
 
@@ -10988,7 +11089,7 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
           supabase.from('accounts').select('account_id, role_id, account_status, username'),
           supabase.from('consumer').select('consumer_id'),
           supabase.from('bills').select('bill_id, status'),
-          supabase.from('system_logs').select('log_id, timestamp, role, action, account_id').order('timestamp', { ascending: false }).limit(200),
+          supabase.from('system_logs').select('log_id, timestamp, role, action, account_id').order('timestamp', { ascending: false }).limit(1000),
         ]);
 
         if (accountsResult.error) throw accountsResult.error;
@@ -10998,12 +11099,14 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
 
         const accounts = accountsResult.data || [];
         const accountMap = new Map(accounts.map((account) => [account.account_id, account]));
-        const recentLogs = (logsResult.data || [])
+        const dashboardLogSource = logsResult.data || [];
+        const businessLogs = dashboardLogSource
+          .filter((row) => !isTechnicalSystemAction(row.action));
+        const recentLogs = (businessLogs.length > 0 ? businessLogs : dashboardLogSource)
           .map((row) => ({
             ...row,
             username: accountMap.get(row.account_id)?.username || null,
           }))
-          .filter((row) => !isTechnicalSystemAction(row.action))
           .map(mapDashboardActivityLogRow)
           .slice(0, 10);
 
@@ -11025,7 +11128,7 @@ app.get('/api/admin/dashboard-summary', async (req, res) => {
     return res.json(result);
   } catch (error) {
     await logRequestError(req, 'admin.dashboardSummary', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: toClientSafeMessage(error, 'Failed to load admin dashboard summary.') });
   }
 });
 
@@ -11127,7 +11230,7 @@ app.get('/api/admin/reports/overview', async (req, res) => {
     return res.json(result);
   } catch (error) {
     await logRequestError(req, 'admin.reports.overview', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: toClientSafeMessage(error, 'Failed to load overview report.') });
   }
 });
 
@@ -11212,7 +11315,7 @@ app.get('/api/admin/reports/consumers', async (req, res) => {
     return res.json(result);
   } catch (error) {
     await logRequestError(req, 'admin.reports.consumers', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: toClientSafeMessage(error, 'Failed to load consumer report.') });
   }
 });
 
@@ -11331,7 +11434,7 @@ app.get('/api/admin/reports/monthly', async (req, res) => {
     return res.json(result);
   } catch (error) {
     await logRequestError(req, 'admin.reports.monthly', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: toClientSafeMessage(error, 'Failed to load monthly report.') });
   }
 });
 
@@ -11397,7 +11500,7 @@ app.get('/api/admin/settings', async (req, res) => {
     });
   } catch (error) {
     await logRequestError(req, 'admin.settings.fetch', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: toClientSafeMessage(error, 'Failed to load admin settings.') });
   }
 });
 
@@ -11411,7 +11514,7 @@ app.post('/api/admin/settings', async (req, res) => {
     return res.json({ success: true, data: savedSettings });
   } catch (error) {
     await logRequestError(req, 'admin.settings.save', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: toClientSafeMessage(error, 'Failed to save admin settings.') });
   }
 });
 
@@ -11500,7 +11603,7 @@ app.get('/api/admin/maintenance', async (req, res) => {
     return res.json(result);
   } catch (error) {
     await logRequestError(req, 'admin.maintenance.fetch', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: toClientSafeMessage(error, 'Failed to load maintenance data.') });
   }
 });
 
@@ -11656,7 +11759,7 @@ app.get('/api/billing/logs', async (req, res) => {
     return res.json(result);
   } catch (error) {
     await logRequestError(req, 'billing.logs.fetch', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: toClientSafeMessage(error, 'Failed to load billing activity logs.') });
   }
 });
 
@@ -12101,7 +12204,7 @@ app.post('/api/reading-schedules', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'readingSchedules.create', error);
     console.error('Error creating schedule:', error);
-    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to create reading schedule.') });
   }
 });
 
@@ -12173,7 +12276,7 @@ app.post('/api/reading-schedules/bulk-upsert', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'readingSchedules.bulkUpsert', error);
     console.error('Error saving bulk schedules:', error);
-    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to save reading schedules.') });
   }
 });
 
@@ -12198,7 +12301,7 @@ app.delete('/api/reading-schedules/:id', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'readingSchedules.delete', error);
     console.error('Error deleting schedule:', error);
-    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to delete reading schedule.') });
   }
 });
 
@@ -12224,7 +12327,7 @@ app.put('/api/reading-schedules/:id/status', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'readingSchedules.updateStatus', error);
     console.error('Error updating schedule status:', error);
-    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to update schedule status.') });
   }
 });
 
@@ -12235,6 +12338,8 @@ app.get('/health', (req, res) => {
 
 app.post('/api/admin/sync-supabase', async (req, res) => {
   try {
+    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id || req.headers['x-actor-role-id']);
+    ensureAdminSyncAccess(actorRoleId);
     if (!supabase) {
       await logRequestInfo('admin.syncSupabase', 'Manual sync requested while running in PostgreSQL-only mode.');
       return res.status(400).json({
@@ -12250,12 +12355,14 @@ app.post('/api/admin/sync-supabase', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'admin.syncSupabase', error);
     console.error('Manual Supabase sync failed:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to run Supabase sync.') });
   }
 });
 
 app.post('/api/admin/sync-postgres', async (req, res) => {
   try {
+    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id || req.headers['x-actor-role-id']);
+    ensureAdminSyncAccess(actorRoleId);
     if (!supabase) {
       await logRequestInfo('admin.syncPostgres', 'Manual PostgreSQL pull requested while running in PostgreSQL-only mode.');
       return res.status(400).json({
@@ -12271,24 +12378,28 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'admin.syncPostgres', error);
     console.error('Manual PostgreSQL sync failed:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to run PostgreSQL sync.') });
   }
 });
 
 app.post('/api/admin/sync/run', async (req, res) => {
   try {
+    const actorRoleId = Number(req.body?.actorRoleId || req.body?.actor_role_id || req.headers['x-actor-role-id']);
+    ensureAdminSyncAccess(actorRoleId);
     const result = await runHybridSyncCycle('api');
     const status = result.success ? 200 : 409;
     return res.status(status).json(result);
   } catch (error) {
     await logRequestError(req, 'admin.sync.run', error);
     console.error('Hybrid sync cycle failed:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to run sync cycle.') });
   }
 });
 
 app.get('/api/admin/sync/status', async (req, res) => {
   try {
+    const actorRoleId = Number(req.query.actorRoleId || req.query.actor_role_id || req.headers['x-actor-role-id']);
+    ensureAdminSyncAccess(actorRoleId);
     return res.json({
       success: true,
       sync: {
@@ -12299,7 +12410,7 @@ app.get('/api/admin/sync/status', async (req, res) => {
     });
   } catch (error) {
     await logRequestError(req, 'admin.sync.status', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(getRequestFailureStatusCode(error)).json({ success: false, message: toClientSafeMessage(error, 'Failed to load sync status.') });
   }
 });
 
