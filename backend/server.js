@@ -9799,21 +9799,25 @@ app.get('/api/public-contact-messages', async (req, res) => {
       async () => {
         const clauses = [];
         const values = [];
+        const pushValue = (value) => {
+          values.push(value);
+          return `$${values.length}`;
+        };
 
         if (statusFilter) {
-          values.push(statusFilter);
-          clauses.push(`cc.status = $${values.length}`);
+          const placeholder = pushValue(statusFilter);
+          clauses.push(`cc.status = ${placeholder}`);
         }
 
         if (barangayFilter) {
-          values.push(barangayFilter.toLowerCase());
+          const placeholder = pushValue(barangayFilter.toLowerCase());
           clauses.push(
-            `LOWER(COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '')) = $${values.length}`
+            `LOWER(COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '')) = ${placeholder}`
           );
         }
 
         if (query) {
-          values.push(`%${query}%`);
+          const placeholder = pushValue(`%${query}%`);
           clauses.push(
             `(LOWER(COALESCE(
                   NULLIF(cc.full_name, ''),
@@ -9821,12 +9825,12 @@ app.get('/api/public-contact-messages', async (req, res) => {
                   NULLIF(a.full_name, ''),
                   a.username,
                   ''
-                )) LIKE $${values.length}
-              OR LOWER(COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '')) LIKE $${values.length}
-              OR LOWER(COALESCE(cc.subject, '')) LIKE $${values.length}
-              OR LOWER(COALESCE(cc.description, '')) LIKE $${values.length}
-              OR LOWER(COALESCE(NULLIF(cc.contact_number, ''), NULLIF(c.contact_number, ''), NULLIF(a.contact_number, ''), '')) LIKE $${values.length}
-              OR LOWER(COALESCE(NULLIF(cc.email, ''), NULLIF(a.email, ''), '')) LIKE $${values.length})`
+                )) LIKE ${placeholder}
+              OR LOWER(COALESCE(NULLIF(cc.barangay, ''), NULLIF(c.barangay, ''), '')) LIKE ${placeholder}
+              OR LOWER(COALESCE(cc.subject, '')) LIKE ${placeholder}
+              OR LOWER(COALESCE(cc.description, '')) LIKE ${placeholder}
+              OR LOWER(COALESCE(NULLIF(cc.contact_number, ''), NULLIF(c.contact_number, ''), NULLIF(a.contact_number, ''), '')) LIKE ${placeholder}
+              OR LOWER(COALESCE(NULLIF(cc.email, ''), NULLIF(a.email, ''), '')) LIKE ${placeholder})`
           );
         }
 
