@@ -10705,11 +10705,18 @@ app.post('/api/auth/google', async (req, res) => {
       }
 
       if (Number(existingAccount.role_id) === 5) {
-        await ensureConsumerProfileForAccount(
-          existingAccount.account_id,
-          existingAccount.full_name || googleName || existingAccount.username || 'Consumer',
-          null
-        );
+        try {
+          await ensureConsumerProfileForAccount(
+            existingAccount.account_id,
+            existingAccount.full_name || googleName || existingAccount.username || 'Consumer',
+            null
+          );
+        } catch (profileSyncError) {
+          console.warn(
+            `Google auth profile sync warning for account ${existingAccount.account_id}:`,
+            profileSyncError?.message || profileSyncError
+          );
+        }
       }
 
       return res.json({
