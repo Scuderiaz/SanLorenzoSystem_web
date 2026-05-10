@@ -1752,3 +1752,85 @@
 [2026-05-10T17:32:49.770Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-delete.
 [2026-05-10T17:59:53.157Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
 [2026-05-10T18:00:27.351Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-10T21:07:41.518Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:08:41.627Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:09:41.529Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:10:41.542Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:12:29.229Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:13:29.234Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:15:19.919Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:16:17.320Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-delete.
+[2026-05-10T21:17:10.203Z] [sync.cycle] Hybrid sync cycle started via immediate:users-profile-picture-update.
+[2026-05-10T21:18:19.939Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:19:19.939Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:20:19.954Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:21:19.956Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:22:19.966Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:23:19.228Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T21:23:27.636Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:24:14.976Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:24:23.844Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:25:14.987Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:25:21.087Z] [public.contact.updateStatus.email] Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials 41be03b00d2f7-c826767be0csm7468104a12.2 - gsmtp | PATCH /api/public-contact-messages/27/status | params={"id":"27"} | query={} | body={"status":"Resolved","remarks":"check details","reviewedBy":3}
+[2026-05-10T21:25:23.339Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:26:15.030Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:26:25.827Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:27:15.008Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:27:23.404Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:28:15.045Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:28:24.978Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:29:15.023Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:29:23.297Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:30:15.022Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:30:23.451Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:31:15.030Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:31:22.933Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:32:15.033Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:32:24.719Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:33:15.046Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:33:23.254Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:34:15.057Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:34:23.244Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:35:18.838Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:36:18.866Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:36:27.565Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:36:58.987Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:37:59.005Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:38:06.911Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:38:36.555Z] [public.contact.updateStatus.email] Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials 98e67ed59e1d1-367d684009esm5528262a91.11 - gsmtp | PATCH /api/public-contact-messages/28/status | params={"id":"28"} | query={} | body={"status":"Resolved","remarks":"check details provided in the landing page","reviewedBy":3}
+[2026-05-10T21:38:37.584Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-10T21:38:45.114Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:38:59.007Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:39:06.890Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:39:59.010Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:40:06.766Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:40:59.016Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:41:07.487Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:41:59.021Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:42:07.138Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:42:59.030Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:43:07.587Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:43:56.214Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:44:56.251Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:45:04.224Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T21:48:11.922Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:49:11.925Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:50:11.932Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:51:11.958Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:54:50.879Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:55:29.147Z] [public.contact.updateStatus.email] Invalid login: 534-5.7.9 Application-specific password required. For more information, go to
+534 5.7.9  https://support.google.com/mail/?p=InvalidSecondFactor d2e1a72fcca58-839682a20ebsm18504261b3a.53 - gsmtp | PATCH /api/public-contact-messages/36/status | params={"id":"36"} | query={} | body={"status":"Resolved","remarks":"check details","reviewedBy":3}
+[2026-05-10T21:55:30.178Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-10T21:55:50.892Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:58:01.171Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T21:59:59.877Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T22:00:11.608Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T22:00:30.971Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-10T22:01:11.614Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T22:02:11.620Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T22:03:11.635Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T22:04:11.643Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T22:05:11.654Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T22:06:11.658Z] [sync.cycle] Hybrid sync cycle started via scheduler.

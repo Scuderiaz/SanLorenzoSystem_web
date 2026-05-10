@@ -8,6 +8,7 @@ import {
   loadBillsWithFallback,
   loadPaymentsWithFallback,
   loadPendingApplicationsWithFallback,
+  loadPublicConcernsWithFallback,
 } from '../../services/userManagementApi';
 import './Dashboard.css';
 
@@ -43,8 +44,21 @@ interface PaymentRow {
   Status: string;
 }
 
+interface PublicConcernRow {
+  message_id: number;
+  full_name: string;
+  barangay: string;
+  contact_number?: string;
+  email?: string;
+  subject: string;
+  message: string;
+  status: string;
+  created_at: string | null;
+  category?: string;
+}
+
 interface WorkItem {
-  type: 'Application' | 'Payment' | 'Bill';
+  type: 'Application' | 'Payment' | 'Bill' | 'Concern';
   reference: string;
   Consumer: string;
   detail: string;
@@ -57,6 +71,7 @@ interface WorkItem {
   billId?: number;
   consumerId?: number;
   accountNumber?: string | null;
+  concernId?: number;
 }
 
 const formatAmount = (value: number | null | undefined) => `P${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -101,21 +116,24 @@ const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<PendingApplication[]>([]);
   const [bills, setBills] = useState<BillRow[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [concerns, setConcerns] = useState<PublicConcernRow[]>([]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const [applicationsResult, billsResult, paymentsResult] = await Promise.all([
+      const [applicationsResult, billsResult, paymentsResult, concernsResult] = await Promise.all([
         loadPendingApplicationsWithFallback(),
         loadBillsWithFallback(),
         loadPaymentsWithFallback(),
+        loadPublicConcernsWithFallback(),
       ]);
 
       setApplications(applicationsResult.data || []);
       setBills(billsResult.data || []);
       setPayments(paymentsResult.data || []);
+      setConcerns(concernsResult.data || []);
 
-      if ([applicationsResult.source, billsResult.source, paymentsResult.source].includes('supabase')) {
+      if ([applicationsResult.source, billsResult.source, paymentsResult.source, concernsResult.source].includes('supabase')) {
         showToast('Dashboard loaded using Supabase fallback for part of the data.', 'warning');
       }
     } catch (error) {
@@ -150,6 +168,11 @@ const Dashboard: React.FC = () => {
       return !Number.isNaN(dueDate.getTime()) && dueDate < now;
     });
   }, [bills]);
+
+  const openConcerns = useMemo(
+    () => concerns.filter((concern) => ['pending', 'in progress'].includes(String(concern.status || '').toLowerCase())),
+    [concerns]
+  );
 
   const totalUnpaidBalance = useMemo(
     () => unpaidBills.reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0),
@@ -197,14 +220,26 @@ const Dashboard: React.FC = () => {
       accountNumber: bill.Account_Number || null,
     }));
 
-    return [...applicationItems, ...paymentItems, ...overdueItems]
+    const concernItems = openConcerns.map((concern) => ({
+      type: 'Concern' as const,
+      reference: `CONCERN-${concern.message_id}`,
+      Consumer: concern.full_name || 'Public Sender',
+      detail: concern.subject || concern.message || 'Public concern',
+      amount: null,
+      date: concern.created_at,
+      status: concern.status || 'Pending',
+      route: '/public-concerns',
+      concernId: Number(concern.message_id || 0) || undefined,
+    }));
+
+    return [...applicationItems, ...paymentItems, ...overdueItems, ...concernItems]
       .sort((a, b) => {
         const aTime = a.date ? new Date(a.date).getTime() : 0;
         const bTime = b.date ? new Date(b.date).getTime() : 0;
         return bTime - aTime;
       })
       .slice(0, 10);
-  }, [applications, pendingPaymentValidation, overdueBills]);
+  }, [applications, pendingPaymentValidation, overdueBills, openConcerns]);
 
   const openWorkItem = (item: WorkItem) => {
     if (item.type === 'Application') {
@@ -243,6 +278,11 @@ const Dashboard: React.FC = () => {
         params.set('focusAccount', item.accountNumber);
       }
       navigate(`/ledger${params.toString() ? `?${params.toString()}` : ''}`);
+      return;
+    }
+
+    if (item.type === 'Concern') {
+      navigate('/public-concerns');
       return;
     }
 
@@ -332,6 +372,17 @@ const Dashboard: React.FC = () => {
               <div className="card-label">{unpaidBills.length} unpaid or partially paid bills</div>
             </div>
           </div>
+
+          <div className="card card-highlight-purple">
+            <div className="card-header">
+              <h2 className="card-title">Open Concerns</h2>
+              <i className="fas fa-inbox"></i>
+            </div>
+            <div className="card-body">
+              <div className="card-value">{openConcerns.length}</div>
+              <div className="card-label">Public concerns pending response</div>
+            </div>
+          </div>
         </div>
 
         <div className="queue-card">
@@ -355,6 +406,9 @@ const Dashboard: React.FC = () => {
             </button>
             <button className="btn btn-secondary" onClick={() => navigate('/ledger')}>
               <i className="fas fa-book"></i> View Ledger
+            </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/public-concerns')}>
+              <i className="fas fa-inbox"></i> Open Concerns
             </button>
             <button className="refresh-btn dashboard-refresh-btn" onClick={loadDashboard}>
               <i className="fas fa-sync-alt"></i> Refresh Dashboard

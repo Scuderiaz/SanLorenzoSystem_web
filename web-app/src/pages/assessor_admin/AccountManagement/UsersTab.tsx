@@ -78,6 +78,8 @@ const UsersTab: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<User | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectSubmitting, setRejectSubmitting] = useState(false);
@@ -162,23 +164,32 @@ const UsersTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (user: User) => {
+  const promptDelete = (user: User) => {
     if (user.AccountID === currentUser?.id) {
       showToast('You cannot delete your own account', 'error');
       return;
     }
-    if (!window.confirm(`Delete user "${user.Username}"?`)) return;
+
+    setUserToDelete(user);
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
 
     try {
-      const result = await requestJson<{ success: boolean; message?: string }>(`/users/${user.AccountID}`, { method: 'DELETE' }, 'Failed to delete user.');
+      setDeleteSubmitting(true);
+      const result = await requestJson<{ success: boolean; message?: string }>(`/users/${userToDelete.AccountID}`, { method: 'DELETE' }, 'Failed to delete user.');
       if (result.success) {
         showToast(result.message || 'User deleted successfully', 'success');
+        setUserToDelete(null);
         loadUsers();
       } else {
         showToast(result.message || 'Failed to delete user', 'error');
       }
     } catch (error) {
       showToast(getErrorMessage(error, 'Failed to delete user.'), 'error');
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -315,7 +326,7 @@ const UsersTab: React.FC = () => {
             setIsModalOpen(true);
           }}><i className="fas fa-edit"></i></button>
           {row.Status !== 'Pending' && (
-            <button className="btn-icon btn-danger" title="Delete" onClick={() => handleDelete(row)}><i className="fas fa-trash"></i></button>
+            <button className="btn-icon btn-danger" title="Delete" onClick={() => promptDelete(row)}><i className="fas fa-trash"></i></button>
           )}
         </div>
       ),
@@ -414,6 +425,32 @@ const UsersTab: React.FC = () => {
         <FormInput label="Full Name" value={formData.fullName} onChange={(v) => setFormData({ ...formData, fullName: v })} />
         <FormSelect label="Assigned Role" value={formData.roleId} onChange={(v) => setFormData({ ...formData, roleId: v })} options={roleOptions} required />
         <FormInput label={editingUser ? 'Reset Password (Optional)' : 'Password'} type="password" value={formData.password} onChange={(v) => setFormData({ ...formData, password: v })} required={!editingUser} />
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(userToDelete)}
+        onClose={() => {
+          if (!deleteSubmitting) setUserToDelete(null);
+        }}
+        title="Delete System User"
+        size="small"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setUserToDelete(null)} disabled={deleteSubmitting}>
+              Cancel
+            </button>
+            <button className="btn btn-danger" onClick={handleDelete} disabled={deleteSubmitting}>
+              <i className={`fas ${deleteSubmitting ? 'fa-spinner fa-spin' : 'fa-trash'}`}></i>
+              {deleteSubmitting ? 'Deleting...' : 'Confirm Delete'}
+            </button>
+          </>
+        }
+      >
+        {userToDelete && (
+          <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
+            Delete system user <strong>{userToDelete.Username}</strong>? This action cannot be undone.
+          </p>
+        )}
       </Modal>
 
       <Modal

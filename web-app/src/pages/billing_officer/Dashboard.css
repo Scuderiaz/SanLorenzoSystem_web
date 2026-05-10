@@ -45,6 +45,7 @@
 .card-highlight-green::before { background: linear-gradient(to bottom, #10b981, #34d399); }
 .card-highlight-gold::before { background: linear-gradient(to bottom, #f59e0b, #fbbf24); }
 .card-highlight-red::before { background: linear-gradient(to bottom, #ef4444, #f87171); }
+.card-highlight-purple::before { background: linear-gradient(to bottom, #7c3aed, #a78bfa); }
 
 .card-header {
   display: flex;
@@ -241,6 +242,17 @@
 .status-partially-paid {
   background: #eff6ff;
   color: #1d4ed8;
+}
+
+.status-in-progress {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.status-resolved,
+.status-closed {
+  background: #ecfdf5;
+  color: #047857;
 }
 
 @media (max-width: 768px) {

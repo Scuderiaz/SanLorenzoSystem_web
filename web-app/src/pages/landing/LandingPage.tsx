@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import './LandingPage.css';
 
 const resolveDefaultApiUrl = () => {
@@ -11,6 +12,14 @@ const resolveDefaultApiUrl = () => {
 };
 
 const API_URL = process.env.REACT_APP_API_URL || resolveDefaultApiUrl();
+const PUBLIC_CONCERN_ACCOUNT_ID = Number(process.env.REACT_APP_PUBLIC_CONCERN_ACCOUNT_ID || 1);
+const normalizePhilippinePhoneNumber = (value: string) => {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (/^09\d{9}$/.test(digits)) return digits;
+  if (/^639\d{9}$/.test(digits)) return `0${digits.slice(2)}`;
+  return String(value || '').trim();
+};
+
 const CONTACT_BARANGAYS = [
   'Daculang Bolo',
   'Dagotdotan',
@@ -233,29 +242,74 @@ const LandingPage: React.FC = () => {
     setSubmitError('');
     setSubmitSuccess(false);
     setIsSubmitting(true);
-    try {
-      const response = await fetch(`${API_URL}/public/contact`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: formData.fullName.trim(),
-          barangay: formData.barangay.trim(),
-          contactNumber: formData.contactNumber.trim(),
-          email: formData.email.trim(),
-          subject: formData.subject.trim(),
-          message: formData.message.trim(),
-        }),
-      });
+    const payload = {
+      fullName: formData.fullName.trim(),
+      barangay: formData.barangay.trim(),
+      contactNumber: formData.contactNumber.trim(),
+      email: formData.email.trim().toLowerCase(),
+      subject: formData.subject.trim(),
+      message: formData.message.trim(),
+    };
 
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data?.success) {
+    const saveDirectlyToSupabase = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        return false;
+      }
+
+      const { error } = await supabase.from('consumer_concerns').insert([{
+        consumer_id: null,
+        account_id: PUBLIC_CONCERN_ACCOUNT_ID,
+        category: 'Public Contact',
+        subject: payload.subject,
+        description: payload.message,
+        priority: 'Normal',
+        status: 'Pending',
+        full_name: payload.fullName,
+        barangay: payload.barangay,
+        contact_number: normalizePhilippinePhoneNumber(payload.contactNumber),
+        email: payload.email,
+      }]);
+
+      if (error) {
+        console.warn('Supabase public contact insert failed.', error);
+        return false;
+      }
+
+      return true;
+    };
+
+    try {
+      try {
+        const response = await fetch(`${API_URL}/public/contact`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data?.success) {
+          setSubmitSuccess(true);
+          setFormData({ fullName: '', barangay: '', contactNumber: '', email: '', subject: '', message: '' });
+          setTimeout(() => setSubmitSuccess(false), 5000);
+          return;
+        }
+
+        console.warn('Backend public contact insert failed; trying Supabase fallback.', data);
         setSubmitError(String(data?.message || 'Failed to send your message. Please try again.'));
+      } catch (backendError) {
+        console.warn('Backend public contact insert unavailable; trying Supabase fallback.', backendError);
+      }
+
+      if (await saveDirectlyToSupabase()) {
+        setSubmitSuccess(true);
+        setFormData({ fullName: '', barangay: '', contactNumber: '', email: '', subject: '', message: '' });
+        setTimeout(() => setSubmitSuccess(false), 5000);
         return;
       }
 
-      setSubmitSuccess(true);
-      setFormData({ fullName: '', barangay: '', contactNumber: '', email: '', subject: '', message: '' });
-      setTimeout(() => setSubmitSuccess(false), 5000);
+      if (!submitError) {
+        setSubmitError('Failed to send your message. Please try again.');
+      }
     } catch {
       setSubmitError('Unable to connect to the server right now. Please try again in a moment.');
     } finally {

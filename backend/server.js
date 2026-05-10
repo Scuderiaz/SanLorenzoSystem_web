@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
 const pg = require('pg');
 const { Pool } = pg;
 const fs = require('fs');
@@ -59,6 +60,7 @@ if (supabase) {
 const syncIntervalMs = Number(process.env.SUPABASE_SYNC_INTERVAL_MS || 60000);
 const immediateSyncDelayMs = Number(process.env.IMMEDIATE_SYNC_DELAY_MS || 1000);
 const defaultSystemLogAccountId = Number(process.env.SYSTEM_LOG_ACCOUNT_ID || 1);
+const defaultPublicConcernAccountId = Number(process.env.PUBLIC_CONCERN_ACCOUNT_ID || defaultSystemLogAccountId || 1);
 const logDirectory = path.join(__dirname, 'sync-logs');
 const logFiles = {
   postgres: path.join(logDirectory, 'postgres-sync.txt'),
@@ -3274,6 +3276,15 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_consumer_concerns_account_id ON consumer_concerns(account_id);
   `);
   await pool.query('ALTER TABLE consumer_concerns ALTER COLUMN account_id DROP NOT NULL');
+  await pool.query(`
+    UPDATE consumer_concerns
+    SET account_id = COALESCE(
+      (SELECT account_id FROM accounts WHERE account_id = $1 LIMIT 1),
+      (SELECT account_id FROM accounts ORDER BY account_id ASC LIMIT 1)
+    )
+    WHERE account_id IS NULL
+      AND EXISTS (SELECT 1 FROM accounts LIMIT 1)
+  `, [defaultPublicConcernAccountId]);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS password_reset (
       reset_id SERIAL PRIMARY KEY,
@@ -7964,6 +7975,8 @@ app.put('/api/consumers/:id', async (req, res) => {
   const requestedLedgerStatus = String(consumer.Ledger_Status || consumer.ledger_status || '').trim();
   const ledgerStatus = requestedLedgerStatus || (consumerStatus === 'Active' ? 'Active' : 'Inactive');
   const effectiveMeterStatus = consumerStatus === 'Active' ? meterStatus : 'Inactive';
+  const requestedPassword = String(consumer.Password || consumer.password || '').trim();
+  let passwordHash = null;
 
   if (normalizedAccountNumber && !isValidConsumerAccountNumber(normalizedAccountNumber)) {
     return res.status(400).json({
@@ -7992,14 +8005,39 @@ app.put('/api/consumers/:id', async (req, res) => {
       message: 'Classification is required for every consumer.',
     });
   }
+
+  if (requestedPassword) {
+    try {
+      passwordHash = hashPassword(requestedPassword);
+    } catch (error) {
+      return res.status(error.statusCode || 400).json({
+        success: false,
+        message: error.message || 'Password is invalid.',
+      });
+    }
+  }
   
   try {
-    await withPostgresPrimary(
+    const updatedLoginAccount = await withPostgresPrimary(
       'consumers.update',
       async () => {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
+
+          const { rows: existingConsumers } = await client.query(`
+            SELECT consumer_id, login_id
+            FROM consumer
+            WHERE consumer_id = $1
+            FOR UPDATE
+          `, [id]);
+
+          if (!existingConsumers.length) {
+            throw createHttpError('Consumer not found.', 404);
+          }
+
+          const existingConsumer = existingConsumers[0];
+          let loginAccount = null;
 
           await client.query(`
             UPDATE consumer SET 
@@ -8050,7 +8088,27 @@ app.put('/api/consumers/:id', async (req, res) => {
             }
           }
 
+          if (passwordHash) {
+            if (!existingConsumer.login_id) {
+              throw createHttpError('This concessionaire does not have a login account to update.', 400);
+            }
+
+            const { rows: accountRows } = await client.query(`
+              UPDATE accounts
+              SET password = $1
+              WHERE account_id = $2
+              RETURNING account_id, username, auth_user_id
+            `, [passwordHash, existingConsumer.login_id]);
+
+            if (!accountRows.length) {
+              throw createHttpError('Linked login account not found.', 404);
+            }
+
+            loginAccount = accountRows[0];
+          }
+
           await client.query('COMMIT');
+          return loginAccount;
         } catch (error) {
           await client.query('ROLLBACK');
           throw error;
@@ -8059,6 +8117,14 @@ app.put('/api/consumers/:id', async (req, res) => {
         }
       },
       async () => {
+        const { data: existingConsumer, error: lookupError } = await supabase
+          .from('consumer')
+          .select('consumer_id, login_id')
+          .eq('consumer_id', id)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (!existingConsumer) throw createHttpError('Consumer not found.', 404);
+
         const { error: consumerError } = await supabase
           .from('consumer')
           .update({
@@ -8073,7 +8139,7 @@ app.put('/api/consumers/:id', async (req, res) => {
             zone_id: normalizedZoneId,
             classification_id: normalizedClassificationId,
             account_number: normalizedAccountNumber || null,
-            status: consumer.Status,
+            status: consumerStatus,
             ledger_status: ledgerStatus,
             contact_number: normalizedContactNumber,
             connection_date: consumer.Connection_Date,
@@ -8103,15 +8169,48 @@ app.put('/api/consumers/:id', async (req, res) => {
             if (meterInsertError) throw meterInsertError;
           }
         }
+
+        if (passwordHash) {
+          if (!existingConsumer.login_id) {
+            throw createHttpError('This concessionaire does not have a login account to update.', 400);
+          }
+
+          const { data: accountData, error: accountError } = await supabase
+            .from('accounts')
+            .update({ password: passwordHash })
+            .eq('account_id', existingConsumer.login_id)
+            .select('account_id, username, auth_user_id')
+            .maybeSingle();
+          if (accountError) throw accountError;
+          if (!accountData) throw createHttpError('Linked login account not found.', 404);
+
+          return accountData;
+        }
+
+        return null;
       }
     );
 
+    if (requestedPassword && updatedLoginAccount?.account_id) {
+      await syncAccountAuthCredentials({
+        accountId: updatedLoginAccount.account_id,
+        username: updatedLoginAccount.username,
+        password: requestedPassword,
+        authUserId: updatedLoginAccount.auth_user_id,
+      });
+    }
+
     scheduleImmediateSync('consumers-update');
-    return res.json({ success: true, message: 'Consumer updated successfully' });
+    return res.json({
+      success: true,
+      message: requestedPassword
+        ? 'Consumer updated successfully. Password changed.'
+        : 'Consumer updated successfully',
+    });
   } catch (error) {
     await logRequestError(req, 'consumers.update', error);
     console.error('Error updating consumer:', error);
-    const statusCode = error?.code === '23505' || error?.code === '23503' || error?.code === '23514' ? 400 : 500;
+    const statusCode = error?.statusCode || (error?.code === '23505' || error?.code === '23503' || error?.code === '23514' ? 400 : 500);
     return res.status(statusCode).json({ success: false, message: getConsumerSaveErrorMessage(error) });
   }
 });
@@ -9924,6 +10023,42 @@ async function sendEmailViaBrevo(toEmail, subject, messageText) {
   return { success: true, provider: 'brevo', response: payload };
 }
 
+async function sendEmailViaGmailSmtp(toEmail, subject, messageText) {
+  const host = String(process.env.SMTP_HOST || 'smtp.gmail.com').trim();
+  const port = Number(process.env.SMTP_PORT || 587);
+  const secure = String(process.env.SMTP_SECURE || 'false').trim().toLowerCase() === 'true';
+  const user = String(process.env.SMTP_USER || '').trim();
+  const pass = String(process.env.SMTP_PASS || '').trim();
+  const fromEmail = String(process.env.SMTP_FROM_EMAIL || user).trim();
+  const fromName = String(process.env.SMTP_FROM_NAME || 'San Lorenzo Ruiz Waterworks').trim();
+
+  if (!user) {
+    throw new Error('SMTP_USER is missing. Configure it in backend/.env.');
+  }
+  if (!pass) {
+    throw new Error('SMTP_PASS is missing. Configure it in backend/.env.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: {
+      user,
+      pass,
+    },
+  });
+
+  const response = await transporter.sendMail({
+    from: `"${fromName.replace(/"/g, '')}" <${fromEmail}>`,
+    to: toEmail,
+    subject: subject || 'San Lorenzo Ruiz Waterworks System',
+    text: String(messageText || '').trim(),
+  });
+
+  return { success: true, provider: 'gmail', response };
+}
+
 async function sendConcernEmailReply(toEmail, concernSubject, replyText) {
   const provider = String(process.env.EMAIL_PROVIDER || 'mock').trim().toLowerCase();
   const normalizedEmail = String(toEmail || '').trim().toLowerCase();
@@ -9954,8 +10089,11 @@ async function sendConcernEmailReply(toEmail, concernSubject, replyText) {
   if (provider === 'brevo') {
     return sendEmailViaBrevo(normalizedEmail, subject, messageText);
   }
+  if (provider === 'gmail' || provider === 'smtp') {
+    return sendEmailViaGmailSmtp(normalizedEmail, subject, messageText);
+  }
 
-  throw new Error(`Unsupported EMAIL_PROVIDER "${provider}". Use "brevo", "resend", or "mock".`);
+  throw new Error(`Unsupported EMAIL_PROVIDER "${provider}". Use "gmail", "brevo", "resend", or "mock".`);
 }
 
 // --- FORGOT PASSWORD ENDPOINTS ---
@@ -10074,11 +10212,11 @@ app.post('/api/public/contact', async (req, res) => {
   }
 
   try {
-    const fallbackPublicAccountId = defaultSystemLogAccountId || 1;
+    const fallbackPublicAccountId = defaultPublicConcernAccountId;
     const insertSupabasePublicConcern = async () => {
       const payload = {
         consumer_id: null,
-        account_id: null,
+        account_id: fallbackPublicAccountId,
         category: 'Public Contact',
         subject,
         description: message,
@@ -10129,8 +10267,8 @@ app.post('/api/public/contact', async (req, res) => {
             await pool.query(
               `INSERT INTO consumer_concerns
                 (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number, email)
-               VALUES (NULL, NULL, $1, $2, $3, 'Normal', 'Pending', $4, $5, $6, $7)`,
-              ['Public Contact', subject, message, fullName, barangay, normalizedContactNumber, email]
+               VALUES (NULL, $1, $2, $3, $4, 'Normal', 'Pending', $5, $6, $7, $8)`,
+              [fallbackPublicAccountId, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber, email]
             );
           } catch (postgresError) {
             if (String(postgresError?.message || '').toLowerCase().includes('account_id') && String(postgresError?.message || '').toLowerCase().includes('not-null')) {
@@ -10418,7 +10556,14 @@ app.patch('/api/public-contact-messages/:id/status', async (req, res) => {
     let emailWarning = null;
     if (remarks && updated.email) {
       try {
-        await sendConcernEmailReply(updated.email, updated.subject, remarks);
+        const emailResult = await sendConcernEmailReply(updated.email, updated.subject, remarks);
+        await writeSystemLog(
+          `[public-contact] Email sent for concern #${id} to ${updated.email} via ${emailResult.provider || 'email'} (${emailResult.response?.messageId || 'accepted'}).`,
+          {
+            userId: reviewedBy || defaultSystemLogAccountId,
+            role: 'Admin',
+          }
+        );
       } catch (emailError) {
         emailWarning = 'Concern updated, but email delivery failed.';
         await logRequestError(req, 'public.contact.updateStatus.email', emailError);
@@ -10537,7 +10682,14 @@ app.patch('/api/public-contact-messages/:id/reply', async (req, res) => {
     let emailWarning = null;
     if (updated.email) {
       try {
-        await sendConcernEmailReply(updated.email, updated.subject, reply);
+        const emailResult = await sendConcernEmailReply(updated.email, updated.subject, reply);
+        await writeSystemLog(
+          `[public-contact] Email sent for concern #${id} to ${updated.email} via ${emailResult.provider || 'email'} (${emailResult.response?.messageId || 'accepted'}).`,
+          {
+            userId: reviewedBy || defaultSystemLogAccountId,
+            role: 'Billing Officer',
+          }
+        );
       } catch (emailError) {
         emailWarning = 'Reply saved, but email delivery failed.';
         await logRequestError(req, 'public.contact.reply.email', emailError);

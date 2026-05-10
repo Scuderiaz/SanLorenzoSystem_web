@@ -4,6 +4,7 @@ import DataTable, { Column } from '../../components/Common/DataTable';
 import Modal from '../../components/Common/Modal';
 import { useToast } from '../../components/Common/ToastContainer';
 import { useAuth } from '../../context/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import { getErrorMessage, requestJson } from '../../services/userManagementApi';
 import './PublicConcerns.css';
 
@@ -28,6 +29,23 @@ type PublicConcern = {
 
 const statusOptions: ConcernStatus[] = ['Pending', 'In Progress', 'Resolved', 'Closed'];
 
+const mapSupabaseConcern = (row: any): PublicConcern => ({
+  message_id: Number(row.concern_id || 0),
+  full_name: String(row.full_name || '').trim() || 'Unknown sender',
+  barangay: String(row.barangay || '').trim() || 'Not specified',
+  contact_number: String(row.contact_number || '').trim() || 'Not provided',
+  email: String(row.email || '').trim() || 'Not provided',
+  source: row.category || 'Public Contact',
+  category: row.category || 'Public Contact',
+  subject: row.subject || '',
+  message: row.description || row.message || '',
+  status: (row.status || 'Pending') as ConcernStatus,
+  created_at: row.created_at || new Date().toISOString(),
+  reviewed_at: row.resolved_at || null,
+  reviewed_by: row.resolved_by || null,
+  remarks: row.remarks || null,
+});
+
 const PublicConcerns: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -43,9 +61,45 @@ const PublicConcerns: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [viewTarget, setViewTarget] = useState<PublicConcern | null>(null);
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
-  const [hiddenConcernIds, setHiddenConcernIds] = useState<Record<number, boolean>>({});
+  const [hiddenConcernIds] = useState<Record<number, boolean>>({});
   const canReply = [1, 2].includes(Number(user?.role_id || 0));
   const canDelete = [1, 2].includes(Number(user?.role_id || 0));
+
+  const loadConcernsFromSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase is not configured.');
+    }
+
+    let builder = supabase
+      .from('consumer_concerns')
+      .select('concern_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (statusFilter) {
+      builder = builder.eq('status', statusFilter);
+    }
+
+    const { data, error } = await builder;
+    if (error) throw error;
+
+    const normalizedQuery = search.trim().toLowerCase();
+    return (data || [])
+      .map(mapSupabaseConcern)
+      .filter((row) => !barangayFilter || row.barangay.trim().toLowerCase() === barangayFilter.toLowerCase())
+      .filter((row) => {
+        if (!normalizedQuery) return true;
+        return [
+          row.full_name,
+          row.barangay,
+          row.subject,
+          row.message,
+          row.contact_number,
+          row.email,
+          row.category,
+        ].join(' ').toLowerCase().includes(normalizedQuery);
+      });
+  }, [barangayFilter, search, statusFilter]);
 
   const loadConcerns = useCallback(async () => {
     setLoading(true);
@@ -73,11 +127,17 @@ const PublicConcerns: React.FC = () => {
       });
       setRows(inboxRows);
     } catch (error) {
-      showToast(getErrorMessage(error, 'Failed to load public concerns.'), 'error');
+      try {
+        const fallbackRows = await loadConcernsFromSupabase();
+        setRows(fallbackRows.filter((row) => !hiddenConcernIds[row.message_id]));
+        showToast('Public concerns loaded from Supabase.', 'warning');
+      } catch (fallbackError) {
+        showToast(getErrorMessage(fallbackError || error, 'Failed to load public concerns.'), 'error');
+      }
     } finally {
       setLoading(false);
     }
-  }, [barangayFilter, hiddenConcernIds, search, showToast, statusFilter]);
+  }, [barangayFilter, hiddenConcernIds, loadConcernsFromSupabase, search, showToast, statusFilter]);
 
   const handleDelete = useCallback(async (messageId: number) => {
     try {
@@ -120,7 +180,7 @@ const PublicConcerns: React.FC = () => {
     setIsSendingReply(true);
     try {
       const nextStatus: ConcernStatus = 'Resolved';
-      await requestJson<{ success: boolean; message: string; data: PublicConcern }>(
+      const result = await requestJson<{ success: boolean; message?: string; data: PublicConcern }>(
         `/public-contact-messages/${replyTarget.message_id}/status`,
         {
           method: 'PATCH',
@@ -134,7 +194,8 @@ const PublicConcerns: React.FC = () => {
         'Failed to send reply.'
       );
 
-      showToast(`Reply sent for concern #${replyTarget.message_id}.`, 'success');
+      const serverMessage = result.message || `Reply sent for concern #${replyTarget.message_id}.`;
+      showToast(serverMessage, serverMessage.toLowerCase().includes('failed') ? 'warning' : 'success');
       setReplyTarget(null);
       setReplyMessage('');
       await loadConcerns();

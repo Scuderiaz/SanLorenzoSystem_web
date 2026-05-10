@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../config/supabase';
 import './Sidebar.css';
 
 interface MenuItem {
@@ -77,6 +78,16 @@ const Sidebar: React.FC = () => {
         setPendingConcernCount((result.data || []).length);
       }
     } catch (error) {
+      if (isSupabaseConfigured && supabase) {
+        const { count, error: supabaseError } = await supabase
+          .from('consumer_concerns')
+          .select('concern_id', { count: 'exact', head: true })
+          .eq('status', 'Pending');
+        if (!supabaseError) {
+          setPendingConcernCount(count || 0);
+          return;
+        }
+      }
       console.error('Error loading pending public concern count:', error);
     }
   }, [API_URL]);

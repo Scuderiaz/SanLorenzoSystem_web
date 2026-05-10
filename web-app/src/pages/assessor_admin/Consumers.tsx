@@ -297,6 +297,11 @@ const Consumers: React.FC = () => {
       return;
     }
 
+    if (formData.password.trim() && formData.password.trim().length < 8) {
+      showToast('Password must be at least 8 characters long.', 'error');
+      return;
+    }
+
     if (!formData.zoneId) {
       showToast('Please select a zone before saving the Concessionaire.', 'error');
       return;
@@ -602,26 +607,25 @@ const Consumers: React.FC = () => {
           }
         >
           <div className="consumer-modal-grid">
+            <div className="consumer-modal-section-title">Account Access</div>
             {!editingConsumer && (
-              <>
-                <div className="consumer-modal-section-title">Account Access</div>
-                <FormInput
-                  label="Username"
-                  value={formData.username}
-                  onChange={(value) => setFormData({ ...formData, username: value })}
-                  required
-                  icon="fa-user"
-                />
-                <FormInput
-                  label="Password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(value) => setFormData({ ...formData, password: value })}
-                  required
-                  icon="fa-lock"
-                />
-              </>
+              <FormInput
+                label="Username"
+                value={formData.username}
+                onChange={(value) => setFormData({ ...formData, username: value })}
+                required
+                icon="fa-user"
+              />
             )}
+            <FormInput
+              label={editingConsumer ? 'New Password' : 'Password'}
+              type="password"
+              value={formData.password}
+              onChange={(value) => setFormData({ ...formData, password: value })}
+              placeholder={editingConsumer ? 'Leave blank to keep current password' : undefined}
+              required={!editingConsumer}
+              icon="fa-lock"
+            />
             <div className="consumer-modal-section-title">Personal Information</div>
             <FormInput
               label="First Name"

@@ -440,15 +440,26 @@
 }
 
 .treasurer-ledger-page .data-table {
-  min-width: 1280px;
-  table-layout: fixed;
+  width: max-content;
+  min-width: 1480px;
+  table-layout: auto;
 }
 
 .treasurer-ledger-page .data-table th,
 .treasurer-ledger-page .data-table td {
   padding: 16px 18px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.treasurer-ledger-page .data-table .data-table-header-content {
+  white-space: nowrap;
+}
+
+.treasurer-ledger-page .data-table td:nth-child(2) {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   word-break: normal;
 }
 
@@ -459,7 +470,8 @@
 
 .treasurer-ledger-page .data-table th:nth-child(2),
 .treasurer-ledger-page .data-table td:nth-child(2) {
-  width: 170px;
+  min-width: 210px;
+  max-width: 300px;
 }
 
 .treasurer-ledger-page .data-table th:nth-child(3),

@@ -1211,6 +1211,74 @@ export const loadPendingApplicationsWithFallback = async () => requestWithSupaba
   'dataset.pendingApplications'
 );
 
+export const loadPublicConcernsWithFallback = async (filters: {
+  status?: string;
+  barangay?: string;
+  q?: string;
+} = {}) => {
+  const query = new URLSearchParams();
+  if (filters.status) query.set('status', filters.status);
+  if (filters.barangay) query.set('barangay', filters.barangay);
+  if (filters.q) query.set('q', filters.q);
+
+  const normalizedQuery = String(filters.q || '').trim().toLowerCase();
+  const normalizedBarangay = String(filters.barangay || '').trim().toLowerCase();
+  const normalizedStatus = String(filters.status || '').trim().toLowerCase();
+
+  return requestWithSupabaseFallback(
+    `/public-contact-messages${query.toString() ? `?${query.toString()}` : ''}`,
+    async () => {
+      let builder = supabase!
+        .from('consumer_concerns')
+        .select('concern_id, category, subject, description, status, created_at, resolved_at, resolved_by, remarks, full_name, barangay, contact_number, email')
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      if (filters.status) {
+        builder = builder.eq('status', filters.status);
+      }
+
+      const { data, error } = await builder;
+      if (error) throw error;
+
+      return (data || [])
+        .map((row: any) => ({
+          message_id: row.concern_id,
+          full_name: row.full_name || 'Unknown sender',
+          barangay: row.barangay || 'Not specified',
+          contact_number: row.contact_number || 'Not provided',
+          email: row.email || 'Not provided',
+          source: row.category || 'Public Contact',
+          category: row.category || 'Public Contact',
+          subject: row.subject || '',
+          message: row.description || '',
+          status: row.status || 'Pending',
+          created_at: row.created_at || null,
+          reviewed_at: row.resolved_at || null,
+          reviewed_by: row.resolved_by || null,
+          remarks: row.remarks || null,
+        }))
+        .filter((row: any) => !normalizedStatus || normalizeStatus(row.status) === normalizedStatus)
+        .filter((row: any) => !normalizedBarangay || String(row.barangay || '').trim().toLowerCase() === normalizedBarangay)
+        .filter((row: any) => {
+          if (!normalizedQuery) return true;
+          return [
+            row.full_name,
+            row.barangay,
+            row.subject,
+            row.message,
+            row.contact_number,
+            row.email,
+            row.category,
+          ].join(' ').toLowerCase().includes(normalizedQuery);
+        });
+    },
+    (payload) => payload?.data || [],
+    'Failed to load public concerns.',
+    `dataset.publicConcerns.${filters.status || 'all'}.${filters.barangay || 'all'}.${filters.q || 'all'}`
+  );
+};
+
 export const loadWaterRatesWithFallback = async (options: {
   classificationId?: number | string | null;
   latestOnly?: boolean;

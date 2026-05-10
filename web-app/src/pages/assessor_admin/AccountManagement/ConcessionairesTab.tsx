@@ -292,6 +292,11 @@ const ConcessionairesTab: React.FC = () => {
       return;
     }
 
+    if (formData.password.trim() && formData.password.trim().length < 8) {
+      showToast('Password must be at least 8 characters long.', 'error');
+      return;
+    }
+
     if (!formData.zoneId) {
       showToast('Please select a zone before saving the Concessionaire.', 'error');
       return;
@@ -587,13 +592,18 @@ const ConcessionairesTab: React.FC = () => {
         }
       >
         <div className="consumer-modal-grid">
+          <div className="consumer-modal-section-title">Account Access</div>
           {!editingConcessionaire && (
-            <>
-              <div className="consumer-modal-section-title">Account Access</div>
-              <FormInput label="Username" value={formData.username} onChange={(v) => setFormData({ ...formData, username: v })} required />
-              <FormInput label="Password" type="password" value={formData.password} onChange={(v) => setFormData({ ...formData, password: v })} required />
-            </>
+            <FormInput label="Username" value={formData.username} onChange={(v) => setFormData({ ...formData, username: v })} required />
           )}
+          <FormInput
+            label={editingConcessionaire ? 'New Password' : 'Password'}
+            type="password"
+            value={formData.password}
+            onChange={(v) => setFormData({ ...formData, password: v })}
+            placeholder={editingConcessionaire ? 'Leave blank to keep current password' : undefined}
+            required={!editingConcessionaire}
+          />
           <div className="consumer-modal-section-title">Personal Information</div>
           <FormInput label="First Name" value={formData.firstName} onChange={(v) => setFormData({ ...formData, firstName: v })} required />
           <FormInput label="Middle Name" value={formData.middleName} onChange={(v) => setFormData({ ...formData, middleName: v })} />
