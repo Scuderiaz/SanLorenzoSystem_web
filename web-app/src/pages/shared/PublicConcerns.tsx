@@ -41,6 +41,7 @@ const PublicConcerns: React.FC = () => {
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PublicConcern | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewTarget, setViewTarget] = useState<PublicConcern | null>(null);
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({});
   const [hiddenConcernIds, setHiddenConcernIds] = useState<Record<number, boolean>>({});
   const canReply = [1, 2].includes(Number(user?.role_id || 0));
@@ -68,9 +69,7 @@ const PublicConcerns: React.FC = () => {
         email: String(row.email || '').trim() || 'Not provided',
       }));
       const inboxRows = loadedRows.filter((row) => {
-        const normalizedStatus = String(row.status || '').trim().toLowerCase();
-        const hasReply = Boolean(String(row.remarks || '').trim());
-        return !hiddenConcernIds[row.message_id] && !hasReply && normalizedStatus !== 'resolved' && normalizedStatus !== 'closed';
+        return !hiddenConcernIds[row.message_id];
       });
       setRows(inboxRows);
     } catch (error) {
@@ -136,8 +135,6 @@ const PublicConcerns: React.FC = () => {
       );
 
       showToast(`Reply sent for concern #${replyTarget.message_id}.`, 'success');
-      setHiddenConcernIds((current) => ({ ...current, [replyTarget.message_id]: true }));
-      setRows((current) => current.filter((row) => row.message_id !== replyTarget.message_id));
       setReplyTarget(null);
       setReplyMessage('');
       await loadConcerns();
@@ -214,7 +211,7 @@ const PublicConcerns: React.FC = () => {
             <div className="public-concern-reply-empty">No reply yet</div>
           )}
           <div className="action-buttons-inline">
-            {canReply && (
+            {canReply && String(row.status || '').toLowerCase() !== 'resolved' && (
               <button
                 type="button"
                 className="btn btn-primary public-concern-reply-btn"
@@ -224,6 +221,15 @@ const PublicConcerns: React.FC = () => {
                 }}
               >
                 Reply
+              </button>
+            )}
+            {String(row.status || '').toLowerCase() === 'resolved' && (
+              <button
+                type="button"
+                className="btn btn-secondary public-concern-view-btn"
+                onClick={() => setViewTarget(row)}
+              >
+                <i className="fas fa-eye" /> View
               </button>
             )}
             {canDelete && (
@@ -348,15 +354,35 @@ const PublicConcerns: React.FC = () => {
         )}
       >
         <div className="public-concern-reply-modal">
-          <label htmlFor="public-concern-reply-message">Reply Message</label>
-          <textarea
-            id="public-concern-reply-message"
-            value={replyMessage}
-            onChange={(event) => setReplyMessage(event.target.value)}
-            rows={6}
-            placeholder="Type your reply here..."
-            disabled={isSendingReply}
-          />
+          {replyTarget && (
+            <>
+              <div className="reply-section">
+                <label>Subject</label>
+                <p className="reply-subject">{replyTarget.subject}</p>
+              </div>
+              <div className="reply-section">
+                <label>Original Message</label>
+                <p className="reply-original-message">{replyTarget.message}</p>
+              </div>
+              <div className="reply-section">
+                <label>Reply Message</label>
+                <textarea
+                  id="public-concern-reply-message"
+                  value={replyMessage}
+                  onChange={(event) => setReplyMessage(event.target.value)}
+                  rows={5}
+                  placeholder="Type your reply here..."
+                  disabled={isSendingReply}
+                />
+              </div>
+              <div className="reply-meta">
+                <span><strong>From:</strong> {replyTarget.full_name}</span>
+                <span><strong>Contact:</strong> {replyTarget.contact_number}</span>
+                <span><strong>Barangay:</strong> {replyTarget.barangay}</span>
+                <span><strong>Status:</strong> <span className={`public-concern-status status-${String(replyTarget.status).toLowerCase().replace(/\s+/g, '-')}`}>{replyTarget.status}</span></span>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
 
@@ -394,6 +420,46 @@ const PublicConcerns: React.FC = () => {
           <p style={{ margin: 0 }}>
             Delete concern from <strong>{deleteTarget.full_name}</strong> about <strong>{deleteTarget.subject}</strong>? This action cannot be undone.
           </p>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(viewTarget)}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget ? `Concern from ${viewTarget.full_name}` : 'View Concern'}
+        size="medium"
+        className="public-concern-view-dialog"
+        footer={(
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setViewTarget(null)}
+          >
+            Close
+          </button>
+        )}
+      >
+        {viewTarget && (
+          <div className="public-concern-view-modal">
+            <div className="view-section">
+              <label>Subject</label>
+              <p className="view-subject">{viewTarget.subject}</p>
+            </div>
+            <div className="view-section">
+              <label>Original Message</label>
+              <p className="view-message">{viewTarget.message}</p>
+            </div>
+            <div className="view-section">
+              <label>Reply</label>
+              <p className="view-reply">{viewTarget.remarks || 'No reply available.'}</p>
+            </div>
+            <div className="view-meta">
+              <span><strong>From:</strong> {viewTarget.full_name}</span>
+              <span><strong>Contact:</strong> {viewTarget.contact_number}</span>
+              <span><strong>Barangay:</strong> {viewTarget.barangay}</span>
+              <span><strong>Status:</strong> <span className={`public-concern-status status-${String(viewTarget.status).toLowerCase().replace(/\s+/g, '-')}`}>{viewTarget.status}</span></span>
+            </div>
+          </div>
         )}
       </Modal>
     </MainLayout>

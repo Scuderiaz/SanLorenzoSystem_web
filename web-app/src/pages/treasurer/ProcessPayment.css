@@ -5,6 +5,11 @@
   animation: fadeIn 0.5s ease-out;
 }
 
+/* Allow dropdown to overflow card boundaries */
+.card.payment-card {
+  overflow: visible;
+}
+
 /* ─── Information Banner ────────────────────────────────────────── */
 .process-steps {
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
@@ -42,6 +47,7 @@
 
 .account-search-wrap {
   position: relative;
+  z-index: 100;
 }
 
 .account-search-row {
@@ -92,7 +98,7 @@
   border-radius: 16px;
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
   overflow: hidden;
-  z-index: 20;
+  z-index: 9999;
 }
 
 .account-search-suggestion {

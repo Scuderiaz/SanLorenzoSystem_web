@@ -1737,3 +1737,18 @@
 [2026-05-10T13:30:04.402Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-05-10T13:31:04.403Z] [sync.cycle] Hybrid sync cycle started via scheduler.
 [2026-05-10T13:32:04.406Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T14:04:37.548Z] [server.start] AggregateError
+[2026-05-10T14:05:33.408Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T14:07:41.239Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-delete.
+[2026-05-10T14:27:25.410Z] [sync.cycle] Hybrid sync cycle started via immediate:reading-schedules-delete.
+[2026-05-10T14:34:31.801Z] [sync.cycle] Hybrid sync cycle started via immediate:admin-reject-user.
+[2026-05-10T17:12:24.453Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-delete.
+[2026-05-10T17:16:34.929Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T17:22:54.725Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-10T17:24:27.682Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-10T17:25:55.546Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T17:26:17.792Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.
+[2026-05-10T17:28:51.351Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T17:32:49.770Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-delete.
+[2026-05-10T17:59:53.157Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T18:00:27.351Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-status-update.

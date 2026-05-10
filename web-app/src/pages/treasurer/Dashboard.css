@@ -220,7 +220,22 @@
   border-radius: 16px;
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
   overflow: hidden;
-  z-index: 20;
+  z-index: 9999;
+}
+
+/* Allow dropdown to overflow card boundaries */
+.card.quick-view-section {
+  overflow: visible;
+}
+
+.quick-view-search-wrap {
+  position: relative;
+  width: min(100%, 420px);
+  z-index: 100;
+}
+
+.quick-view-search-wrap .quick-search-suggestions {
+  z-index: 9999;
 }
 
 .quick-search-suggestion {

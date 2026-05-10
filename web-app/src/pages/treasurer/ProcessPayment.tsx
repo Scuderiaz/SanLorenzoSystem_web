@@ -466,7 +466,7 @@ const ProcessPayment: React.FC = () => {
   return (
     <MainLayout title="Collections Point">
       <div className="process-payment-page">
-        <div className="card">
+        <div className="card payment-card">
           <div className="card-header" style={{ marginBottom: '30px' }}>
             <h2 className="card-title">Official Receipt Payment Processor</h2>
           </div>
