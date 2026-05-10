@@ -311,7 +311,7 @@ const LandingPage: React.FC = () => {
           <div className="hero-text">
             <h1 className="hero-title">
               <span className="title-main">SAN LORENZO RUIZ</span>
-              <span className="title-sub">WATER BILLING</span>
+              <span className="title-sub">Water Billing and Payment Record Management System</span>
             </h1>
             <p className="hero-description">
               Providing reliable, clean, and accessible water services to our community.

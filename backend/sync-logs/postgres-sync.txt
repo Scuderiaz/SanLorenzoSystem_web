@@ -31004,3 +31004,66 @@
 [2026-05-10T00:19:15.793Z] Preparing sync for table backuplogs.
 [2026-05-10T00:19:15.957Z] Preparing sync for table waterrates.
 [2026-05-10T00:19:16.346Z] Preparing sync for table consumer_concerns.
+[2026-05-10T09:51:09.050Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-10T09:51:15.369Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-10T09:51:17.109Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-10T09:51:19.331Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-10T09:51:19.852Z] Preparing sync for table roles.
+[2026-05-10T09:51:20.097Z] Preparing sync for table zone.
+[2026-05-10T09:51:20.345Z] Preparing sync for table classification.
+[2026-05-10T09:51:20.598Z] Preparing sync for table accounts.
+[2026-05-10T09:51:20.842Z] Preparing sync for table consumer.
+[2026-05-10T09:51:21.086Z] Preparing sync for table meter.
+[2026-05-10T09:51:21.329Z] Preparing sync for table route.
+[2026-05-10T09:51:21.581Z] Preparing sync for table meterreadings.
+[2026-05-10T09:51:21.843Z] Preparing sync for table bills.
+[2026-05-10T09:51:22.098Z] Preparing sync for table payment.
+[2026-05-10T09:51:22.352Z] Preparing sync for table ledger_entry.
+[2026-05-10T09:51:22.609Z] Preparing sync for table connection_ticket.
+[2026-05-10T09:51:22.869Z] Preparing sync for table password_reset.
+[2026-05-10T09:51:23.120Z] Preparing sync for table account_review_log.
+[2026-05-10T09:51:23.372Z] Preparing sync for table backuplogs.
+[2026-05-10T09:51:23.628Z] Preparing sync for table waterrates.
+[2026-05-10T09:51:23.885Z] Preparing sync for table consumer_concerns.
+[2026-05-10T09:51:32.348Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-10T09:51:39.683Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-10T09:51:41.987Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-10T09:51:45.082Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-10T09:51:45.500Z] Preparing sync for table roles.
+[2026-05-10T09:51:45.762Z] Preparing sync for table zone.
+[2026-05-10T09:51:46.136Z] Preparing sync for table classification.
+[2026-05-10T09:51:46.420Z] Preparing sync for table accounts.
+[2026-05-10T09:51:46.697Z] Preparing sync for table consumer.
+[2026-05-10T09:51:47.150Z] Preparing sync for table meter.
+[2026-05-10T09:51:47.397Z] Preparing sync for table route.
+[2026-05-10T09:51:47.661Z] Preparing sync for table meterreadings.
+[2026-05-10T09:51:47.918Z] Preparing sync for table bills.
+[2026-05-10T09:51:48.186Z] Preparing sync for table payment.
+[2026-05-10T09:51:48.436Z] Preparing sync for table ledger_entry.
+[2026-05-10T09:51:48.689Z] Preparing sync for table connection_ticket.
+[2026-05-10T09:51:48.939Z] Preparing sync for table password_reset.
+[2026-05-10T09:51:49.206Z] Preparing sync for table account_review_log.
+[2026-05-10T09:51:49.457Z] Preparing sync for table backuplogs.
+[2026-05-10T09:51:49.708Z] Preparing sync for table waterrates.
+[2026-05-10T09:51:49.954Z] Preparing sync for table consumer_concerns.
+[2026-05-10T09:52:12.752Z] Starting Supabase to PostgreSQL sync cycle.
+[2026-05-10T09:52:19.197Z] Table ledger_entry: no rows pulled from Supabase.
+[2026-05-10T09:52:20.968Z] Table password_reset: no rows pulled from Supabase.
+[2026-05-10T09:52:23.224Z] Supabase pull cycle complete for 17 table(s).
+[2026-05-10T09:52:23.773Z] Preparing sync for table roles.
+[2026-05-10T09:52:24.034Z] Preparing sync for table zone.
+[2026-05-10T09:52:24.267Z] Preparing sync for table classification.
+[2026-05-10T09:52:24.523Z] Preparing sync for table accounts.
+[2026-05-10T09:52:24.772Z] Preparing sync for table consumer.
+[2026-05-10T09:52:25.023Z] Preparing sync for table meter.
+[2026-05-10T09:52:25.274Z] Preparing sync for table route.
+[2026-05-10T09:52:25.528Z] Preparing sync for table meterreadings.
+[2026-05-10T09:52:25.780Z] Preparing sync for table bills.
+[2026-05-10T09:52:26.031Z] Preparing sync for table payment.
+[2026-05-10T09:52:26.294Z] Preparing sync for table ledger_entry.
+[2026-05-10T09:52:26.547Z] Preparing sync for table connection_ticket.
+[2026-05-10T09:52:26.796Z] Preparing sync for table password_reset.
+[2026-05-10T09:52:27.046Z] Preparing sync for table account_review_log.
+[2026-05-10T09:52:27.296Z] Preparing sync for table backuplogs.
+[2026-05-10T09:52:27.546Z] Preparing sync for table waterrates.
+[2026-05-10T09:52:27.815Z] Preparing sync for table consumer_concerns.
