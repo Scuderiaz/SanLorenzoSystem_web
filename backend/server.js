@@ -38,7 +38,7 @@ const postgresConfig = process.env.DATABASE_URL
   ? {
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      options: `-c search_path=${supabaseSchema},public`,
+      options: `-c search_path=${supabaseSchema}`,
     }
   : {
       host: process.env.DB_HOST || 'localhost',
@@ -47,7 +47,7 @@ const postgresConfig = process.env.DATABASE_URL
       password: process.env.DB_PASSWORD || undefined,
       database: process.env.DB_NAME || 'SLRWs',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      options: `-c search_path=${supabaseSchema},public`,
+      options: `-c search_path=${supabaseSchema}`,
     };
 
 const pool = new Pool(postgresConfig);
@@ -149,6 +149,7 @@ const syncTableColumns = {
     'login_id',
     'account_number',
     'status',
+    'ledger_status',
     'contact_number',
     'connection_date',
   ],
@@ -302,6 +303,7 @@ const syncConflictPolicies = {
       'login_id',
       'account_number',
       'status',
+      'ledger_status',
       'contact_number',
       'connection_date',
     ],
@@ -3251,6 +3253,13 @@ async function initDb() {
       ALTER COLUMN municipality SET DEFAULT 'San Lorenzo Ruiz',
       ALTER COLUMN zip_code SET DEFAULT '4610';
   `);
+  await ensureTableColumn('consumer', 'ledger_status', `VARCHAR(10) NOT NULL DEFAULT 'Inactive'`);
+  await pool.query(`
+    ALTER TABLE consumer
+      DROP CONSTRAINT IF EXISTS consumer_ledger_status_check;
+    ALTER TABLE consumer
+      ADD CONSTRAINT consumer_ledger_status_check CHECK (ledger_status IN ('Active', 'Inactive'));
+  `);
   await ensureTableColumn('consumer_concerns', 'full_name', 'VARCHAR(160)');
   await ensureTableColumn('consumer_concerns', 'barangay', 'VARCHAR(120)');
   await ensureTableColumn('consumer_concerns', 'contact_number', 'VARCHAR(20)');
@@ -3412,6 +3421,67 @@ async function initDb() {
   }
 
   await loadAdminSettingsFromPostgres();
+}
+
+async function findAccountByAuthUserId(authUserId) {
+  const normalizedAuthUserId = String(authUserId || '').trim();
+  if (!normalizedAuthUserId) {
+    return null;
+  }
+
+  return withPostgresPrimary(
+    'auth.findByAuthUserId',
+    async () => {
+      const { rows } = await pool.query(
+        `SELECT a.account_id, a.username, a.password, a.email, a.auth_user_id, a.profile_picture_url, COALESCE(NULLIF(a.full_name, ''), a.username) AS full_name, a.role_id, a.account_status, r.role_name
+         FROM accounts a
+         JOIN roles r ON a.role_id = r.role_id
+         WHERE a.auth_user_id = $1::uuid
+         LIMIT 1`,
+        [normalizedAuthUserId]
+      );
+      return rows[0] || null;
+    },
+    async () => {
+      if (!supabase) {
+        return null;
+      }
+      const { data, error } = await supabase
+        .from('accounts')
+        .select(`
+          account_id,
+          username,
+          password,
+          email,
+          auth_user_id,
+          profile_picture_url,
+          full_name,
+          role_id,
+          account_status,
+          roles:role_id(role_name)
+        `)
+        .eq('auth_user_id', normalizedAuthUserId)
+        .maybeSingle();
+      if (error) {
+        throw error;
+      }
+      if (!data) {
+        return null;
+      }
+      return {
+        account_id: data.account_id,
+        username: data.username,
+        password: data.password,
+        email: data.email,
+        auth_user_id: data.auth_user_id,
+        profile_picture_url: data.profile_picture_url,
+        full_name: data.full_name || data.username,
+        role_id: data.role_id,
+        account_status: data.account_status,
+        role_name: data.roles?.role_name || null,
+      };
+    }
+  );
 }
 
 async function syncTableToSupabase(tableName, primaryKey) {
@@ -3846,6 +3916,7 @@ function mapConsumerRecord(consumer, zoneMap = new Map(), classificationMap = ne
     Classification_ID: consumer.classification_id,
     Account_Number: consumer.account_number,
     Status: consumer.status,
+    Ledger_Status: consumer.ledger_status || 'Inactive',
     Contact_Number: consumer.contact_number,
     Connection_Date: consumer.connection_date,
     Meter_ID: meterMap.get(consumer.consumer_id)?.meter_id || null,
@@ -4828,6 +4899,56 @@ app.post('/api/admin/approve-user', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Approver information is required.' });
     }
 
+    const meterValidation = await withPostgresPrimary(
+      'users.approve.meterValidation',
+      async () => {
+        const { rows } = await pool.query(
+          `SELECT c.consumer_id,
+                  COALESCE(NULLIF(TRIM(m.meter_serial_number), ''), NULL) AS meter_number
+           FROM consumer c
+           LEFT JOIN LATERAL (
+             SELECT meter_serial_number
+             FROM meter
+             WHERE consumer_id = c.consumer_id
+             ORDER BY meter_id DESC
+             LIMIT 1
+           ) m ON true
+           WHERE c.login_id = $1
+           ORDER BY c.consumer_id DESC
+           LIMIT 1`,
+          [accountId]
+        );
+        return rows[0] || null;
+      },
+      async () => {
+        const { data: consumerData, error: consumerError } = await supabase
+          .from('consumer')
+          .select('consumer_id')
+          .eq('login_id', accountId)
+          .order('consumer_id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (consumerError) throw consumerError;
+        if (!consumerData?.consumer_id) return null;
+
+        const { data: meterData, error: meterError } = await supabase
+          .from('meter')
+          .select('meter_serial_number')
+          .eq('consumer_id', consumerData.consumer_id)
+          .order('meter_id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (meterError) throw meterError;
+        return {
+          consumer_id: consumerData.consumer_id,
+          meter_number: String(meterData?.meter_serial_number || '').trim() || null,
+        };
+      }
+    );
+    if (!meterValidation?.meter_number) {
+      return res.status(400).json({ success: false, message: 'Cannot approve application without a meter number. Assign a meter first.' });
+    }
+
     await withPostgresPrimary(
       'users.approve',
       async () => {
@@ -4835,7 +4956,13 @@ app.post('/api/admin/approve-user', async (req, res) => {
         try {
           await client.query('BEGIN');
           await client.query('UPDATE accounts SET account_status = $1, role_id = $2 WHERE account_id = $3', ['Active', 5, accountId]);
-          await client.query('UPDATE consumer SET status = $1 WHERE login_id = $2', ['Active', accountId]);
+          await client.query('UPDATE consumer SET status = $1, ledger_status = $2 WHERE login_id = $3', ['Active', 'Active', accountId]);
+          await client.query(
+            `UPDATE meter
+             SET meter_status = 'Active'
+             WHERE consumer_id IN (SELECT consumer_id FROM consumer WHERE login_id = $1)`,
+            [accountId]
+          );
           await client.query('UPDATE connection_ticket SET status = $1 WHERE account_id = $2', ['Approved', accountId]);
           await client.query(`
             INSERT INTO account_review_log (account_id, reviewed_by, review_status, review_date, remarks)
@@ -4852,8 +4979,12 @@ app.post('/api/admin/approve-user', async (req, res) => {
         if (supabase) {
           const { error: mirroredAccountError } = await supabase.from('accounts').update({ account_status: 'Active', role_id: 5 }).eq('account_id', accountId);
           if (mirroredAccountError) throw mirroredAccountError;
-          const { error: mirroredConsumerError } = await supabase.from('consumer').update({ status: 'Active' }).eq('login_id', accountId);
+          const { error: mirroredConsumerError } = await supabase.from('consumer').update({ status: 'Active', ledger_status: 'Active' }).eq('login_id', accountId);
           if (mirroredConsumerError) throw mirroredConsumerError;
+          if (meterValidation?.consumer_id) {
+            const { error: mirroredMeterError } = await supabase.from('meter').update({ meter_status: 'Active' }).eq('consumer_id', meterValidation.consumer_id);
+            if (mirroredMeterError) throw mirroredMeterError;
+          }
           const { error: mirroredTicketError } = await supabase.from('connection_ticket').update({ status: 'Approved' }).eq('account_id', accountId);
           if (mirroredTicketError) throw mirroredTicketError;
           const { error: mirroredApprovalError } = await supabase.from('account_review_log').insert([{
@@ -4869,8 +5000,12 @@ app.post('/api/admin/approve-user', async (req, res) => {
       async () => {
         const { error: accountError } = await supabase.from('accounts').update({ account_status: 'Active', role_id: 5 }).eq('account_id', accountId);
         if (accountError) throw accountError;
-        const { error: consumerError } = await supabase.from('consumer').update({ status: 'Active' }).eq('login_id', accountId);
+        const { error: consumerError } = await supabase.from('consumer').update({ status: 'Active', ledger_status: 'Active' }).eq('login_id', accountId);
         if (consumerError) throw consumerError;
+        if (meterValidation?.consumer_id) {
+          const { error: meterError } = await supabase.from('meter').update({ meter_status: 'Active' }).eq('consumer_id', meterValidation.consumer_id);
+          if (meterError) throw meterError;
+        }
         const { error: ticketError } = await supabase.from('connection_ticket').update({ status: 'Approved' }).eq('account_id', accountId);
         if (ticketError) throw ticketError;
         const { error: approvalError } = await supabase.from('account_review_log').insert([{
@@ -4969,8 +5104,8 @@ app.post('/api/admin/reject-user', async (req, res) => {
             ['Inactive', accountId]
           );
           await client.query(
-            'UPDATE consumer SET status = $1 WHERE login_id = $2',
-            ['Inactive', accountId]
+            'UPDATE consumer SET status = $1, ledger_status = $2 WHERE login_id = $3',
+            ['Inactive', 'Inactive', accountId]
           );
 
           const { rows: ticketRows } = await client.query(
@@ -5278,10 +5413,10 @@ app.post('/api/users', async (req, res) => {
 
           if (isConsumerRole) {
             const { rows: consumerRows } = await client.query(`
-              INSERT INTO consumer (first_name, last_name, login_id, status)
-              VALUES ($1, $2, $3, $4)
+              INSERT INTO consumer (first_name, last_name, login_id, status, ledger_status)
+              VALUES ($1, $2, $3, $4, $5)
               RETURNING *
-            `, [firstName, lastName, createdUser.account_id, 'Pending']);
+            `, [firstName, lastName, createdUser.account_id, 'Pending', 'Inactive']);
 
             await client.query(`
               INSERT INTO connection_ticket (consumer_id, account_id, ticket_number, application_date, connection_type, requirements_submitted, status)
@@ -5321,6 +5456,7 @@ app.post('/api/users', async (req, res) => {
               last_name: lastName,
               login_id: data.account_id,
               status: 'Pending',
+              ledger_status: 'Inactive',
             }])
             .select()
             .single();
@@ -5417,15 +5553,15 @@ app.put('/api/users/:id', async (req, res) => {
             let consumerId = consumerRows[0]?.consumer_id;
             if (!consumerId) {
               const insertResult = await client.query(`
-                INSERT INTO consumer (first_name, last_name, login_id, status)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO consumer (first_name, last_name, login_id, status, ledger_status)
+                VALUES ($1, $2, $3, $4, $5)
                 RETURNING consumer_id
-              `, [firstName, lastName, accountId, 'Pending']);
+              `, [firstName, lastName, accountId, 'Pending', 'Inactive']);
               consumerId = insertResult.rows[0].consumer_id;
             } else {
               await client.query(
-                'UPDATE consumer SET status = $1 WHERE consumer_id = $2',
-                ['Pending', consumerId]
+                'UPDATE consumer SET status = $1, ledger_status = $2 WHERE consumer_id = $3',
+                ['Pending', 'Inactive', consumerId]
               );
             }
 
@@ -5478,7 +5614,7 @@ app.put('/api/users/:id', async (req, res) => {
           if (!consumerId) {
             const { data: consumerData, error: consumerInsertError } = await supabase
               .from('consumer')
-              .insert([{ first_name: firstName, last_name: lastName, login_id: accountId, status: 'Pending' }])
+              .insert([{ first_name: firstName, last_name: lastName, login_id: accountId, status: 'Pending', ledger_status: 'Inactive' }])
               .select('consumer_id')
               .single();
             if (consumerInsertError) throw consumerInsertError;
@@ -5486,7 +5622,7 @@ app.put('/api/users/:id', async (req, res) => {
           } else {
             const { error: consumerUpdateError } = await supabase
               .from('consumer')
-              .update({ status: 'Pending' })
+              .update({ status: 'Pending', ledger_status: 'Inactive' })
               .eq('consumer_id', consumerId);
             if (consumerUpdateError) throw consumerUpdateError;
           }
@@ -7094,6 +7230,7 @@ app.get('/api/consumers', async (req, res) => {
             c.classification_id AS "Classification_ID",
             c.account_number AS "Account_Number",
             c.status AS "Status",
+            c.ledger_status AS "Ledger_Status",
             c.contact_number AS "Contact_Number",
             c.connection_date AS "Connection_Date",
             m.meter_id AS "Meter_ID",
@@ -7112,7 +7249,8 @@ app.get('/api/consumers', async (req, res) => {
           ) m ON true
           LEFT JOIN zone z ON c.zone_id = z.zone_id
           LEFT JOIN classification cl ON c.classification_id = cl.classification_id
-          WHERE c.login_id IS NULL OR COALESCE(a.account_status, 'Active') = 'Active'
+          WHERE (c.login_id IS NULL OR COALESCE(a.account_status, 'Active') = 'Active')
+            AND COALESCE(c.ledger_status, 'Inactive') = 'Active'
           ORDER BY c.consumer_id DESC
         `);
         return rows;
@@ -7143,7 +7281,7 @@ app.get('/api/consumers', async (req, res) => {
         }
 
         return (consumers || [])
-          .filter((consumer) => !consumer.login_id || accountMap.get(consumer.login_id) === 'Active')
+          .filter((consumer) => (!consumer.login_id || accountMap.get(consumer.login_id) === 'Active') && String(consumer.ledger_status || 'Inactive') === 'Active')
           .map((consumer) => mapConsumerRecord(consumer, zoneMap, classificationMap, meterMap));
       }
     );
@@ -7175,6 +7313,7 @@ app.post('/api/consumers', async (req, res) => {
     const meterStatus = String(consumer.Meter_Status || consumer.meter_status || 'Active').trim() || 'Active';
     const consumerStatus = String(consumer.Status || 'Pending').trim() || 'Pending';
     const effectiveMeterStatus = consumerStatus === 'Active' ? meterStatus : 'Inactive';
+    const ledgerStatus = consumerStatus === 'Active' ? 'Active' : 'Inactive';
     const accountStatus =
       consumerStatus === 'Inactive'
         ? 'Inactive'
@@ -7246,8 +7385,8 @@ app.post('/api/consumers', async (req, res) => {
           }
 
           const { rows } = await client.query(`
-            INSERT INTO consumer (first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code, zone_id, classification_id, account_number, status, contact_number, connection_date, login_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            INSERT INTO consumer (first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code, zone_id, classification_id, account_number, status, ledger_status, contact_number, connection_date, login_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
           `, [
             consumer.First_Name,
@@ -7262,6 +7401,7 @@ app.post('/api/consumers', async (req, res) => {
             normalizedClassificationId,
             normalizedAccountNumber || null,
             consumerStatus,
+            ledgerStatus,
             normalizedContactNumber,
             consumer.Connection_Date,
             loginId
@@ -7327,6 +7467,7 @@ app.post('/api/consumers', async (req, res) => {
               classification_id: normalizedClassificationId,
               account_number: normalizedAccountNumber || null,
               status: consumerStatus,
+              ledger_status: ledgerStatus,
               contact_number: normalizedContactNumber,
               connection_date: consumer.Connection_Date,
               login_id: accountData.account_id,
@@ -7351,6 +7492,7 @@ app.post('/api/consumers', async (req, res) => {
               classification_id: normalizedClassificationId,
               account_number: normalizedAccountNumber || null,
               status: consumerStatus,
+              ledger_status: ledgerStatus,
               contact_number: normalizedContactNumber,
               connection_date: consumer.Connection_Date,
               login_id: providedLoginId,
@@ -7707,6 +7849,8 @@ app.put('/api/consumers/:id', async (req, res) => {
   const meterNumber = String(consumer.Meter_Number || consumer.meter_number || '').trim();
   const meterStatus = String(consumer.Meter_Status || consumer.meter_status || 'Active').trim() || 'Active';
   const consumerStatus = String(consumer.Status || consumer.status || 'Pending').trim() || 'Pending';
+  const requestedLedgerStatus = String(consumer.Ledger_Status || consumer.ledger_status || '').trim();
+  const ledgerStatus = requestedLedgerStatus || (consumerStatus === 'Active' ? 'Active' : 'Inactive');
   const effectiveMeterStatus = consumerStatus === 'Active' ? meterStatus : 'Inactive';
 
   if (normalizedAccountNumber && !isValidConsumerAccountNumber(normalizedAccountNumber)) {
@@ -7748,9 +7892,9 @@ app.put('/api/consumers/:id', async (req, res) => {
           await client.query(`
             UPDATE consumer SET 
               first_name = $1, middle_name = $2, last_name = $3, address = $4, purok = $5, barangay = $6, municipality = $7, zip_code = $8, zone_id = $9, 
-              classification_id = $10, account_number = $11, 
-              status = $12, contact_number = $13, connection_date = $14
-            WHERE consumer_id = $15
+                classification_id = $10, account_number = $11, 
+                status = $12, ledger_status = $13, contact_number = $14, connection_date = $15
+            WHERE consumer_id = $16
           `, [
             consumer.First_Name,
             consumer.Middle_Name,
@@ -7763,7 +7907,8 @@ app.put('/api/consumers/:id', async (req, res) => {
             normalizedZoneId,
             normalizedClassificationId,
             normalizedAccountNumber || null,
-            consumer.Status,
+            consumerStatus,
+            ledgerStatus,
             normalizedContactNumber,
             consumer.Connection_Date,
             id
@@ -7817,6 +7962,7 @@ app.put('/api/consumers/:id', async (req, res) => {
             classification_id: normalizedClassificationId,
             account_number: normalizedAccountNumber || null,
             status: consumer.Status,
+            ledger_status: ledgerStatus,
             contact_number: normalizedContactNumber,
             connection_date: consumer.Connection_Date,
           })
@@ -7899,7 +8045,14 @@ app.put('/api/consumers/:id/disconnect', async (req, res) => {
 
           await client.query(
             `UPDATE consumer
-             SET status = 'Disconnected'
+             SET status = 'Disconnected',
+                 ledger_status = 'Inactive'
+             WHERE consumer_id = $1`,
+            [consumerId]
+          );
+          await client.query(
+            `UPDATE meter
+             SET meter_status = 'Inactive'
              WHERE consumer_id = $1`,
             [consumerId]
           );
@@ -7947,9 +8100,14 @@ app.put('/api/consumers/:id/disconnect', async (req, res) => {
 
         const { error: consumerUpdateError } = await supabase
           .from('consumer')
-          .update({ status: 'Disconnected' })
+          .update({ status: 'Disconnected', ledger_status: 'Inactive' })
           .eq('consumer_id', consumerId);
         if (consumerUpdateError) throw consumerUpdateError;
+        const { error: meterUpdateError } = await supabase
+          .from('meter')
+          .update({ meter_status: 'Inactive' })
+          .eq('consumer_id', consumerId);
+        if (meterUpdateError) throw meterUpdateError;
 
         if (Number(consumer.login_id) > 0) {
           const { error: accountUpdateError } = await supabase
@@ -8691,7 +8849,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
         const reconnectionReason = extractTaggedRemark(ticket?.remarks, 'reconnection-request');
 
         return {
-          consumer: { ...consumer, Consumer_ID: consumer.consumer_id },
+          consumer: { ...consumer, Consumer_ID: consumer.consumer_id, Ledger_Status: consumer.ledger_status || 'Inactive' },
           bills: mappedBills,
           payments: paymentRows.rows.map((payment) => mapPaymentRecord(payment, new Map([[consumer.consumer_id, consumer]]), billMap)),
           readings: readingRows.rows.map((r) => ({
@@ -8759,6 +8917,7 @@ app.get('/api/consumer-dashboard/:accountId', async (req, res) => {
           consumer: {
             ...consumer,
             Consumer_ID: consumer.consumer_id,
+            Ledger_Status: consumer.ledger_status || 'Inactive',
             Username: account?.username || null,
             Profile_Picture_URL: account?.profile_picture_url || null,
             Account_Status: account?.account_status || consumer.status || null,
@@ -9020,6 +9179,7 @@ app.post('/api/consumer/apply', async (req, res) => {
           await client.query(
             `UPDATE consumer
              SET status = 'Pending',
+                 ledger_status = 'Inactive',
                  classification_id = COALESCE($1::int, classification_id)
              WHERE consumer_id = $2`,
             [normalizedClassificationId || null, consumerProfile.consumer_id]
@@ -9034,7 +9194,7 @@ app.post('/api/consumer/apply', async (req, res) => {
         ticketNumber = await generateSequentialRegistrationTicketNumber({ useSupabase: true });
         const { error: consumerUpdateError } = await supabase
           .from('consumer')
-          .update({ classification_id: normalizedClassificationId || consumerProfile.classification_id || null, status: 'Pending' })
+          .update({ classification_id: normalizedClassificationId || consumerProfile.classification_id || null, status: 'Pending', ledger_status: 'Inactive' })
           .eq('consumer_id', consumerProfile.consumer_id);
         if (consumerUpdateError) throw consumerUpdateError;
         await insertSupabaseRowWithPrimaryKeyRetry('connection_ticket', 'ticket_id', { consumer_id: consumerProfile.consumer_id, account_id: normalizedAccountId, ticket_number: ticketNumber, connection_type: connectionType || 'New Connection', requirements_submitted: normalizedSedula, status: 'Pending' }, 'ticket_id');
@@ -9762,7 +9922,7 @@ app.post('/api/public/contact', async (req, res) => {
         );
       },
       async () => {
-        const { error } = await supabase.from('consumer_concerns').insert([{
+        const payload = {
           consumer_id: null,
           account_id: null,
           category: 'Public Contact',
@@ -9774,8 +9934,25 @@ app.post('/api/public/contact', async (req, res) => {
           barangay,
           contact_number: normalizedContactNumber,
           email,
-        }]);
-        if (error) throw error;
+        };
+
+        const { error } = await supabase.from('consumer_concerns').insert([payload]);
+        if (!error) {
+          return;
+        }
+
+        const missingColumn = extractMissingSupabaseColumnError(error.message, 'consumer_concerns');
+        if (missingColumn?.columnName?.toLowerCase() === 'email') {
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload.email;
+          const { error: retryError } = await supabase.from('consumer_concerns').insert([fallbackPayload]);
+          if (!retryError) {
+            return;
+          }
+          throw retryError;
+        }
+
+        throw error;
       }
     );
 
@@ -10516,10 +10693,10 @@ app.post('/api/register', async (req, res) => {
               createdAccountId = accountId;
 
               const { rows: consumerRows } = await client.query(`
-                INSERT INTO consumer (first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code, zone_id, classification_id, login_id, status, contact_number, account_number)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                INSERT INTO consumer (first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code, zone_id, classification_id, login_id, status, ledger_status, contact_number, account_number)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
                 RETURNING consumer_id
-              `, [firstName, middleName, lastName, address, purok, barangay, municipality, zipCode, zoneId, classificationId, accountId, 'Pending', normalizedPhoneNumber, normalizedAccountNumber]);
+              `, [firstName, middleName, lastName, address, purok, barangay, municipality, zipCode, zoneId, classificationId, accountId, 'Pending', 'Inactive', normalizedPhoneNumber, normalizedAccountNumber]);
 
               await client.query(`
                 INSERT INTO connection_ticket (consumer_id, account_id, ticket_number, connection_type, requirements_submitted, status)
@@ -10578,6 +10755,7 @@ app.post('/api/register', async (req, res) => {
             classification_id: classificationId,
             login_id: accountId,
             status: 'Pending',
+            ledger_status: 'Inactive',
             contact_number: normalizedPhoneNumber,
             account_number: normalizedAccountNumber,
           },
@@ -10676,6 +10854,9 @@ app.post('/api/auth/google', async (req, res) => {
 
     // Check if an account with this email already exists
     let existingAccount = await findAccountByEmail(googleEmail);
+    if (!existingAccount && authUserId) {
+      existingAccount = await findAccountByAuthUserId(authUserId);
+    }
 
     if (existingAccount) {
       // Existing Google user — update auth_user_id if needed and return session
@@ -10786,7 +10967,9 @@ app.post('/api/auth/google', async (req, res) => {
     const generatedPassword = `google_${crypto.randomUUID()}`;
     const generatedPasswordHash = hashPassword(generatedPassword);
 
-    const createdAccount = await withPostgresPrimary(
+    let createdAccount;
+    try {
+      createdAccount = await withPostgresPrimary(
       'auth.google.createAccount',
       async () => {
         const maxAttempts = 8;
@@ -10811,26 +10994,28 @@ app.post('/api/auth/google', async (req, res) => {
             const accountId = accountRows[0].account_id;
 
             await client.query(`
-              INSERT INTO consumer (first_name, last_name, login_id, status, address, purok, barangay, municipality, zip_code, contact_number, zone_id, classification_id)
+              INSERT INTO consumer (first_name, last_name, login_id, status, ledger_status, address, purok, barangay, municipality, zip_code, contact_number, zone_id, classification_id)
               VALUES (
                 $1,
                 $2,
                 $3,
                 $4,
-                COALESCE(NULLIF($5, ''), 'Not Specified, Not Specified, San Lorenzo Ruiz, 4610'),
-                COALESCE(NULLIF($6, ''), 'Not Specified'),
+                $5,
+                COALESCE(NULLIF($6, ''), 'Not Specified, Not Specified, San Lorenzo Ruiz, 4610'),
                 COALESCE(NULLIF($7, ''), 'Not Specified'),
-                COALESCE(NULLIF($8, ''), 'San Lorenzo Ruiz'),
-                COALESCE(NULLIF($9, ''), '4610'),
-                $10,
+                COALESCE(NULLIF($8, ''), 'Not Specified'),
+                COALESCE(NULLIF($9, ''), 'San Lorenzo Ruiz'),
+                COALESCE(NULLIF($10, ''), '4610'),
                 $11,
-                $12
+                $12,
+                $13
               )
             `, [
               firstName || candidateUsername,
               lastName || '',
               accountId,
               'Active',
+              'Inactive',
               defaultAddress,
               defaultPurok,
               defaultBarangay,
@@ -10890,6 +11075,7 @@ app.post('/api/auth/google', async (req, res) => {
               last_name: lastName || '',
               login_id: accountData.account_id,
               status: 'Active',
+              ledger_status: 'Inactive',
               address: defaultAddress,
               purok: defaultPurok,
               barangay: defaultBarangay,
@@ -10909,6 +11095,23 @@ app.post('/api/auth/google', async (req, res) => {
         throw new Error('Unable to generate a unique username for Google sign-in.');
       }
     );
+    } catch (createError) {
+      const isAuthUserDuplicate = String(createError?.code || '') === '23505'
+        && (
+          String(createError?.constraint || '') === 'accounts_auth_user_id_key'
+          || String(createError?.message || '').toLowerCase().includes('accounts_auth_user_id_key')
+          || String(createError?.details || '').toLowerCase().includes('(auth_user_id)=')
+        );
+      if (!isAuthUserDuplicate) {
+        throw createError;
+      }
+
+      const recoveredAccount = await findAccountByAuthUserId(authUserId);
+      if (!recoveredAccount) {
+        throw createError;
+      }
+      createdAccount = recoveredAccount;
+    }
 
     scheduleImmediateSync('google-auth-register');
 
@@ -11078,6 +11281,7 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
                 )
                 OR CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) ILIKE $2
               )
+            AND COALESCE(c.ledger_status, 'Inactive') = 'Active'
             AND (c.login_id IS NULL OR COALESCE(a.account_status, 'Active') = 'Active')
           ORDER BY
             CASE
@@ -11161,6 +11365,9 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
         const accountMap = new Map((accountsResult.data || []).map((account) => [account.account_id, account.account_status]));
 
         const matchedConsumer = (consumerResult.data || []).find((consumer) => {
+          if (String(consumer.ledger_status || 'Inactive') !== 'Active') {
+            return false;
+          }
           if (consumer.login_id && accountMap.get(consumer.login_id) !== 'Active') {
             return false;
           }

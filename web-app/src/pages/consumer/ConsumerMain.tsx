@@ -69,6 +69,8 @@ interface ConsumerInfo {
   account_number?: string | null;
   Status?: string | null;
   status?: string | null;
+  Ledger_Status?: string | null;
+  ledger_status?: string | null;
   Contact_Number?: string | null;
   contact_number?: string | null;
   Account_Status?: string | null;
@@ -539,6 +541,7 @@ const ConsumerMain: React.FC = () => {
   );
   const accountNumber = Consumer?.Account_Number ?? Consumer?.account_number ?? 'Pending';
   const serviceStatus = Consumer?.Status ?? Consumer?.status ?? 'Unknown';
+  const ledgerStatus = Consumer?.Ledger_Status ?? Consumer?.ledger_status ?? 'Inactive';
   const accountStatus = Consumer?.Account_Status ?? Consumer?.account_status ?? 'Unknown';
   const accountApprovalPending = normalizeStatus(accountStatus) === 'pending';
   const ticketApprovalPending = normalizeStatus(ticket?.Status) === 'pending';
@@ -1007,7 +1010,7 @@ const ConsumerMain: React.FC = () => {
               </button>
             </div>
           </div>
-        ) : !ticket && normalizeStatus(serviceStatus) !== 'active' ? (
+        ) : !ticket && normalizeStatus(ledgerStatus) !== 'active' ? (
           <div className="cm-application-banner cm-application-banner--none">
             <div className="cm-application-banner-icon">
               <i className="fas fa-tint" />
@@ -1126,6 +1129,10 @@ const ConsumerMain: React.FC = () => {
                 <div className="cm-summary-row">
                   <span>Service status</span>
                   <strong>{serviceStatus}</strong>
+                </div>
+                <div className="cm-summary-row">
+                  <span>Ledger status</span>
+                  <strong>{ledgerStatus}</strong>
                 </div>
                 <div className="cm-summary-row">
                   <span>Portal account</span>
