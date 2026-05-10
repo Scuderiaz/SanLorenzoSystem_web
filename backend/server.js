@@ -3495,6 +3495,7 @@ async function initDb() {
     );
   }
 
+  await synchronizePostgresSequences(pool, syncTableConfigs);
   await loadAdminSettingsFromPostgres();
 }
 
@@ -9602,7 +9603,7 @@ app.post('/api/payments', async (req, res) => {
           );
         }
 
-        const { rows } = await pool.query(`
+        const insertPayment = () => pool.query(`
           INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number, or_number, status)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING *, payment_id AS "Payment_ID"
@@ -9616,6 +9617,21 @@ app.post('/api/payments', async (req, res) => {
           payload.or_number,
           payload.status
         ]);
+
+        let insertResult;
+        try {
+          insertResult = await insertPayment();
+        } catch (insertError) {
+          const isPaymentSequenceDrift = insertError?.code === '23505'
+            && String(insertError?.constraint || '').toLowerCase() === 'payment_pkey';
+          if (!isPaymentSequenceDrift) {
+            throw insertError;
+          }
+
+          await synchronizePostgresSequence(pool, 'payment', 'payment_id');
+          insertResult = await insertPayment();
+        }
+        const { rows } = insertResult;
 
         if (['validated', 'paid'].includes(String(payload.status || '').toLowerCase())) {
           const paymentTotals = await pool.query(
