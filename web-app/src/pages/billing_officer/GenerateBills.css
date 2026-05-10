@@ -44,8 +44,25 @@
 .manual-bill-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 18px 20px;
   margin-bottom: 24px;
+}
+
+.manual-bill-grid .form-input-group,
+.manual-bill-grid .form-select-group {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.manual-bill-grid .form-label {
+  color: #334155 !important;
+  min-height: 20px;
+  line-height: 1.25;
+}
+
+.manual-bill-grid .form-input,
+.manual-bill-grid .form-select {
+  min-height: 46px;
 }
 
 .manual-bill-preview {

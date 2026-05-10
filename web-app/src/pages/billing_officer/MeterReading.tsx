@@ -6,7 +6,7 @@ import { useToast } from '../../components/Common/ToastContainer';
 import { useAuth } from '../../context/AuthContext';
 import {
   getErrorMessage,
-  loadConsumersWithFallback,
+  loadLedgerConsumersWithFallback,
   loadStaffUsersWithFallback,
   loadZonesWithFallback,
   requestJson,
@@ -224,7 +224,7 @@ const MeterReading: React.FC = () => {
 
   const loadConsumers = useCallback(async () => {
     try {
-      const result = await loadConsumersWithFallback();
+      const result = await loadLedgerConsumersWithFallback();
       const mappedConsumers = (result.data || []).map((Consumer: any) => ({
         Consumer_ID: Consumer.Consumer_ID ?? Consumer.consumer_id,
         Consumer_Name: Consumer.Consumer_Name ?? Consumer.consumer_name ?? null,

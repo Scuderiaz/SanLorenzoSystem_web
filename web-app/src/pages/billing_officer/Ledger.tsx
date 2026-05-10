@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getErrorMessage,
   loadBillsWithFallback,
-  loadConsumersWithFallback,
+  loadLedgerConsumersWithFallback,
   loadPaymentsWithFallback,
   requestJson,
 } from '../../services/userManagementApi';
@@ -156,7 +156,7 @@ const BillingLedger: React.FC = () => {
     setLoading(true);
     try {
       const [consumersResult, billsResult, paymentsResult] = await Promise.all([
-        loadConsumersWithFallback(),
+        loadLedgerConsumersWithFallback(),
         loadBillsWithFallback(),
         loadPaymentsWithFallback(),
       ]);

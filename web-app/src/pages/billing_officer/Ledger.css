@@ -213,6 +213,60 @@
   padding: 0; /* Let DataTable and internal spacing handle it */
 }
 
+.ledger-page .card,
+.ledger-page .card-body,
+.ledger-page .card-body > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ledger-page .data-table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ledger-page .data-table {
+  min-width: 1120px;
+  table-layout: fixed;
+}
+
+.ledger-page .data-table th,
+.ledger-page .data-table td {
+  padding: 16px 18px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.ledger-page .data-table th:nth-child(1),
+.ledger-page .data-table td:nth-child(1) {
+  width: 145px;
+}
+
+.ledger-page .data-table th:nth-child(2),
+.ledger-page .data-table td:nth-child(2) {
+  width: 190px;
+}
+
+.ledger-page .data-table th:nth-child(3),
+.ledger-page .data-table td:nth-child(3) {
+  width: 220px;
+}
+
+.ledger-page .data-table th:nth-child(4),
+.ledger-page .data-table td:nth-child(4),
+.ledger-page .data-table th:nth-child(5),
+.ledger-page .data-table td:nth-child(5) {
+  width: 115px;
+}
+
+.ledger-page .data-table th:last-child,
+.ledger-page .data-table td:last-child {
+  width: 190px;
+}
+
 /* ─── Balance Color Logic ─────────────────────────────────────────── */
 .balance-due {
   color: #dc2626;

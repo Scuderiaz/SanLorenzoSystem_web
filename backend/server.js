@@ -288,7 +288,7 @@ const syncConflictPolicies = {
   admin_settings: { mode: 'auto-merge' },
   waterrates: { mode: 'auto-merge' },
   consumer: {
-    mode: 'strict',
+    mode: 'auto-merge',
     compareColumns: [
       'first_name',
       'middle_name',
@@ -743,8 +743,14 @@ function dedupeConsumerRowsByLoginId(rows) {
   return [...dedupedRows.values(), ...rowsWithoutLoginId];
 }
 
+function hasRequiredConsumerSyncFields(row) {
+  const zoneId = Number(row?.zone_id);
+  const classificationId = Number(row?.classification_id);
+  return Number.isInteger(zoneId) && zoneId > 0 && Number.isInteger(classificationId) && classificationId > 0;
+}
+
 async function alignConsumerRowsForPostgres(rows) {
-  rows = dedupeConsumerRowsByLoginId(rows);
+  rows = dedupeConsumerRowsByLoginId(rows).filter(hasRequiredConsumerSyncFields);
 
   const loginIds = rows
     .map((row) => Number(row?.login_id))
@@ -787,10 +793,10 @@ async function alignConsumerRowsForPostgres(rows) {
 
 async function alignConsumerRowsForSupabase(rows) {
   if (!supabase) {
-    return rows;
+    return rows.filter(hasRequiredConsumerSyncFields);
   }
 
-  rows = dedupeConsumerRowsByLoginId(rows);
+  rows = dedupeConsumerRowsByLoginId(rows).filter(hasRequiredConsumerSyncFields);
 
   const loginIds = rows
     .map((row) => Number(row?.login_id))
@@ -1586,6 +1592,7 @@ function mapAdminSettingsRow(row) {
 const PROFILE_PICTURE_ALLOWED_ROLES = new Set([1, 2, 3, 4, 5]);
 const PROFILE_PICTURE_DATA_URL_PATTERN = /^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 const MAX_PROFILE_PICTURE_LENGTH = 1_600_000;
+const MAX_PROFILE_PICTURE_URL_LENGTH = 2_048;
 
 function normalizeProfilePictureUrl(value) {
   if (value === null || value === undefined) {
@@ -1597,15 +1604,28 @@ function normalizeProfilePictureUrl(value) {
     return null;
   }
 
-  if (!PROFILE_PICTURE_DATA_URL_PATTERN.test(normalized)) {
-    throw new Error('Profile picture must be a valid PNG, JPG, WEBP, or GIF image.');
+  if (PROFILE_PICTURE_DATA_URL_PATTERN.test(normalized)) {
+    if (normalized.length > MAX_PROFILE_PICTURE_LENGTH) {
+      throw new Error('Profile picture is too large. Please upload a smaller image.');
+    }
+    return normalized;
   }
 
-  if (normalized.length > MAX_PROFILE_PICTURE_LENGTH) {
-    throw new Error('Profile picture is too large. Please upload a smaller image.');
+  try {
+    const parsedUrl = new URL(normalized);
+    if (parsedUrl.protocol !== 'https:') {
+      throw new Error('Profile picture URL must use HTTPS.');
+    }
+    if (normalized.length > MAX_PROFILE_PICTURE_URL_LENGTH) {
+      throw new Error('Profile picture URL is too long.');
+    }
+    return normalized;
+  } catch (error) {
+    if (error.message === 'Profile picture URL must use HTTPS.' || error.message === 'Profile picture URL is too long.') {
+      throw error;
+    }
+    throw new Error('Profile picture must be a valid PNG, JPG, WEBP, GIF image, or HTTPS image URL.');
   }
-
-  return normalized;
 }
 
 function normalizeRequirementSubmission(value, options = {}) {
@@ -2279,6 +2299,49 @@ async function resolveConsumerClassificationId(consumerId) {
   }
 
   return classificationId;
+}
+
+function isLedgerStatusActive(value) {
+  return String(value || '').trim().toLowerCase() === 'active';
+}
+
+async function assertPostgresConsumerLedgerActive(dbClient, consumerId) {
+  const normalizedConsumerId = normalizeRequiredForeignKeyId(consumerId);
+  if (!normalizedConsumerId) {
+    throw createHttpError('A consumer must be selected before saving a bill.');
+  }
+
+  const { rows } = await dbClient.query(
+    'SELECT consumer_id, ledger_status FROM consumer WHERE consumer_id = $1 LIMIT 1',
+    [normalizedConsumerId]
+  );
+  const consumer = rows[0];
+  if (!consumer) {
+    throw createHttpError('Consumer not found.', 404);
+  }
+  if (!isLedgerStatusActive(consumer.ledger_status)) {
+    throw createHttpError('Only consumers with Active ledger status can be billed.');
+  }
+}
+
+async function assertSupabaseConsumerLedgerActive(consumerId) {
+  const normalizedConsumerId = normalizeRequiredForeignKeyId(consumerId);
+  if (!normalizedConsumerId) {
+    throw createHttpError('A consumer must be selected before saving a bill.');
+  }
+
+  const { data, error } = await supabase
+    .from('consumer')
+    .select('consumer_id, ledger_status')
+    .eq('consumer_id', normalizedConsumerId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    throw createHttpError('Consumer not found.', 404);
+  }
+  if (!isLedgerStatusActive(data.ledger_status)) {
+    throw createHttpError('Only consumers with Active ledger status can be billed.');
+  }
 }
 
 async function resolveApplicableWaterRate(classificationId, effectiveOn = getTodayDateKey()) {
@@ -3195,7 +3258,7 @@ async function initDb() {
       concern_id SERIAL PRIMARY KEY,
       sync_id UUID DEFAULT gen_random_uuid() NOT NULL,
       consumer_id INTEGER,
-      account_id INTEGER NOT NULL,
+      account_id INTEGER,
       category CHARACTER VARYING(50) NOT NULL,
       subject CHARACTER VARYING(255) NOT NULL,
       description TEXT NOT NULL,
@@ -3210,6 +3273,7 @@ async function initDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_consumer_concerns_account_id ON consumer_concerns(account_id);
   `);
+  await pool.query('ALTER TABLE consumer_concerns ALTER COLUMN account_id DROP NOT NULL');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS password_reset (
       reset_id SERIAL PRIMARY KEY,
@@ -6014,8 +6078,8 @@ const IMPORT_TEMPLATES = {
     '01-R-201-3,2026-04-30,2026-05-08,140,OR-2026-001,Cash,,Validated',
   ].join('\n'),
   consumer_bundle: [
-    'sample_row,account_number,first_name,middle_name,last_name,contact_number,purok,barangay,municipality,zip_code,zone,classification,status,connection_date,address,username,password,meter_serial_number,bill_date,due_date,billing_month,previous_reading,current_reading,consumption,class_cost,water_charge,meter_maintenance_fee,connection_fee,previous_balance,previous_penalty,penalty,total_amount,amount_due,total_after_due_date,bill_status,payment_date,amount_paid,or_number,payment_method,reference_number,payment_status',
-    'YES,SAMPLE-001,Juan,,Dela Cruz,09171234567,Purok 1,Matacong (Pob.),San Lorenzo Ruiz,4610,Zone 1,Residential,Active,2024-01-15,"Purok 1, Matacong (Pob.), San Lorenzo Ruiz, 4610",juan.delacruz,Consumer@123,MTR-SAMPLE-001,2026-04-30,2026-05-15,April 2026,100,112,12,100,100,20,0,0,0,0,120,120,120,Paid,2026-05-05,120,OR-SAMPLE-001,Cash,,Validated',
+    'sample_row,account_number,first_name,middle_name,last_name,contact_number,purok,barangay,municipality,zip_code,zone,classification,status,ledger_status,connection_date,address,username,password,meter_serial_number,bill_date,due_date,billing_month,previous_reading,current_reading,consumption,class_cost,water_charge,meter_maintenance_fee,connection_fee,previous_balance,previous_penalty,penalty,total_amount,amount_due,total_after_due_date,bill_status,payment_date,amount_paid,or_number,payment_method,reference_number,payment_status',
+    'YES,SAMPLE-001,Juan,,Dela Cruz,09171234567,Purok 1,Matacong (Pob.),San Lorenzo Ruiz,4610,Zone 1,Residential,Active,Active,2024-01-15,"Purok 1, Matacong (Pob.), San Lorenzo Ruiz, 4610",juan.delacruz,Consumer@123,MTR-SAMPLE-001,2026-04-30,2026-05-15,April 2026,100,112,12,100,100,20,0,0,0,0,120,120,120,Paid,2026-05-05,120,OR-SAMPLE-001,Cash,,Validated',
   ].join('\n'),
 };
 
@@ -6035,6 +6099,12 @@ const parseImportAmount = (value, fallback = 0) => {
 const parseImportMeterValue = (value) => {
   const numeric = parseImportAmount(value, 0);
   return numeric < 0 ? 0 : numeric;
+};
+const normalizeImportStatusValue = (value, allowedValues, fallback) => {
+  const normalized = normalizeImportText(value);
+  if (!normalized) return fallback;
+  const match = allowedValues.find((allowedValue) => allowedValue.toLowerCase() === normalized.toLowerCase());
+  return match || fallback;
 };
 
 const ensureImportAccess = (actorRoleId) => {
@@ -6101,6 +6171,7 @@ const normalizeImportDatasets = (datasets = {}) => {
         zone: row.zone,
         classification: row.classification,
         status: row.status,
+        ledger_status: row.ledger_status,
         connection_date: row.connection_date,
         address: row.address,
         username: row.username,
@@ -6310,6 +6381,7 @@ app.post('/api/import/legacy/apply', async (req, res) => {
       const zoneId = resolveLookupId(consumerRow.zone, zoneById, zoneByName);
       const classificationId = resolveLookupId(consumerRow.classification, classificationById, classificationByName);
       const status = normalizeImportText(consumerRow.status) || 'Active';
+      const ledgerStatus = normalizeImportStatusValue(consumerRow.ledger_status, ['Active', 'Inactive'], status === 'Active' ? 'Active' : 'Inactive');
       const connectionDate = normalizeOptionalImportDate(consumerRow.connection_date);
       const address = normalizeImportText(consumerRow.address) || [purok, barangay, municipality, zipCode].filter(Boolean).join(', ');
       const meterSerialNumber = normalizeImportText(consumerRow.meter_serial_number || consumerRow.meter_number);
@@ -6322,6 +6394,13 @@ app.post('/api/import/legacy/apply', async (req, res) => {
       let consumerId = null;
       if (consumerCheck.rows[0]) {
         consumerId = Number(consumerCheck.rows[0].consumer_id);
+        await client.query(
+          `UPDATE consumer
+           SET ledger_status = $1,
+               status = COALESCE(NULLIF($2, ''), status)
+           WHERE consumer_id = $3`,
+          [ledgerStatus, status, consumerId]
+        );
       } else {
         const preferredUsername = normalizeImportText(consumerRow.username) || `consumer_${accountNumber.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase()}`;
         let username = preferredUsername;
@@ -6346,15 +6425,15 @@ app.post('/api/import/legacy/apply', async (req, res) => {
         const insertConsumerResult = await client.query(
           `INSERT INTO consumer (
              first_name, middle_name, last_name, address, purok, barangay, municipality, zip_code,
-             zone_id, classification_id, login_id, account_number, status, contact_number, connection_date
+             zone_id, classification_id, login_id, account_number, status, ledger_status, contact_number, connection_date
            ) VALUES (
              $1, $2, $3, $4, $5, $6, $7, $8,
-             $9, $10, $11, $12, $13, $14, $15
+             $9, $10, $11, $12, $13, $14, $15, $16
            )
            RETURNING consumer_id`,
           [
             firstName, middleName, lastName, address, purok, barangay, municipality, zipCode,
-            zoneId, classificationId, accountId, accountNumber, status, contactNumber, connectionDate,
+            zoneId, classificationId, accountId, accountNumber, status, ledgerStatus, contactNumber, connectionDate,
           ]
         );
         consumerId = Number(insertConsumerResult.rows[0].consumer_id);
@@ -6514,6 +6593,7 @@ app.post('/api/import/legacy/apply', async (req, res) => {
     }
 
     await client.query('COMMIT');
+    scheduleImmediateSync('legacy-import');
     return res.json({
       success: true,
       message: 'Legacy data import completed.',
@@ -7211,8 +7291,58 @@ app.delete('/api/water-rates/:id', async (req, res) => {
 });
 
 app.get('/api/consumers', async (req, res) => {
+  const ledgerStatusFilter = String(req.query?.ledger_status || req.query?.ledgerStatus || '').trim().toLowerCase();
+  const ledgerActiveOnly = ledgerStatusFilter === 'active';
+
+  const loadSupabaseConsumerRows = async () => {
+    if (!supabase) {
+      return [];
+    }
+
+    const [{ data: consumers, error: consumerError }, { data: zones, error: zoneError }, { data: classifications, error: classificationError }, { data: meters, error: meterError }, { data: accounts, error: accountError }] = await Promise.all([
+      supabase.from('consumer').select('*').order('consumer_id', { ascending: false }),
+      supabase.from('zone').select('*'),
+      supabase.from('classification').select('*'),
+      supabase.from('meter').select('meter_id, consumer_id, meter_serial_number, meter_status').order('meter_id', { ascending: false }),
+      supabase.from('accounts').select('account_id, account_status'),
+    ]);
+
+    if (consumerError) throw consumerError;
+    if (zoneError) throw zoneError;
+    if (classificationError) throw classificationError;
+    if (meterError) throw meterError;
+    if (accountError) throw accountError;
+
+    const zoneMap = new Map((zones || []).map((zone) => [zone.zone_id, zone.zone_name]));
+    const classificationMap = new Map((classifications || []).map((classification) => [classification.classification_id, classification.classification_name]));
+    const accountMap = new Map((accounts || []).map((account) => [account.account_id, account.account_status]));
+    const meterMap = new Map();
+    for (const meter of meters || []) {
+      if (!meterMap.has(meter.consumer_id)) {
+        meterMap.set(meter.consumer_id, meter);
+      }
+    }
+
+    return (consumers || [])
+      .filter((consumer) => ledgerActiveOnly
+        ? String(consumer.ledger_status || 'Inactive').trim().toLowerCase() === 'active'
+        : (!consumer.login_id || accountMap.get(consumer.login_id) === 'Active'))
+      .map((consumer) => mapConsumerRecord(consumer, zoneMap, classificationMap, meterMap));
+  };
+
   try {
-    const rows = await withPostgresPrimary(
+    if (ledgerActiveOnly && supabase) {
+      try {
+        const supabaseRows = await loadSupabaseConsumerRows();
+        if (supabaseRows.length) {
+          return res.json(supabaseRows);
+        }
+      } catch (supabaseError) {
+        await logRequestError(req, 'consumers.fetch.supabaseLedgerFirst', supabaseError);
+      }
+    }
+
+    let rows = await withPostgresPrimary(
       'consumers.fetch',
       async () => {
         const { rows } = await pool.query(`
@@ -7249,42 +7379,24 @@ app.get('/api/consumers', async (req, res) => {
           ) m ON true
           LEFT JOIN zone z ON c.zone_id = z.zone_id
           LEFT JOIN classification cl ON c.classification_id = cl.classification_id
-          WHERE (c.login_id IS NULL OR COALESCE(a.account_status, 'Active') = 'Active')
-            AND COALESCE(c.ledger_status, 'Inactive') = 'Active'
+          WHERE (
+            ($1::boolean = TRUE AND COALESCE(c.ledger_status, 'Inactive') = 'Active')
+            OR
+            ($1::boolean = FALSE AND (c.login_id IS NULL OR COALESCE(a.account_status, 'Active') = 'Active'))
+          )
           ORDER BY c.consumer_id DESC
-        `);
+        `, [ledgerActiveOnly]);
         return rows;
       },
       async () => {
-        const [{ data: consumers, error: consumerError }, { data: zones, error: zoneError }, { data: classifications, error: classificationError }, { data: meters, error: meterError }, { data: accounts, error: accountError }] = await Promise.all([
-          supabase.from('consumer').select('*').order('consumer_id', { ascending: false }),
-          supabase.from('zone').select('*'),
-          supabase.from('classification').select('*'),
-          supabase.from('meter').select('meter_id, consumer_id, meter_serial_number, meter_status').order('meter_id', { ascending: false }),
-          supabase.from('accounts').select('account_id, account_status'),
-        ]);
-
-        if (consumerError) throw consumerError;
-        if (zoneError) throw zoneError;
-        if (classificationError) throw classificationError;
-        if (meterError) throw meterError;
-        if (accountError) throw accountError;
-
-        const zoneMap = new Map((zones || []).map((zone) => [zone.zone_id, zone.zone_name]));
-        const classificationMap = new Map((classifications || []).map((classification) => [classification.classification_id, classification.classification_name]));
-        const accountMap = new Map((accounts || []).map((account) => [account.account_id, account.account_status]));
-        const meterMap = new Map();
-        for (const meter of meters || []) {
-          if (!meterMap.has(meter.consumer_id)) {
-            meterMap.set(meter.consumer_id, meter);
-          }
-        }
-
-        return (consumers || [])
-          .filter((consumer) => (!consumer.login_id || accountMap.get(consumer.login_id) === 'Active') && String(consumer.ledger_status || 'Inactive') === 'Active')
-          .map((consumer) => mapConsumerRecord(consumer, zoneMap, classificationMap, meterMap));
+        return loadSupabaseConsumerRows();
       }
     );
+
+    if (ledgerActiveOnly && !rows.length) {
+      rows = await loadSupabaseConsumerRows();
+    }
+
     return res.json(rows);
   } catch (error) {
     await logRequestError(req, 'consumers.fetch', error);
@@ -8302,7 +8414,7 @@ app.get('/api/bills', async (req, res) => {
           FROM bills b
           LEFT JOIN consumer c ON b.consumer_id = c.consumer_id
           LEFT JOIN classification cl ON c.classification_id = cl.classification_id
-          WHERE 1=1
+          WHERE COALESCE(c.ledger_status, 'Inactive') = 'Active'
         `;
         const params = [];
         if (Account_Number) {
@@ -8321,7 +8433,7 @@ app.get('/api/bills', async (req, res) => {
       async () => {
         const [{ data: bills, error: billsError }, { data: consumers, error: consumersError }, { data: classifications, error: classificationsError }] = await Promise.all([
           supabase.from('bills').select('*').order('bill_date', { ascending: false }),
-          supabase.from('consumer').select('consumer_id, first_name, last_name, address, account_number, classification_id'),
+          supabase.from('consumer').select('consumer_id, first_name, last_name, address, account_number, classification_id, ledger_status'),
           supabase.from('classification').select('classification_id, classification_name'),
         ]);
         if (billsError) throw billsError;
@@ -8332,6 +8444,7 @@ app.get('/api/bills', async (req, res) => {
         const classificationMap = new Map((classifications || []).map((classification) => [classification.classification_id, classification.classification_name]));
 
         return (bills || [])
+          .filter((bill) => isLedgerStatusActive(consumerMap.get(bill.consumer_id)?.ledger_status))
           .map((bill) => mapBillRecord(bill, consumerMap, classificationMap))
           .filter((bill) => (!Account_Number || bill.Account_Number === Account_Number) && (!status || bill.Status === status));
       }
@@ -8401,6 +8514,8 @@ app.post('/api/bills', async (req, res) => {
     const row = await withPostgresPrimary(
       'bills.create',
       async () => {
+        await assertPostgresConsumerLedgerActive(pool, payload.consumer_id);
+
         if (payload.reading_id) {
           const existingBillForReading = await pool.query(
             'SELECT bill_id FROM bills WHERE reading_id = $1 LIMIT 1',
@@ -8482,6 +8597,8 @@ app.post('/api/bills', async (req, res) => {
         return rows[0];
       },
       async () => {
+        await assertSupabaseConsumerLedgerActive(payload.consumer_id);
+
         if (payload.reading_id) {
           const { data: existingBillsForReading, error: readingBillLookupError } = await supabase
             .from('bills')
@@ -8616,6 +8733,8 @@ app.put('/api/bills/:id', async (req, res) => {
           throw paidError;
         }
 
+        await assertPostgresConsumerLedgerActive(pool, payload.consumer_id);
+
         if (!payload.reading_id) {
           payload.reading_id = existingBill.reading_id || null;
         }
@@ -8729,6 +8848,8 @@ app.put('/api/bills/:id', async (req, res) => {
           paidError.statusCode = 400;
           throw paidError;
         }
+
+        await assertSupabaseConsumerLedgerActive(payload.consumer_id);
 
         if (!payload.reading_id) {
           payload.reading_id = existingBill.reading_id || null;
@@ -9764,6 +9885,45 @@ async function sendEmailViaResend(toEmail, subject, messageText) {
   return { success: true, provider: 'resend', response: payload };
 }
 
+async function sendEmailViaBrevo(toEmail, subject, messageText) {
+  const apiKey = String(process.env.BREVO_API_KEY || '').trim();
+  if (!apiKey) {
+    throw new Error('BREVO_API_KEY is missing. Configure it in backend/.env.');
+  }
+
+  const senderEmail = String(process.env.BREVO_FROM_EMAIL || '').trim();
+  if (!senderEmail) {
+    throw new Error('BREVO_FROM_EMAIL is missing. Configure it in backend/.env.');
+  }
+
+  const senderName = String(process.env.BREVO_FROM_NAME || 'San Lorenzo Ruiz Waterworks').trim();
+  const endpoint = String(process.env.BREVO_API_ENDPOINT || 'https://api.brevo.com/v3/smtp/email').trim();
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': apiKey,
+    },
+    body: JSON.stringify({
+      sender: {
+        name: senderName,
+        email: senderEmail,
+      },
+      to: [{ email: toEmail }],
+      subject: subject || 'San Lorenzo Ruiz Waterworks System',
+      textContent: String(messageText || '').trim(),
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`Brevo email failed (${response.status}): ${JSON.stringify(payload)}`);
+  }
+
+  return { success: true, provider: 'brevo', response: payload };
+}
+
 async function sendConcernEmailReply(toEmail, concernSubject, replyText) {
   const provider = String(process.env.EMAIL_PROVIDER || 'mock').trim().toLowerCase();
   const normalizedEmail = String(toEmail || '').trim().toLowerCase();
@@ -9791,8 +9951,11 @@ async function sendConcernEmailReply(toEmail, concernSubject, replyText) {
   if (provider === 'resend') {
     return sendEmailViaResend(normalizedEmail, subject, messageText);
   }
+  if (provider === 'brevo') {
+    return sendEmailViaBrevo(normalizedEmail, subject, messageText);
+  }
 
-  throw new Error(`Unsupported EMAIL_PROVIDER "${provider}". Use "resend" or "mock".`);
+  throw new Error(`Unsupported EMAIL_PROVIDER "${provider}". Use "brevo", "resend", or "mock".`);
 }
 
 // --- FORGOT PASSWORD ENDPOINTS ---
@@ -9911,50 +10074,86 @@ app.post('/api/public/contact', async (req, res) => {
   }
 
   try {
-    await withPostgresPrimary(
-      'public.contact.submit',
-      async () => {
-        await pool.query(
-          `INSERT INTO consumer_concerns
-            (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number, email)
-           VALUES (NULL, $1, $2, $3, $4, 'Normal', 'Pending', $5, $6, $7, $8)`,
-          [null, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber, email]
-        );
-      },
-      async () => {
-        const payload = {
-          consumer_id: null,
-          account_id: null,
-          category: 'Public Contact',
-          subject,
-          description: message,
-          priority: 'Normal',
-          status: 'Pending',
-          full_name: fullName,
-          barangay,
-          contact_number: normalizedContactNumber,
-          email,
-        };
+    const fallbackPublicAccountId = defaultSystemLogAccountId || 1;
+    const insertSupabasePublicConcern = async () => {
+      const payload = {
+        consumer_id: null,
+        account_id: null,
+        category: 'Public Contact',
+        subject,
+        description: message,
+        priority: 'Normal',
+        status: 'Pending',
+        full_name: fullName,
+        barangay,
+        contact_number: normalizedContactNumber,
+        email,
+      };
 
-        const { error } = await supabase.from('consumer_concerns').insert([payload]);
-        if (!error) {
+      const { error } = await supabase.from('consumer_concerns').insert([payload]);
+      if (!error) {
+        return;
+      }
+
+      if (String(error.message || '').toLowerCase().includes('account_id') && String(error.message || '').toLowerCase().includes('not-null')) {
+        const fallbackPayload = {
+          ...payload,
+          account_id: fallbackPublicAccountId,
+        };
+        const { error: retryError } = await supabase.from('consumer_concerns').insert([fallbackPayload]);
+        if (!retryError) {
           return;
         }
-
-        const missingColumn = extractMissingSupabaseColumnError(error.message, 'consumer_concerns');
-        if (missingColumn?.columnName?.toLowerCase() === 'email') {
-          const fallbackPayload = { ...payload };
-          delete fallbackPayload.email;
-          const { error: retryError } = await supabase.from('consumer_concerns').insert([fallbackPayload]);
-          if (!retryError) {
-            return;
-          }
-          throw retryError;
-        }
-
-        throw error;
+        throw retryError;
       }
-    );
+
+      const missingColumn = extractMissingSupabaseColumnError(error.message, 'consumer_concerns');
+      if (missingColumn?.columnName?.toLowerCase() === 'email') {
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload.email;
+        const { error: retryError } = await supabase.from('consumer_concerns').insert([fallbackPayload]);
+        if (!retryError) {
+          return;
+        }
+        throw retryError;
+      }
+
+      throw error;
+    };
+
+    try {
+      await withPostgresPrimary(
+        'public.contact.submit',
+        async () => {
+          try {
+            await pool.query(
+              `INSERT INTO consumer_concerns
+                (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number, email)
+               VALUES (NULL, NULL, $1, $2, $3, 'Normal', 'Pending', $4, $5, $6, $7)`,
+              ['Public Contact', subject, message, fullName, barangay, normalizedContactNumber, email]
+            );
+          } catch (postgresError) {
+            if (String(postgresError?.message || '').toLowerCase().includes('account_id') && String(postgresError?.message || '').toLowerCase().includes('not-null')) {
+              await pool.query(
+                `INSERT INTO consumer_concerns
+                  (consumer_id, account_id, category, subject, description, priority, status, full_name, barangay, contact_number, email)
+                 VALUES (NULL, $1, $2, $3, $4, 'Normal', 'Pending', $5, $6, $7, $8)`,
+                [fallbackPublicAccountId, 'Public Contact', subject, message, fullName, barangay, normalizedContactNumber, email]
+              );
+              return;
+            }
+            throw postgresError;
+          }
+        },
+        insertSupabasePublicConcern
+      );
+    } catch (primaryError) {
+      if (!supabase) {
+        throw primaryError;
+      }
+      await logRequestError(req, 'public.contact.submit.primaryFallback', primaryError);
+      await insertSupabasePublicConcern();
+    }
 
     await writeSystemLog(`[public-contact] ${fullName} submitted: ${subject}`, { role: 'Public' });
     scheduleImmediateSync('public-contact-submit');
@@ -11256,6 +11455,91 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
 
   try {
     const adminSettings = await loadResolvedAdminSettings();
+    const loadSupabaseLookup = async () => {
+      if (!supabase) {
+        return null;
+      }
+
+      const [consumerResult, classificationsResult, metersResult, billsResult, paymentsResult] = await Promise.all([
+        supabase.from('consumer').select('*'),
+        supabase.from('classification').select('classification_id, classification_name'),
+        supabase.from('meter').select('consumer_id, meter_serial_number, meter_id').order('meter_id', { ascending: false }),
+        supabase.from('bills').select('*').order('bill_date', { ascending: false }),
+        supabase.from('payment').select('*').order('payment_date', { ascending: false }),
+      ]);
+
+      if (consumerResult.error) throw consumerResult.error;
+      if (classificationsResult.error) throw classificationsResult.error;
+      if (metersResult.error) throw metersResult.error;
+      if (billsResult.error) throw billsResult.error;
+      if (paymentsResult.error) throw paymentsResult.error;
+
+      const matchedConsumer = (consumerResult.data || []).find((consumer) => {
+        if (String(consumer.ledger_status || 'Inactive').trim().toLowerCase() !== 'active') {
+          return false;
+        }
+        const fullName = [consumer.first_name, consumer.middle_name, consumer.last_name].filter(Boolean).join(' ').toLowerCase();
+        const accountNumber = String(consumer.account_number || '');
+        const accountDigits = accountNumber.replace(/\D/g, '');
+        return (
+          accountNumber.toLowerCase() === normalizedQuery ||
+          accountNumber.toLowerCase().includes(normalizedQuery) ||
+          (!!normalizedAccountDigits && accountDigits.includes(normalizedAccountDigits)) ||
+          fullName.includes(normalizedQuery)
+        );
+      });
+
+      if (!matchedConsumer) {
+        return null;
+      }
+
+      const classificationMap = new Map((classificationsResult.data || []).map((classification) => [classification.classification_id, classification.classification_name]));
+      const meter = (metersResult.data || []).find((entry) => entry.consumer_id === matchedConsumer.consumer_id);
+      const mappedBills = (billsResult.data || [])
+        .filter((bill) => bill.consumer_id === matchedConsumer.consumer_id)
+        .map((bill) => mapBillRecord(bill, new Map([[matchedConsumer.consumer_id, matchedConsumer]]), classificationMap));
+      const mappedPayments = (paymentsResult.data || [])
+        .filter((payment) => payment.consumer_id === matchedConsumer.consumer_id)
+        .map((payment) => mapPaymentRecord(payment, new Map([[matchedConsumer.consumer_id, matchedConsumer]]), new Map(mappedBills.map((bill) => [bill.Bill_ID, { total_amount: bill.Total_Amount, billing_month: bill.Billing_Month }]))));
+      const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || null;
+      const currentBill = applyBillPenaltySnapshot(rawCurrentBill, adminSettings);
+      const previousBalance = mappedBills
+        .filter((bill) => currentBill ? bill.Bill_ID !== currentBill.Bill_ID : true)
+        .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
+        .reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
+      const totalDue = roundCurrency(Number(currentBill?.Amount_Due || currentBill?.Total_Amount || 0) + previousBalance + Number(currentBill?.Penalty || 0));
+
+      return {
+        success: true,
+        data: {
+          consumer: {
+            Consumer_ID: matchedConsumer.consumer_id,
+            Consumer_Name: [matchedConsumer.first_name, matchedConsumer.middle_name, matchedConsumer.last_name].filter(Boolean).join(' '),
+            Address: matchedConsumer.address,
+            Account_Number: matchedConsumer.account_number,
+            Classification: classificationMap.get(matchedConsumer.classification_id) || null,
+            Connection_Date: matchedConsumer.connection_date,
+            Meter_Number: meter?.meter_serial_number || null,
+            Zone_Name: matchedConsumer.zone_id ? String(matchedConsumer.zone_id) : null,
+          },
+          currentBill,
+          summary: {
+            currentBillAmount: Number(currentBill?.Amount_Due || currentBill?.Total_Amount || 0),
+            previousBalance,
+            overduePenalty: Number(currentBill?.Penalty || 0),
+            totalDue,
+            dueDate: currentBill?.Due_Date || null,
+            billingMonth: currentBill?.Billing_Month || null,
+            lateFeePercentage: Number(currentBill?.Late_Fee_Percentage || adminSettings?.lateFee || 0),
+            isOverdue: Boolean(currentBill?.Is_Overdue),
+          },
+          bills: mappedBills,
+          payments: mappedPayments,
+          ledger: buildLedgerRecords(mappedBills, mappedPayments),
+        },
+      };
+    };
+
     const result = await withPostgresPrimary(
       'treasurer.accountLookup',
       async () => {
@@ -11282,7 +11566,6 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
                 OR CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name) ILIKE $2
               )
             AND COALESCE(c.ledger_status, 'Inactive') = 'Active'
-            AND (c.login_id IS NULL OR COALESCE(a.account_status, 'Active') = 'Active')
           ORDER BY
             CASE
               WHEN c.account_number = $1 THEN 0
@@ -11346,99 +11629,17 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
         };
       },
       async () => {
-        const [consumerResult, classificationsResult, metersResult, billsResult, paymentsResult, accountsResult] = await Promise.all([
-          supabase.from('consumer').select('*'),
-          supabase.from('classification').select('classification_id, classification_name'),
-          supabase.from('meter').select('consumer_id, meter_serial_number, meter_id').order('meter_id', { ascending: false }),
-          supabase.from('bills').select('*').order('bill_date', { ascending: false }),
-          supabase.from('payment').select('*').order('payment_date', { ascending: false }),
-          supabase.from('accounts').select('account_id, account_status'),
-        ]);
-
-        if (consumerResult.error) throw consumerResult.error;
-        if (classificationsResult.error) throw classificationsResult.error;
-        if (metersResult.error) throw metersResult.error;
-        if (billsResult.error) throw billsResult.error;
-        if (paymentsResult.error) throw paymentsResult.error;
-        if (accountsResult.error) throw accountsResult.error;
-
-        const accountMap = new Map((accountsResult.data || []).map((account) => [account.account_id, account.account_status]));
-
-        const matchedConsumer = (consumerResult.data || []).find((consumer) => {
-          if (String(consumer.ledger_status || 'Inactive') !== 'Active') {
-            return false;
-          }
-          if (consumer.login_id && accountMap.get(consumer.login_id) !== 'Active') {
-            return false;
-          }
-          const fullName = [consumer.first_name, consumer.middle_name, consumer.last_name].filter(Boolean).join(' ').toLowerCase();
-          const accountNumber = String(consumer.account_number || '');
-          const accountDigits = accountNumber.replace(/\D/g, '');
-          return (
-            accountNumber.toLowerCase() === normalizedQuery ||
-            accountNumber.toLowerCase().includes(normalizedQuery) ||
-            (!!normalizedAccountDigits && accountDigits.includes(normalizedAccountDigits)) ||
-            fullName.includes(normalizedQuery)
-          );
-        });
-
-        if (!matchedConsumer) {
-          return null;
-        }
-
-        const classificationMap = new Map((classificationsResult.data || []).map((classification) => [classification.classification_id, classification.classification_name]));
-        const meter = (metersResult.data || []).find((entry) => entry.consumer_id === matchedConsumer.consumer_id);
-        const mappedBills = (billsResult.data || [])
-          .filter((bill) => bill.consumer_id === matchedConsumer.consumer_id)
-          .map((bill) => mapBillRecord(bill, new Map([[matchedConsumer.consumer_id, matchedConsumer]]), classificationMap));
-        const mappedPayments = (paymentsResult.data || [])
-          .filter((payment) => payment.consumer_id === matchedConsumer.consumer_id)
-          .map((payment) => mapPaymentRecord(payment, new Map([[matchedConsumer.consumer_id, matchedConsumer]]), new Map(mappedBills.map((bill) => [bill.Bill_ID, { total_amount: bill.Total_Amount, billing_month: bill.Billing_Month }]))));
-        const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || null;
-        const currentBill = applyBillPenaltySnapshot(rawCurrentBill, adminSettings);
-        const previousBalance = mappedBills
-          .filter((bill) => currentBill ? bill.Bill_ID !== currentBill.Bill_ID : true)
-          .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
-          .reduce((sum, bill) => sum + Number(bill.Total_Amount || 0), 0);
-        const totalDue = roundCurrency(Number(currentBill?.Amount_Due || currentBill?.Total_Amount || 0) + previousBalance + Number(currentBill?.Penalty || 0));
-
-        return {
-          success: true,
-          data: {
-            consumer: {
-              Consumer_ID: matchedConsumer.consumer_id,
-              Consumer_Name: [matchedConsumer.first_name, matchedConsumer.middle_name, matchedConsumer.last_name].filter(Boolean).join(' '),
-              Address: matchedConsumer.address,
-              Account_Number: matchedConsumer.account_number,
-              Classification: classificationMap.get(matchedConsumer.classification_id) || null,
-              Connection_Date: matchedConsumer.connection_date,
-              Meter_Number: meter?.meter_serial_number || null,
-              Zone_Name: matchedConsumer.zone_id ? String(matchedConsumer.zone_id) : null,
-            },
-            currentBill,
-            summary: {
-              currentBillAmount: Number(currentBill?.Amount_Due || currentBill?.Total_Amount || 0),
-              previousBalance,
-              overduePenalty: Number(currentBill?.Penalty || 0),
-              totalDue,
-              dueDate: currentBill?.Due_Date || null,
-              billingMonth: currentBill?.Billing_Month || null,
-              lateFeePercentage: Number(currentBill?.Late_Fee_Percentage || adminSettings?.lateFee || 0),
-              isOverdue: Boolean(currentBill?.Is_Overdue),
-            },
-            bills: mappedBills,
-            payments: mappedPayments,
-            ledger: buildLedgerRecords(mappedBills, mappedPayments),
-          },
-        };
+        return loadSupabaseLookup();
       }
     );
 
-    if (!result) {
+    const resolvedResult = result || await loadSupabaseLookup();
+
+    if (!resolvedResult) {
       return res.status(404).json({ success: false, message: 'Account not found.' });
     }
 
-    return res.json(result);
+    return res.json(resolvedResult);
   } catch (error) {
     await logRequestError(req, 'treasurer.accountLookup', error);
     return res.status(500).json({ success: false, message: error.message });

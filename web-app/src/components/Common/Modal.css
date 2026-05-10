@@ -110,6 +110,18 @@
   max-height: 72vh;
 }
 
+.modal-body .form-label {
+  color: #202124 !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.modal-body .required {
+  color: #dc3545 !important;
+}
+
 .modal-footer {
   padding: 28px 36px;
   border-top: 1px solid #f1f5f9;

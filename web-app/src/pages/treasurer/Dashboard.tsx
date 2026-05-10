@@ -7,7 +7,7 @@ import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
 import {
   getErrorMessage,
   loadAccountLookupWithFallback,
-  loadConsumersWithFallback,
+  loadLedgerConsumersWithFallback,
   loadTreasurerDashboardSummaryWithFallback,
 } from '../../services/userManagementApi';
 import './Dashboard.css';
@@ -86,7 +86,7 @@ const Dashboard: React.FC = () => {
 
   const loadQuickLookupAccounts = useCallback(async () => {
     try {
-      const result = await loadConsumersWithFallback();
+      const result = await loadLedgerConsumersWithFallback();
       setQuickLookupAccounts(result.data || []);
       if (result.source === 'supabase') {
         showToast('Quick lookup accounts loaded using Supabase fallback.', 'warning');

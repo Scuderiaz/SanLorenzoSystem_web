@@ -416,31 +416,87 @@
 }
 
 /* Ledger table responsiveness */
+.treasurer-ledger-page .card {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .treasurer-ledger-page .card-body.p-0 {
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .treasurer-ledger-page .data-table-container {
+  width: 100%;
+  max-width: 100%;
   min-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  border-radius: 0 0 24px 24px;
+  scrollbar-gutter: stable;
 }
 
 .treasurer-ledger-page .data-table {
-  min-width: 1450px;
+  min-width: 1280px;
+  table-layout: fixed;
 }
 
 .treasurer-ledger-page .data-table th,
 .treasurer-ledger-page .data-table td {
-  white-space: nowrap;
+  padding: 16px 18px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.treasurer-ledger-page .data-table th:nth-child(1),
+.treasurer-ledger-page .data-table td:nth-child(1) {
+  width: 150px;
 }
 
 .treasurer-ledger-page .data-table th:nth-child(2),
-.treasurer-ledger-page .data-table td:nth-child(2),
+.treasurer-ledger-page .data-table td:nth-child(2) {
+  width: 170px;
+}
+
+.treasurer-ledger-page .data-table th:nth-child(3),
+.treasurer-ledger-page .data-table td:nth-child(3) {
+  width: 95px;
+}
+
+.treasurer-ledger-page .data-table th:nth-child(4),
+.treasurer-ledger-page .data-table td:nth-child(4) {
+  width: 125px;
+}
+
+.treasurer-ledger-page .data-table th:nth-child(5),
+.treasurer-ledger-page .data-table td:nth-child(5),
+.treasurer-ledger-page .data-table th:nth-child(6),
+.treasurer-ledger-page .data-table td:nth-child(6),
+.treasurer-ledger-page .data-table th:nth-child(7),
+.treasurer-ledger-page .data-table td:nth-child(7) {
+  width: 140px;
+}
+
+.treasurer-ledger-page .data-table th:nth-child(8),
+.treasurer-ledger-page .data-table td:nth-child(8),
+.treasurer-ledger-page .data-table th:nth-child(9),
+.treasurer-ledger-page .data-table td:nth-child(9) {
+  width: 115px;
+}
+
 .treasurer-ledger-page .data-table th:nth-child(10),
 .treasurer-ledger-page .data-table td:nth-child(10) {
-  white-space: normal;
+  width: 150px;
+  overflow: visible;
+}
+
+.treasurer-ledger-page .data-table th:nth-child(11),
+.treasurer-ledger-page .data-table td:nth-child(11) {
+  width: 150px;
 }
 
 .treasurer-ledger-page .data-table td:last-child .btn {
@@ -471,12 +527,12 @@
 
 @media (max-width: 1440px) {
   .treasurer-ledger-page .data-table {
-    min-width: 1320px;
+    min-width: 1260px;
   }
 
   .treasurer-ledger-page .data-table th,
   .treasurer-ledger-page .data-table td {
-    padding: 16px 20px;
+    padding: 15px 16px;
   }
 }
 
@@ -508,7 +564,7 @@
   }
 
   .treasurer-ledger-page .data-table {
-    min-width: 1180px;
+    min-width: 1160px;
   }
 
   .registry-stats-grid {

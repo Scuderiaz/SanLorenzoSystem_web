@@ -8,10 +8,11 @@ import { useToast } from '../../components/Common/ToastContainer';
 import {
   getErrorMessage,
   loadBillsWithFallback,
-  loadConsumersWithFallback,
+  loadLedgerConsumersWithFallback,
   loadPaymentsWithFallback,
   loadZonesWithFallback,
 } from '../../services/userManagementApi';
+import { downloadCsvReport } from '../../utils/reportExport';
 import '../assessor_admin/Reports.css';
 
 interface ConsumerRow {
@@ -74,7 +75,7 @@ const BillingReports: React.FC = () => {
     setLoading(true);
     try {
       const [consumersResult, billsResult, paymentsResult, zonesResult] = await Promise.all([
-        loadConsumersWithFallback(),
+        loadLedgerConsumersWithFallback(),
         loadBillsWithFallback(),
         loadPaymentsWithFallback(),
         loadZonesWithFallback(),
@@ -116,6 +117,7 @@ const BillingReports: React.FC = () => {
   const filteredPayments = useMemo(() => {
     return payments.filter((payment) => {
       const Consumer = consumerMap.get(payment.Consumer_ID);
+      if (!Consumer) return false;
       const matchesZone = !zoneFilter || String(Consumer?.Zone_ID || '') === zoneFilter;
       const paymentDate = payment.Payment_Date ? new Date(payment.Payment_Date) : null;
       const matchesFrom = !fromDate || !paymentDate || paymentDate >= new Date(fromDate);
@@ -215,6 +217,69 @@ const BillingReports: React.FC = () => {
 
   const zoneOptions = zones.map((zone) => ({ value: zone.Zone_ID, label: formatZoneLabel(zone.Zone_Name, zone.Zone_ID) }));
 
+  const activeZoneLabel = zoneOptions.find((zone) => String(zone.value) === zoneFilter)?.label || 'All Service Zones';
+
+  const exportConsumerReport = () => {
+    if (!consumerReports.length) {
+      showToast('No consumer report rows to export.', 'warning');
+      return;
+    }
+
+    downloadCsvReport('Billing Consumer Summary Report', consumerReports, [
+      { key: 'zone', label: 'Zone' },
+      { key: 'totalConsumers', label: 'Total Consumers' },
+      { key: 'active', label: 'Active' },
+      { key: 'inactive', label: 'Inactive' },
+      { key: 'percentage', label: 'Activation Rate' },
+    ], {
+      filename: 'billing-consumer-summary-report.csv',
+      filters: {
+        'Start Period': fromDate || 'All',
+        'End Period': toDate || 'All',
+        'Coverage Area': activeZoneLabel,
+        'Ledger Status': 'Active only',
+      },
+      summary: {
+        Consumers: totalConsumers,
+        Invoiced: formatCurrency(totalBilled),
+        Collected: formatCurrency(totalCollected),
+        Outstanding: formatCurrency(totalOutstanding),
+      },
+    });
+    showToast('Consumer report file generated.', 'success');
+  };
+
+  const exportMonthlyReport = () => {
+    if (!monthlyReports.length) {
+      showToast('No monthly report rows to export.', 'warning');
+      return;
+    }
+
+    downloadCsvReport('Billing Monthly Collection Report', monthlyReports, [
+      { key: 'period', label: 'Period' },
+      { key: 'billsGenerated', label: 'Bills Generated' },
+      { key: 'totalInvoiced', label: 'Total Invoiced', value: (row) => formatCurrency(row.totalInvoiced) },
+      { key: 'totalCollected', label: 'Total Collected', value: (row) => formatCurrency(row.totalCollected) },
+      { key: 'collectionRate', label: 'Collection Rate' },
+      { key: 'unpaidBalance', label: 'Outstanding', value: (row) => formatCurrency(row.unpaidBalance) },
+    ], {
+      filename: 'billing-monthly-collection-report.csv',
+      filters: {
+        'Start Period': fromDate || 'All',
+        'End Period': toDate || 'All',
+        'Coverage Area': activeZoneLabel,
+        'Ledger Status': 'Active only',
+      },
+      summary: {
+        Consumers: totalConsumers,
+        Invoiced: formatCurrency(totalBilled),
+        Collected: formatCurrency(totalCollected),
+        Outstanding: formatCurrency(totalOutstanding),
+      },
+    });
+    showToast('Monthly report file generated.', 'success');
+  };
+
   const consumerReportColumns = useMemo<Column[]>(() => [
     { key: 'zone', label: 'Zone', sortable: true },
     { key: 'totalConsumers', label: 'Total Consumers', sortable: true },
@@ -306,6 +371,12 @@ const BillingReports: React.FC = () => {
           <div className="report-actions">
             <button className="btn btn-primary" onClick={loadReports}>
               <i className="fas fa-sync-alt"></i> Refresh Reports
+            </button>
+            <button className="btn btn-secondary" onClick={exportConsumerReport}>
+              <i className="fas fa-file-csv"></i> Export Consumers CSV
+            </button>
+            <button className="btn btn-secondary" onClick={exportMonthlyReport}>
+              <i className="fas fa-file-csv"></i> Export Monthly CSV
             </button>
           </div>
         </div>

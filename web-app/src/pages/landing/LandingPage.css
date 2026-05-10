@@ -1211,20 +1211,20 @@
   padding: 32px;
 }
 
-.form-submit-row {
+.landing-page .form-submit-row {
   grid-column: 1 / -1;
   padding: 0 32px 32px;
 }
 
-.form-group {
+.landing-page .form-group {
   margin-bottom: 20px;
 }
 
-.form-group:last-child {
+.landing-page .form-group:last-child {
   margin-bottom: 0;
 }
 
-.form-label {
+.landing-page .form-label {
   display: block;
   color: #ffffff !important;
   font-weight: 600;
@@ -1232,9 +1232,9 @@
   margin-bottom: 8px;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.landing-page .form-group input,
+.landing-page .form-group select,
+.landing-page .form-group textarea {
   width: 100%;
   padding: 12px 16px;
   border: none;
@@ -1244,14 +1244,14 @@
   color: #0f172a;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.landing-page .form-group input:focus,
+.landing-page .form-group select:focus,
+.landing-page .form-group textarea:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
 }
 
-.form-group textarea {
+.landing-page .form-group textarea {
   resize: vertical;
   min-height: 140px;
 }

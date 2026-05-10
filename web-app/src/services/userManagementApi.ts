@@ -387,6 +387,11 @@ const loadConsumersFromSupabase = async () => {
   return mapConsumersFromSupabase(consumers || [], zones || [], classifications || [], meters || []);
 };
 
+const loadLedgerConsumersFromSupabase = async () => {
+  const consumers = await loadConsumersFromSupabase();
+  return consumers.filter((consumer) => normalizeStatus(consumer.Ledger_Status) === 'active');
+};
+
 const loadBillsFromSupabase = async () => {
   const [
     { data: bills, error: billError },
@@ -395,7 +400,7 @@ const loadBillsFromSupabase = async () => {
     { data: readings, error: readingError },
   ] = await Promise.all([
     supabase!.from('bills').select('*').order('bill_date', { ascending: false }),
-    supabase!.from('consumer').select('consumer_id, first_name, middle_name, last_name, address, account_number, classification_id'),
+    supabase!.from('consumer').select('consumer_id, first_name, middle_name, last_name, address, account_number, classification_id, ledger_status'),
     supabase!.from('classification').select('classification_id, classification_name'),
     supabase!.from('meterreadings').select('reading_id, previous_reading, current_reading, consumption'),
   ]);
@@ -405,7 +410,14 @@ const loadBillsFromSupabase = async () => {
   if (classificationError) throw classificationError;
   if (readingError) throw readingError;
 
-  return mapBillsFromSupabase(bills || [], consumers || [], classifications || [], readings || []);
+  const activeLedgerConsumerIds = new Set(
+    (consumers || [])
+      .filter((consumer) => normalizeStatus(consumer.ledger_status) === 'active')
+      .map((consumer) => consumer.consumer_id)
+  );
+  const activeLedgerBills = (bills || []).filter((bill) => activeLedgerConsumerIds.has(bill.consumer_id));
+
+  return mapBillsFromSupabase(activeLedgerBills, consumers || [], classifications || [], readings || []);
 };
 
 const loadPaymentsFromSupabase = async () => {
@@ -1058,6 +1070,31 @@ export const loadConsumersWithFallback = async () => requestWithSupabaseFallback
   'Failed to load consumers.',
   'dataset.consumers'
 );
+
+export const loadLedgerConsumersWithFallback = async () => {
+  const result = await requestWithSupabaseFallback<any[]>(
+    '/consumers?ledger_status=Active',
+    loadLedgerConsumersFromSupabase,
+    (payload) => (Array.isArray(payload) ? payload : payload?.data || []),
+    'Failed to load ledger consumers.',
+    'dataset.ledgerConsumers'
+  );
+
+  if ((result.data || []).length || !isSupabaseConfigured || !supabase) {
+    return result;
+  }
+
+  const supabaseRows = await loadLedgerConsumersFromSupabase();
+  if (!supabaseRows.length) {
+    return result;
+  }
+
+  await persistOfflineSnapshot('dataset.ledgerConsumers', supabaseRows);
+  return {
+    data: supabaseRows,
+    source: 'supabase' as const,
+  };
+};
 
 export const loadBillsWithFallback = async () => requestWithSupabaseFallback(
   '/bills',

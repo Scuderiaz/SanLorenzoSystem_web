@@ -6,6 +6,7 @@ import FormInput from '../../components/Common/FormInput';
 import FormSelect from '../../components/Common/FormSelect';
 import { useToast } from '../../components/Common/ToastContainer';
 import { getErrorMessage, loadZonesWithFallback, requestJsonWithOfflineSnapshot } from '../../services/userManagementApi';
+import { downloadCsvReport } from '../../utils/reportExport';
 import './Reports.css';
 
 interface ConsumerReport {
@@ -27,6 +28,9 @@ interface MonthlyUnifiedReport {
 
 const formatZoneLabel = (zoneName?: string, zoneId?: number | string | null) =>
   zoneName || (zoneId ? `Zone ${zoneId}` : 'Not Assigned');
+
+const formatCurrencyValue = (value: number) =>
+  `PHP ${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const Reports: React.FC = () => {
   const { showToast } = useToast();
@@ -146,18 +150,67 @@ const Reports: React.FC = () => {
     }
   };
 
-  const handleExportConsumerReport = () => {
-    showToast('Consumer report export is not available yet.', 'info');
-  };
-
-  const handleExportMonthlyReport = () => {
-    showToast('Monthly report export is not available yet.', 'info');
-  };
-
   const zoneOptions = zones.map((z) => ({
     value: z.Zone_ID ?? z.zone_id,
     label: formatZoneLabel(z.Zone_Name ?? z.zone_name, z.Zone_ID ?? z.zone_id),
   }));
+
+  const handleExportConsumerReport = () => {
+    if (!consumerReports.length) {
+      showToast('No consumer report rows to export.', 'warning');
+      return;
+    }
+
+    downloadCsvReport('Consumer Summary Report', consumerReports, [
+      { key: 'zone', label: 'Zone' },
+      { key: 'totalConsumers', label: 'Total Consumers' },
+      { key: 'active', label: 'Active' },
+      { key: 'inactive', label: 'Inactive' },
+      { key: 'percentage', label: 'Percentage' },
+    ], {
+      filename: 'consumer-summary-report.csv',
+      filters: {
+        'Start Period': fromDate || 'All',
+        'End Period': toDate || 'All',
+        'Coverage Area': zoneOptions.find((zone) => String(zone.value) === zoneFilter)?.label || 'All Service Zones',
+      },
+      summary: {
+        'Base Consumers': totalConsumers,
+        'Invoiced Volume': totalBills,
+        'Gross Collection': totalRevenue,
+      },
+    });
+    showToast('Consumer report file generated.', 'success');
+  };
+
+  const handleExportMonthlyReport = () => {
+    if (!monthlyReports.length) {
+      showToast('No monthly report rows to export.', 'warning');
+      return;
+    }
+
+    downloadCsvReport('Monthly Billing and Collection Report', monthlyReports, [
+      { key: 'period', label: 'Period' },
+      { key: 'billsGenerated', label: 'Bills Generated' },
+      { key: 'totalInvoiced', label: 'Total Invoiced', value: (row) => formatCurrencyValue(row.totalInvoiced) },
+      { key: 'totalCollected', label: 'Actual Collections', value: (row) => formatCurrencyValue(row.totalCollected) },
+      { key: 'collectionRate', label: 'Collection Rate' },
+      { key: 'unpaidBalance', label: 'Unpaid Balance', value: (row) => formatCurrencyValue(row.unpaidBalance) },
+    ], {
+      filename: 'monthly-billing-collection-report.csv',
+      filters: {
+        'Start Period': fromDate || 'All',
+        'End Period': toDate || 'All',
+        'Coverage Area': zoneOptions.find((zone) => String(zone.value) === zoneFilter)?.label || 'All Service Zones',
+      },
+      summary: {
+        'Base Consumers': totalConsumers,
+        'Invoiced Volume': totalBills,
+        'Gross Collection': totalRevenue,
+      },
+    });
+    showToast('Monthly report file generated.', 'success');
+  };
 
   const consumerReportColumns: Column[] = [
     { key: 'zone', label: 'Zone', sortable: true },
@@ -264,10 +317,10 @@ const Reports: React.FC = () => {
             <i className="fas fa-sync-alt"></i> Run All Reports
           </button>
           <button className="btn btn-secondary" onClick={handleExportConsumerReport}>
-            <i className="fas fa-file-pdf"></i> Export Consumers
+            <i className="fas fa-file-csv"></i> Export Consumers CSV
           </button>
           <button className="btn btn-secondary" onClick={handleExportMonthlyReport}>
-            <i className="fas fa-file-invoice-dollar"></i> Export Monthly Report
+            <i className="fas fa-file-csv"></i> Export Monthly CSV
           </button>
         </div>
 

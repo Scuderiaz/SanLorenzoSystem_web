@@ -1630,3 +1630,110 @@
 [2026-05-10T09:52:24.856Z] [auth.google] (intermediate value) is not iterable | POST /api/auth/google | params={} | query={} | body={"access_token":"eyJhbGciOiJFUzI1NiIsImtpZCI6IjIxY2E3ODdkLTY3YTUtNDI1MC1iY2JiLWJlMjQ5OGM2ZmIwMCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3Bxbnp6aXZmYWhnYWdpdGJ5d2hnLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIxZDhkZjY3ZS1iMWYwLTQyNmMtODgxMy01MDliZjgyM2IzNmUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc4NDEwMzQ3LCJpYXQiOjE3Nzg0MDY3NDcsImVtYWlsIjoiZWxlcGhhcmxleTIyQGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZ29vZ2xlIiwicHJvdmlkZXJzIjpbImdvb2dsZSJdfSwidXNlcl9tZXRhZGF0YSI6eyJhdmF0YXJfdXJsIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSzRfOHhXbGFCOTZMeFdpZzRpV25vVGFTOFljeHNoTkloaXEtcXczXzUwVlcwTUdZZXk9czk2LWMiLCJlbWFpbCI6ImVsZXBoYXJsZXkyMkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZnVsbF9uYW1lIjoiSGFybGV5IEpvaG4gRWxlcCIsImlzcyI6Imh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbSIsIm5hbWUiOiJIYXJsZXkgSm9obiBFbGVwIiwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSzRfOHhXbGFCOTZMeFdpZzRpV25vVGFTOFljeHNoTkloaXEtcXczXzUwVlcwTUdZZXk9czk2LWMiLCJwcm92aWRlcl9pZCI6IjExNzUzMDA5NTM3MzE5NTMyNjMyNiIsInN1YiI6IjExNzUzMDA5NTM3MzE5NTMyNjMyNiJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6Im9hdXRoIiwidGltZXN0YW1wIjoxNzc4NDA2NzQ3fV0sInNlc3Npb25faWQiOiJmYjNjOTE3MC0yYWY1LTRiNzYtOTgwMi1mZjg3OTVlZGRiY2UiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.FqQiQPMb67KBlkcMEwFA-9ax8gbeg5b5sGU_MG9uWLu3GG5tG4x1UT9XjkBz75IxwRanIf8v7UjS1GX9StTU9A","intent":"signup"}
 [2026-05-10T09:52:25.002Z] [auth.google] (intermediate value) is not iterable | POST /api/auth/google | params={} | query={} | body={"access_token":"eyJhbGciOiJFUzI1NiIsImtpZCI6IjIxY2E3ODdkLTY3YTUtNDI1MC1iY2JiLWJlMjQ5OGM2ZmIwMCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3Bxbnp6aXZmYWhnYWdpdGJ5d2hnLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIxZDhkZjY3ZS1iMWYwLTQyNmMtODgxMy01MDliZjgyM2IzNmUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc4NDEwMzQ3LCJpYXQiOjE3Nzg0MDY3NDcsImVtYWlsIjoiZWxlcGhhcmxleTIyQGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZ29vZ2xlIiwicHJvdmlkZXJzIjpbImdvb2dsZSJdfSwidXNlcl9tZXRhZGF0YSI6eyJhdmF0YXJfdXJsIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSzRfOHhXbGFCOTZMeFdpZzRpV25vVGFTOFljeHNoTkloaXEtcXczXzUwVlcwTUdZZXk9czk2LWMiLCJlbWFpbCI6ImVsZXBoYXJsZXkyMkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZnVsbF9uYW1lIjoiSGFybGV5IEpvaG4gRWxlcCIsImlzcyI6Imh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbSIsIm5hbWUiOiJIYXJsZXkgSm9obiBFbGVwIiwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSzRfOHhXbGFCOTZMeFdpZzRpV25vVGFTOFljeHNoTkloaXEtcXczXzUwVlcwTUdZZXk9czk2LWMiLCJwcm92aWRlcl9pZCI6IjExNzUzMDA5NTM3MzE5NTMyNjMyNiIsInN1YiI6IjExNzUzMDA5NTM3MzE5NTMyNjMyNiJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6Im9hdXRoIiwidGltZXN0YW1wIjoxNzc4NDA2NzQ3fV0sInNlc3Npb25faWQiOiJmYjNjOTE3MC0yYWY1LTRiNzYtOTgwMi1mZjg3OTVlZGRiY2UiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.FqQiQPMb67KBlkcMEwFA-9ax8gbeg5b5sGU_MG9uWLu3GG5tG4x1UT9XjkBz75IxwRanIf8v7UjS1GX9StTU9A","intent":"signup"}
 [2026-05-10T12:13:24.673Z] [server.start] AggregateError
+[2026-05-10T12:20:48.002Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:21:50.553Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:21:56.499Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:22:50.546Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:22:56.305Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:23:50.555Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:23:56.159Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:24:50.564Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:25:00.992Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:25:50.574Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:25:55.744Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:26:50.589Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:26:55.732Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:27:50.589Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:27:55.417Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:28:50.594Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:28:55.991Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:29:50.595Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:29:55.855Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:30:50.598Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:30:55.788Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:31:50.613Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:31:55.705Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:32:50.621Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:34:09.212Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:35:11.647Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:35:18.179Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:36:11.656Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:36:18.519Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:37:11.665Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:37:17.520Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:38:11.669Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:38:17.274Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:39:11.673Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:39:17.193Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:40:11.679Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:40:17.970Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:41:11.694Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:41:17.912Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:42:11.709Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:42:17.147Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:43:11.718Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:43:16.903Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:43:57.523Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:45:00.574Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:45:06.667Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:46:00.578Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:46:06.697Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:47:00.588Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:47:05.557Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:48:00.589Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:48:07.291Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:49:00.604Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:49:06.499Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:50:00.614Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:50:07.569Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:51:00.622Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:51:05.915Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:52:00.626Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:52:06.157Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:53:00.625Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:53:07.676Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:55:12.440Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:56:15.011Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:56:20.601Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:57:15.013Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:57:21.207Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:57:40.830Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:57:53.258Z] [admin.syncSupabase] Manual Supabase sync requested.
+[2026-05-10T12:57:54.481Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T12:58:42.304Z] [admin.syncPostgres] Manual PostgreSQL pull from Supabase requested.
+[2026-05-10T12:59:43.402Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T12:59:49.616Z] [supabase.sync.consumer] null value in column "zone_id" of relation "consumer" violates not-null constraint
+[2026-05-10T13:00:14.043Z] [admin.syncSupabase] Manual Supabase sync requested.
+[2026-05-10T13:01:38.372Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:01:46.882Z] [public.contact.submit] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint | POST /api/public/contact | params={} | query={} | body={"email":"test@example.com","fullName":"Test User","subject":"Billing Concern","contactNumber":"09919222217","barangay":"Daculang Bolo","message":"This is a test concern message."}
+[2026-05-10T13:02:38.385Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:03:58.779Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T13:04:06.508Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T13:04:46.211Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:05:43.656Z] [sync.cycle] Hybrid sync cycle started via immediate:public-contact-submit.
+[2026-05-10T13:05:50.353Z] [supabase.sync.consumer_concerns] null value in column "account_id" of relation "consumer_concerns" violates not-null constraint
+[2026-05-10T13:06:40.031Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:08:19.625Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:09:19.639Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:10:19.653Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:11:19.677Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:12:19.667Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:13:19.669Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:14:19.672Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:15:19.680Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:16:19.691Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:17:19.702Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:18:19.706Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:19:19.709Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:20:19.718Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:21:19.729Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:22:19.734Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:23:19.740Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:24:19.744Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:25:19.761Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:26:19.764Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:27:19.771Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:28:19.787Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:30:04.402Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:31:04.403Z] [sync.cycle] Hybrid sync cycle started via scheduler.
+[2026-05-10T13:32:04.406Z] [sync.cycle] Hybrid sync cycle started via scheduler.

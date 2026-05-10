@@ -11,7 +11,7 @@ import {
   getErrorMessage,
   loadAdminSettingsWithFallback,
   loadBillsWithFallback,
-  loadConsumersWithFallback,
+  loadLedgerConsumersWithFallback,
   loadMeterReadingsWithFallback,
   loadWaterRatesWithFallback,
   loadZonesWithFallback,
@@ -191,7 +191,7 @@ const GenerateBills: React.FC = () => {
     try {
       const [billsResult, consumersResult, zonesResult, settingsResult, readingsResult, waterRatesResult] = await Promise.all([
         loadBillsWithFallback(),
-        loadConsumersWithFallback(),
+        loadLedgerConsumersWithFallback(),
         loadZonesWithFallback(),
         loadAdminSettingsWithFallback(),
         loadMeterReadingsWithFallback(),

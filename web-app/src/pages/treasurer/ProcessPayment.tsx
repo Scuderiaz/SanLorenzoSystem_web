@@ -8,7 +8,7 @@ import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
 import {
   getErrorMessage,
   loadAccountLookupWithFallback,
-  loadConsumersWithFallback,
+  loadLedgerConsumersWithFallback,
   loadPaymentsWithFallback,
   requestJson,
 } from '../../services/userManagementApi';
@@ -131,7 +131,7 @@ const ProcessPayment: React.FC = () => {
 
   const loadQuickLookupAccounts = useCallback(async () => {
     try {
-      const result = await loadConsumersWithFallback();
+      const result = await loadLedgerConsumersWithFallback();
       setQuickLookupAccounts(result.data || []);
       if (result.source === 'supabase') {
         showToast('Account suggestions loaded using Supabase fallback.', 'warning');

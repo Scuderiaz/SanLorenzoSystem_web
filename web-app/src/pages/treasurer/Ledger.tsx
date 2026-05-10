@@ -7,7 +7,7 @@ import { formatAccountNumberForDisplay } from '../../utils/accountNumber';
 import {
   getErrorMessage,
   loadBillsWithFallback,
-  loadConsumersWithFallback,
+  loadLedgerConsumersWithFallback,
   loadPaymentsWithFallback,
 } from '../../services/userManagementApi';
 import './Ledger.css';
@@ -132,7 +132,7 @@ const TreasurerLedger: React.FC = () => {
     try {
       setLoading(true);
       const [consumersResult, billsResult, paymentsResult] = await Promise.all([
-        loadConsumersWithFallback(),
+        loadLedgerConsumersWithFallback(),
         loadBillsWithFallback(),
         loadPaymentsWithFallback(),
       ]);
