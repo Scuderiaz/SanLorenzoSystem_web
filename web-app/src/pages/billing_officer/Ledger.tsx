@@ -39,6 +39,8 @@ interface BillRow {
   Penalties?: number | string | null;
   Meter_Fee?: number | string | null;
   Environmental_Fee?: number | string | null;
+  Water_Charge?: number | string | null;
+  Basic_Charge?: number | string | null;
   Current_Reading?: number | string | null;
   Consumption?: number | string | null;
   Bill_Date?: string;
@@ -87,6 +89,12 @@ interface TransactionRow {
   Credit: number;
   Running_Balance: number;
   Status: string;
+  Meter_Reading?: number;
+  Consumption?: number;
+  Water_Billing?: number;
+  Penalty?: number;
+  Meter_Fee?: number;
+  Receipt_Number?: string;
 }
 
 const toAmount = (value: unknown): number => {
@@ -323,22 +331,50 @@ const BillingLedger: React.FC = () => {
     if (!selectedConsumer) return [];
 
     const transactionRows: Array<Omit<TransactionRow, 'Running_Balance'>> = [];
+
+    const consumerPayments = payments.filter((payment) => payment.Consumer_ID === selectedConsumer.Consumer_ID);
+    const paymentsByBillId = new Map<number, PaymentRow[]>();
+    consumerPayments.forEach((payment) => {
+      const billId = Number(payment.Bill_ID || 0);
+      if (!billId) {
+        return;
+      }
+      const current = paymentsByBillId.get(billId) || [];
+      current.push(payment);
+      paymentsByBillId.set(billId, current);
+    });
+
     bills
       .filter((bill) => bill.Consumer_ID === selectedConsumer.Consumer_ID)
       .forEach((bill) => {
+        const billPayments = (paymentsByBillId.get(bill.Bill_ID) || []).slice().sort((a, b) =>
+          new Date(a.Payment_Date || 0).getTime() - new Date(b.Payment_Date || 0).getTime()
+        );
+        const paidAmount = billPayments.reduce((sum, payment) => sum + toAmount(payment.Amount_Paid), 0);
+        const receiptNumbers = Array.from(new Set(
+          billPayments
+            .map((payment) => payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID}`)
+            .filter(Boolean)
+        ));
         transactionRows.push({
           Date: bill.Bill_Date || bill.Due_Date || '',
           Type: 'Bill',
           Reference: `BILL-${bill.Bill_ID}`,
           Details: bill.Billing_Month || 'Generated bill',
           Debit: toAmount(bill.Total_Amount),
-          Credit: 0,
+          Credit: paidAmount,
           Status: bill.Status || 'Unpaid',
+          Meter_Reading: toAmount(bill.Current_Reading),
+          Consumption: toAmount(bill.Consumption),
+          Water_Billing: toAmount(bill.Water_Charge ?? bill.Basic_Charge ?? bill.Total_Amount),
+          Penalty: toAmount(bill.Penalty ?? bill.Penalties),
+          Meter_Fee: toAmount(bill.Meter_Fee ?? bill.Environmental_Fee),
+          Receipt_Number: receiptNumbers.join(', '),
         });
       });
 
-    payments
-      .filter((payment) => payment.Consumer_ID === selectedConsumer.Consumer_ID)
+    consumerPayments
+      .filter((payment) => !Number(payment.Bill_ID || 0))
       .forEach((payment) => {
         transactionRows.push({
           Date: payment.Payment_Date || '',
@@ -348,6 +384,7 @@ const BillingLedger: React.FC = () => {
           Debit: 0,
           Credit: toAmount(payment.Amount_Paid),
           Status: payment.Status || 'Pending',
+          Receipt_Number: payment.OR_Number || payment.Reference_No || `PAY-${payment.Payment_ID}`,
         });
       });
 
@@ -363,6 +400,10 @@ const BillingLedger: React.FC = () => {
       return { ...row, Running_Balance: runningBalance };
     }).reverse();
   }, [bills, payments, selectedConsumer]);
+
+  const handlePrintAuditReport = () => {
+    window.print();
+  };
 
   const handleDisconnectConsumer = async () => {
     if (!disconnectTarget) return;
@@ -606,7 +647,7 @@ const BillingLedger: React.FC = () => {
 
         {selectedConsumer && (
           <Modal isOpen={Boolean(selectedConsumer)} onClose={() => setSelectedConsumer(null)} title="Official Account Ledger" size="xlarge" closeOnOverlayClick={true}>
-            <div className="billing-paper-theme">
+            <div className="billing-paper-theme printable-ledger-report">
               <div className="ledger-big-id">{selectedConsumer.Account_Number.split('-').pop()}</div>
               
               <div className="ledger-official-header">
@@ -681,23 +722,20 @@ const BillingLedger: React.FC = () => {
                       </tr>
                     ) : (
                       transactions.map((row, idx) => {
-                        const bill = row.Type === 'Bill' ? bills.find(b => `BILL-${b.Bill_ID}` === row.Reference) : null;
-                        const billPenalty = toAmount(bill?.Penalty ?? bill?.Penalties);
-                        const billMeterFee = toAmount(bill?.Meter_Fee ?? bill?.Environmental_Fee);
                         const runningBalance = toAmount(row.Running_Balance);
                         
                         return (
                           <tr key={`${row.Reference}-${idx}`}>
-                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{formatDate(row.Date)}</td>
-                            <td style={{ textAlign: 'right' }}>{bill ? toAmount(bill.Current_Reading) : ''}</td>
-                            <td style={{ textAlign: 'center' }}>{bill ? toAmount(bill.Consumption) : ''}</td>
-                            <td style={{ textAlign: 'right' }}>{toAmount(row.Debit) > 0 ? toAmount(row.Debit).toFixed(2) : ''}</td>
-                            <td style={{ textAlign: 'right' }}>{bill ? billPenalty.toFixed(2) : ''}</td>
-                            <td style={{ textAlign: 'right' }}>{bill ? billMeterFee.toFixed(2) : ''}</td>
-                            <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{toAmount(row.Credit) > 0 ? toAmount(row.Credit).toFixed(2) : ''}</td>
-                            <td style={{ textAlign: 'center' }}>{row.Reference.startsWith('BILL-') ? '' : row.Reference}</td>
-                            <td style={{ textAlign: 'right' }}>{Math.floor(runningBalance)}</td>
-                            <td style={{ textAlign: 'right' }}>{(runningBalance % 1).toFixed(2).split('.')[1]}</td>
+                            <td className="ledger-cell-date">{formatDate(row.Date)}</td>
+                            <td className="ledger-cell-number">{row.Type === 'Bill' ? toAmount(row.Meter_Reading).toLocaleString('en-PH') : ''}</td>
+                            <td className="ledger-cell-number">{row.Type === 'Bill' ? toAmount(row.Consumption).toLocaleString('en-PH') : ''}</td>
+                            <td className="ledger-cell-money">{row.Type === 'Bill' ? toAmount(row.Water_Billing || row.Debit).toFixed(2) : ''}</td>
+                            <td className="ledger-cell-money">{row.Type === 'Bill' ? toAmount(row.Penalty).toFixed(2) : ''}</td>
+                            <td className="ledger-cell-money">{row.Type === 'Bill' ? toAmount(row.Meter_Fee).toFixed(2) : ''}</td>
+                            <td className="ledger-cell-money ledger-cell-payment">{toAmount(row.Credit) > 0 ? toAmount(row.Credit).toFixed(2) : ''}</td>
+                            <td className="ledger-cell-reference">{row.Receipt_Number || ''}</td>
+                            <td className="ledger-cell-money">{Math.floor(runningBalance)}</td>
+                            <td className="ledger-cell-centavos">{(runningBalance % 1).toFixed(2).split('.')[1]}</td>
                           </tr>
                         );
                       })
@@ -708,7 +746,7 @@ const BillingLedger: React.FC = () => {
 
               <div className="ledger-footer-actions no-print">
                 <button className="btn btn-secondary" onClick={() => setSelectedConsumer(null)}>Close Record</button>
-                <button className="btn btn-primary" onClick={() => window.print()}>
+                <button className="btn btn-primary" onClick={handlePrintAuditReport}>
                   <i className="fas fa-print"></i> Generate Audit Report
                 </button>
               </div>

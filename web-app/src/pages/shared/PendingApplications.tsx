@@ -38,6 +38,7 @@ interface PendingApplication {
   Zone_Name: string | null;
   Classification_ID: number | null;
   Classification_Name: string | null;
+  Meter_Number?: string | null;
 }
 
 interface OptionRow {
@@ -92,6 +93,8 @@ const PendingApplications: React.FC = () => {
   const [confirmAction, setConfirmAction] = useState<ConfirmActionState | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionReasonOption, setRejectionReasonOption] = useState('');
+  const [approvalAccountNumber, setApprovalAccountNumber] = useState('');
+  const [approvalMeterNumber, setApprovalMeterNumber] = useState('');
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [zones, setZones] = useState<OptionRow[]>([]);
   const [classifications, setClassifications] = useState<OptionRow[]>([]);
@@ -232,6 +235,8 @@ const PendingApplications: React.FC = () => {
     setConfirmAction({ type, application });
     setRejectionReason('');
     setRejectionReasonOption('');
+    setApprovalAccountNumber(isPlaceholderAccountNumber(application.Account_Number) ? '' : String(application.Account_Number || '').trim());
+    setApprovalMeterNumber(String(application.Meter_Number || '').trim());
   };
 
   const closeConfirmAction = (force = false) => {
@@ -241,13 +246,27 @@ const PendingApplications: React.FC = () => {
     setConfirmAction(null);
     setRejectionReason('');
     setRejectionReasonOption('');
+    setApprovalAccountNumber('');
+    setApprovalMeterNumber('');
   };
 
-  const handleApprove = async (accountId: number) => {
+  const handleApprove = async (accountId: number, accountNumber: string, meterNumber: string) => {
+    const normalizedAccountNumber = accountNumber.trim();
+    const normalizedMeterNumber = meterNumber.trim();
+    if (!normalizedAccountNumber) {
+      showToast('Account number is required before approving the application.', 'error');
+      return;
+    }
+
     try {
       const result = await requestJson<{ success: boolean; message?: string }>('/admin/approve-user', {
         method: 'POST',
-        body: JSON.stringify({ accountId, approvedBy: user?.id }),
+        body: JSON.stringify({
+          accountId,
+          approvedBy: user?.id,
+          accountNumber: normalizedAccountNumber,
+          meterNumber: normalizedMeterNumber,
+        }),
       }, 'Failed to approve application.');
       if (result.success) {
         showToast(result.message || 'Application approved successfully', 'success');
@@ -430,7 +449,7 @@ const PendingApplications: React.FC = () => {
     setActionSubmitting(true);
     try {
       if (confirmAction.type === 'approve') {
-        await handleApprove(confirmAction.application.Account_ID);
+        await handleApprove(confirmAction.application.Account_ID, approvalAccountNumber, approvalMeterNumber);
       } else {
         const resolvedReason = rejectionReasonOption === 'Other'
           ? rejectionReason.trim()
@@ -441,6 +460,13 @@ const PendingApplications: React.FC = () => {
       setActionSubmitting(false);
     }
   };
+
+  const canSubmitConfirmAction = !actionSubmitting
+    && (
+      confirmAction?.type === 'approve'
+        ? Boolean(approvalAccountNumber.trim())
+        : Boolean(rejectionReasonOption === 'Other' ? rejectionReason.trim() : rejectionReasonOption.trim())
+    );
 
   return (
     <MainLayout title="Applications">
@@ -817,7 +843,7 @@ const PendingApplications: React.FC = () => {
                 <button
                   className={`btn ${confirmAction.type === 'approve' ? 'btn-primary' : 'btn-danger'}`}
                   onClick={handleConfirmAction}
-                  disabled={actionSubmitting || (confirmAction.type === 'reject' && !(rejectionReasonOption === 'Other' ? rejectionReason.trim() : rejectionReasonOption.trim()))}
+                  disabled={!canSubmitConfirmAction}
                 >
                   {actionSubmitting ? 'Saving...' : confirmAction.type === 'approve' ? 'Approve' : 'Reject'}
                 </button>
@@ -836,6 +862,24 @@ const PendingApplications: React.FC = () => {
                 <span className="pending-app-action-summary-value">{confirmAction.application.Ticket_Number}</span>
               </p>
               <p>{confirmActionMessage}</p>
+              {confirmAction.type === 'approve' && (
+                <div className="pending-app-reject-form">
+                  <FormInput
+                    label="Account Number"
+                    value={approvalAccountNumber}
+                    onChange={setApprovalAccountNumber}
+                    placeholder="Enter assigned billing account number"
+                    required
+                  />
+                  <FormInput
+                    label="Meter Number"
+                    value={approvalMeterNumber}
+                    onChange={setApprovalMeterNumber}
+                    placeholder="Optional if meter device is delayed"
+                  />
+                  <p className="pending-app-reject-hint">Approval requires the account number. Meter status is activated only when a meter number is provided.</p>
+                </div>
+              )}
               {confirmAction.type === 'reject' && (
                 <div className="pending-app-reject-form">
                   <label className="pending-app-reject-label" htmlFor="pending-app-rejection-reason">

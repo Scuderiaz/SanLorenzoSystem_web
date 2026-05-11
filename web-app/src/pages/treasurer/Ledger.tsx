@@ -290,6 +290,10 @@ const TreasurerLedger: React.FC = () => {
       });
   }, [bills, payments, selectedConsumer]);
 
+  const handlePrintAuditReport = () => {
+    window.print();
+  };
+
   const columns = useMemo(() => [
     {
       key: 'Account_Number',
@@ -454,7 +458,7 @@ const TreasurerLedger: React.FC = () => {
 
         {showLedgerModal && selectedConsumer && (
           <Modal isOpen={showLedgerModal} onClose={() => setShowLedgerModal(false)} title="Official Water Service Record" size="portrait" closeOnOverlayClick={true}>
-            <div className="treasurer-paper-theme">
+            <div className="treasurer-paper-theme printable-ledger-report">
               <div className="ledger-official-header">
                 <p>REPUBLIC OF THE PHILIPPINES</p>
                 <h3>SAN LORENZO WATER SYSTEM</h3>
@@ -501,16 +505,16 @@ const TreasurerLedger: React.FC = () => {
                     ) : (
                       selectedLedgerRecords.map((record, idx) => (
                         <tr key={`${record.Month_Year}-${idx}`}>
-                          <td className="text-right">{record.Reading}</td>
-                          <td className="text-center">{record.Consumption}</td>
-                          <td className="text-right">{record.Water_Bill.toFixed(2)}</td>
-                          <td className="text-right">{record.Penalty.toFixed(2)}</td>
-                          <td className="text-right">{record.Meter_Fee.toFixed(2)}</td>
-                          <td className="text-right font-bold">{record.Amount_Paid.toFixed(2)}</td>
-                          <td className="text-center">{record.Date_Paid}</td>
-                          <td className="text-center font-bold">{record.OR_No}</td>
-                          <td className="text-right">{Math.floor(record.Balance)}</td>
-                          <td className="text-right">{(record.Balance % 1).toFixed(2).split('.')[1]}</td>
+                          <td className="ledger-cell-number">{record.Reading}</td>
+                          <td className="ledger-cell-number">{record.Consumption}</td>
+                          <td className="ledger-cell-money">{record.Water_Bill.toFixed(2)}</td>
+                          <td className="ledger-cell-money">{record.Penalty.toFixed(2)}</td>
+                          <td className="ledger-cell-money">{record.Meter_Fee.toFixed(2)}</td>
+                          <td className="ledger-cell-money ledger-cell-payment">{record.Amount_Paid.toFixed(2)}</td>
+                          <td className="ledger-cell-date">{record.Date_Paid}</td>
+                          <td className="ledger-cell-reference">{record.OR_No}</td>
+                          <td className="ledger-cell-money">{Math.floor(record.Balance)}</td>
+                          <td className="ledger-cell-centavos">{(record.Balance % 1).toFixed(2).split('.')[1]}</td>
                         </tr>
                       ))
                     )}
@@ -520,7 +524,7 @@ const TreasurerLedger: React.FC = () => {
 
               <div className="ledger-footer-actions no-print">
                 <button className="btn btn-secondary" onClick={() => setShowLedgerModal(false)}>Close Registry</button>
-                <button className="btn btn-primary" onClick={() => window.print()}><i className="fas fa-print"></i> Generate Official Audit Report</button>
+                <button className="btn btn-primary" onClick={handlePrintAuditReport}><i className="fas fa-print"></i> Generate Official Audit Report</button>
               </div>
             </div>
           </Modal>

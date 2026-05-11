@@ -845,14 +845,14 @@ const GenerateBills: React.FC = () => {
               label="Previous Reading"
               type="number"
               value={manualForm.previousReading}
-              onChange={(value) => setManualForm({ ...manualForm, previousReading: value })}
+              onChange={(value) => setManualForm({ ...manualForm, previousReading: value, currentChargeOverride: '' })}
               placeholder="0"
             />
             <FormInput
               label="Current Reading"
               type="number"
               value={manualForm.currentReading}
-              onChange={(value) => setManualForm({ ...manualForm, currentReading: value })}
+              onChange={(value) => setManualForm({ ...manualForm, currentReading: value, currentChargeOverride: '' })}
               placeholder="0"
             />
             <FormInput

@@ -613,6 +613,13 @@
   gap: 12px;
 }
 
+.payment-rule-note {
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 @media (max-width: 900px) {
   .quick-summary-sections,
   .quick-summary-totals {

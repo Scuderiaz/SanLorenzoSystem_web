@@ -4002,8 +4002,9 @@ function mapConsumerRecord(consumer, zoneMap = new Map(), classificationMap = ne
   };
 }
 
-function mapBillRecord(bill, consumerMap = new Map(), classificationMap = new Map()) {
+function mapBillRecord(bill, consumerMap = new Map(), classificationMap = new Map(), readingMap = new Map()) {
   const consumer = consumerMap.get(bill.consumer_id);
+  const reading = readingMap.get(bill.reading_id);
   return {
     Bill_ID: bill.bill_id,
     Consumer_ID: bill.consumer_id,
@@ -4030,6 +4031,9 @@ function mapBillRecord(bill, consumerMap = new Map(), classificationMap = new Ma
     Address: consumer?.address || null,
     Account_Number: consumer?.account_number || null,
     Classification: consumer ? classificationMap.get(consumer.classification_id) || null : null,
+    Current_Reading: reading?.current_reading ?? bill.current_reading ?? null,
+    Previous_Reading: reading?.previous_reading ?? bill.previous_reading ?? null,
+    Consumption: reading?.consumption ?? bill.consumption ?? null,
   };
 }
 
@@ -4970,9 +4974,19 @@ app.post('/api/admin/approve-user', async (req, res) => {
   const { accountId, approvedBy, remarks } = req.body;
   const approverId = Number(approvedBy);
   const normalizedRemarks = String(remarks || '').trim();
+  const requestedAccountNumber = String(
+    req.body?.accountNumber || req.body?.Account_Number || req.body?.account_number || ''
+  ).trim();
+  const requestedMeterNumber = String(
+    req.body?.meterNumber || req.body?.Meter_Number || req.body?.meter_number || ''
+  ).trim();
   try {
     if (!accountId || !Number.isInteger(approverId) || approverId <= 0) {
       return res.status(400).json({ success: false, message: 'Approver information is required.' });
+    }
+
+    if (!requestedAccountNumber) {
+      return res.status(400).json({ success: false, message: 'Account number is required before approving an application.' });
     }
 
     const meterValidation = await withPostgresPrimary(
@@ -5021,8 +5035,8 @@ app.post('/api/admin/approve-user', async (req, res) => {
         };
       }
     );
-    if (!meterValidation?.meter_number) {
-      return res.status(400).json({ success: false, message: 'Cannot approve application without a meter number. Assign a meter first.' });
+    if (!meterValidation?.consumer_id) {
+      return res.status(400).json({ success: false, message: 'Cannot approve application because no consumer profile is linked to this account.' });
     }
 
     await withPostgresPrimary(
@@ -5032,13 +5046,40 @@ app.post('/api/admin/approve-user', async (req, res) => {
         try {
           await client.query('BEGIN');
           await client.query('UPDATE accounts SET account_status = $1, role_id = $2 WHERE account_id = $3', ['Active', 5, accountId]);
-          await client.query('UPDATE consumer SET status = $1, ledger_status = $2 WHERE login_id = $3', ['Active', 'Active', accountId]);
-          await client.query(
-            `UPDATE meter
-             SET meter_status = 'Active'
-             WHERE consumer_id IN (SELECT consumer_id FROM consumer WHERE login_id = $1)`,
-            [accountId]
-          );
+          await client.query('UPDATE consumer SET account_number = $1, status = $2, ledger_status = $3 WHERE login_id = $4', [requestedAccountNumber, 'Active', 'Active', accountId]);
+          if (requestedMeterNumber) {
+            const { rows: meterRows } = await client.query(
+              `SELECT meter_id
+               FROM meter
+               WHERE consumer_id = $1
+               ORDER BY meter_id DESC
+               LIMIT 1`,
+              [meterValidation.consumer_id]
+            );
+            if (meterRows.length) {
+              await client.query(
+                `UPDATE meter
+                 SET meter_serial_number = $1,
+                     meter_status = 'Active'
+                 WHERE meter_id = $2`,
+                [requestedMeterNumber, meterRows[0].meter_id]
+              );
+            } else {
+              await client.query(
+                `INSERT INTO meter (consumer_id, meter_serial_number, meter_status)
+                 VALUES ($1, $2, 'Active')`,
+                [meterValidation.consumer_id, requestedMeterNumber]
+              );
+            }
+          } else {
+            await client.query(
+              `UPDATE meter
+               SET meter_status = 'Inactive'
+               WHERE consumer_id = $1
+                 AND COALESCE(NULLIF(TRIM(meter_serial_number), ''), NULL) IS NULL`,
+              [meterValidation.consumer_id]
+            );
+          }
           await client.query('UPDATE connection_ticket SET status = $1 WHERE account_id = $2', ['Approved', accountId]);
           await client.query(`
             INSERT INTO account_review_log (account_id, reviewed_by, review_status, review_date, remarks)
@@ -5055,10 +5096,19 @@ app.post('/api/admin/approve-user', async (req, res) => {
         if (supabase) {
           const { error: mirroredAccountError } = await supabase.from('accounts').update({ account_status: 'Active', role_id: 5 }).eq('account_id', accountId);
           if (mirroredAccountError) throw mirroredAccountError;
-          const { error: mirroredConsumerError } = await supabase.from('consumer').update({ status: 'Active', ledger_status: 'Active' }).eq('login_id', accountId);
+          const { error: mirroredConsumerError } = await supabase.from('consumer').update({ account_number: requestedAccountNumber, status: 'Active', ledger_status: 'Active' }).eq('login_id', accountId);
           if (mirroredConsumerError) throw mirroredConsumerError;
-          if (meterValidation?.consumer_id) {
-            const { error: mirroredMeterError } = await supabase.from('meter').update({ meter_status: 'Active' }).eq('consumer_id', meterValidation.consumer_id);
+          if (meterValidation?.consumer_id && requestedMeterNumber) {
+            const { data: existingMeters, error: meterLookupError } = await supabase
+              .from('meter')
+              .select('meter_id')
+              .eq('consumer_id', meterValidation.consumer_id)
+              .order('meter_id', { ascending: false })
+              .limit(1);
+            if (meterLookupError) throw meterLookupError;
+            const { error: mirroredMeterError } = existingMeters?.length
+              ? await supabase.from('meter').update({ meter_serial_number: requestedMeterNumber, meter_status: 'Active' }).eq('meter_id', existingMeters[0].meter_id)
+              : await supabase.from('meter').insert([{ consumer_id: meterValidation.consumer_id, meter_serial_number: requestedMeterNumber, meter_status: 'Active' }]);
             if (mirroredMeterError) throw mirroredMeterError;
           }
           const { error: mirroredTicketError } = await supabase.from('connection_ticket').update({ status: 'Approved' }).eq('account_id', accountId);
@@ -5076,10 +5126,19 @@ app.post('/api/admin/approve-user', async (req, res) => {
       async () => {
         const { error: accountError } = await supabase.from('accounts').update({ account_status: 'Active', role_id: 5 }).eq('account_id', accountId);
         if (accountError) throw accountError;
-        const { error: consumerError } = await supabase.from('consumer').update({ status: 'Active', ledger_status: 'Active' }).eq('login_id', accountId);
+        const { error: consumerError } = await supabase.from('consumer').update({ account_number: requestedAccountNumber, status: 'Active', ledger_status: 'Active' }).eq('login_id', accountId);
         if (consumerError) throw consumerError;
-        if (meterValidation?.consumer_id) {
-          const { error: meterError } = await supabase.from('meter').update({ meter_status: 'Active' }).eq('consumer_id', meterValidation.consumer_id);
+        if (meterValidation?.consumer_id && requestedMeterNumber) {
+          const { data: existingMeters, error: meterLookupError } = await supabase
+            .from('meter')
+            .select('meter_id')
+            .eq('consumer_id', meterValidation.consumer_id)
+            .order('meter_id', { ascending: false })
+            .limit(1);
+          if (meterLookupError) throw meterLookupError;
+          const { error: meterError } = existingMeters?.length
+            ? await supabase.from('meter').update({ meter_serial_number: requestedMeterNumber, meter_status: 'Active' }).eq('meter_id', existingMeters[0].meter_id)
+            : await supabase.from('meter').insert([{ consumer_id: meterValidation.consumer_id, meter_serial_number: requestedMeterNumber, meter_status: 'Active' }]);
           if (meterError) throw meterError;
         }
         const { error: ticketError } = await supabase.from('connection_ticket').update({ status: 'Approved' }).eq('account_id', accountId);
@@ -8508,12 +8567,14 @@ app.get('/api/bills', async (req, res) => {
             b.previous_balance AS "Previous_Balance", b.previous_penalty AS "Previous_Penalty",
             b.penalty AS "Penalties", b.penalty AS "Penalty", b.total_after_due_date AS "Total_After_Due_Date",
             b.status AS "Status", b.billing_month AS "Billing_Month",
+            mr.previous_reading AS "Previous_Reading", mr.current_reading AS "Current_Reading", mr.consumption AS "Consumption",
             CONCAT(c.first_name, ' ', c.last_name) AS "Consumer_Name",
             c.address AS "Address", c.account_number AS "Account_Number",
             cl.classification_name AS "Classification"
           FROM bills b
           LEFT JOIN consumer c ON b.consumer_id = c.consumer_id
           LEFT JOIN classification cl ON c.classification_id = cl.classification_id
+          LEFT JOIN meterreadings mr ON b.reading_id = mr.reading_id
           WHERE COALESCE(c.ledger_status, 'Inactive') = 'Active'
         `;
         const params = [];
@@ -8531,21 +8592,29 @@ app.get('/api/bills', async (req, res) => {
         return rows;
       },
       async () => {
-        const [{ data: bills, error: billsError }, { data: consumers, error: consumersError }, { data: classifications, error: classificationsError }] = await Promise.all([
+        const [
+          { data: bills, error: billsError },
+          { data: consumers, error: consumersError },
+          { data: classifications, error: classificationsError },
+          { data: readings, error: readingsError },
+        ] = await Promise.all([
           supabase.from('bills').select('*').order('bill_date', { ascending: false }),
           supabase.from('consumer').select('consumer_id, first_name, last_name, address, account_number, classification_id, ledger_status'),
           supabase.from('classification').select('classification_id, classification_name'),
+          supabase.from('meterreadings').select('reading_id, previous_reading, current_reading, consumption'),
         ]);
         if (billsError) throw billsError;
         if (consumersError) throw consumersError;
         if (classificationsError) throw classificationsError;
+        if (readingsError) throw readingsError;
 
         const consumerMap = new Map((consumers || []).map((consumer) => [consumer.consumer_id, consumer]));
         const classificationMap = new Map((classifications || []).map((classification) => [classification.classification_id, classification.classification_name]));
+        const readingMap = new Map((readings || []).map((reading) => [reading.reading_id, reading]));
 
         return (bills || [])
           .filter((bill) => isLedgerStatusActive(consumerMap.get(bill.consumer_id)?.ledger_status))
-          .map((bill) => mapBillRecord(bill, consumerMap, classificationMap))
+          .map((bill) => mapBillRecord(bill, consumerMap, classificationMap, readingMap))
           .filter((bill) => (!Account_Number || bill.Account_Number === Account_Number) && (!status || bill.Status === status));
       }
     );
@@ -9576,80 +9645,157 @@ app.post('/api/payments', async (req, res) => {
       or_number: payment.OR_Number || null,
       status: payment.Status || 'Validated',
     };
+    if (!payload.consumer_id || !Number.isFinite(payload.amount_paid) || payload.amount_paid <= 0) {
+      return res.status(400).json({ error: 'A valid consumer and payment amount are required.' });
+    }
+
     const row = await withPostgresPrimary(
       'payments.create',
       async () => {
-        if (!payload.or_number) {
-          payload.or_number = await generateOfficialReceiptNumber(pool, payload.payment_date);
-        }
-        if (!payload.reference_number) {
-          payload.reference_number = payload.or_number;
-        }
-
-        const billLookup = await pool.query('SELECT * FROM bills WHERE bill_id = $1 LIMIT 1', [payload.bill_id]);
-        const existingBill = billLookup.rows[0];
-        const adjustedBill = applyBillPenaltySnapshot(existingBill, adminSettings, payload.payment_date || new Date());
-        if (adjustedBill && existingBill) {
-          await pool.query(
-            `UPDATE bills
-             SET penalty = $1, total_after_due_date = $2, status = $3
-             WHERE bill_id = $4`,
-            [
-              adjustedBill.Penalty || 0,
-              adjustedBill.Total_After_Due_Date || adjustedBill.Total_Amount || 0,
-              adjustedBill.Status || existingBill.status,
-              payload.bill_id,
-            ]
-          );
-        }
-
-        const insertPayment = () => pool.query(`
-          INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number, or_number, status)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          RETURNING *, payment_id AS "Payment_ID"
-        `, [
-          payload.bill_id,
-          payload.consumer_id,
-          payload.amount_paid,
-          payload.payment_date,
-          payload.payment_method,
-          payload.reference_number,
-          payload.or_number,
-          payload.status
-        ]);
-
-        let insertResult;
+        const client = await pool.connect();
         try {
-          insertResult = await insertPayment();
-        } catch (insertError) {
-          const isPaymentSequenceDrift = insertError?.code === '23505'
-            && String(insertError?.constraint || '').toLowerCase() === 'payment_pkey';
-          if (!isPaymentSequenceDrift) {
-            throw insertError;
+          await client.query('BEGIN');
+          if (!payload.or_number) {
+            payload.or_number = await generateOfficialReceiptNumber(client, payload.payment_date);
+          }
+          if (!payload.reference_number) {
+            payload.reference_number = payload.or_number;
           }
 
-          await synchronizePostgresSequence(pool, 'payment', 'payment_id');
-          insertResult = await insertPayment();
-        }
-        const { rows } = insertResult;
+          const billResult = await client.query(
+            `SELECT *
+             FROM bills
+             WHERE consumer_id = $1
+               AND LOWER(COALESCE(status, 'unpaid')) <> 'paid'
+             ORDER BY bill_date ASC, bill_id ASC
+             FOR UPDATE`,
+            [payload.consumer_id]
+          );
+          if (!billResult.rows.length) {
+            throw createHttpError('This account has no unpaid bills to settle.', 400);
+          }
 
-        if (['validated', 'paid'].includes(String(payload.status || '').toLowerCase())) {
-          const paymentTotals = await pool.query(
-            `SELECT COALESCE(SUM(amount_paid), 0)::numeric AS total_paid
+          const paidTotalsResult = await client.query(
+            `SELECT bill_id, COALESCE(SUM(amount_paid), 0)::numeric AS total_paid
              FROM payment
-             WHERE bill_id = $1
-               AND LOWER(COALESCE(status, 'validated')) IN ('validated', 'paid')`,
-            [payment.Bill_ID]
+             WHERE consumer_id = $1
+               AND LOWER(COALESCE(status, 'validated')) IN ('validated', 'paid')
+             GROUP BY bill_id`,
+            [payload.consumer_id]
           );
-          const totalPaid = Number(paymentTotals.rows[0]?.total_paid || 0);
-          const amountDue = Number(adjustedBill?.Total_After_Due_Date || adjustedBill?.Total_Amount || existingBill?.total_after_due_date || existingBill?.total_amount || 0);
-          const nextBillStatus = totalPaid >= amountDue && amountDue > 0 ? 'Paid' : 'Partially Paid';
-          await pool.query(
-            'UPDATE bills SET status = $1 WHERE bill_id = $2',
-            [nextBillStatus, payment.Bill_ID]
-          );
+          const paidTotals = new Map(paidTotalsResult.rows.map((entry) => [Number(entry.bill_id), Number(entry.total_paid || 0)]));
+          const candidates = [];
+          for (const bill of billResult.rows) {
+            const adjustedBill = applyBillPenaltySnapshot(bill, adminSettings, payload.payment_date || new Date());
+            const dueAmount = roundCurrency(Number(adjustedBill?.Total_After_Due_Date || adjustedBill?.Amount_Due || adjustedBill?.Total_Amount || bill.total_after_due_date || bill.amount_due || bill.total_amount || 0));
+            const alreadyPaid = roundCurrency(paidTotals.get(Number(bill.bill_id)) || 0);
+            const remainingDue = roundCurrency(Math.max(0, dueAmount - alreadyPaid));
+            if (remainingDue <= 0) {
+              await client.query('UPDATE bills SET status = $1 WHERE bill_id = $2', ['Paid', bill.bill_id]);
+              continue;
+            }
+            candidates.push({ bill, adjustedBill, dueAmount, remainingDue });
+          }
+
+          if (!candidates.length) {
+            throw createHttpError('This account has no unpaid bills to settle.', 400);
+          }
+
+          let availableAmount = roundCurrency(payload.amount_paid);
+          const allocations = [];
+          for (const candidate of candidates) {
+            if (availableAmount >= candidate.remainingDue) {
+              allocations.push(candidate);
+              availableAmount = roundCurrency(availableAmount - candidate.remainingDue);
+            } else {
+              break;
+            }
+          }
+
+          if (!allocations.length) {
+            throw createHttpError(`Payment must fully cover the oldest unpaid bill: PHP ${candidates[0].remainingDue.toFixed(2)}.`, 400);
+          }
+          if (availableAmount !== 0) {
+            throw createHttpError('Payment amount must exactly match one or more full oldest unpaid bills. No partial bill payment or advance balance is allowed.', 400);
+          }
+
+          const insertedRows = [];
+          for (const allocation of allocations) {
+            await client.query(
+              `UPDATE bills
+               SET penalty = $1,
+                   total_after_due_date = $2,
+                   status = $3
+               WHERE bill_id = $4`,
+              [
+                allocation.adjustedBill?.Penalty || 0,
+                allocation.dueAmount,
+                'Paid',
+                allocation.bill.bill_id,
+              ]
+            );
+
+            let insertResult;
+            try {
+              insertResult = await client.query(`
+                INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number, or_number, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING *, payment_id AS "Payment_ID", or_number AS "OR_Number", reference_number AS "Reference_No"
+              `, [
+                allocation.bill.bill_id,
+                payload.consumer_id,
+                allocation.remainingDue,
+                payload.payment_date,
+                payload.payment_method,
+                payload.reference_number,
+                payload.or_number,
+                payload.status,
+              ]);
+            } catch (insertError) {
+              const isPaymentSequenceDrift = insertError?.code === '23505'
+                && String(insertError?.constraint || '').toLowerCase() === 'payment_pkey';
+              if (!isPaymentSequenceDrift) {
+                throw insertError;
+              }
+              await synchronizePostgresSequence(client, 'payment', 'payment_id');
+              insertResult = await client.query(`
+                INSERT INTO payment (bill_id, consumer_id, amount_paid, payment_date, payment_method, reference_number, or_number, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING *, payment_id AS "Payment_ID", or_number AS "OR_Number", reference_number AS "Reference_No"
+              `, [
+                allocation.bill.bill_id,
+                payload.consumer_id,
+                allocation.remainingDue,
+                payload.payment_date,
+                payload.payment_method,
+                payload.reference_number,
+                payload.or_number,
+                payload.status,
+              ]);
+            }
+            insertedRows.push(insertResult.rows[0]);
+          }
+
+          await client.query('COMMIT');
+          return {
+            ...insertedRows[0],
+            Payment_ID: insertedRows[0]?.Payment_ID || insertedRows[0]?.payment_id,
+            Amount_Paid: payload.amount_paid,
+            amount_paid: payload.amount_paid,
+            OR_Number: payload.or_number,
+            Reference_No: payload.reference_number,
+            Allocated_Bills: allocations.map((allocation) => ({
+              Bill_ID: allocation.bill.bill_id,
+              Amount_Applied: allocation.remainingDue,
+              Billing_Month: allocation.bill.billing_month,
+            })),
+          };
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
         }
-        return rows[0];
       },
       async () => {
         if (!payload.or_number) {
@@ -9658,46 +9804,107 @@ app.post('/api/payments', async (req, res) => {
         if (!payload.reference_number) {
           payload.reference_number = payload.or_number;
         }
+        const [{ data: bills, error: billsError }, { data: existingPayments, error: paymentsError }] = await Promise.all([
+          supabase
+            .from('bills')
+            .select('*')
+            .eq('consumer_id', payload.consumer_id)
+            .neq('status', 'Paid')
+            .order('bill_date', { ascending: true })
+            .order('bill_id', { ascending: true }),
+          supabase
+            .from('payment')
+            .select('bill_id, amount_paid, status')
+            .eq('consumer_id', payload.consumer_id),
+        ]);
+        if (billsError) throw billsError;
+        if (paymentsError) throw paymentsError;
+        if (!(bills || []).length) {
+          throw createHttpError('This account has no unpaid bills to settle.', 400);
+        }
 
-        const { data: existingBill, error: billLookupError } = await supabase
-          .from('bills')
-          .select('*')
-          .eq('bill_id', payload.bill_id)
-          .limit(1)
-          .maybeSingle();
-        if (billLookupError) throw billLookupError;
+        const paidTotals = new Map();
+        (existingPayments || [])
+          .filter((entry) => ['validated', 'paid'].includes(String(entry.status || 'validated').toLowerCase()))
+          .forEach((entry) => {
+            const billId = Number(entry.bill_id || 0);
+            paidTotals.set(billId, roundCurrency((paidTotals.get(billId) || 0) + Number(entry.amount_paid || 0)));
+          });
 
-        const adjustedBill = applyBillPenaltySnapshot(existingBill, adminSettings, payload.payment_date || new Date());
-        if (adjustedBill && existingBill) {
-          const { error: billUpdateError } = await supabase
+        const candidates = [];
+        for (const bill of (bills || [])) {
+          const adjustedBill = applyBillPenaltySnapshot(bill, adminSettings, payload.payment_date || new Date());
+          const dueAmount = roundCurrency(Number(adjustedBill?.Total_After_Due_Date || adjustedBill?.Amount_Due || adjustedBill?.Total_Amount || bill.total_after_due_date || bill.amount_due || bill.total_amount || 0));
+          const alreadyPaid = roundCurrency(paidTotals.get(Number(bill.bill_id)) || 0);
+          const remainingDue = roundCurrency(Math.max(0, dueAmount - alreadyPaid));
+          if (remainingDue <= 0) {
+            await supabase.from('bills').update({ status: 'Paid' }).eq('bill_id', bill.bill_id);
+            continue;
+          }
+          candidates.push({ bill, adjustedBill, dueAmount, remainingDue });
+        }
+
+        if (!candidates.length) {
+          throw createHttpError('This account has no unpaid bills to settle.', 400);
+        }
+
+        let availableAmount = roundCurrency(payload.amount_paid);
+        const allocations = [];
+        for (const candidate of candidates) {
+          if (availableAmount >= candidate.remainingDue) {
+            allocations.push(candidate);
+            availableAmount = roundCurrency(availableAmount - candidate.remainingDue);
+          } else {
+            break;
+          }
+        }
+
+        if (!allocations.length) {
+          throw createHttpError(`Payment must fully cover the oldest unpaid bill: PHP ${candidates[0].remainingDue.toFixed(2)}.`, 400);
+        }
+        if (availableAmount !== 0) {
+          throw createHttpError('Payment amount must exactly match one or more full oldest unpaid bills. No partial bill payment or advance balance is allowed.', 400);
+        }
+
+        const rowsToInsert = allocations.map((allocation) => ({
+          bill_id: allocation.bill.bill_id,
+          consumer_id: payload.consumer_id,
+          amount_paid: allocation.remainingDue,
+          payment_date: payload.payment_date,
+          payment_method: payload.payment_method,
+          reference_number: payload.reference_number,
+          or_number: payload.or_number,
+          status: payload.status,
+        }));
+        const { data, error } = await supabase.from('payment').insert(rowsToInsert).select();
+        if (error) throw error;
+
+        for (const allocation of allocations) {
+          const { error: billError } = await supabase
             .from('bills')
             .update({
-              penalty: adjustedBill.Penalty || 0,
-              total_after_due_date: adjustedBill.Total_After_Due_Date || adjustedBill.Total_Amount || 0,
-              status: adjustedBill.Status || existingBill.status,
+              penalty: allocation.adjustedBill?.Penalty || 0,
+              total_after_due_date: allocation.dueAmount,
+              status: 'Paid',
             })
-            .eq('bill_id', payload.bill_id);
-          if (billUpdateError) throw billUpdateError;
-        }
-
-        const { data, error } = await supabase.from('payment').insert([payload]).select().single();
-        if (error) throw error;
-        if (['validated', 'paid'].includes(String(payload.status || '').toLowerCase())) {
-          const { data: billPayments, error: billPaymentsError } = await supabase
-            .from('payment')
-            .select('amount_paid, status')
-            .eq('bill_id', payment.Bill_ID);
-          if (billPaymentsError) throw billPaymentsError;
-
-          const totalPaid = (billPayments || [])
-            .filter((entry) => ['validated', 'paid'].includes(String(entry.status || 'validated').toLowerCase()))
-            .reduce((sum, entry) => sum + Number(entry.amount_paid || 0), 0);
-          const amountDue = Number(adjustedBill?.Total_After_Due_Date || adjustedBill?.Total_Amount || existingBill?.total_after_due_date || existingBill?.total_amount || 0);
-          const nextBillStatus = totalPaid >= amountDue && amountDue > 0 ? 'Paid' : 'Partially Paid';
-          const { error: billError } = await supabase.from('bills').update({ status: nextBillStatus }).eq('bill_id', payment.Bill_ID);
+            .eq('bill_id', allocation.bill.bill_id);
           if (billError) throw billError;
         }
-        return { ...data, Payment_ID: data.payment_id };
+
+        const firstRow = (data || [])[0] || {};
+        return {
+          ...firstRow,
+          Payment_ID: firstRow.payment_id,
+          Amount_Paid: payload.amount_paid,
+          amount_paid: payload.amount_paid,
+          OR_Number: payload.or_number,
+          Reference_No: payload.reference_number,
+          Allocated_Bills: allocations.map((allocation) => ({
+            Bill_ID: allocation.bill.bill_id,
+            Amount_Applied: allocation.remainingDue,
+            Billing_Month: allocation.bill.billing_month,
+          })),
+        };
       }
     );
     await writeSystemLog(
@@ -9709,7 +9916,7 @@ app.post('/api/payments', async (req, res) => {
   } catch (error) {
     await logRequestError(req, 'payments.create', error);
     console.error('Error creating payment:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -11669,7 +11876,14 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
       const mappedPayments = (paymentsResult.data || [])
         .filter((payment) => payment.consumer_id === matchedConsumer.consumer_id)
         .map((payment) => mapPaymentRecord(payment, new Map([[matchedConsumer.consumer_id, matchedConsumer]]), new Map(mappedBills.map((bill) => [bill.Bill_ID, { total_amount: bill.Total_Amount, billing_month: bill.Billing_Month }]))));
-      const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || null;
+      const unpaidBillsOldestFirst = mappedBills
+        .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
+        .slice()
+        .sort((left, right) =>
+          new Date(left.Bill_Date || left.Due_Date || 0).getTime() - new Date(right.Bill_Date || right.Due_Date || 0).getTime() ||
+          Number(left.Bill_ID || 0) - Number(right.Bill_ID || 0)
+        );
+      const rawCurrentBill = unpaidBillsOldestFirst[0] || null;
       const currentBill = applyBillPenaltySnapshot(rawCurrentBill, adminSettings);
       const previousBalance = mappedBills
         .filter((bill) => currentBill ? bill.Bill_ID !== currentBill.Bill_ID : true)
@@ -11758,7 +11972,14 @@ app.get('/api/treasurer/account-lookup', async (req, res) => {
 
         const mappedBills = billRows.rows.map((bill) => mapBillRecord(bill, new Map([[consumer.consumer_id, consumer]]), new Map([[consumer.classification_id, consumer.classification_name]])));
         const mappedPayments = paymentRows.rows.map((payment) => mapPaymentRecord(payment, new Map([[consumer.consumer_id, consumer]]), new Map(mappedBills.map((bill) => [bill.Bill_ID, { total_amount: bill.Total_Amount, billing_month: bill.Billing_Month }]))));
-        const rawCurrentBill = mappedBills.find((bill) => String(bill.Status || '').toLowerCase() !== 'paid') || null;
+        const unpaidBillsOldestFirst = mappedBills
+          .filter((bill) => String(bill.Status || '').toLowerCase() !== 'paid')
+          .slice()
+          .sort((left, right) =>
+            new Date(left.Bill_Date || left.Due_Date || 0).getTime() - new Date(right.Bill_Date || right.Due_Date || 0).getTime() ||
+            Number(left.Bill_ID || 0) - Number(right.Bill_ID || 0)
+          );
+        const rawCurrentBill = unpaidBillsOldestFirst[0] || null;
         const currentBill = applyBillPenaltySnapshot(rawCurrentBill, adminSettings);
         const previousBalance = mappedBills
           .filter((bill) => currentBill ? bill.Bill_ID !== currentBill.Bill_ID : true)

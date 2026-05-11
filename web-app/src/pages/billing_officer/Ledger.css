@@ -384,10 +384,11 @@
 
 .billing-paper-theme .form-label {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   text-transform: uppercase;
-  color: #1e293b;
+  color: #334155;
   margin-bottom: 4px;
+  letter-spacing: 0.01em;
 }
 
 .billing-paper-theme .form-data.underline {
@@ -416,6 +417,7 @@
   border: 1px solid #000;
   padding: 8px 6px;
   font-size: 14px;
+  vertical-align: middle;
 }
 
 .billing-paper-theme .paper-ledger-table th {
@@ -438,6 +440,25 @@
   height: 24px !important;
 }
 
+.billing-paper-theme .ledger-cell-date,
+.billing-paper-theme .ledger-cell-reference {
+  text-align: center;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.billing-paper-theme .ledger-cell-number,
+.billing-paper-theme .ledger-cell-money,
+.billing-paper-theme .ledger-cell-centavos {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.billing-paper-theme .ledger-cell-payment {
+  font-weight: 800;
+}
+
 .billing-paper-theme .ledger-footer-actions {
   display: flex;
   justify-content: flex-end;
@@ -447,8 +468,27 @@
 
 /* Print Overrides */
 @media print {
+  @page { size: landscape; margin: 10mm; }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .printable-ledger-report,
+  .printable-ledger-report * {
+    visibility: visible !important;
+  }
+
+  .printable-ledger-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
   .no-print { display: none !important; }
-  .billing-paper-theme { 
+  .billing-paper-theme {
     box-shadow: none !important; 
     padding: 0 !important;
     background: #bae6fd !important;

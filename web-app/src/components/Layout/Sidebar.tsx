@@ -19,6 +19,7 @@ const menuItems: MenuItem[] = [
   { path: '/applications',   icon: 'fas fa-file-signature',      label: 'Applications',          roles: [1] },
   { path: '/meter-reading',  icon: 'fas fa-calendar-alt',        label: 'Reader & Zone Setup',   roles: [1] },
   { path: '/reports',        icon: 'fas fa-chart-bar',           label: 'Reports',               roles: [1] },
+  { path: '/payments',       icon: 'fas fa-money-bill-wave',     label: 'Process Payment',       roles: [1] },
   { path: '/ledger',         icon: 'fas fa-book',                label: 'Delinquents & Ledger',  roles: [1] },
   { path: '/settings',       icon: 'fas fa-cogs',                label: 'System Settings',       roles: [1] },
   { path: '/maintenance',    icon: 'fas fa-tools',               label: 'System Maintenance',    roles: [1] },

@@ -335,10 +335,11 @@
 
 .treasurer-paper-theme .form-label {
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 600;
   text-transform: uppercase;
-  color: #475569;
+  color: #334155;
   margin-bottom: 4px;
+  letter-spacing: 0.01em;
 }
 
 .treasurer-paper-theme .form-data.underline {
@@ -367,6 +368,7 @@
   border: 1px solid #000;
   padding: 8px 6px;
   font-size: 12px;
+  vertical-align: middle;
 }
 
 .treasurer-paper-theme .paper-ledger-table th {
@@ -383,6 +385,25 @@
   height: 20px !important;
 }
 
+.treasurer-paper-theme .ledger-cell-date,
+.treasurer-paper-theme .ledger-cell-reference {
+  text-align: center;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.treasurer-paper-theme .ledger-cell-number,
+.treasurer-paper-theme .ledger-cell-money,
+.treasurer-paper-theme .ledger-cell-centavos {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.treasurer-paper-theme .ledger-cell-payment {
+  font-weight: 800;
+}
+
 .treasurer-paper-theme .ledger-footer-actions {
   display: flex;
   justify-content: flex-end;
@@ -392,6 +413,25 @@
 
 /* Print Overrides */
 @media print {
+  @page { size: portrait; margin: 10mm; }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .printable-ledger-report,
+  .printable-ledger-report * {
+    visibility: visible !important;
+  }
+
+  .printable-ledger-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
   .no-print { display: none !important; }
   .treasurer-paper-theme { 
     box-shadow: none !important; 

@@ -591,6 +591,9 @@ const ProcessPayment: React.FC = () => {
                     onChange={(e) => setAmountPaid(e.target.value)}
                     disabled={selectedConsumer?.Status?.toLowerCase() === 'paid'}
                   />
+                  <small className="payment-rule-note">
+                    Payment must exactly cover one or more oldest unpaid bills. Partial monthly bills and advance balances are not allowed.
+                  </small>
                 </div>
               </div>
 

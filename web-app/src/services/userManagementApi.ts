@@ -783,7 +783,11 @@ const buildAccountLookupFallback = async (query: string) => {
     .slice()
     .sort((left, right) => toDateTime(right.Payment_Date) - toDateTime(left.Payment_Date));
 
-  const currentBill = consumerBills.find((row) => normalizeStatus(row.Status) !== 'paid') || consumerBills[0] || null;
+  const currentBill = consumerBills
+    .filter((row) => normalizeStatus(row.Status) !== 'paid')
+    .slice()
+    .sort((left, right) => toDateTime(left.Bill_Date || left.Due_Date) - toDateTime(right.Bill_Date || right.Due_Date))
+    [0] || consumerBills[0] || null;
   if (!currentBill) {
     return {
       Consumer: {
